@@ -1,0 +1,14 @@
+[package]
+name = "beetry-reconstruction"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+bon.workspace = true
+nonempty.workspace = true
+tracing.workspace = true
+
+beetry-definitions = { version = "0.1.0", path = "../beetry-definitions" }
+beetry-backend = { version = "0.1.0", path = "../beetry-backend" }
+beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
