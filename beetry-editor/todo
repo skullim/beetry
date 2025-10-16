@@ -1,0 +1,17 @@
+Features:
+- subtrees
+- search for node name
+- show node id
+- control-child edge should display an index to indicate the ticking order of child nodes
+- node position in the editor should correspond to child index of control node (children sorted from left to right)
+- long term there should be button to align the nodes in the tree
+- resize nodes
+
+Improvements:
+- split domain and ui related data and implement coordination layer. This will decouple ui element props and make rendering more efficient 
+- Once 0.7 becomes stable use Store instead of Signal<HashMap<T, V>> (https://github.com/DioxusLabs/docsite/pull/538)
+
+UX:
+- tailwindcss
+- lit node and ports when hovering
+- focus mouse when rendering temp edge and in proximity of a port
