@@ -1,0 +1,17 @@
+[package]
+name = "beetry-definitions"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+bon.workspace = true
+nonempty.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+derive-getters = { version = "0.5.0", features = ["auto_copy_getters"] }
+type_hash = "0.3.0"
+derive_more = { version = "2.0.1", features = ["display"] }
+serde_json = "1.0.145"
