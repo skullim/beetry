@@ -1,0 +1,20 @@
+[package]
+name = "beetry-backend"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+bon.workspace = true
+nonempty.workspace = true
+strum_macros.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+anymap3 = "1.0.1"
+beetry-definitions = { version = "0.1.0", path = "../beetry-definitions" }
+futures = "0.3.31"
+state-shift = "2.1.1"
+tokio = { version = "1.47.1", features = ["sync", "time", "macros"] }
+
+[dev-dependencies]
+mockall = "0.13.1"
