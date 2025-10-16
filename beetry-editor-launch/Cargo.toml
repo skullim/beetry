@@ -1,0 +1,9 @@
+[package]
+name = "beetry-editor-launch"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+beetry-client = { version = "0.1.0", path = "../beetry-client" }
+beetry-editor = { version = "0.1.0", path = "../beetry-editor" }
+beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
