@@ -1,0 +1,27 @@
+[package]
+name = "beetry-client"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.99"
+bon = "3.7.1"
+beetry-backend = { version = "0.1.0", path = "../beetry-backend" }
+beetry-definitions = { version = "0.1.0", path = "../beetry-definitions" }
+inventory = "0.3.21"
+nonempty = "0.12.0"
+tokio = { version = "1.47.1", features = ["macros", "rt"] }
+tracing.workspace = true
+tracing-subscriber = "0.3.19"
+tracing-tree = "0.4.0"
+beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
+beetry-reconstruction = { version = "0.1.0", path = "../beetry-reconstruction" }
+type_hash = "0.3.0"
+beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }
+beetry-macros = { version = "0.1.0", path = "../beetry-macros" }
+beetry-editor = { version = "0.1.0", path = "../beetry-editor" }
+rfd = { version = "0.15.4", default-features = false, features = [
+    "xdg-portal",
+    "tokio",
+] }
+serde.workspace = true
