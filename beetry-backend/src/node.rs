@@ -5,6 +5,9 @@ mod leaf;
 mod mock;
 mod traced;
 
+mod nonempty;
+pub use nonempty::NonEmptyNodes;
+
 #[cfg(test)]
 pub(crate) use mock::test as mock_test;
 

@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use tracing::debug;
 
 use beetry_backend::{
-    BehaviorTree, BehaviorTreeBuilder, Fallback, Node, Parallel, Sequence, channel::external,
+    BehaviorTree, BehaviorTreeBuilder, Fallback, Node, NonEmptyNodes, Parallel, Sequence,
+    channel::external,
 };
 use beetry_definitions::{
     description::{LeafDescription, LeafKind, MessageHash, NodeHash},
@@ -102,8 +103,8 @@ impl TreeReconstructor {
                         )
                     })
                     .collect::<Result<_>>()?;
-                let children = nonempty::NonEmpty::from_vec(children)
-                    .ok_or_else(|| anyhow!("wrong export, no children found for control node"))?;
+                let children = NonEmptyNodes::try_from(children)
+                    .map_err(|_| anyhow!("wrong export, no children found for control node"))?;
 
                 match control_kind {
                     ControlKind::Fallback => Ok(Box::new(Fallback::new(children))),

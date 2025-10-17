@@ -9,7 +9,6 @@ pub use parallel::Parallel;
 pub use sequence::Sequence;
 
 use crate::Node;
-use nonempty::NonEmpty;
 
 struct RunningNodesAborter {
     running: BTreeSet<usize>,
@@ -38,13 +37,13 @@ impl RunningNodesAborter {
         self.running.take(&idx);
     }
 
-    fn abort_if_other_running(&mut self, nodes: &mut NonEmpty<Box<dyn Node>>, other: usize) {
-        if !self.running.contains(&other) {
+    fn abort_if_other_running(&mut self, nodes: &mut [Box<dyn Node>], idx: usize) {
+        if !self.running.contains(&idx) {
             self.abort_all(nodes);
         }
     }
 
-    fn abort_all(&mut self, nodes: &mut NonEmpty<Box<dyn Node>>) {
+    fn abort_all(&mut self, nodes: &mut [Box<dyn Node>]) {
         while let Some(idx) = self.running.pop_first() {
             nodes[idx].abort();
         }

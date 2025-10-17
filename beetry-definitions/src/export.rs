@@ -1,7 +1,7 @@
 use anyhow::{Result, anyhow};
 use derive_getters::Getters;
 use derive_more::Display;
-use nonempty::NonEmpty;
+use mitsein::{iter1::FromIterator1, vec1::Vec1};
 use std::{
     collections::{BTreeSet, HashMap},
     num::NonZeroUsize,
@@ -176,7 +176,7 @@ pub enum NodeExport {
 pub struct ControlExport {
     #[getter(copy)]
     kind: ControlKind,
-    children: NonEmpty<Box<NodeExport>>,
+    children: Vec1<Box<NodeExport>>,
 }
 
 impl ControlExport {
@@ -184,8 +184,8 @@ impl ControlExport {
         kind: ControlKind,
         children: impl IntoIterator<Item = Box<NodeExport>>,
     ) -> Result<Self> {
-        let children =
-            NonEmpty::collect(children).ok_or(anyhow!("received empty children iterator"))?;
+        let children = Vec1::try_from_iter(children)
+            .map_err(|_| anyhow!("received empty children iterator"))?;
         Ok(Self { kind, children })
     }
 
@@ -371,7 +371,7 @@ mod tests {
     fn create_test_sequence(children: Vec<NodeExport>) -> NodeExport {
         NodeExport::Control(ControlExport {
             kind: ControlKind::Sequence,
-            children: NonEmpty::from_vec(children.into_iter().map(Box::new).collect()).unwrap(),
+            children: Vec1::try_from_iter(children.into_iter().map(Box::new)).unwrap(),
         })
     }
 
