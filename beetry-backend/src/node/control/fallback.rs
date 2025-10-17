@@ -1,20 +1,19 @@
 use crate::{
     node::{
-        Node, NodeIdentifier, NodeType, TracedNode,
+        Node,
         control::RunningNodesAborter,
         nonempty::{Indices, NonEmptyNodes},
     },
-    node_impl,
     status::TreeStatus,
 };
 
-struct FallbackControl {
+pub struct Fallback {
     nodes: NonEmptyNodes,
     aborter: RunningNodesAborter,
 }
 
-impl FallbackControl {
-    fn new(nodes: NonEmptyNodes) -> Self {
+impl Fallback {
+    pub fn new(nodes: NonEmptyNodes) -> Self {
         Self {
             nodes,
             aborter: RunningNodesAborter::new(),
@@ -22,7 +21,7 @@ impl FallbackControl {
     }
 }
 
-impl Node for FallbackControl {
+impl Node for Fallback {
     fn tick(&mut self) -> TreeStatus {
         let aborter = &mut self.aborter;
         for idx in self.nodes.indices() {
@@ -60,18 +59,6 @@ impl Node for FallbackControl {
         }
     }
 }
-
-pub struct Fallback(TracedNode<FallbackControl>);
-impl Fallback {
-    pub fn new(nodes: impl Into<NonEmptyNodes>) -> Self {
-        Self(TracedNode::new(
-            FallbackControl::new(nodes.into()),
-            NodeIdentifier::new(NodeType::Fallback),
-        ))
-    }
-}
-
-node_impl!(Fallback);
 
 #[cfg(test)]
 mod tests {

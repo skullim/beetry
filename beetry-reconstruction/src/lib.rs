@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use tracing::debug;
 
 use beetry_backend::{
-    BehaviorTree, BehaviorTreeBuilder, Fallback, Node, NonEmptyNodes, Parallel, Sequence,
-    channel::external,
+    BehaviorTree, BehaviorTreeBuilder, BoxedNode, Fallback, Node, NonEmptyNodes, Parallel, Root,
+    Sequence, channel::external,
 };
 use beetry_definitions::{
     description::{LeafDescription, LeafKind, MessageHash, NodeHash},
@@ -40,7 +40,7 @@ impl TreeReconstructor {
         &mut self,
         export: TreeExport,
         builder: &BehaviorTreeBuilder,
-    ) -> Result<BehaviorTree> {
+    ) -> Result<BehaviorTree<BoxedNode>> {
         let channel_factory_map = ChannelHashToFactoryMap::new(channel::plugins());
         let mut channels = Self::try_reconstruct_channels(export.channels, channel_factory_map)?;
 
@@ -48,7 +48,7 @@ impl TreeReconstructor {
             ActionHashToFactoryMap::new(node::ActionNodePluginConstructor::plugins());
         let condition_factory_map =
             ConditionHashToFactoryMap::new(node::ConditionNodePluginConstructor::plugins());
-        let root = Self::try_reconstruct_tree(
+        let child = Self::try_reconstruct_tree(
             export.root.into_child(),
             &action_factory_map,
             &condition_factory_map,
@@ -56,7 +56,7 @@ impl TreeReconstructor {
             &mut self.external_receivers,
             builder,
         )?;
-        Ok(BehaviorTree::new(root))
+        Ok(BehaviorTree::new(Root::new(child)))
     }
 
     fn try_reconstruct_channels(

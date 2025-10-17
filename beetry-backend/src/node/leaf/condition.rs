@@ -1,8 +1,4 @@
-use crate::{
-    node::{Node, NodeIdentifier, NodeType, TracedNode},
-    node_impl,
-    status::TreeStatus,
-};
+use crate::{node::Node, status::TreeStatus};
 
 pub trait Behavior {
     fn cond(&mut self) -> bool;
@@ -18,23 +14,23 @@ impl Behavior for Box<dyn Behavior> {
     }
 }
 
-struct ConditionLeaf<B>
+pub struct Condition<B>
 where
     B: Behavior,
 {
     behavior: B,
 }
 
-impl<B> ConditionLeaf<B>
+impl<B> Condition<B>
 where
     B: Behavior,
 {
-    fn new(behavior: B) -> Self {
+    pub fn new(behavior: B) -> Self {
         Self { behavior }
     }
 }
 
-impl<B> Node for ConditionLeaf<B>
+impl<B> Node for Condition<B>
 where
     B: Behavior,
 {
@@ -48,19 +44,3 @@ where
         self.behavior.reset();
     }
 }
-
-pub(crate) struct Condition<B>(TracedNode<ConditionLeaf<B>>)
-where
-    B: Behavior;
-impl<B> Condition<B>
-where
-    B: Behavior,
-{
-    pub(crate) fn new(behavior: B) -> Self {
-        Self(TracedNode::new(
-            ConditionLeaf::new(behavior),
-            NodeIdentifier::new(NodeType::Condition),
-        ))
-    }
-}
-node_impl!(Condition<B> where B: Behavior);

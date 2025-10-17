@@ -1,28 +1,27 @@
 use crate::{
     node::{
-        Node, NodeIdentifier, NodeType, TracedNode,
+        Node,
         control::RunningNodesAborter,
         nonempty::{Indices, NonEmptyNodes},
     },
-    node_impl,
     status::TreeStatus,
 };
 
-struct SequenceControl {
+pub struct Sequence {
     nodes: NonEmptyNodes,
     aborter: RunningNodesAborter,
 }
 
-impl SequenceControl {
-    fn new(nodes: NonEmptyNodes) -> Self {
+impl Sequence {
+    pub fn new(nodes: impl Into<NonEmptyNodes>) -> Self {
         Self {
-            nodes,
+            nodes: nodes.into(),
             aborter: RunningNodesAborter::new(),
         }
     }
 }
 
-impl Node for SequenceControl {
+impl Node for Sequence {
     fn tick(&mut self) -> TreeStatus {
         let aborter = &mut self.aborter;
         for idx in self.nodes.indices() {
@@ -61,17 +60,6 @@ impl Node for SequenceControl {
         }
     }
 }
-
-pub struct Sequence(TracedNode<SequenceControl>);
-impl Sequence {
-    pub fn new(nodes: impl Into<NonEmptyNodes>) -> Self {
-        Self(TracedNode::new(
-            SequenceControl::new(nodes.into()),
-            NodeIdentifier::new(NodeType::Sequence),
-        ))
-    }
-}
-node_impl!(Sequence);
 
 #[cfg(test)]
 mod tests {

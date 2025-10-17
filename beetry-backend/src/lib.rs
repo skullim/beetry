@@ -8,7 +8,8 @@ mod tree;
 pub use blackboard::{Blackboard, SharedBlackboard};
 pub use channel::{AnyBoxedReceiver, AnyBoxedSender};
 pub use node::{
-    ActionBehavior, BoxedNode, ConditionBehavior, Fallback, Node, NonEmptyNodes, Parallel, Sequence,
+    ActionBehavior, BoxedNode, ConditionBehavior, Fallback, Node, NonEmptyNodes, Parallel, Root,
+    Sequence,
 };
 pub use status::TreeStatus;
 pub use task::{NodeTask, NodeTaskFuture, Task, TaskDescription};
