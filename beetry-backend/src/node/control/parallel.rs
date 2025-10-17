@@ -1,19 +1,21 @@
-use nonempty::NonEmpty;
-
 use crate::{
-    node::{BoxedNode, Node, NodeIdentifier, NodeType, TracedNode, control::RunningNodesAborter},
+    node::{
+        Node, NodeIdentifier, NodeType, TracedNode,
+        control::RunningNodesAborter,
+        nonempty::{Indices, NonEmptyNodes},
+    },
     node_impl,
     status::TreeStatus,
 };
 
 /// Parallel node succeeds when all nodes succeed
 struct ParallelControl {
-    nodes: NonEmpty<BoxedNode>,
+    nodes: NonEmptyNodes,
     aborter: RunningNodesAborter,
 }
 
 impl ParallelControl {
-    fn new(nodes: NonEmpty<BoxedNode>) -> Self {
+    fn new(nodes: NonEmptyNodes) -> Self {
         Self {
             nodes,
             aborter: RunningNodesAborter::new(),
@@ -24,7 +26,7 @@ impl ParallelControl {
 impl Node for ParallelControl {
     fn tick(&mut self) -> TreeStatus {
         let aborter: &mut RunningNodesAborter = &mut self.aborter;
-        for idx in 0..self.nodes.len() {
+        for idx in self.nodes.indices() {
             let node = &mut self.nodes[idx];
             match node.tick() {
                 TreeStatus::Success => {
@@ -66,9 +68,9 @@ impl Node for ParallelControl {
 
 pub struct Parallel(TracedNode<ParallelControl>);
 impl Parallel {
-    pub fn new(nodes: NonEmpty<BoxedNode>) -> Self {
+    pub fn new(nodes: impl Into<NonEmptyNodes>) -> Self {
         Self(TracedNode::new(
-            ParallelControl::new(nodes),
+            ParallelControl::new(nodes.into()),
             NodeIdentifier::new(NodeType::Parallel),
         ))
     }
@@ -78,8 +80,6 @@ node_impl!(Parallel);
 
 #[cfg(test)]
 mod tests {
-    use nonempty::nonempty;
-
     use super::*;
     use crate::node::MockNode;
     use crate::node::Node;
@@ -88,10 +88,10 @@ mod tests {
 
     #[test]
     fn success_with_all_success() {
-        let nodes = nonempty![
-            tests::boxed(mock().status(TreeStatus::Success).times(1).call()),
-            boxed(mock().status(TreeStatus::Success).times(1).call())
-        ];
+        let nodes = NonEmptyNodes::from([
+            boxed(mock().status(TreeStatus::Success).times(1).call()),
+            boxed(mock().status(TreeStatus::Success).times(1).call()),
+        ]);
         let mut pl = Parallel::new(nodes);
 
         assert_eq!(pl.tick(), TreeStatus::Success);
@@ -99,22 +99,22 @@ mod tests {
 
     #[test]
     fn running_with_any_running() {
-        let nodes = nonempty![
+        let nodes = NonEmptyNodes::from([
             boxed(mock().status(TreeStatus::Success).times(1).call()),
             boxed(mock().status(TreeStatus::Running).times(1).call()),
-            boxed(mock().status(TreeStatus::Running).times(1).call())
-        ];
+            boxed(mock().status(TreeStatus::Running).times(1).call()),
+        ]);
         let mut pl = Parallel::new(nodes);
         assert_eq!(pl.tick(), TreeStatus::Running);
     }
 
     #[test]
     fn failure_with_any_failed() {
-        let nodes = nonempty![
+        let nodes = NonEmptyNodes::from([
             boxed(mock().status(TreeStatus::Success).times(1).call()),
             boxed(mock().status(TreeStatus::Failure).times(1).call()),
-            boxed(mock().status(TreeStatus::Success).times(0).call())
-        ];
+            boxed(mock().status(TreeStatus::Success).times(0).call()),
+        ]);
         let mut pl = Parallel::new(nodes);
 
         assert_eq!(pl.tick(), TreeStatus::Failure);
@@ -137,7 +137,8 @@ mod tests {
         m2.expect_abort().once().return_const(());
         m3.expect_abort().once().return_const(());
 
-        let mut pl = Parallel::new(nonempty![boxed(m1), boxed(m2), boxed(m3)]);
+        let nodes = NonEmptyNodes::from([boxed(m1), boxed(m2), boxed(m3)]);
+        let mut pl = Parallel::new(nodes);
 
         assert_eq!(pl.tick(), TreeStatus::Running);
         assert_eq!(pl.tick(), TreeStatus::Running);

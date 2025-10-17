@@ -1,5 +1,5 @@
 // import all the crates that register the plugins to have them available in the editor
-use beetry_client as _;
+use beetry_example as _;
 
 fn main() {
     beetry_editor::launch();

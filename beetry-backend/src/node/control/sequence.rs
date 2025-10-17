@@ -1,18 +1,20 @@
-use nonempty::NonEmpty;
-
 use crate::{
-    node::{BoxedNode, Node, NodeIdentifier, NodeType, TracedNode, control::RunningNodesAborter},
+    node::{
+        Node, NodeIdentifier, NodeType, TracedNode,
+        control::RunningNodesAborter,
+        nonempty::{Indices, NonEmptyNodes},
+    },
     node_impl,
     status::TreeStatus,
 };
 
 struct SequenceControl {
-    nodes: NonEmpty<BoxedNode>,
+    nodes: NonEmptyNodes,
     aborter: RunningNodesAborter,
 }
 
 impl SequenceControl {
-    fn new(nodes: NonEmpty<BoxedNode>) -> Self {
+    fn new(nodes: NonEmptyNodes) -> Self {
         Self {
             nodes,
             aborter: RunningNodesAborter::new(),
@@ -23,7 +25,7 @@ impl SequenceControl {
 impl Node for SequenceControl {
     fn tick(&mut self) -> TreeStatus {
         let aborter = &mut self.aborter;
-        for idx in 0..self.nodes.len() {
+        for idx in self.nodes.indices() {
             let node = &mut self.nodes[idx];
             match node.tick() {
                 TreeStatus::Success => {
@@ -62,9 +64,9 @@ impl Node for SequenceControl {
 
 pub struct Sequence(TracedNode<SequenceControl>);
 impl Sequence {
-    pub fn new(nodes: NonEmpty<BoxedNode>) -> Self {
+    pub fn new(nodes: impl Into<NonEmptyNodes>) -> Self {
         Self(TracedNode::new(
-            SequenceControl::new(nodes),
+            SequenceControl::new(nodes.into()),
             NodeIdentifier::new(NodeType::Sequence),
         ))
     }
@@ -73,8 +75,6 @@ node_impl!(Sequence);
 
 #[cfg(test)]
 mod tests {
-    use nonempty::nonempty;
-
     use super::*;
     use crate::node::MockNode;
     use crate::node::Node;
@@ -83,10 +83,10 @@ mod tests {
 
     #[test]
     fn success_with_all_success() {
-        let nodes = nonempty![
+        let nodes = NonEmptyNodes::from([
             boxed(mock().status(TreeStatus::Success).times(1).call()),
-            boxed(mock().status(TreeStatus::Success).times(1).call())
-        ];
+            boxed(mock().status(TreeStatus::Success).times(1).call()),
+        ]);
         let mut sq = Sequence::new(nodes);
 
         assert_eq!(sq.tick(), TreeStatus::Success);
@@ -94,22 +94,22 @@ mod tests {
 
     #[test]
     fn running_with_first_running() {
-        let nodes = nonempty![
+        let nodes = NonEmptyNodes::from([
             boxed(mock().status(TreeStatus::Success).times(1).call()),
             boxed(mock().status(TreeStatus::Running).times(1).call()),
-            boxed(mock().status(TreeStatus::Success).times(0).call())
-        ];
+            boxed(mock().status(TreeStatus::Success).times(0).call()),
+        ]);
         let mut sq = Sequence::new(nodes);
         assert_eq!(sq.tick(), TreeStatus::Running);
     }
 
     #[test]
     fn failure_with_first_failed() {
-        let nodes = nonempty![
+        let nodes = NonEmptyNodes::from([
             boxed(mock().status(TreeStatus::Success).times(1).call()),
             boxed(mock().status(TreeStatus::Failure).times(1).call()),
-            boxed(mock().status(TreeStatus::Success).times(0).call())
-        ];
+            boxed(mock().status(TreeStatus::Success).times(0).call()),
+        ]);
         let mut sq = Sequence::new(nodes);
 
         assert_eq!(sq.tick(), TreeStatus::Failure);
@@ -131,7 +131,8 @@ mod tests {
         m2.expect_abort().once().return_const(());
         m3.expect_abort().once().return_const(());
 
-        let mut sq = Sequence::new(nonempty![boxed(m1), boxed(m2), boxed(m3)]);
+        let nodes = NonEmptyNodes::from([boxed(m1), boxed(m2), boxed(m3)]);
+        let mut sq = Sequence::new(nodes);
 
         assert_eq!(sq.tick(), TreeStatus::Running);
         assert_eq!(sq.tick(), TreeStatus::Running);

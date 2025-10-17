@@ -1,9 +1,8 @@
 use crate::{
     ActionBehavior, BehaviorTree, Node, Parallel, Sequence,
-    node::{Action, Condition, ConditionBehavior},
+    node::{Action, Condition, ConditionBehavior, NonEmptyNodes},
     task::Registry,
 };
-use nonempty::NonEmpty;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -24,11 +23,11 @@ impl Builder {
         Box::new(Condition::new(behavior))
     }
 
-    pub fn parallel(&self, nodes: NonEmpty<Box<dyn Node>>) -> Box<dyn Node> {
+    pub fn parallel(&self, nodes: impl Into<NonEmptyNodes>) -> Box<dyn Node> {
         Box::new(Parallel::new(nodes))
     }
 
-    pub fn sequence(&self, nodes: NonEmpty<Box<dyn Node>>) -> Box<dyn Node> {
+    pub fn sequence(&self, nodes: impl Into<NonEmptyNodes>) -> Box<dyn Node> {
         Box::new(Sequence::new(nodes))
     }
 

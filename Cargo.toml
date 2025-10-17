@@ -3,7 +3,7 @@ resolver = "3"
 members = [
     "beetry",
     "beetry-backend",
-    "beetry-client",
+    "beetry-example",
     "beetry-definitions",
     "beetry-editor",
     "beetry-editor-launch",
@@ -18,6 +18,6 @@ anyhow = "1.0.100"
 bon = "3.8.1"
 tracing = "0.1.41"
 strum_macros = "0.27.2"
-nonempty = { version = "0.12.0", features = ["serialize"] }
 serde = "1.0.228"
 thiserror = "2.0.17"
+mitsein = {version = "0.7.0", features = ["serde"]}

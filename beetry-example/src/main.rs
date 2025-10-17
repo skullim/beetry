@@ -1,7 +1,6 @@
 use beetry_definitions::description::MessageHashProvider;
 use beetry_editor::ProjectData;
 use beetry_serialization::{Deserializer, JsonDeserializer};
-use nonempty::nonempty;
 use rfd::FileHandle;
 use std::{io::Read, time::Duration};
 use tracing_subscriber::{
@@ -16,7 +15,7 @@ use beetry_backend::{
     AnyBoxedReceiver, BehaviorTree, BehaviorTreeBuilder, BehaviorTreeTicker, TreeEngine,
     channel::{self, Sender, external::ReceiverRegistry, tokio::mpsc::channel},
 };
-use beetry_client::{
+use beetry_example::{
     ChargeCommand, CheckBattery, CheckBatteryParams, Drive, DriveInput, ExternalData, Localize,
 };
 
@@ -67,9 +66,9 @@ fn bt_from_code(builder: &BehaviorTreeBuilder) -> Result<BehaviorTree> {
     let drive = Drive::new(DriveInput::builder().pose(loc_recv).build());
     let check = CheckBattery::new(CheckBatteryParams::default());
 
-    Ok(builder.tree(builder.sequence(nonempty![
+    Ok(builder.tree(builder.sequence([
         builder.condition(check),
-        builder.sequence(nonempty![builder.action(localize), builder.action(drive),])
+        builder.sequence([builder.action(localize), builder.action(drive)]),
     ])))
 }
 
