@@ -1,6 +1,6 @@
 use crate::{
     ActionBehavior, BehaviorTree, Node, Parallel, Sequence,
-    node::{Action, Condition, ConditionBehavior, NonEmptyNodes},
+    node::{Action, Condition, ConditionBehavior, NonEmptyNodes, Root},
     task::Registry,
 };
 use std::sync::Arc;
@@ -31,7 +31,10 @@ impl Builder {
         Box::new(Sequence::new(nodes))
     }
 
-    pub fn tree(&self, root: Box<dyn Node>) -> BehaviorTree {
+    pub fn tree<N>(&self, root: Root<N>) -> BehaviorTree<N>
+    where
+        N: Node,
+    {
         BehaviorTree::new(root)
     }
 }

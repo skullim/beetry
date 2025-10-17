@@ -12,7 +12,8 @@ use tracing_tree::HierarchicalLayer;
 
 use anyhow::{Result, anyhow};
 use beetry_backend::{
-    AnyBoxedReceiver, BehaviorTree, BehaviorTreeBuilder, BehaviorTreeTicker, TreeEngine,
+    AnyBoxedReceiver, BehaviorTree, BehaviorTreeBuilder, BehaviorTreeTicker, BoxedNode, Node, Root,
+    TreeEngine,
     channel::{self, Sender, external::ReceiverRegistry, tokio::mpsc::channel},
 };
 use beetry_example::{
@@ -40,14 +41,15 @@ async fn main() -> Result<()> {
     let mut receiver_registry = ReceiverRegistry::new();
     receiver_registry.register(ExternalData::hash(), AnyBoxedReceiver::new(receiver));
 
-    let creation_type = BtCreationType::Editor;
+    let creation_type = BtCreationType::Code;
     let bt = match creation_type {
         BtCreationType::Editor => bt_from_editor(builder, receiver_registry).await?,
         BtCreationType::Code => bt_from_code(builder)?,
     };
 
-    let ticker = BehaviorTreeTicker::new(bt, Duration::from_secs(1));
-    let mut engine = engine.set_ticker(ticker);
+    let ticker = BehaviorTreeTicker::new(Duration::from_secs(1));
+    let mut engine = engine.set_ticker(ticker).set_tree(bt);
+
     for _ in 0..2 {
         engine.tick_till_terminal().await;
     }
@@ -60,22 +62,22 @@ enum BtCreationType {
     Editor,
 }
 
-fn bt_from_code(builder: &BehaviorTreeBuilder) -> Result<BehaviorTree> {
+fn bt_from_code(builder: &BehaviorTreeBuilder) -> Result<BehaviorTree<BoxedNode>> {
     let (loc_send, loc_recv) = channel(16);
     let localize = Localize::new(loc_send);
     let drive = Drive::new(DriveInput::builder().pose(loc_recv).build());
     let check = CheckBattery::new(CheckBatteryParams::default());
 
-    Ok(builder.tree(builder.sequence([
+    Ok(builder.tree(Root::new(builder.sequence([
         builder.condition(check),
         builder.sequence([builder.action(localize), builder.action(drive)]),
-    ])))
+    ]))))
 }
 
 async fn bt_from_editor(
     builder: &BehaviorTreeBuilder,
     receiver_registry: ReceiverRegistry,
-) -> Result<BehaviorTree> {
+) -> Result<BehaviorTree<BoxedNode>> {
     use beetry_reconstruction::TreeReconstructor;
 
     let handle = select_import_file().await?;

@@ -1,29 +1,28 @@
 use crate::{
     node::{
-        Node, NodeIdentifier, NodeType, TracedNode,
+        Node,
         control::RunningNodesAborter,
         nonempty::{Indices, NonEmptyNodes},
     },
-    node_impl,
     status::TreeStatus,
 };
 
 /// Parallel node succeeds when all nodes succeed
-struct ParallelControl {
+pub struct Parallel {
     nodes: NonEmptyNodes,
     aborter: RunningNodesAborter,
 }
 
-impl ParallelControl {
-    fn new(nodes: NonEmptyNodes) -> Self {
+impl Parallel {
+    pub fn new(nodes: impl Into<NonEmptyNodes>) -> Self {
         Self {
-            nodes,
+            nodes: nodes.into(),
             aborter: RunningNodesAborter::new(),
         }
     }
 }
 
-impl Node for ParallelControl {
+impl Node for Parallel {
     fn tick(&mut self) -> TreeStatus {
         let aborter: &mut RunningNodesAborter = &mut self.aborter;
         for idx in self.nodes.indices() {
@@ -65,18 +64,6 @@ impl Node for ParallelControl {
         }
     }
 }
-
-pub struct Parallel(TracedNode<ParallelControl>);
-impl Parallel {
-    pub fn new(nodes: impl Into<NonEmptyNodes>) -> Self {
-        Self(TracedNode::new(
-            ParallelControl::new(nodes.into()),
-            NodeIdentifier::new(NodeType::Parallel),
-        ))
-    }
-}
-
-node_impl!(Parallel);
 
 #[cfg(test)]
 mod tests {

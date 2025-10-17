@@ -1,7 +1,6 @@
 use crate::{
     NodeTask,
-    node::{Node, NodeIdentifier, NodeType, TracedNode},
-    node_impl,
+    node::Node,
     status::TreeStatus,
     task::{RegisterTask, TaskControl, TaskStatus},
 };
@@ -55,7 +54,7 @@ fn visit_status(behavior: &mut dyn Behavior, status: TaskStatus) {
     }
 }
 
-struct ActionLeaf<R, TC, B>
+pub struct Action<R, TC, B>
 where
     R: RegisterTask<TC>,
     TC: TaskControl,
@@ -66,27 +65,7 @@ where
     state: State<TC>,
 }
 
-enum State<TC>
-where
-    TC: TaskControl,
-{
-    Idle,
-    Running(TC),
-}
-
-impl<TC> fmt::Display for State<TC>
-where
-    TC: TaskControl,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Idle => write!(f, "Idle"),
-            Self::Running(_) => write!(f, "Running"),
-        }
-    }
-}
-
-impl<R, TC, B> ActionLeaf<R, TC, B>
+impl<R, TC, B> Action<R, TC, B>
 where
     R: RegisterTask<TC>,
     TC: TaskControl,
@@ -101,7 +80,7 @@ where
     }
 }
 
-impl<R, TC, B> Node for ActionLeaf<R, TC, B>
+impl<R, TC, B> Node for Action<R, TC, B>
 where
     R: RegisterTask<TC>,
     TC: TaskControl,
@@ -170,26 +149,25 @@ where
     }
 }
 
-pub(crate) struct Action<R, TC, B>(TracedNode<ActionLeaf<R, TC, B>>)
+enum State<TC>
 where
-    R: RegisterTask<TC>,
     TC: TaskControl,
-    B: Behavior;
-
-impl<R, TC, B> Action<R, TC, B>
-where
-    R: RegisterTask<TC>,
-    TC: TaskControl,
-    B: Behavior,
 {
-    pub(crate) fn new(behavior: B, registry: Arc<R>) -> Self {
-        Self(TracedNode::new(
-            ActionLeaf::new(behavior, registry),
-            NodeIdentifier::new(NodeType::Action),
-        ))
+    Idle,
+    Running(TC),
+}
+
+impl<TC> fmt::Display for State<TC>
+where
+    TC: TaskControl,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Idle => write!(f, "Idle"),
+            Self::Running(_) => write!(f, "Running"),
+        }
     }
 }
-node_impl!(Action<R, TC, B> where R: RegisterTask<TC>, TC: TaskControl, B: Behavior);
 
 #[cfg(test)]
 mod tests {

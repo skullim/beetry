@@ -7,32 +7,34 @@ pub use engine::TreeEngine;
 pub use ticker::Ticker;
 
 use crate::{
-    node::{BoxedNode, Node, NodeIdentifier, NodeType},
+    node::{Node, Root},
     status::TreeStatus,
 };
-use tracing::instrument;
 
-pub struct BehaviorTree {
-    root: BoxedNode,
-    id: NodeIdentifier,
+pub struct BehaviorTree<N>
+where
+    N: Node,
+{
+    root: Root<N>,
 }
 
-impl BehaviorTree {
-    pub fn new(root: BoxedNode) -> Self {
-        Self {
-            root,
-            id: NodeIdentifier::new(NodeType::Root),
-        }
+impl<N> BehaviorTree<N>
+where
+    N: Node,
+{
+    pub fn new(root: Root<N>) -> Self {
+        Self { root }
     }
 }
 
-impl Node for BehaviorTree {
-    #[instrument(skip_all, fields(id=%self.id))]
+impl<N> Node for BehaviorTree<N>
+where
+    N: Node,
+{
     fn reset(&mut self) {
         self.root.reset();
     }
 
-    #[instrument(skip_all, fields(id=%self.id))]
     fn tick(&mut self) -> TreeStatus {
         self.root.tick()
     }

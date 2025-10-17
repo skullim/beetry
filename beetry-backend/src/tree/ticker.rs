@@ -7,8 +7,6 @@ use crate::node::Node;
 use crate::{BehaviorTree, TreeStatus};
 
 pub struct Ticker {
-    bt: BehaviorTree,
-    scheduled_reset: bool,
     interval: Interval,
 }
 
@@ -40,24 +38,19 @@ impl TickHealthMonitor {
 }
 
 impl Ticker {
-    pub fn new(bt: BehaviorTree, period: Duration) -> Self {
+    pub fn new(period: Duration) -> Self {
         let mut interval = tokio::time::interval(period);
         // @todo let client set the tick behavior
         interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
 
-        Self {
-            bt,
-            scheduled_reset: false,
-            interval,
-        }
+        Self { interval }
     }
 
     #[instrument(skip_all)]
-    pub async fn tick_till_terminal(&mut self) -> TreeStatus {
-        if self.scheduled_reset {
-            self.bt.reset();
-            self.scheduled_reset = false;
-        }
+    pub async fn tick_till_terminal<N>(&mut self, tree: &mut BehaviorTree<N>) -> TreeStatus
+    where
+        N: Node,
+    {
         // start warning if tick takes twice as much time as it should
         let mut tick_monitor = TickHealthMonitor::new(2 * self.interval.period());
         loop {
@@ -66,11 +59,10 @@ impl Ticker {
             // In this case the next tick should be executed without waiting for current tick to timeout.
             let current = self.interval.tick().await;
             tick_monitor.monitor(current);
-            let status = self.bt.tick();
+            let status = tree.tick();
             debug!("ticked bt yielded status: {status:?}");
             match status {
                 status @ (TreeStatus::Failure | TreeStatus::Success) => {
-                    self.scheduled_reset = true;
                     debug!("finished executing bt with status: {status:?}");
                     return status;
                 }

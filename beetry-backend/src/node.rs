@@ -1,23 +1,21 @@
 mod control;
 mod decorator;
 mod leaf;
-#[cfg(test)]
-mod mock;
-mod traced;
+mod root;
+
+pub use control::{Fallback, Parallel, Sequence};
+pub use leaf::{Action, ActionBehavior, Condition, ConditionBehavior};
+pub use root::Root;
 
 mod nonempty;
 pub use nonempty::NonEmptyNodes;
 
 #[cfg(test)]
+mod mock;
+#[cfg(test)]
 pub(crate) use mock::test as mock_test;
 
-pub use control::{Fallback, Parallel, Sequence};
-pub(crate) use leaf::{Action, Condition};
-pub use leaf::{ActionBehavior, ConditionBehavior};
-pub(crate) use traced::TracedNode;
-
 use crate::status::TreeStatus;
-use strum_macros::Display;
 
 #[cfg(test)]
 use mockall::automock;
@@ -35,36 +33,16 @@ pub trait Node {
 
 pub type BoxedNode = Box<dyn Node>;
 
-pub trait Identifiable {
-    fn id(&self) -> &NodeIdentifier;
-}
-
-pub trait IdentifiableNode: Node + Identifiable {}
-impl<N> IdentifiableNode for N where N: Node + Identifiable {}
-
-#[derive(Debug, Clone)]
-pub(crate) struct NodeIdentifier {
-    ty: NodeType,
-}
-
-impl NodeIdentifier {
-    pub(crate) fn new(ty: NodeType) -> Self {
-        Self { ty }
+impl Node for BoxedNode {
+    fn tick(&mut self) -> TreeStatus {
+        (**self).tick()
     }
-}
 
-impl std::fmt::Display for NodeIdentifier {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{{type: {}}}", self.ty)
+    fn reset(&mut self) {
+        (**self).reset()
     }
-}
 
-#[derive(Debug, Display, Clone, Copy)]
-pub(crate) enum NodeType {
-    Root,
-    Sequence,
-    Fallback,
-    Parallel,
-    Action,
-    Condition,
+    fn abort(&mut self) {
+        (**self).abort()
+    }
 }
