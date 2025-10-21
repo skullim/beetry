@@ -1,4 +1,4 @@
-use beetry_backend::ConditionBehavior;
+use beetry_core::ConditionBehavior;
 use beetry_definitions::{
     description::{LeafDescription, LeafKind, NodeHashProvider},
     parameter::{self, Bounds, ProvideSchema, Schema, SerializedParametersMarker},

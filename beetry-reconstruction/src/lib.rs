@@ -1,11 +1,13 @@
 use anyhow::{Result, anyhow};
+use beetry_node::NonEmptyNodes;
 use std::collections::HashMap;
 use tracing::debug;
 
-use beetry_backend::{
-    BehaviorTree, BehaviorTreeBuilder, BoxedNode, Fallback, Node, NonEmptyNodes, Parallel, Root,
-    Sequence, channel::external,
-};
+use beetry_builder::Builder as BehaviorTreeBuilder;
+use beetry_channel::external;
+use beetry_core::{BehaviorTree, BoxedNode, Node, RegisterTask, Root, TaskControl};
+use beetry_node::{Fallback, Parallel, Sequence};
+
 use beetry_definitions::{
     description::{LeafDescription, LeafKind, MessageHash, NodeHash},
     export::{ChannelId, ChannelIdToExportMap, ControlKind, NodeExport, TreeExport},
@@ -36,11 +38,15 @@ impl TreeReconstructor {
     // 2. Channels exist in channel plugin registry.
     // 3. Each hash of leaf node matches with the corresponding node found in plugin registry.
     // 4. External receivers (if any) have been created when initializing Self instance
-    pub fn try_reconstruct(
+    pub fn try_reconstruct<R, T>(
         &mut self,
         export: TreeExport,
-        builder: &BehaviorTreeBuilder,
-    ) -> Result<BehaviorTree<BoxedNode>> {
+        builder: &BehaviorTreeBuilder<R, T>,
+    ) -> Result<BehaviorTree<BoxedNode>>
+    where
+        R: RegisterTask<T> + 'static,
+        T: TaskControl + 'static,
+    {
         let channel_factory_map = ChannelHashToFactoryMap::new(channel::plugins());
         let mut channels = Self::try_reconstruct_channels(export.channels, channel_factory_map)?;
 
@@ -78,14 +84,18 @@ impl TreeReconstructor {
             .collect::<Result<_>>()
     }
 
-    fn try_reconstruct_tree(
+    fn try_reconstruct_tree<R, T>(
         node: NodeExport,
         action_factory_map: &ActionHashToFactoryMap,
         condition_factory_map: &ConditionHashToFactoryMap,
         channel_map: &mut ChannelIdToChannelMap,
         receivers_registry: &mut external::ReceiverRegistry,
-        builder: &BehaviorTreeBuilder,
-    ) -> Result<Box<dyn Node>> {
+        builder: &BehaviorTreeBuilder<R, T>,
+    ) -> Result<Box<dyn Node>>
+    where
+        R: RegisterTask<T> + 'static,
+        T: TaskControl + 'static,
+    {
         match node {
             NodeExport::Control(control) => {
                 let control_kind = control.kind();

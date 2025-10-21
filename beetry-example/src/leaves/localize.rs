@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use anyhow::anyhow;
-use beetry_backend::{ActionBehavior, NodeTask, Task, TreeStatus, channel};
+use beetry_core::{self, ActionBehavior, NodeTask, Task, TreeStatus};
 use beetry_definitions::description::NodeHashProvider;
 use beetry_definitions::description::{LeafDescription, LeafKind, MessageDescription};
 use beetry_plugin::node::ActionFactory;
@@ -23,7 +23,7 @@ pub struct Localize<S> {
 
 impl<S> Localize<S>
 where
-    S: channel::Sender<Pose>,
+    S: beetry_core::Sender<Pose>,
 {
     pub fn new(pose_send: S) -> Self {
         Self {
@@ -42,7 +42,7 @@ where
 
 impl<S> ActionBehavior for Localize<S>
 where
-    S: channel::Sender<Pose>,
+    S: beetry_core::Sender<Pose>,
 {
     fn task(&mut self) -> Result<NodeTask> {
         let (sender, recv) = mpsc_channel(1);

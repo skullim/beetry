@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::{Pose, leaves::DriveInput};
 use anyhow::{Result, anyhow};
-use beetry_backend::{ActionBehavior, NodeTask, Task, TreeStatus, channel::Receiver};
+use beetry_core::{ActionBehavior, NodeTask, Receiver, Task, TreeStatus};
 use beetry_definitions::description::{
     LeafDescription, LeafKind, MessageDescription, NodeHashProvider,
 };
@@ -122,14 +122,15 @@ impl NodePlugin for DrivePlugin {
 
 #[cfg(test)]
 mod tests {
-    use beetry_backend::channel::{self, BoxedReceiver};
+    use beetry_channel::tokio;
+    use beetry_core::BoxedReceiver;
     use beetry_plugin::node::{NodePlugin, NodeReconstructionData};
 
     use crate::{Pose, leaves::drive::DrivePlugin};
 
     #[test]
     fn test_reconstruction() {
-        let (_, receiver) = channel::tokio::mpsc::channel::<Pose>(1);
+        let (_, receiver) = tokio::mpsc::channel::<Pose>(1);
         let receiver: BoxedReceiver<Pose> = Box::new(receiver);
         let data = NodeReconstructionData::builder()
             .receivers(vec![receiver.into()])

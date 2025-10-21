@@ -3,7 +3,7 @@ mod drive;
 mod localize;
 mod read_external_data;
 
-use beetry_backend::input;
+use beetry_channel::input;
 pub use check_battery::{CheckBattery, CheckBatteryParams, CheckBatteryPlugin};
 pub use drive::{Drive, DrivePlugin};
 pub use localize::{Localize, LocalizePlugin};

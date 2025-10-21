@@ -1,7 +1,8 @@
 use anyhow::{Result, anyhow};
 use bon::Builder;
 
-use beetry_backend::channel::{self, AnyBoxedReceiver, AnyBoxedSender, BoxedReceiver, Sender};
+use beetry_channel::{AnyBoxedReceiver, AnyBoxedSender};
+use beetry_core::{BoxedReceiver, Sender};
 use beetry_definitions::{
     description::ChannelDescription,
     export::{ChannelImplKind, ChannelMetadata, TokioChannelConfig},
@@ -57,7 +58,8 @@ impl Factory {
                 let capacity = meta.capacity();
                 let (senders, receivers) = match meta.impl_kind() {
                     ChannelImplKind::Tokio(TokioChannelConfig::Broadcast(config)) => {
-                        let (sender, receiver) = channel::tokio::broadcast::channel::<T>(capacity);
+                        let (sender, receiver) =
+                            beetry_channel::tokio::broadcast::channel::<T>(capacity);
 
                         let receivers: Vec<_> =
                             std::iter::once(Box::new(receiver) as BoxedReceiver<T>)
@@ -73,7 +75,8 @@ impl Factory {
                         (senders, receivers)
                     }
                     ChannelImplKind::Tokio(TokioChannelConfig::Mpsc(config)) => {
-                        let (sender, receiver) = channel::tokio::mpsc::channel::<T>(capacity);
+                        let (sender, receiver) =
+                            beetry_channel::tokio::mpsc::channel::<T>(capacity);
 
                         let senders: Vec<_> = (0..config.n_senders().into())
                             .map(|_| Box::new(sender.clone()) as Box<dyn Sender<T>>)

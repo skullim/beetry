@@ -1,0 +1,23 @@
+[package]
+name = "beetry-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+thiserror.workspace = true
+serde.workspace = true
+anyhow.workspace = true
+bon.workspace = true
+derive-getters.workspace = true
+tracing.workspace = true
+state-shift = "2.1.1"
+tokio = { version = "1.47.1", features = ["sync", "time", "macros"] }
+mockall = { version = "0.13.1", optional = true }
+
+[dev-dependencies]
+mockall = { version = "0.13.1" }
+
+
+[features]
+default = []
+mock = ["dep:mockall"]
