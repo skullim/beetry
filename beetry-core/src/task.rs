@@ -5,11 +5,11 @@ pub(crate) use execution::MockRegisterTask;
 
 pub use execution::{AbortTask, ExecutorConcept, QueryTask, RegisterTask, TaskControl, TaskStatus};
 
-use crate::TreeStatus;
+use crate::TickStatus;
 use std::{pin::Pin, str::FromStr};
 
 pub trait Task {
-    fn run(self) -> impl Future<Output = TreeStatus> + Send + Sync + 'static;
+    fn run(self) -> impl Future<Output = TickStatus> + Send + Sync + 'static;
     fn task_desc(&self) -> TaskDescription {
         TaskDescription::from_str(std::any::type_name::<Self>()).unwrap()
     }
@@ -33,7 +33,7 @@ impl std::fmt::Display for TaskDescription {
     }
 }
 
-pub type NodeTaskFuture = Box<dyn Future<Output = TreeStatus> + Send + Sync + 'static>;
+pub type NodeTaskFuture = Box<dyn Future<Output = TickStatus> + Send + Sync + 'static>;
 
 pub struct NodeTask {
     task: NodeTaskFuture,
@@ -48,7 +48,7 @@ impl NodeTask {
         Self { task, desc }
     }
 
-    pub async fn execute(self) -> TreeStatus {
+    pub async fn execute(self) -> TickStatus {
         let fut = Pin::from(self.task);
         fut.await
     }

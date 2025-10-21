@@ -4,8 +4,8 @@ use crate::{
     definitions::{NodeId, Point},
     ui::channel::ChannelElement,
 };
-use bon::Builder;
 use beetry_definitions::export::{ChannelExport, ChannelId};
+use bon::Builder;
 use dioxus_logger::tracing::debug;
 use serde::{Deserialize, Serialize};
 
@@ -55,10 +55,10 @@ impl Tracker {
     pub(crate) fn remove_node(&mut self, id: NodeId) {
         let mut references = vec![];
         if let Some(recv_references) = self.receivers.remove(&id) {
-            references.extend(recv_references.into_iter());
+            references.extend(recv_references);
         }
         if let Some(send_references) = self.senders.remove(&id) {
-            references.extend(send_references.into_iter());
+            references.extend(send_references);
         }
 
         debug!("collected channel id references: {references:?} related to node id {id}");

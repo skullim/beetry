@@ -1,8 +1,8 @@
 use anyhow::{Result, anyhow};
 use bon::Builder;
 
-use beetry_channel::{AnyBoxedReceiver, AnyBoxedSender};
-use beetry_core::{BoxedReceiver, Sender};
+use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
+use beetry_core::{BoxReceiver, Sender};
 use beetry_definitions::{
     description::ChannelDescription,
     export::{ChannelImplKind, ChannelMetadata, TokioChannelConfig},
@@ -21,18 +21,18 @@ pub trait ChannelPlugin: Send + Sync {
 
 #[derive(Builder)]
 pub struct TypeErasedChannel {
-    pub senders: Vec<AnyBoxedSender>,
-    pub receivers: Vec<AnyBoxedReceiver>,
+    pub senders: Vec<AnyBoxSender>,
+    pub receivers: Vec<AnyBoxReceiver>,
 }
 
 impl TypeErasedChannel {
-    pub fn try_take_sender(&mut self) -> Result<AnyBoxedSender> {
+    pub fn try_take_sender(&mut self) -> Result<AnyBoxSender> {
         self.senders
             .pop()
             .ok_or_else(|| anyhow!("no free sender in the channel"))
     }
 
-    pub fn try_take_receiver(&mut self) -> Result<AnyBoxedReceiver> {
+    pub fn try_take_receiver(&mut self) -> Result<AnyBoxReceiver> {
         self.receivers
             .pop()
             .ok_or_else(|| anyhow!("no free receiver in the channel"))
@@ -62,10 +62,10 @@ impl Factory {
                             beetry_channel::tokio::broadcast::channel::<T>(capacity);
 
                         let receivers: Vec<_> =
-                            std::iter::once(Box::new(receiver) as BoxedReceiver<T>)
+                            std::iter::once(Box::new(receiver) as BoxReceiver<T>)
                                 .chain(
                                     (1..config.n_receivers().into())
-                                        .map(|_| Box::new(sender.subscribe()) as BoxedReceiver<T>),
+                                        .map(|_| Box::new(sender.subscribe()) as BoxReceiver<T>),
                                 )
                                 .collect();
                         let senders: Vec<_> = (0..config.n_senders().into())
@@ -81,7 +81,7 @@ impl Factory {
                         let senders: Vec<_> = (0..config.n_senders().into())
                             .map(|_| Box::new(sender.clone()) as Box<dyn Sender<T>>)
                             .collect();
-                        let receivers = vec![Box::new(receiver) as BoxedReceiver<T>];
+                        let receivers = vec![Box::new(receiver) as BoxReceiver<T>];
 
                         (senders, receivers)
                     }

@@ -1,6 +1,6 @@
 use crate::{ExternalData, leaves::ReadExternalDataInput};
 use anyhow::{Result, anyhow};
-use beetry_core::{self, ActionBehavior, NodeTask, Task, TreeStatus};
+use beetry_core::{self, ActionBehavior, NodeTask, Task, TickStatus};
 use beetry_definitions::description::{
     LeafDescription, LeafKind, MessageDescription, NodeHashProvider,
 };
@@ -46,9 +46,9 @@ impl ReadExternalDataTask {
 }
 
 impl Task for ReadExternalDataTask {
-    async fn run(self) -> TreeStatus {
+    async fn run(self) -> TickStatus {
         println!("received external data: {:?}", self.data);
-        TreeStatus::Success
+        TickStatus::Success
     }
 }
 

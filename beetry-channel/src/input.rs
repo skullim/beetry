@@ -83,7 +83,6 @@ macro_rules! input {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::tokio::mpsc;
     use beetry_core::Sender;
     use bon::bon;

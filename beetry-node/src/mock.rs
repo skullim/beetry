@@ -1,6 +1,6 @@
 #[cfg(test)]
 pub(crate) mod test {
-    use beetry_core::{MockNode, Node, TreeStatus};
+    use beetry_core::{MockNode, Node, TickStatus};
     use bon::builder;
 
     pub(crate) fn boxed<N: Node + 'static>(n: N) -> Box<dyn Node> {
@@ -8,13 +8,13 @@ pub(crate) mod test {
     }
 
     #[builder]
-    pub(crate) fn mock(status: TreeStatus, times: usize) -> MockNode {
+    pub(crate) fn mock(status: TickStatus, times: usize) -> MockNode {
         let mut m = MockNode::new();
         m.expect_tick().return_const(status).times(times);
         m
     }
 
-    pub(crate) fn tick_returns(m: &mut MockNode, statuses: Vec<TreeStatus>) {
+    pub(crate) fn tick_returns(m: &mut MockNode, statuses: Vec<TickStatus>) {
         let mut it = statuses.into_iter();
         m.expect_tick().returning(move || it.next().unwrap());
     }

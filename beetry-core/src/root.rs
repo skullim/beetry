@@ -1,4 +1,4 @@
-use crate::{Node, TreeStatus};
+use crate::{Node, TickStatus};
 
 pub struct Root<N> {
     child: N,
@@ -17,7 +17,7 @@ impl<N> Node for Root<N>
 where
     N: Node,
 {
-    fn tick(&mut self) -> TreeStatus {
+    fn tick(&mut self) -> TickStatus {
         self.child.tick()
     }
 

@@ -4,7 +4,7 @@ mod ticker;
 pub use engine::TreeEngine;
 pub use ticker::Ticker;
 
-use crate::{Node, TreeStatus, root::Root};
+use crate::{Node, TickStatus, root::Root};
 
 pub struct BehaviorTree<N> {
     root: Root<N>,
@@ -27,7 +27,7 @@ where
         self.root.reset();
     }
 
-    fn tick(&mut self) -> TreeStatus {
+    fn tick(&mut self) -> TickStatus {
         self.root.tick()
     }
 }

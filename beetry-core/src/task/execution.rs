@@ -1,4 +1,4 @@
-use crate::{TreeStatus, task::NodeTask};
+use crate::{TickStatus, task::NodeTask};
 use anyhow::{Error, Result, anyhow};
 
 #[cfg(test)]
@@ -18,23 +18,23 @@ impl TaskStatus {
     }
 }
 
-impl From<TreeStatus> for TaskStatus {
-    fn from(value: TreeStatus) -> Self {
+impl From<TickStatus> for TaskStatus {
+    fn from(value: TickStatus) -> Self {
         match value {
-            TreeStatus::Success => Self::Success,
-            TreeStatus::Running => Self::Running,
-            TreeStatus::Failure => Self::Failure,
+            TickStatus::Success => Self::Success,
+            TickStatus::Running => Self::Running,
+            TickStatus::Failure => Self::Failure,
         }
     }
 }
 
-impl TryFrom<TaskStatus> for TreeStatus {
+impl TryFrom<TaskStatus> for TickStatus {
     type Error = Error;
     fn try_from(value: TaskStatus) -> Result<Self, Self::Error> {
         match value {
-            TaskStatus::Success => Ok(TreeStatus::Success),
-            TaskStatus::Running => Ok(TreeStatus::Running),
-            TaskStatus::Failure => Ok(TreeStatus::Failure),
+            TaskStatus::Success => Ok(TickStatus::Success),
+            TaskStatus::Running => Ok(TickStatus::Running),
+            TaskStatus::Failure => Ok(TickStatus::Failure),
             _ => Err(anyhow!("expected tree status subset of task status")),
         }
     }

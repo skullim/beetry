@@ -1,5 +1,5 @@
-use bon::Builder;
 use beetry_definitions::{description::MessageHash, export::ChannelId};
+use bon::Builder;
 use dioxus::{logger::tracing::debug, prelude::*};
 
 use crate::{
@@ -276,14 +276,12 @@ fn input_port_handlers(
                     debug!("Rejecting edge {:?} -> {:?}: would create cycle", from, to);
                     return;
                 }
-                if matches!(to_node.kind, ui::NodeKind::Leaf { .. }) {
-                    if tracker.has_parent(to) {
-                        debug!(
-                            "Rejecting edge {:?} -> {:?}: leaf nodes can only have one parent",
-                            from, to
-                        );
-                        return;
-                    }
+                if matches!(to_node.kind, ui::NodeKind::Leaf { .. }) && tracker.has_parent(to) {
+                    debug!(
+                        "Rejecting edge {:?} -> {:?}: leaf nodes can only have one parent",
+                        from, to
+                    );
+                    return;
                 }
             }
 
@@ -411,16 +409,15 @@ fn receiver_handlers(
 
     let on_context_menu = move |(node_id, message_hash): (NodeId, MessageHash)| {
         ui_nodes.with_mut(|nodes| {
-            if let Some(node) = nodes.get_mut(&node_id) {
-                if let ui::NodeKind::Leaf {
+            if let Some(node) = nodes.get_mut(&node_id)
+                && let ui::NodeKind::Leaf {
                     external_receivers, ..
                 } = &mut node.kind
-                {
-                    if external_receivers.contains(&message_hash) {
-                        external_receivers.remove(&message_hash);
-                    } else {
-                        external_receivers.insert(message_hash);
-                    }
+            {
+                if external_receivers.contains(&message_hash) {
+                    external_receivers.remove(&message_hash);
+                } else {
+                    external_receivers.insert(message_hash);
                 }
             }
         });

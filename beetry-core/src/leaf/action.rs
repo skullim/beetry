@@ -1,5 +1,5 @@
 use crate::{
-    Node, NodeTask, TreeStatus,
+    Node, NodeTask, TickStatus,
     task::{RegisterTask, TaskControl, TaskStatus},
 };
 use anyhow::Result;
@@ -82,22 +82,22 @@ where
     TC: TaskControl,
     B: Behavior,
 {
-    fn tick(&mut self) -> TreeStatus {
+    fn tick(&mut self) -> TickStatus {
         match &mut self.state {
             State::Idle => match self.behavior.task() {
                 Ok(task) => match self.registry.register(task) {
                     Ok(handle) => {
                         self.state = State::Running(handle);
-                        TreeStatus::Running
+                        TickStatus::Running
                     }
                     Err(e) => {
                         error!("task registration failed: {e}");
-                        TreeStatus::Failure
+                        TickStatus::Failure
                     }
                 },
                 Err(e) => {
                     error!("creating task failed: {e}");
-                    TreeStatus::Failure
+                    TickStatus::Failure
                 }
             },
             State::Running(handle) => {
@@ -105,7 +105,7 @@ where
                 debug!("queried status: {status:?}");
                 visit_status(&mut self.behavior, status);
 
-                let status: TreeStatus = status.try_into().unwrap();
+                let status: TickStatus = status.try_into().unwrap();
                 if status.is_terminal() {
                     debug!("task completed, returning to idle");
                     self.state = State::Idle;
@@ -199,8 +199,8 @@ mod tests {
     }
 
     impl Task for TaskStub {
-        async fn run(self) -> TreeStatus {
-            TreeStatus::Success
+        async fn run(self) -> TickStatus {
+            TickStatus::Success
         }
         fn task_desc(&self) -> TaskDescription {
             TaskDescription::from_str("TaskStub").unwrap()
@@ -246,8 +246,8 @@ mod tests {
 
         let mut action = Action::new(behavior, Arc::new(registry));
 
-        assert_eq!(action.tick(), TreeStatus::Running);
-        assert_eq!(action.tick(), TreeStatus::Success);
+        assert_eq!(action.tick(), TickStatus::Running);
+        assert_eq!(action.tick(), TickStatus::Success);
     }
 
     #[test]
@@ -271,8 +271,8 @@ mod tests {
 
         let mut action = Action::new(behavior, Arc::new(registry));
 
-        assert_eq!(action.tick(), TreeStatus::Running);
-        assert_eq!(action.tick(), TreeStatus::Running);
+        assert_eq!(action.tick(), TickStatus::Running);
+        assert_eq!(action.tick(), TickStatus::Running);
     }
 
     #[test]
@@ -296,8 +296,8 @@ mod tests {
 
         let mut action = Action::new(behavior, Arc::new(registry));
 
-        assert_eq!(action.tick(), TreeStatus::Running);
-        assert_eq!(action.tick(), TreeStatus::Failure);
+        assert_eq!(action.tick(), TickStatus::Running);
+        assert_eq!(action.tick(), TickStatus::Failure);
     }
 
     #[test]
@@ -311,7 +311,7 @@ mod tests {
 
         let mut action = Action::new(behavior, Arc::new(registry));
 
-        assert_eq!(action.tick(), TreeStatus::Failure);
+        assert_eq!(action.tick(), TickStatus::Failure);
     }
 
     #[test]
@@ -329,7 +329,7 @@ mod tests {
 
         let mut action = Action::new(behavior, Arc::new(registry));
 
-        assert_eq!(action.tick(), TreeStatus::Failure);
+        assert_eq!(action.tick(), TickStatus::Failure);
     }
 
     #[test]
@@ -359,8 +359,8 @@ mod tests {
 
         let mut action = Action::new(behavior, Arc::new(registry));
 
-        assert_eq!(action.tick(), TreeStatus::Running);
-        assert_eq!(action.tick(), TreeStatus::Running);
+        assert_eq!(action.tick(), TickStatus::Running);
+        assert_eq!(action.tick(), TickStatus::Running);
         action.abort();
     }
 
