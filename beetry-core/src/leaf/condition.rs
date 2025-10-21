@@ -1,4 +1,4 @@
-use crate::{Node, TreeStatus};
+use crate::{Node, TickStatus};
 
 pub trait Behavior {
     fn cond(&mut self) -> bool;
@@ -34,10 +34,10 @@ impl<B> Node for Condition<B>
 where
     B: Behavior,
 {
-    fn tick(&mut self) -> TreeStatus {
+    fn tick(&mut self) -> TickStatus {
         match self.behavior.cond() {
-            true => TreeStatus::Success,
-            false => TreeStatus::Failure,
+            true => TickStatus::Success,
+            false => TickStatus::Failure,
         }
     }
     fn reset(&mut self) {

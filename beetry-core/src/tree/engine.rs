@@ -1,4 +1,4 @@
-use crate::{BehaviorTree, BehaviorTreeTicker, Node, TreeStatus, task::ExecutorConcept};
+use crate::{BehaviorTree, BehaviorTreeTicker, Node, TickStatus, task::ExecutorConcept};
 use state_shift::{impl_state, type_state};
 
 #[type_state(states = (Initial, TickerSet, TreeSet), slots = (Initial))]
@@ -39,7 +39,7 @@ where
     }
 
     #[require(TreeSet)]
-    pub async fn tick_till_terminal<E>(&mut self, executor: &mut E) -> TreeStatus
+    pub async fn tick_till_terminal<E>(&mut self, executor: &mut E) -> TickStatus
     where
         E: ExecutorConcept,
     {
@@ -48,7 +48,7 @@ where
             => {status}
             result = executor.run() => {
                 result.unwrap();
-                TreeStatus::Failure
+                TickStatus::Failure
             }
         }
     }

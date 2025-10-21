@@ -78,12 +78,12 @@ impl Tracker {
                 return true;
             }
 
-            if visited.insert(current) {
-                if let Some(children) = self.children_of(&current) {
-                    for &child in children {
-                        if !visited.contains(&child) {
-                            stack.push(child);
-                        }
+            if visited.insert(current)
+                && let Some(children) = self.children_of(&current)
+            {
+                for &child in children {
+                    if !visited.contains(&child) {
+                        stack.push(child);
                     }
                 }
             }

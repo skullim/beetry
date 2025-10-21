@@ -1,7 +1,7 @@
 use anyhow::Result;
 use bon::Builder;
 
-use beetry_channel::{AnyBoxedReceiver, AnyBoxedSender};
+use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
 use beetry_core::{ActionBehavior, ConditionBehavior};
 use beetry_definitions::{description::LeafDescription, parameter::SerializedParameters};
 
@@ -25,9 +25,9 @@ pub type ConditionNodePlugin =
 #[derive(Builder)]
 pub struct NodeReconstructionData {
     #[builder(default)]
-    pub receivers: Vec<AnyBoxedReceiver>,
+    pub receivers: Vec<AnyBoxReceiver>,
     #[builder(default)]
-    pub senders: Vec<AnyBoxedSender>,
+    pub senders: Vec<AnyBoxSender>,
     #[builder(default)]
     pub parameters: SerializedParameters,
 }

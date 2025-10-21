@@ -1,4 +1,4 @@
-use beetry_channel::{AnyBoxedReceiver, external::ReceiverRegistry};
+use beetry_channel::{AnyBoxReceiver, external::ReceiverRegistry};
 use beetry_definitions::description::MessageHashProvider;
 use beetry_editor::ProjectData;
 use beetry_serialization::{Deserializer, JsonDeserializer};
@@ -14,8 +14,7 @@ use tracing_tree::HierarchicalLayer;
 use anyhow::{Result, anyhow};
 use beetry_builder::Builder;
 use beetry_core::{
-    BehaviorTree, BehaviorTreeTicker, BoxedNode, RegisterTask, Root, Sender, TaskControl,
-    TreeEngine,
+    BehaviorTree, BehaviorTreeTicker, BoxNode, RegisterTask, Root, Sender, TaskControl, TreeEngine,
 };
 use beetry_example::{
     ChargeCommand, CheckBattery, CheckBatteryParams, Drive, DriveInput, ExternalData, Localize,
@@ -38,7 +37,7 @@ async fn main() -> Result<()> {
     sender.try_send(ExternalData::new(ChargeCommand::Stop, false))?;
     sender.try_send(ExternalData::new(ChargeCommand::Start, true))?;
     let mut receiver_registry = ReceiverRegistry::new();
-    receiver_registry.register(ExternalData::hash(), AnyBoxedReceiver::new(receiver));
+    receiver_registry.register(ExternalData::hash(), AnyBoxReceiver::new(receiver));
 
     let executor = Executor::new(ExecutorConfig::default());
     let (mut ready_exec, registry) = executor.into_ready_with_registry();
@@ -65,7 +64,7 @@ enum BtCreationType {
     Editor,
 }
 
-fn bt_from_code<R, T>(builder: &Builder<R, T>) -> Result<BehaviorTree<BoxedNode>>
+fn bt_from_code<R, T>(builder: &Builder<R, T>) -> Result<BehaviorTree<BoxNode>>
 where
     R: RegisterTask<T> + 'static,
     T: TaskControl + 'static,
@@ -84,7 +83,7 @@ where
 async fn bt_from_editor<R, T>(
     builder: &Builder<R, T>,
     receiver_registry: ReceiverRegistry,
-) -> Result<BehaviorTree<BoxedNode>>
+) -> Result<BehaviorTree<BoxNode>>
 where
     R: RegisterTask<T> + 'static,
     T: TaskControl + 'static,

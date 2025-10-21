@@ -5,7 +5,7 @@ use tracing::debug;
 
 use beetry_builder::Builder as BehaviorTreeBuilder;
 use beetry_channel::external;
-use beetry_core::{BehaviorTree, BoxedNode, Node, RegisterTask, Root, TaskControl};
+use beetry_core::{BehaviorTree, BoxNode, Node, RegisterTask, Root, TaskControl};
 use beetry_node::{Fallback, Parallel, Sequence};
 
 use beetry_definitions::{
@@ -42,7 +42,7 @@ impl TreeReconstructor {
         &mut self,
         export: TreeExport,
         builder: &BehaviorTreeBuilder<R, T>,
-    ) -> Result<BehaviorTree<BoxedNode>>
+    ) -> Result<BehaviorTree<BoxNode>>
     where
         R: RegisterTask<T> + 'static,
         T: TaskControl + 'static,

@@ -139,10 +139,9 @@ pub(crate) fn Dialog(props: DialogProps) -> Element {
                         border: "1px solid #ddd",
                         border_radius: "4px",
                         oninput: move |evt| {
-                            if let Ok(val) = evt.value().parse::<usize>() {
-                                if val > 0 {
+                            if let Ok(val) = evt.value().parse::<usize>() &&
+                                val > 0 {
                                     capacity.set(val);
-                                }
                             }
                         },
                     }
@@ -228,11 +227,10 @@ pub(crate) fn Dialog(props: DialogProps) -> Element {
                         border: "1px solid #ddd",
                         border_radius: "4px",
                         oninput: move |evt| {
-                            if let Ok(val) = evt.value().parse::<usize>() {
-                                if val > 0 {
+                            if let Ok(val) = evt.value().parse::<usize>() &&
+                                val > 0 {
                                     n_senders.set(val);
                                 }
-                            }
                         },
                     }
                 }
@@ -254,11 +252,10 @@ pub(crate) fn Dialog(props: DialogProps) -> Element {
                             border: "1px solid #ddd",
                             border_radius: "4px",
                             oninput: move |evt| {
-                                if let Ok(val) = evt.value().parse::<usize>() {
-                                    if val > 0 {
+                                if let Ok(val) = evt.value().parse::<usize>() &&
+                                    val > 0 {
                                         n_receivers.set(val);
                                     }
-                                }
                             },
                         }
                     }

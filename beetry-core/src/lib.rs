@@ -12,13 +12,13 @@ pub use task::{
 pub use tree::{BehaviorTree, Ticker as BehaviorTreeTicker, TreeEngine};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum TreeStatus {
+pub enum TickStatus {
     Success,
     Running,
     Failure,
 }
 
-impl TreeStatus {
+impl TickStatus {
     pub fn is_terminal(&self) -> bool {
         matches!(self, Self::Success | Self::Failure)
     }
@@ -26,7 +26,7 @@ impl TreeStatus {
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait Node {
-    fn tick(&mut self) -> TreeStatus;
+    fn tick(&mut self) -> TickStatus;
     /// reset given node to its default state:
     /// - should only be called by the behavior tree (root)
     /// - should not block the thread and ideally be finished during single tick
@@ -36,10 +36,10 @@ pub trait Node {
     fn abort(&mut self) {}
 }
 
-pub type BoxedNode = Box<dyn Node>;
+pub type BoxNode = Box<dyn Node>;
 
-impl Node for BoxedNode {
-    fn tick(&mut self) -> TreeStatus {
+impl Node for BoxNode {
+    fn tick(&mut self) -> TickStatus {
         (**self).tick()
     }
 
@@ -64,9 +64,9 @@ pub trait Receiver<T> {
     }
 }
 
-pub type BoxedReceiver<T> = Box<dyn Receiver<T>>;
+pub type BoxReceiver<T> = Box<dyn Receiver<T>>;
 
-impl<T: 'static> Receiver<T> for BoxedReceiver<T> {
+impl<T: 'static> Receiver<T> for BoxReceiver<T> {
     fn try_recv(&mut self) -> TryRecvResult<T> {
         (**self).try_recv()
     }
@@ -76,7 +76,7 @@ pub trait Sender<T> {
     fn try_send(&mut self, message: T) -> TrySendResult<T>;
 }
 
-pub type BoxedSender<T> = Box<dyn Sender<T>>;
+pub type BoxSender<T> = Box<dyn Sender<T>>;
 
 impl<T: 'static> Sender<T> for Box<dyn Sender<T>> {
     fn try_send(&mut self, message: T) -> TrySendResult<T> {

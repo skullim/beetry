@@ -129,15 +129,13 @@ impl ProjectData {
                 )?;
 
                 let receivers_read = channel_tracker.receivers();
-                let receivers = match receivers_read.get(&node_id) {
-                    Some(receivers) => Some(receivers.into_iter().cloned()),
-                    None => None,
-                };
+                let receivers = receivers_read
+                    .get(&node_id)
+                    .map(|receivers| receivers.iter().cloned());
                 let senders_read = channel_tracker.senders();
-                let senders = match senders_read.get(&node_id) {
-                    Some(senders) => Some(senders.into_iter().cloned()),
-                    None => None,
-                };
+                let senders = senders_read
+                    .get(&node_id)
+                    .map(|senders| senders.iter().cloned());
 
                 let builder = LeafExport::builder()
                     .name(desc.name().clone())
@@ -190,13 +188,13 @@ impl ProjectData {
         let expected_receivers: HashMap<MessageHash, String> = desc
             .receivers()
             .iter()
-            .map(|recv| (recv.hash().clone(), recv.desc().clone()))
+            .map(|recv| (*recv.hash(), recv.desc().clone()))
             .collect();
 
         let expected_senders: HashMap<MessageHash, String> = desc
             .senders()
             .iter()
-            .map(|send| (send.hash().clone(), send.desc().clone()))
+            .map(|send| (*send.hash(), send.desc().clone()))
             .collect();
 
         debug!("Expected receivers: {expected_receivers:?}");

@@ -1,5 +1,5 @@
 mod any;
-pub use any::{AnyBoxedReceiver, AnyBoxedSender};
+pub use any::{AnyBoxReceiver, AnyBoxSender};
 
 pub mod external;
 mod input;

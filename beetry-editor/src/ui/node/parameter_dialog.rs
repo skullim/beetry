@@ -302,37 +302,37 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
 fn validate_parameter(param: &Definition, value: Option<&Value>) -> Option<String> {
     match (&param.ty, value) {
         (Type::Integer { bounds }, Some(Value::Number(n))) => {
-            if let Some(i) = n.as_i64() {
-                if let Some(bounds) = bounds {
-                    if i < bounds.min() as i64 || i > bounds.max() as i64 {
-                        return Some(format!(
-                            "Value must be between {} and {}",
-                            bounds.min(),
-                            bounds.max()
-                        ));
-                    }
-                }
+            if let Some(i) = n.as_i64()
+                && let Some(bounds) = bounds
+                && (i < bounds.min() as i64 || i > bounds.max() as i64)
+            {
+                return Some(format!(
+                    "Value must be between {} and {}",
+                    bounds.min(),
+                    bounds.max()
+                ));
             }
             None
         }
         (Type::Float { bounds }, Some(Value::Number(n))) => {
-            if let Some(f) = n.as_f64() {
-                if let Some(bounds) = bounds {
-                    let min = bounds.min() as f64;
-                    let max = bounds.max() as f64;
-                    if f < min || f > max {
-                        return Some(format!("Value must be between {} and {}", min, max));
-                    }
+            if let Some(f) = n.as_f64()
+                && let Some(bounds) = bounds
+            {
+                let min = bounds.min() as f64;
+                let max = bounds.max() as f64;
+                if f < min || f > max {
+                    return Some(format!("Value must be between {} and {}", min, max));
                 }
             }
             None
         }
         (Type::String { max_length }, Some(Value::String(s))) => {
-            if let Some(max_len) = max_length {
-                if s.len() > *max_len {
-                    return Some(format!("String must be at most {} characters", max_len));
-                }
+            if let Some(max_len) = max_length
+                && s.len() > *max_len
+            {
+                return Some(format!("String must be at most {} characters", max_len));
             }
+
             None
         }
         _ => None,

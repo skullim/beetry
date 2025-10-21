@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use anyhow::anyhow;
-use beetry_core::{self, ActionBehavior, NodeTask, Task, TreeStatus};
+use beetry_core::{self, ActionBehavior, NodeTask, Task, TickStatus};
 use beetry_definitions::description::NodeHashProvider;
 use beetry_definitions::description::{LeafDescription, LeafKind, MessageDescription};
 use beetry_plugin::node::ActionFactory;
@@ -85,15 +85,15 @@ impl LocalizeTask {
 
 impl Task for LocalizeTask {
     #[instrument(skip(self))]
-    async fn run(mut self) -> TreeStatus {
+    async fn run(mut self) -> TickStatus {
         tokio::time::sleep(Duration::from_millis(500)).await;
         self.prev_pose.x += 1.0;
         let localized_pose = self.prev_pose;
         debug!("sending localized pose: {localized_pose:?}");
         if self.sender.send(localized_pose).await.is_err() {
-            return TreeStatus::Failure;
+            return TickStatus::Failure;
         }
-        TreeStatus::Success
+        TickStatus::Success
     }
 }
 

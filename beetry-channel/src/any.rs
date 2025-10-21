@@ -1,56 +1,56 @@
-use beetry_core::{BoxedReceiver, BoxedSender, Receiver};
+use beetry_core::{BoxReceiver, BoxSender, Receiver};
 use std::any::Any;
 
 use anyhow::{Result, anyhow};
 
-pub struct AnyBoxedReceiver(Box<dyn Any>);
+pub struct AnyBoxReceiver(Box<dyn Any>);
 
-impl AnyBoxedReceiver {
+impl AnyBoxReceiver {
     pub fn new<T, R>(receiver: R) -> Self
     where
         R: Receiver<T> + 'static,
         T: 'static,
     {
-        AnyBoxedReceiver(Box::new(Box::new(receiver) as BoxedReceiver<T>))
+        AnyBoxReceiver(Box::new(Box::new(receiver) as BoxReceiver<T>))
     }
 
     pub fn is_receiver_of<T: 'static>(&self) -> bool {
-        self.0.is::<BoxedReceiver<T>>()
+        self.0.is::<BoxReceiver<T>>()
     }
 
-    pub fn into_receiver_of<T: 'static>(self) -> Result<BoxedReceiver<T>> {
+    pub fn into_receiver_of<T: 'static>(self) -> Result<BoxReceiver<T>> {
         let casted = self
             .0
-            .downcast::<BoxedReceiver<T>>()
+            .downcast::<BoxReceiver<T>>()
             .map_err(|err| anyhow!("failed to downcast to concrete receiver, err: {err:?}"))?;
         Ok(*casted)
     }
 }
 
-impl<T: 'static> From<BoxedReceiver<T>> for AnyBoxedReceiver {
-    fn from(value: BoxedReceiver<T>) -> Self {
-        AnyBoxedReceiver(Box::new(value))
+impl<T: 'static> From<BoxReceiver<T>> for AnyBoxReceiver {
+    fn from(value: BoxReceiver<T>) -> Self {
+        AnyBoxReceiver(Box::new(value))
     }
 }
 
-pub struct AnyBoxedSender(Box<dyn Any>);
+pub struct AnyBoxSender(Box<dyn Any>);
 
-impl AnyBoxedSender {
+impl AnyBoxSender {
     pub fn is_sender_of<T: 'static>(&self) -> bool {
-        self.0.is::<BoxedSender<T>>()
+        self.0.is::<BoxSender<T>>()
     }
 
-    pub fn into_sender_of<T: 'static>(self) -> Result<BoxedSender<T>> {
+    pub fn into_sender_of<T: 'static>(self) -> Result<BoxSender<T>> {
         let casted = self
             .0
-            .downcast::<BoxedSender<T>>()
+            .downcast::<BoxSender<T>>()
             .map_err(|err| anyhow!("failed to downcast to concrete sender, err: {err:?}"))?;
         Ok(*casted)
     }
 }
-impl<T: 'static> From<BoxedSender<T>> for AnyBoxedSender {
-    fn from(value: BoxedSender<T>) -> Self {
-        AnyBoxedSender(Box::new(value))
+impl<T: 'static> From<BoxSender<T>> for AnyBoxSender {
+    fn from(value: BoxSender<T>) -> Self {
+        AnyBoxSender(Box::new(value))
     }
 }
 
@@ -84,32 +84,32 @@ mod tests {
 
     #[test]
     fn downcast_receiver_test() {
-        let stub = Box::new(ReceiverStub(Some(42u32))) as BoxedReceiver<u32>;
-        let any: AnyBoxedReceiver = stub.into();
+        let stub = Box::new(ReceiverStub(Some(42u32))) as BoxReceiver<u32>;
+        let any: AnyBoxReceiver = stub.into();
         assert!(any.is_receiver_of::<u32>());
         assert!(any.into_receiver_of::<u32>().is_ok());
     }
 
     #[test]
     fn receiver_wrong_type_test() {
-        let stub = Box::new(ReceiverStub(Some(42u32))) as BoxedReceiver<u32>;
-        let any: AnyBoxedReceiver = stub.into();
+        let stub = Box::new(ReceiverStub(Some(42u32))) as BoxReceiver<u32>;
+        let any: AnyBoxReceiver = stub.into();
         assert!(!any.is_receiver_of::<i32>());
         assert!(any.into_receiver_of::<i32>().is_err());
     }
 
     #[test]
     fn downcast_sender_test() {
-        let stub = Box::new(SenderStub::new()) as BoxedSender<u32>;
-        let any: AnyBoxedSender = stub.into();
+        let stub = Box::new(SenderStub::new()) as BoxSender<u32>;
+        let any: AnyBoxSender = stub.into();
         assert!(any.is_sender_of::<u32>());
         assert!(any.into_sender_of::<u32>().is_ok());
     }
 
     #[test]
     fn sender_wrong_type_test() {
-        let stub = Box::new(SenderStub::new()) as BoxedSender<u32>;
-        let any: AnyBoxedSender = stub.into();
+        let stub = Box::new(SenderStub::new()) as BoxSender<u32>;
+        let any: AnyBoxSender = stub.into();
         assert!(!any.is_sender_of::<i32>());
         assert!(any.into_sender_of::<i32>().is_err());
     }
@@ -117,7 +117,7 @@ mod tests {
     #[test]
     fn new_constructor_test() {
         let stub = ReceiverStub(Some(42u32));
-        let any = AnyBoxedReceiver::new(stub);
+        let any = AnyBoxReceiver::new(stub);
         assert!(any.is_receiver_of::<u32>());
         assert!(any.into_receiver_of::<u32>().is_ok());
     }
@@ -125,7 +125,7 @@ mod tests {
     #[test]
     fn new_constructor_wrong_type_test() {
         let stub = ReceiverStub(Some(42u32));
-        let any = AnyBoxedReceiver::new(stub);
+        let any = AnyBoxReceiver::new(stub);
         assert!(!any.is_receiver_of::<i32>());
         assert!(any.into_receiver_of::<i32>().is_err());
     }

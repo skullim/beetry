@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::{Pose, leaves::DriveInput};
 use anyhow::{Result, anyhow};
-use beetry_core::{ActionBehavior, NodeTask, Receiver, Task, TreeStatus};
+use beetry_core::{ActionBehavior, NodeTask, Receiver, Task, TickStatus};
 use beetry_definitions::description::{
     LeafDescription, LeafKind, MessageDescription, NodeHashProvider,
 };
@@ -64,14 +64,14 @@ impl DriveTask {
 
 impl Task for DriveTask {
     #[instrument(skip(self))]
-    async fn run(self) -> TreeStatus {
+    async fn run(self) -> TickStatus {
         let pose = self.pose;
         debug!("received pose {pose:?}");
         let target_pose = Pose::new(pose.x + 1.2, pose.y);
         debug!("driving to: {target_pose:?}");
         tokio::time::sleep(Duration::from_millis(100)).await;
         debug!("finishing drive task with status success");
-        TreeStatus::Success
+        TickStatus::Success
     }
 }
 
@@ -123,7 +123,7 @@ impl NodePlugin for DrivePlugin {
 #[cfg(test)]
 mod tests {
     use beetry_channel::tokio;
-    use beetry_core::BoxedReceiver;
+    use beetry_core::BoxReceiver;
     use beetry_plugin::node::{NodePlugin, NodeReconstructionData};
 
     use crate::{Pose, leaves::drive::DrivePlugin};
@@ -131,7 +131,7 @@ mod tests {
     #[test]
     fn test_reconstruction() {
         let (_, receiver) = tokio::mpsc::channel::<Pose>(1);
-        let receiver: BoxedReceiver<Pose> = Box::new(receiver);
+        let receiver: BoxReceiver<Pose> = Box::new(receiver);
         let data = NodeReconstructionData::builder()
             .receivers(vec![receiver.into()])
             .build();

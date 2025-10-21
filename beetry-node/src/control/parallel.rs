@@ -2,7 +2,7 @@ use crate::{
     control::RunningNodesAborter,
     nonempty::{Indices, NonEmptyNodes},
 };
-use beetry_core::{Node, TreeStatus};
+use beetry_core::{Node, TickStatus};
 
 /// Parallel node succeeds when all nodes succeed
 pub struct Parallel {
@@ -20,30 +20,30 @@ impl Parallel {
 }
 
 impl Node for Parallel {
-    fn tick(&mut self) -> TreeStatus {
+    fn tick(&mut self) -> TickStatus {
         let aborter: &mut RunningNodesAborter = &mut self.aborter;
         for idx in self.nodes.indices() {
             let node = &mut self.nodes[idx];
             match node.tick() {
-                TreeStatus::Success => {
+                TickStatus::Success => {
                     aborter.untrack(idx);
                     continue;
                 }
-                TreeStatus::Running => {
+                TickStatus::Running => {
                     aborter.track(idx);
                     continue;
                 }
-                TreeStatus::Failure => {
+                TickStatus::Failure => {
                     aborter.untrack(idx);
                     aborter.abort_all(&mut self.nodes);
-                    return TreeStatus::Failure;
+                    return TickStatus::Failure;
                 }
             }
         }
 
         match aborter.is_any_tracked() {
-            true => TreeStatus::Running,
-            false => TreeStatus::Success,
+            true => TickStatus::Running,
+            false => TickStatus::Success,
         }
     }
 
@@ -66,40 +66,40 @@ impl Node for Parallel {
 mod tests {
     use super::*;
     use crate::mock_test::{boxed, mock, tick_returns};
-    use beetry_core::{MockNode, Node, TreeStatus};
+    use beetry_core::{MockNode, Node, TickStatus};
 
     #[test]
     fn success_with_all_success() {
         let nodes = NonEmptyNodes::from([
-            boxed(mock().status(TreeStatus::Success).times(1).call()),
-            boxed(mock().status(TreeStatus::Success).times(1).call()),
+            boxed(mock().status(TickStatus::Success).times(1).call()),
+            boxed(mock().status(TickStatus::Success).times(1).call()),
         ]);
         let mut pl = Parallel::new(nodes);
 
-        assert_eq!(pl.tick(), TreeStatus::Success);
+        assert_eq!(pl.tick(), TickStatus::Success);
     }
 
     #[test]
     fn running_with_any_running() {
         let nodes = NonEmptyNodes::from([
-            boxed(mock().status(TreeStatus::Success).times(1).call()),
-            boxed(mock().status(TreeStatus::Running).times(1).call()),
-            boxed(mock().status(TreeStatus::Running).times(1).call()),
+            boxed(mock().status(TickStatus::Success).times(1).call()),
+            boxed(mock().status(TickStatus::Running).times(1).call()),
+            boxed(mock().status(TickStatus::Running).times(1).call()),
         ]);
         let mut pl = Parallel::new(nodes);
-        assert_eq!(pl.tick(), TreeStatus::Running);
+        assert_eq!(pl.tick(), TickStatus::Running);
     }
 
     #[test]
     fn failure_with_any_failed() {
         let nodes = NonEmptyNodes::from([
-            boxed(mock().status(TreeStatus::Success).times(1).call()),
-            boxed(mock().status(TreeStatus::Failure).times(1).call()),
-            boxed(mock().status(TreeStatus::Success).times(0).call()),
+            boxed(mock().status(TickStatus::Success).times(1).call()),
+            boxed(mock().status(TickStatus::Failure).times(1).call()),
+            boxed(mock().status(TickStatus::Success).times(0).call()),
         ]);
         let mut pl = Parallel::new(nodes);
 
-        assert_eq!(pl.tick(), TreeStatus::Failure);
+        assert_eq!(pl.tick(), TickStatus::Failure);
     }
 
     #[test]
@@ -108,13 +108,13 @@ mod tests {
         tick_returns(
             &mut m1,
             vec![
-                TreeStatus::Running,
-                TreeStatus::Running,
-                TreeStatus::Failure,
+                TickStatus::Running,
+                TickStatus::Running,
+                TickStatus::Failure,
             ],
         );
-        tick_returns(&mut m2, vec![TreeStatus::Running, TreeStatus::Running]);
-        tick_returns(&mut m3, vec![TreeStatus::Running, TreeStatus::Running]);
+        tick_returns(&mut m2, vec![TickStatus::Running, TickStatus::Running]);
+        tick_returns(&mut m3, vec![TickStatus::Running, TickStatus::Running]);
 
         m2.expect_abort().once().return_const(());
         m3.expect_abort().once().return_const(());
@@ -122,8 +122,8 @@ mod tests {
         let nodes = NonEmptyNodes::from([boxed(m1), boxed(m2), boxed(m3)]);
         let mut pl = Parallel::new(nodes);
 
-        assert_eq!(pl.tick(), TreeStatus::Running);
-        assert_eq!(pl.tick(), TreeStatus::Running);
-        assert_eq!(pl.tick(), TreeStatus::Failure);
+        assert_eq!(pl.tick(), TickStatus::Running);
+        assert_eq!(pl.tick(), TickStatus::Running);
+        assert_eq!(pl.tick(), TickStatus::Failure);
     }
 }
