@@ -8,7 +8,8 @@ anyhow.workspace = true
 bon.workspace = true
 serde.workspace = true
 
-beetry-backend = { version = "0.1.0", path = "../beetry-backend" }
+beetry-core = { version = "0.1.0", path = "../beetry-core" }
+beetry-channel = { version = "0.1.0", path = "../beetry-channel" }
 beetry-definitions = { version = "0.1.0", path = "../beetry-definitions" }
 inventory = "0.3.21"
 serde_json = "1.0.145"

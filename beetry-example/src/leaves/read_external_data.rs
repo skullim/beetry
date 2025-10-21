@@ -1,6 +1,6 @@
 use crate::{ExternalData, leaves::ReadExternalDataInput};
 use anyhow::{Result, anyhow};
-use beetry_backend::{ActionBehavior, NodeTask, Task, TreeStatus, channel::Receiver};
+use beetry_core::{self, ActionBehavior, NodeTask, Task, TreeStatus};
 use beetry_definitions::description::{
     LeafDescription, LeafKind, MessageDescription, NodeHashProvider,
 };
@@ -9,14 +9,14 @@ use type_hash::TypeHash;
 
 struct ReadExternalData<R>
 where
-    R: Receiver<ExternalData>,
+    R: beetry_core::Receiver<ExternalData>,
 {
     input: ReadExternalDataInput<R>,
 }
 
 impl<R> ReadExternalData<R>
 where
-    R: Receiver<ExternalData>,
+    R: beetry_core::Receiver<ExternalData>,
 {
     pub fn new(input: ReadExternalDataInput<R>) -> Self {
         Self { input }
@@ -25,7 +25,7 @@ where
 
 impl<R> ActionBehavior for ReadExternalData<R>
 where
-    R: Receiver<ExternalData>,
+    R: beetry_core::Receiver<ExternalData>,
 {
     fn task(&mut self) -> Result<NodeTask> {
         let data = self.input.data()?;

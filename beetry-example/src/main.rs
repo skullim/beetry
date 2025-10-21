@@ -1,3 +1,4 @@
+use beetry_channel::{AnyBoxedReceiver, external::ReceiverRegistry};
 use beetry_definitions::description::MessageHashProvider;
 use beetry_editor::ProjectData;
 use beetry_serialization::{Deserializer, JsonDeserializer};
@@ -11,14 +12,15 @@ use tracing_subscriber::{
 use tracing_tree::HierarchicalLayer;
 
 use anyhow::{Result, anyhow};
-use beetry_backend::{
-    AnyBoxedReceiver, BehaviorTree, BehaviorTreeBuilder, BehaviorTreeTicker, BoxedNode, Node, Root,
+use beetry_builder::Builder;
+use beetry_core::{
+    BehaviorTree, BehaviorTreeTicker, BoxedNode, RegisterTask, Root, Sender, TaskControl,
     TreeEngine,
-    channel::{self, Sender, external::ReceiverRegistry, tokio::mpsc::channel},
 };
 use beetry_example::{
     ChargeCommand, CheckBattery, CheckBatteryParams, Drive, DriveInput, ExternalData, Localize,
 };
+use beetry_exec::{Executor, ExecutorConfig};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
@@ -32,26 +34,27 @@ async fn main() -> Result<()> {
     );
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
-    let engine = TreeEngine::new();
-    let builder = engine.tree_builder();
-
-    let (mut sender, receiver) = channel::tokio::mpsc::channel(10);
+    let (mut sender, receiver) = beetry_channel::tokio::mpsc::channel(10);
     sender.try_send(ExternalData::new(ChargeCommand::Stop, false))?;
     sender.try_send(ExternalData::new(ChargeCommand::Start, true))?;
     let mut receiver_registry = ReceiverRegistry::new();
     receiver_registry.register(ExternalData::hash(), AnyBoxedReceiver::new(receiver));
 
-    let creation_type = BtCreationType::Code;
+    let executor = Executor::new(ExecutorConfig::default());
+    let (mut ready_exec, registry) = executor.into_ready_with_registry();
+    let builder = Builder::new(registry);
+
+    let creation_type = BtCreationType::Editor;
     let bt = match creation_type {
-        BtCreationType::Editor => bt_from_editor(builder, receiver_registry).await?,
-        BtCreationType::Code => bt_from_code(builder)?,
+        BtCreationType::Editor => bt_from_editor(&builder, receiver_registry).await?,
+        BtCreationType::Code => bt_from_code(&builder)?,
     };
 
     let ticker = BehaviorTreeTicker::new(Duration::from_secs(1));
-    let mut engine = engine.set_ticker(ticker).set_tree(bt);
+    let mut engine = TreeEngine::new().set_ticker(ticker).set_tree(bt);
 
     for _ in 0..2 {
-        engine.tick_till_terminal().await;
+        engine.tick_till_terminal(&mut ready_exec).await;
     }
 
     Ok(())
@@ -62,8 +65,12 @@ enum BtCreationType {
     Editor,
 }
 
-fn bt_from_code(builder: &BehaviorTreeBuilder) -> Result<BehaviorTree<BoxedNode>> {
-    let (loc_send, loc_recv) = channel(16);
+fn bt_from_code<R, T>(builder: &Builder<R, T>) -> Result<BehaviorTree<BoxedNode>>
+where
+    R: RegisterTask<T> + 'static,
+    T: TaskControl + 'static,
+{
+    let (loc_send, loc_recv) = beetry_channel::tokio::mpsc::channel(16);
     let localize = Localize::new(loc_send);
     let drive = Drive::new(DriveInput::builder().pose(loc_recv).build());
     let check = CheckBattery::new(CheckBatteryParams::default());
@@ -74,10 +81,14 @@ fn bt_from_code(builder: &BehaviorTreeBuilder) -> Result<BehaviorTree<BoxedNode>
     ]))))
 }
 
-async fn bt_from_editor(
-    builder: &BehaviorTreeBuilder,
+async fn bt_from_editor<R, T>(
+    builder: &Builder<R, T>,
     receiver_registry: ReceiverRegistry,
-) -> Result<BehaviorTree<BoxedNode>> {
+) -> Result<BehaviorTree<BoxedNode>>
+where
+    R: RegisterTask<T> + 'static,
+    T: TaskControl + 'static,
+{
     use beetry_reconstruction::TreeReconstructor;
 
     let handle = select_import_file().await?;

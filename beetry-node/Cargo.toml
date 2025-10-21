@@ -1,0 +1,15 @@
+[package]
+name = "beetry-node"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+beetry-core = { version = "0.1.0", path = "../beetry-core" }
+mitsein.workspace = true
+
+
+[dev-dependencies]
+beetry-core = { version = "0.1.0", features = [
+    "mock",
+], path = "../beetry-core" }
+bon.workspace = true

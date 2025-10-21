@@ -1,0 +1,22 @@
+[package]
+name = "beetry-channel"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+beetry-core = { version = "0.1.0", path = "../beetry-core" }
+beetry-definitions = { version = "0.1.0", path = "../beetry-definitions" }
+tokio = { version = "1.47.1", features = [
+    "sync",
+    "time",
+    "macros",
+], optional = true }
+
+[dev-dependencies]
+bon.workspace = true
+
+
+[features]
+default = ["tokio"]
+tokio = ["dep:tokio"]

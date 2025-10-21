@@ -1,7 +1,8 @@
 use anyhow::Result;
 use bon::Builder;
 
-use beetry_backend::{ActionBehavior, AnyBoxedReceiver, AnyBoxedSender, ConditionBehavior};
+use beetry_channel::{AnyBoxedReceiver, AnyBoxedSender};
+use beetry_core::{ActionBehavior, ConditionBehavior};
 use beetry_definitions::{description::LeafDescription, parameter::SerializedParameters};
 
 pub trait NodePlugin: Send + Sync {
