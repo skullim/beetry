@@ -6,11 +6,11 @@ pub use ticker::Ticker;
 
 use crate::{Node, TickStatus, root::Root};
 
-pub struct BehaviorTree<N> {
+pub struct Tree<N> {
     root: Root<N>,
 }
 
-impl<N> BehaviorTree<N>
+impl<N> Tree<N>
 where
     N: Node,
 {
@@ -19,7 +19,7 @@ where
     }
 }
 
-impl<N> Node for BehaviorTree<N>
+impl<N> Node for Tree<N>
 where
     N: Node,
 {

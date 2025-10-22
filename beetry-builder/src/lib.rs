@@ -1,5 +1,5 @@
 use beetry_core::{
-    Action, ActionBehavior, BehaviorTree, Condition, ConditionBehavior, Node, RegisterTask, Root,
+    Action, ActionBehavior, Tree, Condition, ConditionBehavior, Node, RegisterTask, Root,
     TaskControl,
 };
 use beetry_node::{NonEmptyNodes, Parallel, Sequence};
@@ -39,10 +39,10 @@ where
         Box::new(Sequence::new(nodes))
     }
 
-    pub fn tree<N>(&self, root: Root<N>) -> BehaviorTree<N>
+    pub fn tree<N>(&self, root: Root<N>) -> Tree<N>
     where
         N: Node,
     {
-        BehaviorTree::new(root)
+        Tree::new(root)
     }
 }
