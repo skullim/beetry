@@ -7,10 +7,10 @@ pub(crate) mod text;
 pub(crate) mod transfer;
 pub(crate) mod viewport;
 
-use beetry_definitions::{
-    description::{LeafDescription, MessageHash},
-    export::ControlKind,
-    parameter::SerializedParameters,
+use beetry_core::MessageHash;
+use beetry_serde::{
+    de::{node::ControlKind, parameter::SerializedParameters},
+    ser::node::LeafDescription,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap};

@@ -3,12 +3,11 @@ name = "beetry-editor"
 version = "0.1.0"
 edition = "2024"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 anyhow = "1.0.99"
 bon = "3.7.2"
-beetry-definitions = { version = "0.1.0", path = "../beetry-definitions" }
+beetry-core = { version = "0.1.0", path = "../beetry-core" }
+beetry-serde = { version = "0.1.0", path = "../beetry-serde" }
 beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
 beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }
 dioxus = { version = "=0.7.0-rc.2", features = [] }

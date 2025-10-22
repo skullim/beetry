@@ -1,4 +1,5 @@
-use beetry_definitions::description::{MessageDescription, MessageHash};
+use beetry_core::MessageHash;
+use beetry_serde::ser::channel::MessageDescription;
 use dioxus::prelude::*;
 
 use crate::{

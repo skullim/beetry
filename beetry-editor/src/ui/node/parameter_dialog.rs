@@ -1,12 +1,13 @@
+use beetry_serde::{
+    de::parameter::SerializedParameters,
+    ser::{
+        node::LeafDescription,
+        parameter::{Definition, Type},
+    },
+};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 use serde_json::Value;
-
-use beetry_definitions::{
-    description::LeafDescription,
-    parameter::{self, SerializedParameters},
-    parameter::{Definition, Type},
-};
 
 use crate::definitions::Point;
 
@@ -35,7 +36,7 @@ pub(crate) enum State {
     Visible {
         position: Point,
         desc: LeafDescription,
-        schema: parameter::Schema,
+        schema: beetry_serde::ser::parameter::Schema,
     },
 }
 

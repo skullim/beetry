@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use beetry_definitions::description::MessageHash;
+use beetry_core::MessageHash;
 
 use crate::any::AnyBoxReceiver;
 

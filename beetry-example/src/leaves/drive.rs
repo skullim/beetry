@@ -3,10 +3,11 @@ use std::time::Duration;
 use crate::{Pose, leaves::DriveInput};
 use anyhow::{Result, anyhow};
 use beetry_core::{ActionBehavior, NodeTask, Receiver, Task, TickStatus};
-use beetry_definitions::description::{
-    LeafDescription, LeafKind, MessageDescription, NodeHashProvider,
-};
 use beetry_plugin::node::{self, ActionFactory, NodePlugin, NodeReconstructionData};
+use beetry_serde::ser::{
+    channel::MessageDescription,
+    node::{LeafDescription, LeafKind, NodeHashProvider},
+};
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
 

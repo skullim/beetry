@@ -1,6 +1,7 @@
 use std::{collections::BTreeSet, rc::Rc};
 
-use beetry_definitions::description::{LeafKind, MessageDescription, MessageHash};
+use beetry_core::MessageHash;
+use beetry_serde::ser::{channel::MessageDescription, node::LeafKind};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 

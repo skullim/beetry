@@ -22,7 +22,7 @@ serde.workspace = true
 
 beetry-channel = { version = "0.1.0", path = "../beetry-channel" }
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
-beetry-definitions = { version = "0.1.0", path = "../beetry-definitions" }
+beetry-serde = { version = "0.1.0", path = "../beetry-serde" }
 beetry-exec = { version = "0.1.0", path = "../beetry-exec" }
 beetry-builder = { version = "0.1.0", path = "../beetry-builder" }
 beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }

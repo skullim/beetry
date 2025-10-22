@@ -1,4 +1,5 @@
-use beetry_definitions::{description::MessageHash, export::ChannelId};
+use beetry_core::MessageHash;
+use beetry_serde::de::channel::ChannelId;
 use bon::Builder;
 use dioxus::{logger::tracing::debug, prelude::*};
 

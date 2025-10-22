@@ -1,14 +1,13 @@
-use dioxus::prelude::*;
-use dioxus_logger::tracing::debug;
-use std::num::NonZeroUsize;
-
-use beetry_definitions::{
-    description::ChannelDescription,
-    export::{
+use beetry_serde::{
+    de::channel::{
         BroadcastConfig, ChannelImplKind, ChannelKind, ChannelMetadata, MpscConfig,
         TokioChannelConfig,
     },
+    ser::channel::ChannelDescription,
 };
+use dioxus::prelude::*;
+use dioxus_logger::tracing::debug;
+use std::num::NonZeroUsize;
 
 use crate::definitions::Point;
 

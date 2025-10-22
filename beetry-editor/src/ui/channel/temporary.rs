@@ -1,4 +1,4 @@
-use beetry_definitions::description::MessageHash;
+use beetry_core::MessageHash;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 

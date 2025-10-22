@@ -1,9 +1,8 @@
 use std::collections::BTreeSet;
 
-use beetry_definitions::{
-    description::{LeafDescription, LeafKind},
-    export::ControlKind,
-    parameter::SerializedParameters,
+use beetry_serde::{
+    de::{node::ControlKind, parameter::SerializedParameters},
+    ser::node::{LeafDescription, LeafKind},
 };
 use dioxus::{logger::tracing::info, prelude::*};
 use dioxus_logger::tracing::debug;

@@ -1,10 +1,9 @@
 use beetry_core::ConditionBehavior;
-use beetry_definitions::{
-    description::{LeafDescription, LeafKind, NodeHashProvider},
-    parameter::{self, Bounds, ProvideSchema, Schema, SerializedParametersMarker},
-};
 use beetry_macros::ProvideSchema;
 use beetry_plugin::node::{self, ConditionFactory, NodePlugin};
+use beetry_serde::de::parameter::SerializedParametersMarker;
+use beetry_serde::ser::node::{LeafDescription, LeafKind, NodeHashProvider};
+use beetry_serde::ser::parameter::{self, Bounds, ProvideSchema, Schema};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 use type_hash::TypeHash;

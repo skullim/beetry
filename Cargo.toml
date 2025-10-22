@@ -3,7 +3,6 @@ resolver = "3"
 members = [
     "beetry",
     "beetry-example",
-    "beetry-definitions",
     "beetry-editor",
     "beetry-editor-launch",
     "beetry-macros",
@@ -21,6 +20,7 @@ members = [
 [workspace.dependencies]
 anyhow = "1.0.100"
 bon = "3.8.1"
+derive_more = { version = "2.0.1", features = ["full"] }
 tracing = "0.1.41"
 strum_macros = "0.27.2"
 serde = "1.0.228"
