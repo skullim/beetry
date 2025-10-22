@@ -5,12 +5,17 @@ use std::{
 };
 
 use anyhow::{Result, anyhow};
-use beetry_definitions::description::{LeafDescription, MessageHash};
+use beetry_core::MessageHash;
+use beetry_serde::{
+    de::{
+        node::{ControlExport, LeafExport, NodeExport, RootExport},
+        tree::TreeExport,
+    },
+    ser::node::LeafDescription,
+};
 use beetry_serialization::{Deserializer, JsonDeserializer};
 use dioxus_logger::tracing::debug;
 use serde::{Deserialize, Serialize};
-
-use beetry_definitions::export::{ControlExport, LeafExport, NodeExport, RootExport, TreeExport};
 
 use crate::{
     definitions::{NodeEdge, NodeId},

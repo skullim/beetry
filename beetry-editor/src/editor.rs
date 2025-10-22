@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use beetry_definitions::export::{ChannelExport, ChannelMetadata};
+use beetry_serde::de::channel::{ChannelExport, ChannelMetadata};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 

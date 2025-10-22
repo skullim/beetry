@@ -1,5 +1,7 @@
 use std::result::Result as StdResult;
 
+use serde::{Deserialize, Serialize};
+
 pub type TryRecvResult<T> = StdResult<T, error::TryRecvError>;
 pub type TrySendResult<T> = StdResult<(), error::TrySendError<T>>;
 
@@ -51,5 +53,17 @@ pub mod error {
         Disconnected,
         #[error("receiver lagged behind {0} messages")]
         Lagged(u64),
+    }
+}
+
+/// Describes the hash of the message type (and not concrete message type instance)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct MessageHash {
+    hash: u64,
+}
+
+impl MessageHash {
+    pub fn new(hash: u64) -> Self {
+        Self { hash }
     }
 }

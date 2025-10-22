@@ -3,16 +3,17 @@ mod renderer;
 pub(crate) mod temporary;
 mod tracker;
 
+use beetry_core::MessageHash;
+use beetry_serde::{
+    de::channel::{ChannelExport, ChannelId},
+    ser::channel::ChannelDescription,
+};
 pub(crate) use config_dialog::Dialog as ConfigDialog;
 pub(crate) use renderer::Renderer;
 use serde::{Deserialize, Serialize};
 pub(crate) use temporary::Temporary;
 pub(crate) use tracker::Tracker;
 
-use beetry_definitions::{
-    description::{ChannelDescription, MessageHash},
-    export::{ChannelExport, ChannelId},
-};
 use dioxus::{html::input_data::MouseButton, prelude::*};
 
 use crate::{

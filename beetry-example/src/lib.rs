@@ -5,12 +5,13 @@ pub use leaves::{
     ReadExternalDataInput,
 };
 
-use beetry_definitions::description::{ChannelDescription, Message};
 use beetry_macros::{Message, submit_as_channel_plugin};
 use beetry_plugin::{
     channel::{ChannelPlugin, ChannelPluginConstructor, Factory},
     node::{ActionNodePluginConstructor, ConditionNodePluginConstructor},
 };
+use beetry_serde::ser::channel::{ChannelDescription, Message};
+
 use type_hash::TypeHash;
 
 use crate::leaves::{CheckBatteryPlugin, ReadExternalDataPlugin};

@@ -4,7 +4,7 @@ use crate::{
     definitions::{NodeId, Point},
     ui::channel::ChannelElement,
 };
-use beetry_definitions::export::{ChannelExport, ChannelId};
+use beetry_serde::de::channel::{ChannelExport, ChannelId};
 use bon::Builder;
 use dioxus_logger::tracing::debug;
 use serde::{Deserialize, Serialize};

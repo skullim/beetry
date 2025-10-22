@@ -1,17 +1,21 @@
 use anyhow::{Result, anyhow};
 use beetry_node::NonEmptyNodes;
+use beetry_serde::{
+    de::{
+        channel::{ChannelId, ChannelIdToExportMap},
+        node::{ControlKind, NodeExport},
+        tree::TreeExport,
+    },
+    ser::node::{LeafDescription, LeafKind, NodeHash},
+};
 use std::collections::HashMap;
 use tracing::debug;
 
 use beetry_builder::Builder as BehaviorTreeBuilder;
 use beetry_channel::external;
-use beetry_core::{BoxNode, Node, RegisterTask, Root, TaskControl, Tree};
+use beetry_core::{BoxNode, MessageHash, Node, RegisterTask, Root, TaskControl, Tree};
 use beetry_node::{Fallback, Parallel, Sequence};
 
-use beetry_definitions::{
-    description::{LeafDescription, LeafKind, MessageHash, NodeHash},
-    export::{ChannelId, ChannelIdToExportMap, ControlKind, NodeExport, TreeExport},
-};
 use beetry_plugin::{
     channel::{self, ChannelPlugin, TypeErasedChannel},
     node::{self, ActionFactory, ConditionNodePlugin, NodePlugin, NodeReconstructionData},

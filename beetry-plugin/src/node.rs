@@ -1,9 +1,9 @@
 use anyhow::Result;
+use beetry_serde::{de::parameter::SerializedParameters, ser::node::LeafDescription};
 use bon::Builder;
 
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
 use beetry_core::{ActionBehavior, ConditionBehavior};
-use beetry_definitions::{description::LeafDescription, parameter::SerializedParameters};
 
 pub trait NodePlugin: Send + Sync {
     type Description;

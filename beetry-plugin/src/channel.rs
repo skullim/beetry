@@ -1,12 +1,12 @@
 use anyhow::{Result, anyhow};
+use beetry_serde::{
+    de::channel::{ChannelImplKind, ChannelMetadata, TokioChannelConfig},
+    ser::channel::ChannelDescription,
+};
 use bon::Builder;
 
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
 use beetry_core::{BoxReceiver, Sender};
-use beetry_definitions::{
-    description::ChannelDescription,
-    export::{ChannelImplKind, ChannelMetadata, TokioChannelConfig},
-};
 
 /// Defines channel for given data type. There should be at most one plugin for each data type.
 pub trait ChannelPlugin: Send + Sync {

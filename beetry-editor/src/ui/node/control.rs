@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use beetry_definitions::export::ControlKind;
+use beetry_serde::de::node::ControlKind;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 

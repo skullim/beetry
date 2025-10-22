@@ -1,10 +1,11 @@
 use crate::{ExternalData, leaves::ReadExternalDataInput};
 use anyhow::{Result, anyhow};
 use beetry_core::{self, ActionBehavior, NodeTask, Task, TickStatus};
-use beetry_definitions::description::{
-    LeafDescription, LeafKind, MessageDescription, NodeHashProvider,
-};
 use beetry_plugin::node::{self, ActionFactory, NodePlugin, NodeReconstructionData};
+use beetry_serde::ser::{
+    channel::MessageDescription,
+    node::{LeafDescription, LeafKind, NodeHashProvider},
+};
 use type_hash::TypeHash;
 
 struct ReadExternalData<R>

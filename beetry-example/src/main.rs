@@ -1,6 +1,6 @@
 use beetry_channel::{AnyBoxReceiver, external::ReceiverRegistry};
-use beetry_definitions::description::MessageHashProvider;
 use beetry_editor::ProjectData;
+use beetry_serde::ser::channel::MessageHashProvider;
 use beetry_serialization::{Deserializer, JsonDeserializer};
 use rfd::FileHandle;
 use std::{io::Read, time::Duration};
@@ -14,7 +14,7 @@ use tracing_tree::HierarchicalLayer;
 use anyhow::{Result, anyhow};
 use beetry_builder::Builder;
 use beetry_core::{
-    Tree, BehaviorTreeTicker, BoxNode, RegisterTask, Root, Sender, TaskControl, TreeEngine,
+    BehaviorTreeTicker, BoxNode, RegisterTask, Root, Sender, TaskControl, Tree, TreeEngine,
 };
 use beetry_example::{
     ChargeCommand, CheckBattery, CheckBatteryParams, Drive, DriveInput, ExternalData, Localize,

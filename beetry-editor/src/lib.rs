@@ -6,7 +6,7 @@ mod toolbar;
 mod ui;
 mod workspace;
 
-use beetry_definitions::description::{ChannelDescription, LeafDescription};
+use beetry_serde::ser::{channel::ChannelDescription, node::LeafDescription};
 use dioxus::{logger::tracing::Level, prelude::*};
 
 pub use project::ProjectData;

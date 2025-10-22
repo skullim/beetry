@@ -1,4 +1,5 @@
 use proc_macro::TokenStream;
+use proc_macro_error::{abort, abort_call_site, proc_macro_error};
 use quote::quote;
 use syn::{DeriveInput, Lit, LitStr, parse_macro_input};
 
@@ -28,6 +29,7 @@ pub fn derive_message(input: TokenStream) -> TokenStream {
 /// - `#[param(description = "...")]` - Set field description
 /// - `#[param(min = value, max = value)]` - Set bounds for numeric types
 #[proc_macro_derive(ProvideSchema, attributes(param))]
+#[proc_macro_error]
 pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
@@ -35,9 +37,12 @@ pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
     let fields = match &input.data {
         syn::Data::Struct(data_struct) => match &data_struct.fields {
             syn::Fields::Named(fields_named) => &fields_named.named,
-            _ => panic!("ProvideSchema can only be derived for structs with named fields"),
+            unsupported => abort!(
+                unsupported,
+                "can only be derived for structs with named fields"
+            ),
         },
-        _ => panic!("ProvideSchema can only be derived for structs"),
+        _ => abort_call_site!("can only be derived for structs"),
     };
 
     let definitions = fields.iter().map(|field| {
@@ -105,16 +110,23 @@ pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
                         let bounds = generate_bounds();
                         quote! { parameter::Type::Float { bounds: #bounds } }
                     }
-                    "i32" | "i64" | "u32" | "u64" => {
+                    "i32" | "i64" | "u32" | "u64" | "usize" => {
                         let bounds = generate_bounds();
                         quote! { parameter::Type::Integer { bounds: #bounds } }
                     }
                     "bool" => quote! { parameter::Type::Boolean },
                     "String" => quote! { parameter::Type::String { max_length: None } },
-                    _ => panic!("unsupported parameter type"),
+                    unsupported => {
+                        abort!(
+                            unsupported,
+                            "unsupported parameter type: {}: {}",
+                            field_name,
+                            unsupported
+                        )
+                    }
                 }
             }
-            _ => panic!("expected field type as syn::Type::Path"),
+            unsupported => abort!(unsupported, "expected field type"),
         };
 
         // Build the definition with optional description

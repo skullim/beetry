@@ -1,7 +1,6 @@
 mod check_battery;
 mod drive;
 mod localize;
-mod multi_param;
 mod read_external_data;
 
 use beetry_channel::input;
