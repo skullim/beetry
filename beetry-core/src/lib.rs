@@ -1,15 +1,24 @@
+mod channel;
 mod leaf;
+mod node;
 mod root;
 mod task;
 mod tree;
 
 pub use leaf::{Action, ActionBehavior, Condition, ConditionBehavior};
+#[cfg(any(test, feature = "mock"))]
+pub use node::MockNode;
+pub use node::{BoxNode, Node};
+
 pub use root::Root;
+pub use tree::{Ticker as BehaviorTreeTicker, Tree, TreeEngine};
+
 pub use task::{
     AbortTask, ExecutorConcept, NodeTask, NodeTaskFuture, QueryTask, RegisterTask, Task,
     TaskControl, TaskDescription, TaskStatus,
 };
-pub use tree::{BehaviorTree, Ticker as BehaviorTreeTicker, TreeEngine};
+
+pub use channel::{BoxReceiver, BoxSender, Receiver, Sender, TryRecvResult, TrySendResult, error};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TickStatus {
@@ -21,90 +30,6 @@ pub enum TickStatus {
 impl TickStatus {
     pub fn is_terminal(&self) -> bool {
         matches!(self, Self::Success | Self::Failure)
-    }
-}
-
-#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
-pub trait Node {
-    fn tick(&mut self) -> TickStatus;
-    /// reset given node to its default state:
-    /// - should only be called by the behavior tree (root)
-    /// - should not block the thread and ideally be finished during single tick
-    fn reset(&mut self) {}
-
-    /// interface to abort running tasks. The work is to be done by the leaf (action) nodes only, as control or decorator nodes are not scheduled on the executor
-    fn abort(&mut self) {}
-}
-
-pub type BoxNode = Box<dyn Node>;
-
-impl Node for BoxNode {
-    fn tick(&mut self) -> TickStatus {
-        (**self).tick()
-    }
-
-    fn reset(&mut self) {
-        (**self).reset()
-    }
-
-    fn abort(&mut self) {
-        (**self).abort()
-    }
-}
-
-use std::result::Result as StdResult;
-
-pub type TryRecvResult<T> = StdResult<T, error::TryRecvError>;
-pub type TrySendResult<T> = StdResult<(), error::TrySendError<T>>;
-
-pub trait Receiver<T> {
-    fn try_recv(&mut self) -> TryRecvResult<T>;
-    fn drain(&mut self) {
-        while self.try_recv().is_ok() {}
-    }
-}
-
-pub type BoxReceiver<T> = Box<dyn Receiver<T>>;
-
-impl<T: 'static> Receiver<T> for BoxReceiver<T> {
-    fn try_recv(&mut self) -> TryRecvResult<T> {
-        (**self).try_recv()
-    }
-}
-
-pub trait Sender<T> {
-    fn try_send(&mut self, message: T) -> TrySendResult<T>;
-}
-
-pub type BoxSender<T> = Box<dyn Sender<T>>;
-
-impl<T: 'static> Sender<T> for Box<dyn Sender<T>> {
-    fn try_send(&mut self, message: T) -> TrySendResult<T> {
-        (**self).try_send(message)
-    }
-}
-
-pub mod error {
-    use thiserror::Error as ThisError;
-
-    #[derive(Debug, ThisError)]
-    #[error("failure when trying to send via channel")]
-    pub enum TrySendError<T> {
-        #[error("channel is full")]
-        Full(T),
-        #[error("channel got disconnected")]
-        Disconnected(T),
-    }
-
-    #[derive(Debug, ThisError)]
-    #[error("failure when trying to receive via channel")]
-    pub enum TryRecvError {
-        #[error("channel is empty")]
-        Empty,
-        #[error("channel got disconnected")]
-        Disconnected,
-        #[error("receiver lagged behind {0} messages")]
-        Lagged(u64),
     }
 }
 

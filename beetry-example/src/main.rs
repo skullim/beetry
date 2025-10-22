@@ -14,7 +14,7 @@ use tracing_tree::HierarchicalLayer;
 use anyhow::{Result, anyhow};
 use beetry_builder::Builder;
 use beetry_core::{
-    BehaviorTree, BehaviorTreeTicker, BoxNode, RegisterTask, Root, Sender, TaskControl, TreeEngine,
+    Tree, BehaviorTreeTicker, BoxNode, RegisterTask, Root, Sender, TaskControl, TreeEngine,
 };
 use beetry_example::{
     ChargeCommand, CheckBattery, CheckBatteryParams, Drive, DriveInput, ExternalData, Localize,
@@ -64,7 +64,7 @@ enum BtCreationType {
     Editor,
 }
 
-fn bt_from_code<R, T>(builder: &Builder<R, T>) -> Result<BehaviorTree<BoxNode>>
+fn bt_from_code<R, T>(builder: &Builder<R, T>) -> Result<Tree<BoxNode>>
 where
     R: RegisterTask<T> + 'static,
     T: TaskControl + 'static,
@@ -83,7 +83,7 @@ where
 async fn bt_from_editor<R, T>(
     builder: &Builder<R, T>,
     receiver_registry: ReceiverRegistry,
-) -> Result<BehaviorTree<BoxNode>>
+) -> Result<Tree<BoxNode>>
 where
     R: RegisterTask<T> + 'static,
     T: TaskControl + 'static,

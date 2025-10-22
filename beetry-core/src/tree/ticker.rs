@@ -4,7 +4,7 @@ use tokio::time::{Instant, Interval, MissedTickBehavior};
 use tracing::{debug, instrument, warn};
 
 use crate::Node;
-use crate::{BehaviorTree, TickStatus};
+use crate::{TickStatus, Tree};
 
 pub struct Ticker {
     interval: Interval,
@@ -47,7 +47,7 @@ impl Ticker {
     }
 
     #[instrument(skip_all)]
-    pub async fn tick_till_terminal<N>(&mut self, tree: &mut BehaviorTree<N>) -> TickStatus
+    pub async fn tick_till_terminal<N>(&mut self, tree: &mut Tree<N>) -> TickStatus
     where
         N: Node,
     {

@@ -50,39 +50,39 @@ pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
         let mut max_bound: Option<i32> = None;
 
         for attr in &field.attrs {
-            if attr.path().is_ident("param") {
-                if let Ok(parsed) = attr.parse_nested_meta(|meta| {
-                    if meta.path.is_ident("description") {
-                        let value: LitStr = meta.value()?.parse()?;
-                        description = Some(value);
-                    } else if meta.path.is_ident("min") {
-                        let value: Lit = meta.value()?.parse()?;
-                        match value {
-                            Lit::Int(lit_int) => {
-                                min_bound = Some(lit_int.base10_parse::<i32>()?);
+            if attr.path().is_ident("param")
+                && attr
+                    .parse_nested_meta(|meta| {
+                        if meta.path.is_ident("description") {
+                            let value: LitStr = meta.value()?.parse()?;
+                            description = Some(value);
+                        } else if meta.path.is_ident("min") {
+                            let value: Lit = meta.value()?.parse()?;
+                            match value {
+                                Lit::Int(lit_int) => {
+                                    min_bound = Some(lit_int.base10_parse::<i32>()?);
+                                }
+                                Lit::Float(lit_float) => {
+                                    min_bound = Some(lit_float.base10_parse::<f32>()? as i32);
+                                }
+                                _ => {}
                             }
-                            Lit::Float(lit_float) => {
-                                min_bound = Some(lit_float.base10_parse::<f32>()? as i32);
+                        } else if meta.path.is_ident("max") {
+                            let value: Lit = meta.value()?.parse()?;
+                            match value {
+                                Lit::Int(lit_int) => {
+                                    max_bound = Some(lit_int.base10_parse::<i32>()?);
+                                }
+                                Lit::Float(lit_float) => {
+                                    max_bound = Some(lit_float.base10_parse::<f32>()? as i32);
+                                }
+                                _ => {}
                             }
-                            _ => {}
                         }
-                    } else if meta.path.is_ident("max") {
-                        let value: Lit = meta.value()?.parse()?;
-                        match value {
-                            Lit::Int(lit_int) => {
-                                max_bound = Some(lit_int.base10_parse::<i32>()?);
-                            }
-                            Lit::Float(lit_float) => {
-                                max_bound = Some(lit_float.base10_parse::<f32>()? as i32);
-                            }
-                            _ => {}
-                        }
-                    }
-                    Ok(())
-                }) {
-                    let _ = parsed;
-                }
-            }
+                        Ok(())
+                    })
+                    .is_ok()
+            {}
         }
 
         let generate_bounds = || match (min_bound, max_bound) {
@@ -111,10 +111,10 @@ pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
                     }
                     "bool" => quote! { parameter::Type::Boolean },
                     "String" => quote! { parameter::Type::String { max_length: None } },
-                    _ => quote! { parameter::Type::String { max_length: None } },
+                    _ => panic!("unsupported parameter type"),
                 }
             }
-            _ => quote! { parameter::Type::String { max_length: None } },
+            _ => panic!("expected field type as syn::Type::Path"),
         };
 
         // Build the definition with optional description

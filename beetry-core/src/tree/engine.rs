@@ -1,10 +1,10 @@
-use crate::{BehaviorTree, BehaviorTreeTicker, Node, TickStatus, task::ExecutorConcept};
+use crate::{BehaviorTreeTicker, Node, TickStatus, Tree, task::ExecutorConcept};
 use state_shift::{impl_state, type_state};
 
 #[type_state(states = (Initial, TickerSet, TreeSet), slots = (Initial))]
 pub struct TreeEngine<N> {
     ticker: Option<BehaviorTreeTicker>,
-    tree: Option<BehaviorTree<N>>,
+    tree: Option<Tree<N>>,
 }
 
 #[impl_state]
@@ -31,7 +31,7 @@ where
 
     #[require(TickerSet)]
     #[switch_to(TreeSet)]
-    pub fn set_tree(self, tree: BehaviorTree<N>) -> TreeEngine<N> {
+    pub fn set_tree(self, tree: Tree<N>) -> TreeEngine<N> {
         TreeEngine {
             ticker: self.ticker,
             tree: Some(tree),
