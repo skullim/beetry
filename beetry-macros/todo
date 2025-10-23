@@ -1,18 +1,18 @@
-- Add support for composable parameters e.g.
-```
-#[derive(Serialize, Deserialize, ProvideSchema, TypeHash)]
-pub struct MultiParamCondParams {
-    #[param(
-        description = "charged battery level in percentage",
-        min = 0,
-        max = 100
-    )]
-    level: f32,
-    duration: DurationParam
-}
+// - Add support for composable parameters e.g.
+// ```
+// #[derive(Serialize, Deserialize, ProvideSchema, TypeHash)]
+// pub struct MultiParamCondParams {
+//     #[param(
+//         description = "charged battery level in percentage",
+//         min = 0,
+//         max = 100
+//     )]
+//     level: f32,
+//     duration: DurationParam
+// }
 
-#[derive(Serialize, Deserialize, ProvideSchema, TypeHash)]
-pub struct DurationParam {
-    ms: u64,
-}
-```
+// #[derive(Serialize, Deserialize, ProvideSchema, TypeHash)]
+// pub struct DurationParam {
+//     ms: u64,
+// }
+// ```
