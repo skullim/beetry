@@ -13,3 +13,4 @@ beetry-channel = { version = "0.1.0", path = "../beetry-channel" }
 beetry-serde = { version = "0.1.0", path = "../beetry-serde" }
 inventory = "0.3.21"
 serde_json = "1.0.145"
+thiserror.workspace = true

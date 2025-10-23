@@ -18,7 +18,7 @@ use beetry_node::{Fallback, Parallel, Sequence};
 
 use beetry_plugin::{
     channel::{self, ChannelPlugin, TypeErasedChannel},
-    node::{self, ActionFactory, ConditionNodePlugin, NodePlugin, NodeReconstructionData},
+    node::{self, ActionFactory, ConditionPlugin, NodePlugin, NodeReconstructionData},
 };
 
 #[derive(Default)]
@@ -55,9 +55,9 @@ impl TreeReconstructor {
         let mut channels = Self::try_reconstruct_channels(snapshot.channels, channel_factory_map)?;
 
         let action_factory_map =
-            ActionNameToFactoryMap::new(node::ActionNodePluginConstructor::plugins());
+            ActionNameToFactoryMap::new(node::ActionPluginConstructor::plugins()?);
         let condition_factory_map =
-            ConditionNameToFactoryMap::new(node::ConditionNodePluginConstructor::plugins());
+            ConditionNameToFactoryMap::new(node::ConditionPluginConstructor::plugins()?);
         let child = Self::try_reconstruct_tree(
             snapshot.root.into_child(),
             &action_factory_map,
@@ -155,20 +155,19 @@ impl TreeReconstructor {
                     .senders(senders)
                     .parameters(leaf.take_parameters())
                     .build();
+
                 let leaf_name = leaf.name();
                 match leaf.kind() {
                     LeafKind::Action => {
                         let factory = action_factory_map.get(leaf_name).ok_or_else(|| {
-                            anyhow!("action factory of leaf with name: {leaf_name} does not exist")
+                            anyhow!("action factory with name: {leaf_name} does not exist")
                         })?;
                         let action = factory.try_create(data)?;
                         Ok(builder.action(action))
                     }
                     LeafKind::Condition => {
-                        let factory = condition_factory_map.get(leaf.name()).ok_or_else(|| {
-                            anyhow!(
-                                "condition factory of leaf with name: {leaf_name:?} does not exist"
-                            )
+                        let factory = condition_factory_map.get(leaf_name).ok_or_else(|| {
+                            anyhow!("condition factory with name: {leaf_name:?} does not exist")
                         })?;
                         let condition = factory.try_create(data)?;
                         Ok(builder.condition(condition))
@@ -197,7 +196,7 @@ impl ActionNameToFactoryMap {
     fn new(plugins: Vec<Box<dyn NodePlugin<Spec = LeafSpec, Factory = ActionFactory>>>) -> Self {
         let map = plugins
             .into_iter()
-            .map(|plugin| (plugin.spec().name().clone(), plugin.factory()))
+            .map(|plugin| (plugin.spec().name, plugin.factory()))
             .collect();
         Self { map }
     }
@@ -212,10 +211,10 @@ struct ConditionNameToFactoryMap {
 }
 
 impl ConditionNameToFactoryMap {
-    fn new(plugins: Vec<Box<ConditionNodePlugin>>) -> Self {
+    fn new(plugins: Vec<Box<ConditionPlugin>>) -> Self {
         let map = plugins
             .into_iter()
-            .map(|plugin| (plugin.spec().name().clone(), plugin.factory()))
+            .map(|plugin| (plugin.spec().name, plugin.factory()))
             .collect();
         Self { map }
     }

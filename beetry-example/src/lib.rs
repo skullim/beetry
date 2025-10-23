@@ -8,7 +8,7 @@ pub use leaves::{
 use beetry_macros::{Message, submit_as_channel_plugin};
 use beetry_plugin::{
     channel::{ChannelPlugin, ChannelPluginConstructor, Factory},
-    node::{ActionNodePluginConstructor, ConditionNodePluginConstructor},
+    node::{ActionPluginConstructor, ConditionPluginConstructor},
 };
 use beetry_serde::ser::channel::{ChannelSpec, Message};
 
@@ -51,8 +51,8 @@ impl ExternalData {
     }
 }
 
-inventory::submit!(ActionNodePluginConstructor::new::<DrivePlugin>());
-inventory::submit!(ActionNodePluginConstructor::new::<LocalizePlugin>());
-inventory::submit!(ActionNodePluginConstructor::new::<ReadExternalDataPlugin>());
+inventory::submit!(ActionPluginConstructor::new::<DrivePlugin>());
+inventory::submit!(ActionPluginConstructor::new::<LocalizePlugin>());
+inventory::submit!(ActionPluginConstructor::new::<ReadExternalDataPlugin>());
 
-inventory::submit!(ConditionNodePluginConstructor::new::<CheckBatteryPlugin>());
+inventory::submit!(ConditionPluginConstructor::new::<CheckBatteryPlugin>());

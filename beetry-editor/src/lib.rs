@@ -43,8 +43,8 @@ struct Plugins {
 #[component]
 pub fn PluginsProvider(children: Element) -> Element {
     let leaves = {
-        let action_plugins = beetry_plugin::node::ActionNodePluginConstructor::plugins();
-        let condition_plugins = beetry_plugin::node::ConditionNodePluginConstructor::plugins();
+        let action_plugins = beetry_plugin::node::ActionPluginConstructor::plugins()?;
+        let condition_plugins = beetry_plugin::node::ConditionPluginConstructor::plugins()?;
 
         let mut plugins = action_plugins
             .into_iter()
