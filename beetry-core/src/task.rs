@@ -70,10 +70,10 @@ impl TryFrom<TaskStatus> for TickStatus {
     }
 }
 
-pub type NodeTaskFuture = Box<dyn Future<Output = TickStatus> + Send + Sync + 'static>;
+pub type BoxTaskFuture = Box<dyn Future<Output = TickStatus> + Send + Sync + 'static>;
 
 pub struct NodeTask {
-    task: NodeTaskFuture,
+    task: BoxTaskFuture,
     pub desc: TaskDescription,
 }
 

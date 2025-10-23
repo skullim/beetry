@@ -2,8 +2,11 @@ use std::time::Duration;
 
 use crate::{Pose, leaves::DriveInput};
 use anyhow::{Result, anyhow};
-use beetry_core::{ActionBehavior, NodeTask, Receiver, Task, TickStatus};
-use beetry_plugin::node::{self, ActionFactory, NodePlugin, NodeReconstructionData};
+use beetry_core::{ActionBehavior, BoxActionBehavior, NodeTask, Receiver, Task, TickStatus};
+use beetry_plugin::{
+    Plugin,
+    node::{self, ActionFactory, NodeReconstructionData},
+};
 use beetry_serde::ser::{
     channel::MessageSpec,
     node::{LeafKind, LeafSchema, LeafSpec, NodeName},
@@ -80,7 +83,7 @@ pub struct DrivePlugin {
     factory: node::ActionFactory,
 }
 
-impl NodePlugin for DrivePlugin {
+impl Plugin for DrivePlugin {
     type Spec = LeafSpec;
     type Factory = ActionFactory;
 
@@ -96,7 +99,7 @@ impl NodePlugin for DrivePlugin {
             if let Ok(recv) = recv.into_receiver_of::<Pose>() {
                 Ok(
                     Box::new(Drive::new(DriveInput::builder().pose(recv).build()))
-                        as Box<dyn ActionBehavior>,
+                        as BoxActionBehavior,
                 )
             } else {
                 anyhow::bail!("failed to instantiate node from erased type");
@@ -126,7 +129,7 @@ impl NodePlugin for DrivePlugin {
 mod tests {
     use beetry_channel::tokio;
     use beetry_core::BoxReceiver;
-    use beetry_plugin::node::{NodePlugin, NodeReconstructionData};
+    use beetry_plugin::{Plugin, node::NodeReconstructionData};
 
     use crate::{Pose, leaves::drive::DrivePlugin};
 

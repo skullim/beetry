@@ -8,7 +8,7 @@ pub use fallback::Fallback;
 pub use parallel::Parallel;
 pub use sequence::Sequence;
 
-use beetry_core::Node;
+use beetry_core::BoxNode;
 
 struct RunningNodesAborter {
     running: BTreeSet<usize>,
@@ -37,13 +37,13 @@ impl RunningNodesAborter {
         self.running.take(&idx);
     }
 
-    fn abort_if_other_running(&mut self, nodes: &mut [Box<dyn Node>], idx: usize) {
+    fn abort_if_other_running(&mut self, nodes: &mut [BoxNode], idx: usize) {
         if !self.running.contains(&idx) {
             self.abort_all(nodes);
         }
     }
 
-    fn abort_all(&mut self, nodes: &mut [Box<dyn Node>]) {
+    fn abort_all(&mut self, nodes: &mut [BoxNode]) {
         while let Some(idx) = self.running.pop_first() {
             nodes[idx].abort();
         }

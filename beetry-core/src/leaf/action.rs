@@ -20,7 +20,8 @@ pub trait Behavior {
     fn on_aborted(&mut self) {}
 }
 
-impl Behavior for Box<dyn Behavior> {
+pub type BoxBehavior = Box<dyn Behavior>;
+impl Behavior for BoxBehavior {
     fn task(&mut self) -> Result<NodeTask> {
         (**self).task()
     }
