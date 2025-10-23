@@ -8,7 +8,7 @@ use mitsein::{iter1::FromIterator1, vec1::Vec1};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    de::{channel::ChannelId, parameter::SerializedParameters},
+    de::{channel::ChannelId, parameter::Parameters},
     ser::node::{LeafKind, NodeHash},
 };
 
@@ -77,7 +77,7 @@ pub struct LeafExport {
     #[builder(default)]
     external_receivers_export: Vec<MessageHash>,
     #[builder(default)]
-    parameters: SerializedParameters,
+    parameters: Parameters,
 }
 
 impl LeafExport {
@@ -98,7 +98,7 @@ impl LeafExport {
         std::mem::take(&mut self.senders)
     }
 
-    pub fn take_parameters(&mut self) -> SerializedParameters {
+    pub fn take_parameters(&mut self) -> Parameters {
         std::mem::take(&mut self.parameters)
     }
 }

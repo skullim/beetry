@@ -1,5 +1,5 @@
 use beetry_core::MessageHash;
-use beetry_serde::ser::channel::MessageDescription;
+use beetry_serde::ser::channel::MessageSpec;
 use dioxus::prelude::*;
 
 use crate::{
@@ -32,7 +32,7 @@ impl Handlers {
 pub(crate) struct ReceiverProps {
     id: NodeId,
     position: Point,
-    desc: MessageDescription,
+    spec: MessageSpec,
     channel_idx: usize,
     is_external: bool,
 }
@@ -41,7 +41,7 @@ pub(crate) struct ReceiverProps {
 pub(crate) fn Receiver(props: ReceiverProps) -> Element {
     let position = props.position;
     let node_id = props.id;
-    let message_hash = *props.desc.hash();
+    let message_hash = *props.spec.hash();
 
     let mut is_hovered = use_signal(|| false);
     let (fill_gradient, shadow_filter) = match (props.is_external, *is_hovered.read()) {
@@ -54,7 +54,7 @@ pub(crate) fn Receiver(props: ReceiverProps) -> Element {
         (false, false) => ("url(#channel-receiver-gradient)", "url(#shadow)"),
     };
     let font_size = 10;
-    let port_width = text_width_from(props.desc.as_str(), font_size);
+    let port_width = text_width_from(props.spec.as_str(), font_size);
 
     rsx! {
         g {
@@ -104,7 +104,7 @@ pub(crate) fn Receiver(props: ReceiverProps) -> Element {
                 font_weight: "medium",
                 text_anchor: "middle",
                 pointer_events: "none",
-                "{props.desc.as_str()}"
+                "{props.spec.as_str()}"
             }
         }
     }

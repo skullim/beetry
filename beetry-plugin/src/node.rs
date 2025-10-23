@@ -1,26 +1,25 @@
 use anyhow::Result;
-use beetry_serde::{de::parameter::SerializedParameters, ser::node::LeafDescription};
+use beetry_serde::{de::parameter::Parameters, ser::node::LeafSpec};
 use bon::Builder;
 
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
 use beetry_core::{ActionBehavior, ConditionBehavior};
 
 pub trait NodePlugin: Send + Sync {
-    type Description;
+    type Spec;
     type Factory;
 
     fn new() -> Self
     where
         Self: Sized;
 
-    fn desc(&self) -> Self::Description;
+    fn spec(&self) -> Self::Spec;
 
     fn factory(self: Box<Self>) -> Self::Factory;
 }
 
-pub type ActionNodePlugin = dyn NodePlugin<Description = LeafDescription, Factory = ActionFactory>;
-pub type ConditionNodePlugin =
-    dyn NodePlugin<Description = LeafDescription, Factory = ConditionFactory>;
+pub type ActionNodePlugin = dyn NodePlugin<Spec = LeafSpec, Factory = ActionFactory>;
+pub type ConditionNodePlugin = dyn NodePlugin<Spec = LeafSpec, Factory = ConditionFactory>;
 
 #[derive(Builder)]
 pub struct NodeReconstructionData {
@@ -29,7 +28,7 @@ pub struct NodeReconstructionData {
     #[builder(default)]
     pub senders: Vec<AnyBoxSender>,
     #[builder(default)]
-    pub parameters: SerializedParameters,
+    pub parameters: Parameters,
 }
 
 pub struct ActionFactory {
@@ -50,9 +49,7 @@ impl ActionFactory {
 
 pub struct ActionNodePluginConstructor(pub fn() -> Box<ActionNodePlugin>);
 impl ActionNodePluginConstructor {
-    pub const fn new<
-        T: NodePlugin<Description = LeafDescription, Factory = ActionFactory> + 'static,
-    >() -> Self {
+    pub const fn new<T: NodePlugin<Spec = LeafSpec, Factory = ActionFactory> + 'static>() -> Self {
         ActionNodePluginConstructor(|| Box::new(T::new()))
     }
 
@@ -91,9 +88,8 @@ impl ConditionFactory {
 
 pub struct ConditionNodePluginConstructor(pub fn() -> Box<ConditionNodePlugin>);
 impl ConditionNodePluginConstructor {
-    pub const fn new<
-        T: NodePlugin<Description = LeafDescription, Factory = ConditionFactory> + 'static,
-    >() -> Self {
+    pub const fn new<T: NodePlugin<Spec = LeafSpec, Factory = ConditionFactory> + 'static>() -> Self
+    {
         ConditionNodePluginConstructor(|| Box::new(T::new()))
     }
 

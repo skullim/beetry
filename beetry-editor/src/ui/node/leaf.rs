@@ -1,7 +1,7 @@
 use std::{collections::BTreeSet, rc::Rc};
 
 use beetry_core::MessageHash;
-use beetry_serde::ser::{channel::MessageDescription, node::LeafKind};
+use beetry_serde::ser::{channel::MessageSpec, node::LeafKind};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
@@ -19,8 +19,8 @@ pub(crate) struct LeafProps {
     position: Point,
     name: String,
     kind: LeafKind,
-    receivers: BTreeSet<MessageDescription>,
-    senders: BTreeSet<MessageDescription>,
+    receivers: BTreeSet<MessageSpec>,
+    senders: BTreeSet<MessageSpec>,
     external_receivers: BTreeSet<MessageHash>,
 }
 
@@ -53,7 +53,7 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
                     key: "{idx}",
                     id,
                     position,
-                    desc: receiver_desc.clone(),
+                    spec: receiver_desc.clone(),
                     channel_idx: idx,
                     is_external: props.external_receivers.contains(receiver_desc.hash()),
                 }
@@ -66,7 +66,7 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
                     key: "{idx}",
                     id,
                     position,
-                    desc: sender_desc.clone(),
+                    spec: sender_desc.clone(),
                     channel_idx: idx,
                 }
             }

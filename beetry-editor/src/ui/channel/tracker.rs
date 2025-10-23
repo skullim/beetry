@@ -28,7 +28,7 @@ impl Tracker {
         debug!(
             "creating new channel id: {:?} with message {:?}",
             self.channel_id,
-            export.desc().as_str()
+            export.spec().as_str()
         );
 
         self.channels

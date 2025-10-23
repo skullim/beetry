@@ -6,7 +6,7 @@ mod tracker;
 use beetry_core::MessageHash;
 use beetry_serde::{
     de::channel::{ChannelExport, ChannelId},
-    ser::channel::ChannelDescription,
+    ser::channel::ChannelSpec,
 };
 pub(crate) use config_dialog::Dialog as ConfigDialog;
 pub(crate) use renderer::Renderer;
@@ -77,21 +77,21 @@ impl Handlers {
 #[derive(Props, PartialEq, Clone)]
 pub(crate) struct ChannelProps {
     pos: Point,
-    desc: ChannelDescription,
+    spec: ChannelSpec,
     id: ChannelId,
 }
 
 #[component]
 pub(crate) fn Channel(props: ChannelProps) -> Element {
     let position = props.pos;
-    let desc = props.desc.clone();
+    let spec = props.spec.clone();
     let id = props.id;
 
     let zoom_level = use_context::<ViewportContext>().zoom_level;
     let handlers = use_context::<Handlers>();
 
     let font_size = 10;
-    let body_width = text_width_from(desc.as_str(), font_size);
+    let body_width = text_width_from(spec.as_str(), font_size);
 
     let mut sender_hovered = use_signal(|| false);
     let mut body_hovered = use_signal(|| false);
@@ -106,7 +106,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
 
             // Sender port (left side)
             rect {
-                onmouseup: move |_| { handlers.on_sender.call((id, *desc.msg_hash())) },
+                onmouseup: move |_| { handlers.on_sender.call((id, *spec.msg_hash())) },
                 onmouseenter: move |_| sender_hovered.set(true),
                 onmouseleave: move |_| sender_hovered.set(false),
                 x: "{position.x}",
@@ -147,7 +147,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
 
             // Receiver port (right side)
             rect {
-                onmouseup: move |_| { handlers.on_receiver.call((id, *props.desc.clone().msg_hash())) },
+                onmouseup: move |_| { handlers.on_receiver.call((id, *props.spec.clone().msg_hash())) },
                 onmouseenter: move |_| receiver_hovered.set(true),
                 onmouseleave: move |_| receiver_hovered.set(false),
                 x: "{position.x + 40.0 + body_width}",
@@ -172,7 +172,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
                 font_weight: "medium",
                 text_anchor: "middle",
                 pointer_events: "none",
-                "{desc.as_str()}"
+                "{spec.as_str()}"
             }
 
             // Tooltip for channel ID (only show on hover)

@@ -3,7 +3,7 @@ use beetry_serde::{
         BroadcastConfig, ChannelImplKind, ChannelKind, ChannelMetadata, MpscConfig,
         TokioChannelConfig,
     },
-    ser::channel::ChannelDescription,
+    ser::channel::ChannelSpec,
 };
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
@@ -35,7 +35,7 @@ pub(crate) enum State {
     Idle,
     Visible {
         position: Point,
-        desc: ChannelDescription,
+        spec: ChannelSpec,
     },
 }
 
@@ -57,7 +57,7 @@ pub(crate) fn Dialog(props: DialogProps) -> Element {
 
     let position = match *state_read {
         State::Idle => return rsx! {},
-        State::Visible { position, desc: _ } => position,
+        State::Visible { position, spec: _ } => position,
     };
 
     let mut capacity = use_signal(|| 1usize);

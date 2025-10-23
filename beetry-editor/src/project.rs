@@ -11,7 +11,7 @@ use beetry_serde::{
         node::{ControlExport, LeafExport, NodeExport, RootExport},
         tree::TreeExport,
     },
-    ser::node::LeafDescription,
+    ser::node::LeafSpec,
 };
 use beetry_serialization::{Deserializer, JsonDeserializer};
 use dioxus_logger::tracing::debug;
@@ -180,7 +180,7 @@ impl ProjectData {
     /// Validate that all required senders and receivers for a node are properly connected
     fn validate_node_connections(
         node_id: NodeId,
-        desc: &LeafDescription,
+        desc: &LeafSpec,
         channel_tracker: &channel::Tracker,
         external_receivers: &BTreeSet<MessageHash>,
     ) -> Result<()> {
@@ -213,16 +213,16 @@ impl ProjectData {
             for channel_id in node_receivers.iter() {
                 if let Some(element) = channels.get(channel_id) {
                     let export = element.export.clone();
-                    let msg_hash = export.desc().msg_hash();
+                    let msg_hash = export.spec().msg_hash();
                     if unconnected_receivers.remove(msg_hash).is_some() {
                         debug!(
                             "✓ Connected receiver for message: {}",
-                            export.desc().as_str()
+                            export.spec().as_str()
                         );
                     } else {
                         debug!(
                             "⚠ Found unexpected receiver channel for message: {}",
-                            export.desc().as_str()
+                            export.spec().as_str()
                         );
                     }
                 }
@@ -234,13 +234,13 @@ impl ProjectData {
             for channel_id in node_senders.iter() {
                 if let Some(element) = channels.get(channel_id) {
                     let export = element.export.clone();
-                    let msg_hash = export.desc().msg_hash();
+                    let msg_hash = export.spec().msg_hash();
                     if unconnected_senders.remove(msg_hash).is_some() {
-                        debug!("✓ Connected sender for message: {}", export.desc().as_str());
+                        debug!("✓ Connected sender for message: {}", export.spec().as_str());
                     } else {
                         debug!(
                             "⚠ Found unexpected sender channel for message: {}",
-                            export.desc().as_str()
+                            export.spec().as_str()
                         );
                     }
                 }

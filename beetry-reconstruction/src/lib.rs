@@ -6,7 +6,7 @@ use beetry_serde::{
         node::{ControlKind, NodeExport},
         tree::TreeExport,
     },
-    ser::node::{LeafDescription, LeafKind, NodeHash},
+    ser::node::{LeafKind, LeafSpec, NodeHash},
 };
 use std::collections::HashMap;
 use tracing::debug;
@@ -76,7 +76,7 @@ impl TreeReconstructor {
         export_map
             .into_iter()
             .map(|(k, v)| {
-                let msg_hash = v.desc().msg_hash();
+                let msg_hash = v.spec().msg_hash();
                 debug!("{factory_map:?}");
                 let factory = factory_map.get(msg_hash).ok_or_else(|| {
                     anyhow!(
@@ -196,12 +196,10 @@ struct ActionHashToFactoryMap {
 }
 
 impl ActionHashToFactoryMap {
-    fn new(
-        plugins: Vec<Box<dyn NodePlugin<Description = LeafDescription, Factory = ActionFactory>>>,
-    ) -> Self {
+    fn new(plugins: Vec<Box<dyn NodePlugin<Spec = LeafSpec, Factory = ActionFactory>>>) -> Self {
         let map = plugins
             .into_iter()
-            .map(|plugin| (plugin.desc().hash(), plugin.factory()))
+            .map(|plugin| (plugin.spec().hash(), plugin.factory()))
             .collect();
         Self { map }
     }
@@ -219,7 +217,7 @@ impl ConditionHashToFactoryMap {
     fn new(plugins: Vec<Box<ConditionNodePlugin>>) -> Self {
         let map = plugins
             .into_iter()
-            .map(|plugin| (plugin.desc().hash(), plugin.factory()))
+            .map(|plugin| (plugin.spec().hash(), plugin.factory()))
             .collect();
         Self { map }
     }
@@ -238,7 +236,7 @@ impl ChannelHashToFactoryMap {
     fn new(plugins: Vec<Box<dyn ChannelPlugin>>) -> Self {
         let map = plugins
             .into_iter()
-            .map(|plugin| (*plugin.desc().msg_hash(), plugin.factory()))
+            .map(|plugin| (*plugin.spec().msg_hash(), plugin.factory()))
             .collect();
         Self { map }
     }
