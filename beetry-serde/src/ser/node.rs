@@ -5,6 +5,7 @@ use std::{
 
 use bon::Builder;
 use derive_getters::Getters;
+use derive_more::Display;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
 
@@ -27,11 +28,10 @@ impl LeafSpecCollection {
                     leaf.name
                 );
             }
-
-            let leaf_hash = leaf.hash;
+            let leaf_name = leaf.name().clone();
             if !set.insert(leaf) {
                 warn!(
-                    "leaf specification collection already contains leaf with hash {leaf_hash:?}, skipping"
+                    "leaf specification collection already contains leaf with name {leaf_name}, skipping"
                 );
             }
         }
@@ -39,26 +39,30 @@ impl LeafSpecCollection {
     }
 }
 
-#[derive(Debug, Clone, Eq, Builder, Getters, Serialize, Deserialize)]
+#[derive(Debug, Display, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct NodeName(String);
+
+impl NodeName {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self(name.into())
+    }
+}
+
+#[derive(Debug, Clone, Eq, Getters, Serialize, Deserialize)]
 pub struct LeafSpec {
-    #[builder(into)]
-    name: String,
-    // labels concrete node and its factory
-    #[getter(copy)]
-    hash: NodeHash,
-    #[getter(copy)]
-    kind: LeafKind,
-    #[builder(default, with = <_>::from_iter)]
-    receivers: BTreeSet<MessageSpec>,
-    #[builder(default, with = <_>::from_iter)]
-    senders: BTreeSet<MessageSpec>,
-    #[builder(default)]
-    params: Schema,
+    name: NodeName,
+    schema: LeafSchema,
+}
+
+impl LeafSpec {
+    pub fn new(name: NodeName, schema: LeafSchema) -> Self {
+        Self { name, schema }
+    }
 }
 
 impl PartialEq for LeafSpec {
     fn eq(&self, other: &Self) -> bool {
-        self.hash == other.hash
+        self.name == other.name
     }
 }
 
@@ -74,26 +78,17 @@ impl Ord for LeafSpec {
     }
 }
 
-/// Describes the hash of the node type (and not concrete node type instance)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct NodeHash {
-    hash: u64,
-}
+#[derive(Debug, Clone, PartialEq, Eq, Builder, Getters, Serialize, Deserialize)]
 
-impl NodeHash {
-    pub fn new(hash: u64) -> Self {
-        Self { hash }
-    }
-}
-
-pub trait NodeHashProvider {
-    fn hash() -> NodeHash;
-}
-
-impl<T: type_hash::TypeHash> NodeHashProvider for T {
-    fn hash() -> NodeHash {
-        NodeHash::new(T::type_hash())
-    }
+pub struct LeafSchema {
+    #[getter(copy)]
+    kind: LeafKind,
+    #[builder(default, with = <_>::from_iter)]
+    receivers: BTreeSet<MessageSpec>,
+    #[builder(default, with = <_>::from_iter)]
+    senders: BTreeSet<MessageSpec>,
+    #[builder(default)]
+    params: Schema,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

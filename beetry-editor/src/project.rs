@@ -144,8 +144,7 @@ impl ProjectData {
 
                 let builder = LeafSnapshot::builder()
                     .name(spec.name().clone())
-                    .kind(spec.kind())
-                    .hash(spec.hash())
+                    .kind(spec.schema().kind())
                     .maybe_receivers(receivers)
                     .maybe_senders(senders)
                     .ext_receivers(external_receivers.iter().cloned().collect())
@@ -191,12 +190,14 @@ impl ProjectData {
         );
 
         let expected_receivers: HashMap<MessageHash, String> = spec
+            .schema()
             .receivers()
             .iter()
             .map(|recv| (*recv.hash(), recv.desc().clone()))
             .collect();
 
         let expected_senders: HashMap<MessageHash, String> = spec
+            .schema()
             .senders()
             .iter()
             .map(|send| (*send.hash(), send.desc().clone()))

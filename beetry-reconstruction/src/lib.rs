@@ -6,7 +6,7 @@ use beetry_serde::{
         node::{ControlKind, NodeSnapshot},
         tree::TreeSnapshot,
     },
-    ser::node::{LeafKind, LeafSpec, NodeHash},
+    ser::node::{LeafKind, LeafSpec, NodeName},
 };
 use std::collections::HashMap;
 use tracing::debug;
@@ -55,9 +55,9 @@ impl TreeReconstructor {
         let mut channels = Self::try_reconstruct_channels(snapshot.channels, channel_factory_map)?;
 
         let action_factory_map =
-            ActionHashToFactoryMap::new(node::ActionNodePluginConstructor::plugins());
+            ActionNameToFactoryMap::new(node::ActionNodePluginConstructor::plugins());
         let condition_factory_map =
-            ConditionHashToFactoryMap::new(node::ConditionNodePluginConstructor::plugins());
+            ConditionNameToFactoryMap::new(node::ConditionNodePluginConstructor::plugins());
         let child = Self::try_reconstruct_tree(
             snapshot.root.into_child(),
             &action_factory_map,
@@ -90,8 +90,8 @@ impl TreeReconstructor {
 
     fn try_reconstruct_tree<R, T>(
         node: NodeSnapshot,
-        action_factory_map: &ActionHashToFactoryMap,
-        condition_factory_map: &ConditionHashToFactoryMap,
+        action_factory_map: &ActionNameToFactoryMap,
+        condition_factory_map: &ConditionNameToFactoryMap,
         channel_map: &mut ChannelIdToChannelMap,
         receivers_registry: &mut external::ReceiverRegistry,
         builder: &BehaviorTreeBuilder<R, T>,
@@ -155,21 +155,19 @@ impl TreeReconstructor {
                     .senders(senders)
                     .parameters(leaf.take_parameters())
                     .build();
-                let leaf_hash = leaf.hash();
+                let leaf_name = leaf.name();
                 match leaf.kind() {
                     LeafKind::Action => {
-                        let factory = action_factory_map.get(&leaf_hash).ok_or_else(|| {
-                            anyhow!(
-                                "action factory of leaf with hash: {leaf_hash:?} does not exist"
-                            )
+                        let factory = action_factory_map.get(leaf_name).ok_or_else(|| {
+                            anyhow!("action factory of leaf with name: {leaf_name} does not exist")
                         })?;
                         let action = factory.try_create(data)?;
                         Ok(builder.action(action))
                     }
                     LeafKind::Condition => {
-                        let factory = condition_factory_map.get(&leaf_hash).ok_or_else(|| {
+                        let factory = condition_factory_map.get(leaf.name()).ok_or_else(|| {
                             anyhow!(
-                                "condition factory of leaf with hash: {leaf_hash:?} does not exist"
+                                "condition factory of leaf with name: {leaf_name:?} does not exist"
                             )
                         })?;
                         let condition = factory.try_create(data)?;
@@ -191,39 +189,39 @@ impl TreeReconstructor {
 
 type ChannelIdToChannelMap = HashMap<ChannelId, TypeErasedChannel>;
 
-struct ActionHashToFactoryMap {
-    map: HashMap<NodeHash, node::ActionFactory>,
+struct ActionNameToFactoryMap {
+    map: HashMap<NodeName, node::ActionFactory>,
 }
 
-impl ActionHashToFactoryMap {
+impl ActionNameToFactoryMap {
     fn new(plugins: Vec<Box<dyn NodePlugin<Spec = LeafSpec, Factory = ActionFactory>>>) -> Self {
         let map = plugins
             .into_iter()
-            .map(|plugin| (plugin.spec().hash(), plugin.factory()))
+            .map(|plugin| (plugin.spec().name().clone(), plugin.factory()))
             .collect();
         Self { map }
     }
 
-    fn get(&self, hash: &NodeHash) -> Option<&node::ActionFactory> {
-        self.map.get(hash)
+    fn get(&self, name: &NodeName) -> Option<&node::ActionFactory> {
+        self.map.get(name)
     }
 }
 
-struct ConditionHashToFactoryMap {
-    map: HashMap<NodeHash, node::ConditionFactory>,
+struct ConditionNameToFactoryMap {
+    map: HashMap<NodeName, node::ConditionFactory>,
 }
 
-impl ConditionHashToFactoryMap {
+impl ConditionNameToFactoryMap {
     fn new(plugins: Vec<Box<ConditionNodePlugin>>) -> Self {
         let map = plugins
             .into_iter()
-            .map(|plugin| (plugin.spec().hash(), plugin.factory()))
+            .map(|plugin| (plugin.spec().name().clone(), plugin.factory()))
             .collect();
         Self { map }
     }
 
-    fn get(&self, hash: &NodeHash) -> Option<&node::ConditionFactory> {
-        self.map.get(hash)
+    fn get(&self, name: &NodeName) -> Option<&node::ConditionFactory> {
+        self.map.get(name)
     }
 }
 

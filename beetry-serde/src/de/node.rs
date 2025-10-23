@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     de::{channel::ChannelId, parameter::Parameters},
-    ser::node::{LeafKind, NodeHash},
+    ser::node::{LeafKind, NodeName},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Getters)]
@@ -65,11 +65,9 @@ pub enum ControlKind {
 #[derive(Debug, Clone, Builder, Serialize, Deserialize, Getters)]
 pub struct LeafSnapshot {
     #[builder(into)]
-    name: String,
+    name: NodeName,
     #[getter(copy)]
     kind: LeafKind,
-    #[getter(copy)]
-    hash: NodeHash,
     #[builder(default, with = <_>::from_iter)]
     receivers: BTreeSet<ChannelId>,
     #[builder(default, with = <_>::from_iter)]

@@ -57,19 +57,19 @@ pub(crate) fn Sidebar(
 
     let actions: Vec<_> = leaves
         .iter()
-        .filter(|spec| matches!(spec.kind(), LeafKind::Action))
+        .filter(|spec| matches!(spec.schema().kind(), LeafKind::Action))
         .cloned()
         .collect();
 
     let conditions: Vec<_> = leaves
         .iter()
-        .filter(|spec| matches!(spec.kind(), LeafKind::Condition))
+        .filter(|spec| matches!(spec.schema().kind(), LeafKind::Condition))
         .cloned()
         .collect();
 
     let new_leaf_handler = |spec: LeafSpec| {
         move |_| {
-            let schema = spec.params().clone();
+            let schema = spec.schema().params().clone();
             debug!(
                 "creating node '{}' with {} parameters",
                 spec.name(),
@@ -109,12 +109,12 @@ pub(crate) fn Sidebar(
 
             h3 { "Action Nodes" }
             for spec in actions {
-                button { onclick: new_leaf_handler(spec), {spec.name().clone()} }
+                button { onclick: new_leaf_handler(spec), {format!("{}", spec.name())} }
             }
 
             h3 { "Condition Nodes" }
             for spec in conditions {
-                button { onclick: new_leaf_handler(spec), {spec.name().clone()} }
+                button { onclick: new_leaf_handler(spec), {format!("{}", spec.name())} }
             }
 
             h3 { "Channels" }

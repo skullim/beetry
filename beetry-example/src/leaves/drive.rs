@@ -6,7 +6,7 @@ use beetry_core::{ActionBehavior, NodeTask, Receiver, Task, TickStatus};
 use beetry_plugin::node::{self, ActionFactory, NodePlugin, NodeReconstructionData};
 use beetry_serde::ser::{
     channel::MessageSpec,
-    node::{LeafKind, LeafSpec, NodeHashProvider},
+    node::{LeafKind, LeafSchema, LeafSpec, NodeName},
 };
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
@@ -108,12 +108,13 @@ impl NodePlugin for DrivePlugin {
     }
 
     fn spec(&self) -> LeafSpec {
-        LeafSpec::builder()
-            .name("Drive")
-            .hash(DriveTask::hash())
-            .kind(LeafKind::Action)
-            .receivers([MessageSpec::new::<Pose>("Drive pose")])
-            .build()
+        LeafSpec::new(
+            NodeName::new("Drive"),
+            LeafSchema::builder()
+                .kind(LeafKind::Action)
+                .receivers([MessageSpec::new::<Pose>("Drive pose")])
+                .build(),
+        )
     }
 
     fn factory(self: Box<Self>) -> node::ActionFactory {
