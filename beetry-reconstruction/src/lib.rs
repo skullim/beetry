@@ -6,19 +6,19 @@ use beetry_serde::{
         node::{ControlKind, NodeSnapshot},
         tree::TreeSnapshot,
     },
-    ser::node::{LeafKind, LeafSpec, NodeName},
+    ser::node::{LeafKind, NodeName},
 };
 use std::collections::HashMap;
 use tracing::debug;
 
 use beetry_builder::Builder as BehaviorTreeBuilder;
 use beetry_channel::external;
-use beetry_core::{BoxNode, MessageHash, Node, RegisterTask, Root, TaskControl, Tree};
+use beetry_core::{BoxNode, MessageHash, RegisterTask, Root, TaskControl, Tree};
 use beetry_node::{Fallback, Parallel, Sequence};
 
 use beetry_plugin::{
-    channel::{self, ChannelPlugin, TypeErasedChannel},
-    node::{self, ActionFactory, ConditionPlugin, NodePlugin, NodeReconstructionData},
+    channel::{self, BoxChannelPlugin, TypeErasedChannel},
+    node::{self, BoxActionPlugin, BoxConditionPlugin, NodeReconstructionData},
 };
 
 #[derive(Default)]
@@ -95,7 +95,7 @@ impl TreeReconstructor {
         channel_map: &mut ChannelIdToChannelMap,
         receivers_registry: &mut external::ReceiverRegistry,
         builder: &BehaviorTreeBuilder<R, T>,
-    ) -> Result<Box<dyn Node>>
+    ) -> Result<BoxNode>
     where
         R: RegisterTask<T> + 'static,
         T: TaskControl + 'static,
@@ -193,7 +193,7 @@ struct ActionNameToFactoryMap {
 }
 
 impl ActionNameToFactoryMap {
-    fn new(plugins: Vec<Box<dyn NodePlugin<Spec = LeafSpec, Factory = ActionFactory>>>) -> Self {
+    fn new(plugins: Vec<BoxActionPlugin>) -> Self {
         let map = plugins
             .into_iter()
             .map(|plugin| (plugin.spec().name, plugin.factory()))
@@ -211,7 +211,7 @@ struct ConditionNameToFactoryMap {
 }
 
 impl ConditionNameToFactoryMap {
-    fn new(plugins: Vec<Box<ConditionPlugin>>) -> Self {
+    fn new(plugins: Vec<BoxConditionPlugin>) -> Self {
         let map = plugins
             .into_iter()
             .map(|plugin| (plugin.spec().name, plugin.factory()))
@@ -230,7 +230,7 @@ struct ChannelHashToFactoryMap {
 }
 
 impl ChannelHashToFactoryMap {
-    fn new(plugins: Vec<Box<dyn ChannelPlugin>>) -> Self {
+    fn new(plugins: Vec<BoxChannelPlugin>) -> Self {
         let map = plugins
             .into_iter()
             .map(|plugin| (*plugin.spec().msg_hash(), plugin.factory()))

@@ -23,7 +23,7 @@ bon = "3.8.1"
 derive_more = { version = "2.0.1", features = ["full"] }
 tracing = "0.1.41"
 strum_macros = "0.27.2"
-serde = "1.0.228"
+serde = { version = "1.0.228", features = ["derive"] }
 thiserror = "2.0.17"
 mitsein = { version = "0.8.0", features = ["serde"] }
 derive-getters = "0.5.0"

@@ -5,7 +5,8 @@ pub trait Behavior {
     fn reset(&mut self) {}
 }
 
-impl Behavior for Box<dyn Behavior> {
+pub type BoxBehavior = Box<dyn Behavior>;
+impl Behavior for BoxBehavior {
     fn cond(&mut self) -> bool {
         (**self).cond()
     }

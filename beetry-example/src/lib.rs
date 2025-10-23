@@ -7,7 +7,8 @@ pub use leaves::{
 
 use beetry_macros::{Message, submit_as_channel_plugin};
 use beetry_plugin::{
-    channel::{ChannelPlugin, ChannelPluginConstructor, Factory},
+    Plugin,
+    channel::{ChannelPluginConstructor, Factory},
     node::{ActionPluginConstructor, ConditionPluginConstructor},
 };
 use beetry_serde::ser::channel::{ChannelSpec, Message};

@@ -195,7 +195,9 @@ fn generate_channel_plugin_impl(input: DeriveInput) -> (syn::Ident, TokenStream)
             factory: Factory,
         }
 
-        impl ChannelPlugin for #channel_name {
+        impl Plugin for #channel_name {
+            type Spec = ChannelSpec;
+            type Factory = Factory;
             fn spec(&self) -> ChannelSpec {
                 ChannelSpec::new::<#message_type>()
             }

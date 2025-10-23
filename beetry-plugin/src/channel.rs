@@ -6,18 +6,13 @@ use beetry_serde::{
 use bon::Builder;
 
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
-use beetry_core::{BoxReceiver, Sender};
+use beetry_core::{BoxReceiver, BoxSender};
 
-/// Defines channel for given data type. There should be at most one plugin for each data type.
-pub trait ChannelPlugin: Send + Sync {
-    fn new() -> Self
-    where
-        Self: Sized;
+use crate::Plugin;
 
-    fn spec(&self) -> ChannelSpec;
-
-    fn factory(self: Box<Self>) -> Factory;
-}
+pub trait ChannelPlugin: Plugin<Spec = ChannelSpec, Factory = Factory> {}
+impl<P> ChannelPlugin for P where P: Plugin<Spec = ChannelSpec, Factory = Factory> {}
+pub type BoxChannelPlugin = Box<dyn ChannelPlugin>;
 
 #[derive(Builder)]
 pub struct TypeErasedChannel {
@@ -69,7 +64,7 @@ impl Factory {
                                 )
                                 .collect();
                         let senders: Vec<_> = (0..config.n_senders().into())
-                            .map(|_| Box::new(sender.clone()) as Box<dyn Sender<T>>)
+                            .map(|_| Box::new(sender.clone()) as BoxSender<T>)
                             .collect();
 
                         (senders, receivers)
@@ -79,7 +74,7 @@ impl Factory {
                             beetry_channel::tokio::mpsc::channel::<T>(capacity);
 
                         let senders: Vec<_> = (0..config.n_senders().into())
-                            .map(|_| Box::new(sender.clone()) as Box<dyn Sender<T>>)
+                            .map(|_| Box::new(sender.clone()) as BoxSender<T>)
                             .collect();
                         let receivers = vec![Box::new(receiver) as BoxReceiver<T>];
 
@@ -100,21 +95,21 @@ impl Factory {
     }
 }
 
-pub struct ChannelPluginConstructor(fn() -> Box<dyn ChannelPlugin>);
+pub struct ChannelPluginConstructor(fn() -> BoxChannelPlugin);
 
 impl ChannelPluginConstructor {
     pub const fn new<T: ChannelPlugin + 'static>() -> Self {
         ChannelPluginConstructor(|| Box::new(T::new()))
     }
 
-    fn create(&self) -> Box<dyn ChannelPlugin> {
+    fn create(&self) -> BoxChannelPlugin {
         (self.0)()
     }
 }
 
 inventory::collect!(ChannelPluginConstructor);
 
-pub fn plugins() -> Vec<Box<dyn ChannelPlugin>> {
+pub fn plugins() -> Vec<BoxChannelPlugin> {
     let mut plugins = vec![];
     for plugin_constructor in inventory::iter::<ChannelPluginConstructor> {
         let plugin = plugin_constructor.create();

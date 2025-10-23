@@ -1,6 +1,7 @@
-use beetry_core::ConditionBehavior;
+use beetry_core::{BoxConditionBehavior, ConditionBehavior};
 use beetry_macros::ProvideSchema;
-use beetry_plugin::node::{self, ConditionFactory, NodePlugin};
+use beetry_plugin::Plugin;
+use beetry_plugin::node::{self, ConditionFactory};
 use beetry_serde::de::parameter::ParametersMarker;
 use beetry_serde::ser::node::{LeafKind, LeafSchema, LeafSpec, NodeName};
 use beetry_serde::ser::parameter::{self, Bounds, ProvideSchema, Schema};
@@ -58,7 +59,7 @@ pub struct CheckBatteryPlugin {
     factory: node::ConditionFactory,
 }
 
-impl NodePlugin for CheckBatteryPlugin {
+impl Plugin for CheckBatteryPlugin {
     type Spec = LeafSpec;
     type Factory = ConditionFactory;
 
@@ -70,7 +71,7 @@ impl NodePlugin for CheckBatteryPlugin {
             factory: node::ConditionFactory::new(Box::new(|reconstruct| {
                 Ok(
                     Box::new(CheckBattery::new(reconstruct.parameters.try_into()?))
-                        as Box<dyn ConditionBehavior>,
+                        as BoxConditionBehavior,
                 )
             })),
         }

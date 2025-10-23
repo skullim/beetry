@@ -1,6 +1,6 @@
 use beetry_core::{
-    Action, ActionBehavior, Tree, Condition, ConditionBehavior, Node, RegisterTask, Root,
-    TaskControl,
+    Action, ActionBehavior, BoxNode, Condition, ConditionBehavior, Node, RegisterTask, Root,
+    TaskControl, Tree,
 };
 use beetry_node::{NonEmptyNodes, Parallel, Sequence};
 use std::{marker::PhantomData, sync::Arc};
@@ -23,19 +23,19 @@ where
         }
     }
 
-    pub fn action(&self, behavior: impl ActionBehavior + 'static) -> Box<dyn Node> {
+    pub fn action(&self, behavior: impl ActionBehavior + 'static) -> BoxNode {
         Box::new(Action::new(behavior, Arc::clone(&self.registry)))
     }
 
-    pub fn condition(&self, behavior: impl ConditionBehavior + 'static) -> Box<dyn Node> {
+    pub fn condition(&self, behavior: impl ConditionBehavior + 'static) -> BoxNode {
         Box::new(Condition::new(behavior))
     }
 
-    pub fn parallel(&self, nodes: impl Into<NonEmptyNodes>) -> Box<dyn Node> {
+    pub fn parallel(&self, nodes: impl Into<NonEmptyNodes>) -> BoxNode {
         Box::new(Parallel::new(nodes))
     }
 
-    pub fn sequence(&self, nodes: impl Into<NonEmptyNodes>) -> Box<dyn Node> {
+    pub fn sequence(&self, nodes: impl Into<NonEmptyNodes>) -> BoxNode {
         Box::new(Sequence::new(nodes))
     }
 

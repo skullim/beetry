@@ -2,9 +2,11 @@ use std::time::Duration;
 
 use anyhow::Result;
 use anyhow::anyhow;
+use beetry_core::BoxActionBehavior;
 use beetry_core::{self, ActionBehavior, NodeTask, Task, TickStatus};
+use beetry_plugin::Plugin;
 use beetry_plugin::node::ActionFactory;
-use beetry_plugin::node::{self, NodePlugin, NodeReconstructionData};
+use beetry_plugin::node::{self, NodeReconstructionData};
 use beetry_serde::ser::channel::MessageSpec;
 use beetry_serde::ser::node::LeafSchema;
 use beetry_serde::ser::node::NodeName;
@@ -103,7 +105,7 @@ pub struct LocalizePlugin {
     factory: node::ActionFactory,
 }
 
-impl NodePlugin for LocalizePlugin {
+impl Plugin for LocalizePlugin {
     type Spec = LeafSpec;
     type Factory = ActionFactory;
 
@@ -117,7 +119,7 @@ impl NodePlugin for LocalizePlugin {
                 .pop()
                 .ok_or_else(|| anyhow!("expected non empty senders vector"))?;
             if let Ok(sender) = any_sender.into_sender_of::<Pose>() {
-                Ok(Box::new(Localize::new(sender)) as Box<dyn ActionBehavior>)
+                Ok(Box::new(Localize::new(sender)) as BoxActionBehavior)
             } else {
                 anyhow::bail!("failed to instantiate node from erased type");
             }

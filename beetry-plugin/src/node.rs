@@ -7,24 +7,15 @@ use beetry_serde::{
 };
 use bon::Builder;
 
+use crate::Plugin;
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
-use beetry_core::{ActionBehavior, ConditionBehavior};
+use beetry_core::{BoxActionBehavior, BoxConditionBehavior};
 
-pub trait NodePlugin: Send + Sync {
-    type Spec;
-    type Factory;
+pub trait ActionPlugin: Plugin<Spec = LeafSpec, Factory = ActionFactory> {}
+impl<P> ActionPlugin for P where P: Plugin<Spec = LeafSpec, Factory = ActionFactory> {}
 
-    fn new() -> Self
-    where
-        Self: Sized;
-
-    fn spec(&self) -> Self::Spec;
-
-    fn factory(self: Box<Self>) -> Self::Factory;
-}
-
-pub type ActionPlugin = dyn NodePlugin<Spec = LeafSpec, Factory = ActionFactory>;
-pub type ConditionPlugin = dyn NodePlugin<Spec = LeafSpec, Factory = ConditionFactory>;
+pub trait ConditionPlugin: Plugin<Spec = LeafSpec, Factory = ConditionFactory> {}
+impl<P> ConditionPlugin for P where P: Plugin<Spec = LeafSpec, Factory = ConditionFactory> {}
 
 #[derive(Builder)]
 pub struct NodeReconstructionData {
@@ -36,46 +27,50 @@ pub struct NodeReconstructionData {
     pub parameters: Parameters,
 }
 
+type BoxActionFactoryFn =
+    Box<dyn Fn(NodeReconstructionData) -> Result<BoxActionBehavior> + Send + Sync>;
+
 pub struct ActionFactory {
-    func: Box<dyn Fn(NodeReconstructionData) -> Result<Box<dyn ActionBehavior>> + Send + Sync>,
+    func: BoxActionFactoryFn,
 }
 
 impl ActionFactory {
-    pub fn new(
-        func: Box<dyn Fn(NodeReconstructionData) -> Result<Box<dyn ActionBehavior>> + Send + Sync>,
-    ) -> Self {
+    pub fn new(func: BoxActionFactoryFn) -> Self {
         Self { func }
     }
 
-    pub fn try_create(&self, data: NodeReconstructionData) -> Result<Box<dyn ActionBehavior>> {
+    pub fn try_create(&self, data: NodeReconstructionData) -> Result<BoxActionBehavior> {
         (self.func)(data)
     }
 }
 
+type BoxLeafPlugin<F> = Box<dyn Plugin<Spec = LeafSpec, Factory = F>>;
+pub type BoxActionPlugin = BoxLeafPlugin<ActionFactory>;
+pub type BoxConditionPlugin = BoxLeafPlugin<ConditionFactory>;
+
 trait NodePluginConstructor: Sized {
     type Factory;
-
-    fn construct(&self) -> Box<dyn NodePlugin<Spec = LeafSpec, Factory = Self::Factory>>;
+    fn construct(&self) -> BoxLeafPlugin<Self::Factory>;
 }
 
-pub struct ActionPluginConstructor(pub fn() -> Box<ActionPlugin>);
+pub struct ActionPluginConstructor(pub fn() -> BoxActionPlugin);
 impl ActionPluginConstructor {
-    pub const fn new<T: NodePlugin<Spec = LeafSpec, Factory = ActionFactory> + 'static>() -> Self {
-        ActionPluginConstructor(|| Box::new(T::new()))
+    pub const fn new<P: ActionPlugin + 'static>() -> Self {
+        ActionPluginConstructor(|| Box::new(P::new()))
     }
 
-    pub fn construct(&self) -> Box<ActionPlugin> {
+    pub fn construct(&self) -> BoxActionPlugin {
         (self.0)()
     }
 
-    pub fn plugins() -> Result<Vec<Box<ActionPlugin>>, PluginError> {
+    pub fn plugins() -> Result<Vec<BoxActionPlugin>, PluginError> {
         unique_plugins::<ActionPluginConstructor, ActionFactory>()
     }
 }
 
 impl NodePluginConstructor for ActionPluginConstructor {
     type Factory = ActionFactory;
-    fn construct(&self) -> Box<dyn NodePlugin<Spec = LeafSpec, Factory = Self::Factory>> {
+    fn construct(&self) -> BoxLeafPlugin<Self::Factory> {
         (self.0)()
     }
 }
@@ -83,39 +78,36 @@ impl NodePluginConstructor for ActionPluginConstructor {
 inventory::collect!(ActionPluginConstructor);
 
 pub struct ConditionFactory {
-    func: Box<dyn Fn(NodeReconstructionData) -> Result<Box<dyn ConditionBehavior>> + Send + Sync>,
+    func: Box<dyn Fn(NodeReconstructionData) -> Result<BoxConditionBehavior> + Send + Sync>,
 }
 
 impl ConditionFactory {
     pub fn new(
-        func: Box<
-            dyn Fn(NodeReconstructionData) -> Result<Box<dyn ConditionBehavior>> + Send + Sync,
-        >,
+        func: Box<dyn Fn(NodeReconstructionData) -> Result<BoxConditionBehavior> + Send + Sync>,
     ) -> Self {
         Self { func }
     }
 
-    pub fn try_create(&self, data: NodeReconstructionData) -> Result<Box<dyn ConditionBehavior>> {
+    pub fn try_create(&self, data: NodeReconstructionData) -> Result<BoxConditionBehavior> {
         (self.func)(data)
     }
 }
 
-pub struct ConditionPluginConstructor(pub fn() -> Box<ConditionPlugin>);
+pub struct ConditionPluginConstructor(pub fn() -> BoxConditionPlugin);
 
 impl NodePluginConstructor for ConditionPluginConstructor {
     type Factory = ConditionFactory;
-    fn construct(&self) -> Box<dyn NodePlugin<Spec = LeafSpec, Factory = Self::Factory>> {
+    fn construct(&self) -> BoxConditionPlugin {
         (self.0)()
     }
 }
 
 impl ConditionPluginConstructor {
-    pub const fn new<T: NodePlugin<Spec = LeafSpec, Factory = ConditionFactory> + 'static>() -> Self
-    {
-        ConditionPluginConstructor(|| Box::new(T::new()))
+    pub const fn new<C: ConditionPlugin + 'static>() -> Self {
+        ConditionPluginConstructor(|| Box::new(C::new()))
     }
 
-    pub fn plugins() -> Result<Vec<Box<ConditionPlugin>>, PluginError> {
+    pub fn plugins() -> Result<Vec<BoxConditionPlugin>, PluginError> {
         unique_plugins::<ConditionPluginConstructor, ConditionFactory>()
     }
 }
@@ -128,8 +120,7 @@ pub enum PluginError {
     DuplicateName(NodeName),
 }
 
-fn unique_plugins<C, F>()
--> std::result::Result<Vec<Box<dyn NodePlugin<Spec = LeafSpec, Factory = F>>>, PluginError>
+fn unique_plugins<C, F>() -> Result<Vec<BoxLeafPlugin<F>>, PluginError>
 where
     C: inventory::Collect + NodePluginConstructor<Factory = F>,
 {
@@ -147,4 +138,77 @@ where
         plugins.push(plugin);
         Ok(plugins)
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use beetry_serde::ser::node::{LeafKind, LeafSchema, NodeName};
+
+    struct TestPluginA;
+
+    impl Plugin for TestPluginA {
+        type Spec = LeafSpec;
+        type Factory = ActionFactory;
+
+        fn new() -> Self {
+            TestPluginA
+        }
+
+        fn spec(&self) -> Self::Spec {
+            LeafSpec::new(
+                NodeName::new("TestPlugin"),
+                LeafSchema::builder().kind(LeafKind::Action).build(),
+            )
+        }
+
+        fn factory(self: Box<Self>) -> Self::Factory {
+            ActionFactory::new(Box::new(|_| {
+                Err(anyhow::anyhow!("This is a test factory, not functional"))
+            }))
+        }
+    }
+
+    struct TestPluginB;
+
+    impl Plugin for TestPluginB {
+        type Spec = LeafSpec;
+        type Factory = ActionFactory;
+
+        fn new() -> Self {
+            TestPluginB
+        }
+
+        fn spec(&self) -> Self::Spec {
+            LeafSpec::new(
+                NodeName::new("TestPlugin"),
+                LeafSchema::builder().kind(LeafKind::Action).build(),
+            )
+        }
+
+        fn factory(self: Box<Self>) -> Self::Factory {
+            ActionFactory::new(Box::new(|_| {
+                Err(anyhow::anyhow!("This is a test factory, not functional"))
+            }))
+        }
+    }
+
+    inventory::submit! {
+        ActionPluginConstructor::new::<TestPluginA>()
+    }
+
+    //@todo registering duplicated entry might affect other tests when plugins() method is called.
+    //Better to avoid global registration if possible
+    inventory::submit! {
+        ActionPluginConstructor::new::<TestPluginB>()
+    }
+
+    #[test]
+    fn test_duplicate_plugin_name_error() {
+        let result = ActionPluginConstructor::plugins();
+        assert!(matches!(
+            result,
+            Err(PluginError::DuplicateName(name)) if name == NodeName::new("TestPlugin")
+        ));
+    }
 }

@@ -1,7 +1,10 @@
 use crate::{ExternalData, leaves::ReadExternalDataInput};
 use anyhow::{Result, anyhow};
-use beetry_core::{self, ActionBehavior, NodeTask, Task, TickStatus};
-use beetry_plugin::node::{self, ActionFactory, NodePlugin, NodeReconstructionData};
+use beetry_core::{self, ActionBehavior, BoxActionBehavior, NodeTask, Task, TickStatus};
+use beetry_plugin::{
+    Plugin,
+    node::{self, ActionFactory, NodeReconstructionData},
+};
 use beetry_serde::ser::{
     channel::MessageSpec,
     node::{LeafKind, LeafSchema, LeafSpec, NodeName},
@@ -57,7 +60,7 @@ pub struct ReadExternalDataPlugin {
     factory: node::ActionFactory,
 }
 
-impl NodePlugin for ReadExternalDataPlugin {
+impl Plugin for ReadExternalDataPlugin {
     type Spec = LeafSpec;
     type Factory = ActionFactory;
 
@@ -73,7 +76,7 @@ impl NodePlugin for ReadExternalDataPlugin {
             if let Ok(recv) = recv.into_receiver_of::<ExternalData>() {
                 Ok(Box::new(ReadExternalData::new(
                     ReadExternalDataInput::builder().data(recv).build(),
-                )) as Box<dyn ActionBehavior>)
+                )) as BoxActionBehavior)
             } else {
                 anyhow::bail!("failed to instantiate node from erased type");
             }
