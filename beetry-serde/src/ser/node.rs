@@ -50,8 +50,8 @@ impl NodeName {
 
 #[derive(Debug, Clone, Eq, Getters, Serialize, Deserialize)]
 pub struct LeafSpec {
-    name: NodeName,
-    schema: LeafSchema,
+    pub name: NodeName,
+    pub schema: LeafSchema,
 }
 
 impl LeafSpec {
@@ -82,13 +82,13 @@ impl Ord for LeafSpec {
 
 pub struct LeafSchema {
     #[getter(copy)]
-    kind: LeafKind,
+    pub kind: LeafKind,
     #[builder(default, with = <_>::from_iter)]
-    receivers: BTreeSet<MessageSpec>,
+    pub receivers: BTreeSet<MessageSpec>,
     #[builder(default, with = <_>::from_iter)]
-    senders: BTreeSet<MessageSpec>,
+    pub senders: BTreeSet<MessageSpec>,
     #[builder(default)]
-    params: Schema,
+    pub params: Schema,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
