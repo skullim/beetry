@@ -22,7 +22,7 @@ pub(crate) enum NodeKind {
     Root,
     Control(ControlKind),
     Leaf {
-        desc: LeafSpec,
+        spec: LeafSpec,
         params: Parameters,
         external_receivers: BTreeSet<MessageHash>,
     },

@@ -2,9 +2,9 @@ use anyhow::{Result, anyhow};
 use beetry_node::NonEmptyNodes;
 use beetry_serde::{
     de::{
-        channel::{ChannelId, ChannelIdToExportMap},
-        node::{ControlKind, NodeExport},
-        tree::TreeExport,
+        channel::{ChannelId, ChannelIdToSnapshotMap},
+        node::{ControlKind, NodeSnapshot},
+        tree::TreeSnapshot,
     },
     ser::node::{LeafKind, LeafSpec, NodeHash},
 };
@@ -44,7 +44,7 @@ impl TreeReconstructor {
     // 4. External receivers (if any) have been created when initializing Self instance
     pub fn try_reconstruct<R, T>(
         &mut self,
-        export: TreeExport,
+        snapshot: TreeSnapshot,
         builder: &BehaviorTreeBuilder<R, T>,
     ) -> Result<Tree<BoxNode>>
     where
@@ -52,14 +52,14 @@ impl TreeReconstructor {
         T: TaskControl + 'static,
     {
         let channel_factory_map = ChannelHashToFactoryMap::new(channel::plugins());
-        let mut channels = Self::try_reconstruct_channels(export.channels, channel_factory_map)?;
+        let mut channels = Self::try_reconstruct_channels(snapshot.channels, channel_factory_map)?;
 
         let action_factory_map =
             ActionHashToFactoryMap::new(node::ActionNodePluginConstructor::plugins());
         let condition_factory_map =
             ConditionHashToFactoryMap::new(node::ConditionNodePluginConstructor::plugins());
         let child = Self::try_reconstruct_tree(
-            export.root.into_child(),
+            snapshot.root.into_child(),
             &action_factory_map,
             &condition_factory_map,
             &mut channels,
@@ -70,10 +70,10 @@ impl TreeReconstructor {
     }
 
     fn try_reconstruct_channels(
-        export_map: ChannelIdToExportMap,
+        snapshot_map: ChannelIdToSnapshotMap,
         factory_map: ChannelHashToFactoryMap,
     ) -> Result<ChannelIdToChannelMap> {
-        export_map
+        snapshot_map
             .into_iter()
             .map(|(k, v)| {
                 let msg_hash = v.spec().msg_hash();
@@ -89,7 +89,7 @@ impl TreeReconstructor {
     }
 
     fn try_reconstruct_tree<R, T>(
-        node: NodeExport,
+        node: NodeSnapshot,
         action_factory_map: &ActionHashToFactoryMap,
         condition_factory_map: &ConditionHashToFactoryMap,
         channel_map: &mut ChannelIdToChannelMap,
@@ -101,7 +101,7 @@ impl TreeReconstructor {
         T: TaskControl + 'static,
     {
         match node {
-            NodeExport::Control(control) => {
+            NodeSnapshot::Control(control) => {
                 let control_kind = control.kind();
                 let children: Vec<_> = control
                     .into_children_iter()
@@ -126,15 +126,15 @@ impl TreeReconstructor {
                     ControlKind::Parallel => Ok(Box::new(Parallel::new(children))),
                 }
             }
-            NodeExport::Leaf(mut leaf) => {
+            NodeSnapshot::Leaf(mut leaf) => {
                 let mut receivers: Vec<_> = leaf
                     .take_receivers()
                     .into_iter()
                     .map(|id| Self::try_get_channel_mut(channel_map, &id)?.try_take_receiver())
                     .collect::<Result<_>>()?;
 
-                if let Some(external_receivers_export) = leaf.take_external_receivers_export() {
-                    external_receivers_export
+                if let Some(ext_receivers_snapshot) = leaf.take_ext_receivers() {
+                    ext_receivers_snapshot
                         .into_iter()
                         .map(|hash| receivers_registry.take(hash))
                         .for_each(|o_external_receiver| {

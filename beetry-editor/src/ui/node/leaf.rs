@@ -48,25 +48,25 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
         }
 
         g { transform: "translate(-80, 10)",
-            for (idx , receiver_desc) in props.receivers.iter().enumerate() {
+            for (idx , spec) in props.receivers.iter().enumerate() {
                 port::Receiver {
                     key: "{idx}",
                     id,
                     position,
-                    spec: receiver_desc.clone(),
+                    spec: spec.clone(),
                     channel_idx: idx,
-                    is_external: props.external_receivers.contains(receiver_desc.hash()),
+                    is_external: props.external_receivers.contains(spec.hash()),
                 }
             }
         }
 
         g { transform: "translate({width}, 10)",
-            for (idx , sender_desc) in props.senders.iter().enumerate() {
+            for (idx , spec) in props.senders.iter().enumerate() {
                 port::Sender {
                     key: "{idx}",
                     id,
                     position,
-                    spec: sender_desc.clone(),
+                    spec: spec.clone(),
                     channel_idx: idx,
                 }
             }

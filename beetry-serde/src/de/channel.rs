@@ -11,12 +11,12 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
-pub struct ChannelExport {
+pub struct ChannelSnapshot {
     spec: ChannelSpec,
     metadata: ChannelMetadata,
 }
 
-impl ChannelExport {
+impl ChannelSnapshot {
     pub fn new(spec: ChannelSpec, metadata: ChannelMetadata) -> Self {
         Self { spec, metadata }
     }
@@ -113,38 +113,38 @@ pub struct SenderReceiverCount {
     pub receiver: usize,
 }
 
-pub type ChannelIdToExportMap = HashMap<ChannelId, ChannelExport>;
+pub type ChannelIdToSnapshotMap = HashMap<ChannelId, ChannelSnapshot>;
 pub(super) struct ChannelValidator;
 pub(super) type ChannelIdEndpointCountMap = HashMap<ChannelId, SenderReceiverCount>;
 
 impl ChannelValidator {
     pub(super) fn validate(
-        export_map: &ChannelIdToExportMap,
+        snapshot_map: &ChannelIdToSnapshotMap,
         count_map: &ChannelIdEndpointCountMap,
     ) -> ExportResult<()> {
         for (id, count) in count_map {
-            let export = Self::validate_channel_presence(export_map, id)?;
-            Self::validate_endpoint_count(export, *id, count)?;
+            let snapshot = Self::validate_channel_presence(snapshot_map, id)?;
+            Self::validate_endpoint_count(snapshot, *id, count)?;
         }
         Ok(())
     }
 
     fn validate_channel_presence<'a>(
-        export_map: &'a ChannelIdToExportMap,
+        snapshot_map: &'a ChannelIdToSnapshotMap,
         id: &ChannelId,
-    ) -> ExportResult<&'a ChannelExport> {
-        match export_map.get(id) {
+    ) -> ExportResult<&'a ChannelSnapshot> {
+        match snapshot_map.get(id) {
             Some(e) => Ok(e),
             None => Err(ExportValidationError::ChannelNotFound(*id)),
         }
     }
 
     fn validate_endpoint_count(
-        export: &ChannelExport,
+        snapshot: &ChannelSnapshot,
         id: ChannelId,
         count: &SenderReceiverCount,
     ) -> ExportResult<()> {
-        match &export.metadata.impl_kind {
+        match &snapshot.metadata.impl_kind {
             ChannelImplKind::Tokio(tokio_config) => match tokio_config {
                 TokioChannelConfig::Mpsc(mpsc_config) => {
                     let expected_senders = mpsc_config.n_senders.get();

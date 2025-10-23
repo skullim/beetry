@@ -20,7 +20,7 @@ pub(crate) fn Renderer(tracker: ReadSignal<Tracker>, ui_nodes: ReadSignal<ui::No
             Channel {
                 pos: element.pos,
                 id: *id,
-                spec: element.export.spec().clone(),
+                spec: element.snapshot.spec().clone(),
             }
         }
     });
@@ -31,7 +31,7 @@ pub(crate) fn Renderer(tracker: ReadSignal<Tracker>, ui_nodes: ReadSignal<ui::No
             let channel = tracker_read.channel(*channel_id).unwrap();
             let node = nodes_read.get(node_id).unwrap();
 
-            let port_width = text::text_width_from(channel.export.spec().as_str(), 11);
+            let port_width = text::text_width_from(channel.snapshot.spec().as_str(), 11);
             let start = Point {
                 x: node.pos.x + 100.0 + port_width,
                 y: node.pos.y + 10.0 + 10.0 + 20.0 * idx as f64, // Middle of port vertically
@@ -58,7 +58,7 @@ pub(crate) fn Renderer(tracker: ReadSignal<Tracker>, ui_nodes: ReadSignal<ui::No
                 x: node.pos.x,
                 y: node.pos.y + 10.0 + 10.0 + 20.0 * idx as f64, // Middle of port vertically
             };
-            let body_width = text::text_width_from(channel.export.spec().as_str(), 11);
+            let body_width = text::text_width_from(channel.snapshot.spec().as_str(), 11);
 
             let mut end = channel.pos;
             end.x += 38.0 + body_width + 20.0; // Offset to center of receiver port dot

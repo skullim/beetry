@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use beetry_serde::de::channel::{ChannelExport, ChannelMetadata};
+use beetry_serde::de::channel::{ChannelMetadata, ChannelSnapshot};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
@@ -99,9 +99,9 @@ pub(crate) fn Editor() -> Element {
     }
 }
 
-fn on_new_channel(export: ChannelExport, mut tracker: Signal<channel::Tracker>) {
+fn on_new_channel(snapshot: ChannelSnapshot, mut tracker: Signal<channel::Tracker>) {
     tracker.with_mut(|tracker| {
-        tracker.create_channel(export);
+        tracker.create_channel(snapshot);
     });
 }
 
@@ -110,12 +110,8 @@ fn channel_config_dialog_handlers(
     mut state: Signal<channel::config_dialog::State>,
 ) -> channel::config_dialog::Handlers {
     let on_confirm = move |channel_metadata: ChannelMetadata| {
-        if let ChannelConfigDialogState::Visible {
-            position: _,
-            spec: desc,
-        } = state.take()
-        {
-            on_new_channel(ChannelExport::new(desc, channel_metadata), tracker);
+        if let ChannelConfigDialogState::Visible { position: _, spec } = state.take() {
+            on_new_channel(ChannelSnapshot::new(spec, channel_metadata), tracker);
         }
     };
 
@@ -130,9 +126,9 @@ fn parameter_dialog_handlers(
     mut state: Signal<ParameterDialogState>,
     sidebar_handlers: SidebarEventHandlers,
 ) -> ParameterDialogHandlers {
-    let on_confirm = move |(desc, params)| {
+    let on_confirm = move |(spec, params)| {
         sidebar_handlers.on_new_node.call(ui::NodeKind::Leaf {
-            desc,
+            spec,
             params,
             external_receivers: BTreeSet::new(),
         });

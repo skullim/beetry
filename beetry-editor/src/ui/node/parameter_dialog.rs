@@ -35,7 +35,7 @@ pub(crate) enum State {
     Idle,
     Visible {
         position: Point,
-        desc: LeafSpec,
+        spec: LeafSpec,
         schema: beetry_serde::ser::parameter::Schema,
     },
 }
@@ -50,13 +50,13 @@ pub(crate) fn Dialog(props: DialogProps) -> Element {
     debug!("rendering parameter dialog");
     let state_read = props.state.read();
 
-    let (position, desc, schema) = match state_read.clone() {
+    let (position, spec, schema) = match state_read.clone() {
         State::Idle => return rsx! {},
         State::Visible {
             position,
-            desc,
+            spec,
             schema,
-        } => (position, desc, schema),
+        } => (position, spec, schema),
     };
 
     let parameter_values = use_signal(|| {
@@ -93,14 +93,14 @@ pub(crate) fn Dialog(props: DialogProps) -> Element {
 
     let handlers = use_context::<Handlers>();
 
-    let desc_for_confirm = desc.clone();
+    let spec_for_confirm = spec.clone();
     let on_confirm = move |_| {
         if !has_validation_errors() {
             let values = parameter_values.read();
             let serialized_params = Parameters::from_value(Value::Object(values.clone()));
             handlers
                 .on_confirm
-                .call((desc_for_confirm.clone(), serialized_params));
+                .call((spec_for_confirm.clone(), serialized_params));
         }
     };
 
@@ -133,7 +133,7 @@ pub(crate) fn Dialog(props: DialogProps) -> Element {
                 z_index: "1001",
                 onclick: move |evt| evt.stop_propagation(),
 
-                h3 { margin: "0 0 16px 0", "Configure Parameters for {desc.name()}" }
+                h3 { margin: "0 0 16px 0", "Configure Parameters for {spec.name()}" }
 
                 for param in &schema.params {
                     div { margin_bottom: "16px",

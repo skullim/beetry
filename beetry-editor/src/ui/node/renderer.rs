@@ -23,7 +23,7 @@ pub(crate) fn Renderer(ui_nodes: Signal<NodeMap>) -> Element {
         }
 
         NodeKind::Leaf {
-            desc,
+            spec,
             params: _,
             external_receivers,
         } => rsx! {
@@ -31,10 +31,10 @@ pub(crate) fn Renderer(ui_nodes: Signal<NodeMap>) -> Element {
                 key: "{id}",
                 id,
                 position: data.pos,
-                name: desc.name().clone(),
-                kind: desc.kind(),
-                receivers: desc.receivers().clone(),
-                senders: desc.senders().clone(),
+                name: spec.name().clone(),
+                kind: spec.kind(),
+                receivers: spec.receivers().clone(),
+                senders: spec.senders().clone(),
                 external_receivers: external_receivers.clone(),
             }
         },

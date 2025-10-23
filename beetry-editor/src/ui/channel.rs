@@ -5,7 +5,7 @@ mod tracker;
 
 use beetry_core::MessageHash;
 use beetry_serde::{
-    de::channel::{ChannelExport, ChannelId},
+    de::channel::{ChannelId, ChannelSnapshot},
     ser::channel::ChannelSpec,
 };
 pub(crate) use config_dialog::Dialog as ConfigDialog;
@@ -41,14 +41,14 @@ impl Context {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct ChannelElement {
     pub(crate) pos: Point,
-    pub(crate) export: ChannelExport,
+    pub(crate) snapshot: ChannelSnapshot,
 }
 
 impl ChannelElement {
-    pub(crate) fn new(export: ChannelExport) -> Self {
+    pub(crate) fn new(snapshot: ChannelSnapshot) -> Self {
         Self {
             pos: Point::default(),
-            export,
+            snapshot,
         }
     }
 }
