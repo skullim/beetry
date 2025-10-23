@@ -13,44 +13,44 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Getters)]
-pub struct RootExport {
-    child: NodeExport,
+pub struct RootSnapshot {
+    child: NodeSnapshot,
 }
 
-impl RootExport {
-    pub fn new(child: NodeExport) -> Self {
+impl RootSnapshot {
+    pub fn new(child: NodeSnapshot) -> Self {
         Self { child }
     }
 
-    pub fn into_child(self) -> NodeExport {
+    pub fn into_child(self) -> NodeSnapshot {
         self.child
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum NodeExport {
-    Control(ControlExport),
-    Leaf(LeafExport),
+pub enum NodeSnapshot {
+    Control(ControlSnapshot),
+    Leaf(LeafSnapshot),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Getters)]
-pub struct ControlExport {
+pub struct ControlSnapshot {
     #[getter(copy)]
     kind: ControlKind,
-    children: Vec1<Box<NodeExport>>,
+    children: Vec1<Box<NodeSnapshot>>,
 }
 
-impl ControlExport {
+impl ControlSnapshot {
     pub fn new(
         kind: ControlKind,
-        children: impl IntoIterator<Item = Box<NodeExport>>,
+        children: impl IntoIterator<Item = Box<NodeSnapshot>>,
     ) -> Result<Self> {
         let children = Vec1::try_from_iter(children)
             .map_err(|_| anyhow!("received empty children iterator"))?;
         Ok(Self { kind, children })
     }
 
-    pub fn into_children_iter(self) -> impl IntoIterator<Item = Box<NodeExport>> {
+    pub fn into_children_iter(self) -> impl IntoIterator<Item = Box<NodeSnapshot>> {
         self.children.into_iter()
     }
 }
@@ -63,7 +63,7 @@ pub enum ControlKind {
 }
 
 #[derive(Debug, Clone, Builder, Serialize, Deserialize, Getters)]
-pub struct LeafExport {
+pub struct LeafSnapshot {
     #[builder(into)]
     name: String,
     #[getter(copy)]
@@ -75,23 +75,21 @@ pub struct LeafExport {
     #[builder(default, with = <_>::from_iter)]
     senders: BTreeSet<ChannelId>,
     #[builder(default)]
-    external_receivers_export: Vec<MessageHash>,
+    ext_receivers: Vec<MessageHash>,
     #[builder(default)]
     parameters: Parameters,
 }
 
-impl LeafExport {
+impl LeafSnapshot {
     pub fn take_receivers(&mut self) -> impl IntoIterator<Item = ChannelId> {
         std::mem::take(&mut self.receivers)
     }
 
-    pub fn take_external_receivers_export(
-        &mut self,
-    ) -> Option<impl IntoIterator<Item = MessageHash>> {
-        if self.external_receivers_export.is_empty() {
+    pub fn take_ext_receivers(&mut self) -> Option<impl IntoIterator<Item = MessageHash>> {
+        if self.ext_receivers.is_empty() {
             return None;
         }
-        Some(std::mem::take(&mut self.external_receivers_export))
+        Some(std::mem::take(&mut self.ext_receivers))
     }
 
     pub fn take_senders(&mut self) -> impl IntoIterator<Item = ChannelId> {

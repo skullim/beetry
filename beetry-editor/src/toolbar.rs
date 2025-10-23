@@ -95,8 +95,8 @@ fn export_to_file(
     edge_tracker: &edge::Tracker,
     channel_tracker: &channel::Tracker,
 ) -> Result<()> {
-    let export = ProjectData::export(nodes, last_id, edge_tracker, channel_tracker)?;
-    let serialized = JsonSerializer::serialize(&export)?;
+    let data = ProjectData::export(nodes, last_id, edge_tracker, channel_tracker)?;
+    let serialized = JsonSerializer::serialize(&data)?;
     let file_path = select_export_file()?;
 
     std::fs::write(&file_path, serialized)

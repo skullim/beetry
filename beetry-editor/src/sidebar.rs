@@ -57,43 +57,43 @@ pub(crate) fn Sidebar(
 
     let actions: Vec<_> = leaves
         .iter()
-        .filter(|desc| matches!(desc.kind(), LeafKind::Action))
+        .filter(|spec| matches!(spec.kind(), LeafKind::Action))
         .cloned()
         .collect();
 
     let conditions: Vec<_> = leaves
         .iter()
-        .filter(|desc| matches!(desc.kind(), LeafKind::Condition))
+        .filter(|spec| matches!(spec.kind(), LeafKind::Condition))
         .cloned()
         .collect();
 
-    let new_leaf_handler = |desc: LeafSpec| {
+    let new_leaf_handler = |spec: LeafSpec| {
         move |_| {
-            let schema = desc.params().clone();
+            let schema = spec.params().clone();
             debug!(
                 "creating node '{}' with {} parameters",
-                desc.name(),
+                spec.name(),
                 schema.params.len()
             );
             if schema.params.is_empty() {
                 debug!(
                     "no parameters needed for '{}', creating node directly",
-                    desc.name()
+                    spec.name()
                 );
                 on_new_node.call(ui::NodeKind::Leaf {
-                    desc: desc.clone(),
+                    spec: spec.clone(),
                     params: Parameters::default(),
                     external_receivers: BTreeSet::new(),
                 });
             } else {
                 debug!(
                     "parameter dialog for '{}' with {} parameters",
-                    desc.name(),
+                    spec.name(),
                     schema.params.len()
                 );
                 parameter_dialog_state.set(node::ParameterDialogState::Visible {
                     position: Point { x: 300.0, y: 200.0 },
-                    desc: desc.clone(),
+                    spec: spec.clone(),
                     schema,
                 });
             }
@@ -108,26 +108,26 @@ pub(crate) fn Sidebar(
             }
 
             h3 { "Action Nodes" }
-            for desc in actions {
-                button { onclick: new_leaf_handler(desc), {desc.name().clone()} }
+            for spec in actions {
+                button { onclick: new_leaf_handler(spec), {spec.name().clone()} }
             }
 
             h3 { "Condition Nodes" }
-            for desc in conditions {
-                button { onclick: new_leaf_handler(desc), {desc.name().clone()} }
+            for spec in conditions {
+                button { onclick: new_leaf_handler(spec), {spec.name().clone()} }
             }
 
             h3 { "Channels" }
-            for desc in channels {
+            for spec in channels {
                 button {
                     onclick: move |_| {
                         channel_config_dialog_state
                             .set(ChannelConfigDialogState::Visible {
                                 position: Point { x: 200.0, y: 100.0 },
-                                spec: desc.clone(),
+                                spec: spec.clone(),
                             });
                     },
-                    {desc.as_str()}
+                    {spec.as_str()}
                 }
             }
 

@@ -42,7 +42,7 @@ struct Plugins {
 
 #[component]
 pub fn PluginsProvider(children: Element) -> Element {
-    let leaf_descriptions = {
+    let leaves = {
         let action_plugins = beetry_plugin::node::ActionNodePluginConstructor::plugins();
         let condition_plugins = beetry_plugin::node::ConditionNodePluginConstructor::plugins();
 
@@ -54,14 +54,11 @@ pub fn PluginsProvider(children: Element) -> Element {
         plugins
     };
 
-    let channel_descriptions = {
+    let channels = {
         let plugins = beetry_plugin::channel::plugins();
         plugins.into_iter().map(|p| p.spec()).collect()
     };
 
-    use_context_provider(move || Plugins {
-        leaves: leaf_descriptions,
-        channels: channel_descriptions,
-    });
+    use_context_provider(move || Plugins { leaves, channels });
     children
 }

@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 
 use crate::de::{
-    channel::{ChannelId, ChannelIdEndpointCountMap, ChannelIdToExportMap, ChannelValidator},
-    node::{NodeExport, RootExport},
+    channel::{ChannelId, ChannelIdEndpointCountMap, ChannelIdToSnapshotMap, ChannelValidator},
+    node::{NodeSnapshot, RootSnapshot},
 };
 
 #[derive(Debug, ThisError)]
@@ -22,34 +22,34 @@ pub enum ExportValidationError {
 pub type ExportResult<T> = std::result::Result<T, ExportValidationError>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TreeExport {
-    pub root: RootExport,
-    pub channels: ChannelIdToExportMap,
+pub struct TreeSnapshot {
+    pub root: RootSnapshot,
+    pub channels: ChannelIdToSnapshotMap,
 }
 
 #[bon]
-impl TreeExport {
+impl TreeSnapshot {
     #[builder]
-    pub fn new(root: RootExport, channels: Option<ChannelIdToExportMap>) -> ExportResult<Self> {
-        let export_map = channels.unwrap_or_default();
+    pub fn new(root: RootSnapshot, channels: Option<ChannelIdToSnapshotMap>) -> ExportResult<Self> {
+        let snapshot_map = channels.unwrap_or_default();
         let mut count_map = HashMap::new();
         Self::collect_channel_references(root.child(), &mut count_map);
-        ChannelValidator::validate(&export_map, &count_map)?;
+        ChannelValidator::validate(&snapshot_map, &count_map)?;
 
-        Ok(TreeExport {
+        Ok(TreeSnapshot {
             root,
-            channels: export_map,
+            channels: snapshot_map,
         })
     }
 
-    fn collect_channel_references(node: &NodeExport, map: &mut ChannelIdEndpointCountMap) {
+    fn collect_channel_references(node: &NodeSnapshot, map: &mut ChannelIdEndpointCountMap) {
         match &node {
-            NodeExport::Control(control) => {
+            NodeSnapshot::Control(control) => {
                 for child in control.children() {
                     Self::collect_channel_references(child, map);
                 }
             }
-            NodeExport::Leaf(leaf) => {
+            NodeSnapshot::Leaf(leaf) => {
                 for channel_id in leaf.senders() {
                     let count = map.entry(*channel_id).or_default();
                     count.sender += 1;

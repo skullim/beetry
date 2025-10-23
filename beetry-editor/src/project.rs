@@ -8,8 +8,8 @@ use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
 use beetry_serde::{
     de::{
-        node::{ControlExport, LeafExport, NodeExport, RootExport},
-        tree::TreeExport,
+        node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, RootSnapshot},
+        tree::TreeSnapshot,
     },
     ser::node::LeafSpec,
 };
@@ -25,7 +25,7 @@ use crate::{
 #[derive(Serialize, Deserialize)]
 pub struct ProjectData {
     pub version: u32,
-    pub tree: TreeExport,
+    pub tree: TreeSnapshot,
     editor: EditorMetadata,
 }
 
@@ -48,20 +48,20 @@ impl ProjectData {
             .iter()
             .find(|(_, node)| node.kind == ui::NodeKind::Root)
             .ok_or(anyhow!("root has to exist in nodes map"))?;
-        let root_export = Self::export_root(root, *id, nodes, edge_tracker, channel_tracker)?;
-        let tree_export = TreeExport::builder()
-            .root(root_export)
+        let root_snapshot = Self::export_root(root, *id, nodes, edge_tracker, channel_tracker)?;
+        let tree_snapshot = TreeSnapshot::builder()
+            .root(root_snapshot)
             .channels(
                 channel_tracker
                     .channels()
                     .into_iter()
-                    .map(|(k, v)| (k, v.export))
+                    .map(|(k, v)| (k, v.snapshot))
                     .collect(),
             )
             .build()?;
         Ok(Self {
             version: 1,
-            tree: tree_export,
+            tree: tree_snapshot,
             editor: EditorMetadata {
                 nodes: nodes.clone(),
                 edges: edge_tracker.edges().clone(),
@@ -77,7 +77,7 @@ impl ProjectData {
         nodes: &ui::NodeMap,
         edge_tracker: &edge::Tracker,
         channel_tracker: &channel::Tracker,
-    ) -> Result<RootExport> {
+    ) -> Result<RootSnapshot> {
         if let ui::NodeKind::Root = root.kind {
             let child_id = edge_tracker
                 .children_of(&root_id)
@@ -87,7 +87,7 @@ impl ProjectData {
             let child_node = nodes.get(child_id).unwrap();
             let child =
                 Self::export_node(child_node, *child_id, nodes, edge_tracker, channel_tracker)?;
-            return Ok(RootExport::new(child));
+            return Ok(RootSnapshot::new(child));
         }
         Err(anyhow!("expected root node got {:?}", root.kind))
     }
@@ -98,7 +98,7 @@ impl ProjectData {
         nodes: &ui::NodeMap,
         edge_tracker: &edge::Tracker,
         channel_tracker: &channel::Tracker,
-    ) -> Result<NodeExport> {
+    ) -> Result<NodeSnapshot> {
         match &node.kind {
             ui::NodeKind::Control(kind) => {
                 let children_id = edge_tracker
@@ -115,20 +115,20 @@ impl ProjectData {
                         channel_tracker,
                     )?));
                 }
-                Ok(NodeExport::Control(ControlExport::new(
+                Ok(NodeSnapshot::Control(ControlSnapshot::new(
                     *kind,
                     children.into_iter(),
                 )?))
             }
 
             ui::NodeKind::Leaf {
-                desc,
+                spec,
                 params,
                 external_receivers,
             } => {
                 Self::validate_node_connections(
                     node_id,
-                    desc,
+                    spec,
                     channel_tracker,
                     external_receivers,
                 )?;
@@ -142,16 +142,16 @@ impl ProjectData {
                     .get(&node_id)
                     .map(|senders| senders.iter().cloned());
 
-                let builder = LeafExport::builder()
-                    .name(desc.name().clone())
-                    .kind(desc.kind())
-                    .hash(desc.hash())
+                let builder = LeafSnapshot::builder()
+                    .name(spec.name().clone())
+                    .kind(spec.kind())
+                    .hash(spec.hash())
                     .maybe_receivers(receivers)
                     .maybe_senders(senders)
-                    .external_receivers_export(external_receivers.iter().cloned().collect())
+                    .ext_receivers(external_receivers.iter().cloned().collect())
                     .parameters(params.clone());
 
-                Ok(NodeExport::Leaf(builder.build()))
+                Ok(NodeSnapshot::Leaf(builder.build()))
             }
 
             _ => {
@@ -180,23 +180,23 @@ impl ProjectData {
     /// Validate that all required senders and receivers for a node are properly connected
     fn validate_node_connections(
         node_id: NodeId,
-        desc: &LeafSpec,
+        spec: &LeafSpec,
         channel_tracker: &channel::Tracker,
         external_receivers: &BTreeSet<MessageHash>,
     ) -> Result<()> {
         let channels = channel_tracker.channels();
         debug!(
             "Validating connections for node {node_id} ({})",
-            desc.name()
+            spec.name()
         );
 
-        let expected_receivers: HashMap<MessageHash, String> = desc
+        let expected_receivers: HashMap<MessageHash, String> = spec
             .receivers()
             .iter()
             .map(|recv| (*recv.hash(), recv.desc().clone()))
             .collect();
 
-        let expected_senders: HashMap<MessageHash, String> = desc
+        let expected_senders: HashMap<MessageHash, String> = spec
             .senders()
             .iter()
             .map(|send| (*send.hash(), send.desc().clone()))
@@ -212,17 +212,17 @@ impl ProjectData {
             debug!("Node has receiver channels: {node_receivers:?}");
             for channel_id in node_receivers.iter() {
                 if let Some(element) = channels.get(channel_id) {
-                    let export = element.export.clone();
-                    let msg_hash = export.spec().msg_hash();
+                    let snapshot = element.snapshot.clone();
+                    let msg_hash = snapshot.spec().msg_hash();
                     if unconnected_receivers.remove(msg_hash).is_some() {
                         debug!(
                             "✓ Connected receiver for message: {}",
-                            export.spec().as_str()
+                            snapshot.spec().as_str()
                         );
                     } else {
                         debug!(
                             "⚠ Found unexpected receiver channel for message: {}",
-                            export.spec().as_str()
+                            snapshot.spec().as_str()
                         );
                     }
                 }
@@ -233,14 +233,17 @@ impl ProjectData {
             debug!("Node has sender channels: {node_senders:?}");
             for channel_id in node_senders.iter() {
                 if let Some(element) = channels.get(channel_id) {
-                    let export = element.export.clone();
-                    let msg_hash = export.spec().msg_hash();
+                    let snapshot = element.snapshot.clone();
+                    let msg_hash = snapshot.spec().msg_hash();
                     if unconnected_senders.remove(msg_hash).is_some() {
-                        debug!("✓ Connected sender for message: {}", export.spec().as_str());
+                        debug!(
+                            "✓ Connected sender for message: {}",
+                            snapshot.spec().as_str()
+                        );
                     } else {
                         debug!(
                             "⚠ Found unexpected sender channel for message: {}",
-                            export.spec().as_str()
+                            snapshot.spec().as_str()
                         );
                     }
                 }
@@ -257,7 +260,7 @@ impl ProjectData {
             let missing_receivers: Vec<String> = unconnected_receivers.values().cloned().collect();
             return Err(anyhow!(
                 "Node '{}' (id: {}) has unconnected receivers: {}",
-                desc.name(),
+                spec.name(),
                 node_id,
                 missing_receivers.join(", ")
             ));
@@ -267,7 +270,7 @@ impl ProjectData {
             let missing_senders: Vec<String> = unconnected_senders.values().cloned().collect();
             return Err(anyhow!(
                 "Node '{}' (id: {}) has unconnected senders: {}",
-                desc.name(),
+                spec.name(),
                 node_id,
                 missing_senders.join(", ")
             ));

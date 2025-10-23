@@ -4,7 +4,7 @@ use crate::{
     definitions::{NodeId, Point},
     ui::channel::ChannelElement,
 };
-use beetry_serde::de::channel::{ChannelExport, ChannelId};
+use beetry_serde::de::channel::{ChannelId, ChannelSnapshot};
 use bon::Builder;
 use dioxus_logger::tracing::debug;
 use serde::{Deserialize, Serialize};
@@ -24,15 +24,15 @@ impl Tracker {
         Self::default()
     }
 
-    pub(crate) fn create_channel(&mut self, export: ChannelExport) {
+    pub(crate) fn create_channel(&mut self, snapshot: ChannelSnapshot) {
         debug!(
             "creating new channel id: {:?} with message {:?}",
             self.channel_id,
-            export.spec().as_str()
+            snapshot.spec().as_str()
         );
 
         self.channels
-            .insert(self.channel_id, ChannelElement::new(export));
+            .insert(self.channel_id, ChannelElement::new(snapshot));
         self.channel_id = self.channel_id.next();
     }
 

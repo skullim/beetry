@@ -23,7 +23,7 @@ impl LeafSpecCollection {
         for leaf in iter {
             if !seen_names.insert(leaf.name.clone()) {
                 warn!(
-                    "there exist at least one other leaf description with name: {}, consider renaming",
+                    "there exist at least one other leaf specification with name: {}, consider renaming",
                     leaf.name
                 );
             }
@@ -31,7 +31,7 @@ impl LeafSpecCollection {
             let leaf_hash = leaf.hash;
             if !set.insert(leaf) {
                 warn!(
-                    "leaf description collection already contains leaf with hash {leaf_hash:?}, skipping"
+                    "leaf specification collection already contains leaf with hash {leaf_hash:?}, skipping"
                 );
             }
         }
