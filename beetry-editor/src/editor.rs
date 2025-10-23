@@ -110,7 +110,11 @@ fn channel_config_dialog_handlers(
     mut state: Signal<channel::config_dialog::State>,
 ) -> channel::config_dialog::Handlers {
     let on_confirm = move |channel_metadata: ChannelMetadata| {
-        if let ChannelConfigDialogState::Visible { position: _, desc } = state.take() {
+        if let ChannelConfigDialogState::Visible {
+            position: _,
+            spec: desc,
+        } = state.take()
+        {
             on_new_channel(ChannelExport::new(desc, channel_metadata), tracker);
         }
     };

@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 
 use beetry_serde::{
-    de::{node::ControlKind, parameter::SerializedParameters},
-    ser::node::{LeafDescription, LeafKind},
+    de::{node::ControlKind, parameter::Parameters},
+    ser::node::{LeafKind, LeafSpec},
 };
 use dioxus::{logger::tracing::info, prelude::*};
 use dioxus_logger::tracing::debug;
@@ -67,9 +67,9 @@ pub(crate) fn Sidebar(
         .cloned()
         .collect();
 
-    let new_leaf_handler = |desc: LeafDescription| {
+    let new_leaf_handler = |desc: LeafSpec| {
         move |_| {
-            let schema = desc.params_schema().clone();
+            let schema = desc.params().clone();
             debug!(
                 "creating node '{}' with {} parameters",
                 desc.name(),
@@ -82,7 +82,7 @@ pub(crate) fn Sidebar(
                 );
                 on_new_node.call(ui::NodeKind::Leaf {
                     desc: desc.clone(),
-                    params: SerializedParameters::default(),
+                    params: Parameters::default(),
                     external_receivers: BTreeSet::new(),
                 });
             } else {
@@ -124,7 +124,7 @@ pub(crate) fn Sidebar(
                         channel_config_dialog_state
                             .set(ChannelConfigDialogState::Visible {
                                 position: Point { x: 200.0, y: 100.0 },
-                                desc: desc.clone(),
+                                spec: desc.clone(),
                             });
                     },
                     {desc.as_str()}

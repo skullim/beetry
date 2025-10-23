@@ -8,17 +8,17 @@ use derive_getters::Getters;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
 
-use super::channel::MessageDescription;
+use super::channel::MessageSpec;
 use super::parameter::Schema;
 
 #[derive(Debug, Clone, Getters)]
-pub struct LeafDescriptionCollection {
-    desc: BTreeSet<LeafDescription>,
+pub struct LeafSpecCollection {
+    set: BTreeSet<LeafSpec>,
 }
 
-impl LeafDescriptionCollection {
-    pub fn new(iter: impl IntoIterator<Item = LeafDescription>) -> Self {
-        let mut desc = BTreeSet::new();
+impl LeafSpecCollection {
+    pub fn new(iter: impl IntoIterator<Item = LeafSpec>) -> Self {
+        let mut set = BTreeSet::new();
         let mut seen_names = HashSet::new();
         for leaf in iter {
             if !seen_names.insert(leaf.name.clone()) {
@@ -29,18 +29,18 @@ impl LeafDescriptionCollection {
             }
 
             let leaf_hash = leaf.hash;
-            if !desc.insert(leaf) {
+            if !set.insert(leaf) {
                 warn!(
                     "leaf description collection already contains leaf with hash {leaf_hash:?}, skipping"
                 );
             }
         }
-        Self { desc }
+        Self { set }
     }
 }
 
 #[derive(Debug, Clone, Eq, Builder, Getters, Serialize, Deserialize)]
-pub struct LeafDescription {
+pub struct LeafSpec {
     #[builder(into)]
     name: String,
     // labels concrete node and its factory
@@ -49,26 +49,26 @@ pub struct LeafDescription {
     #[getter(copy)]
     kind: LeafKind,
     #[builder(default, with = <_>::from_iter)]
-    receivers: BTreeSet<MessageDescription>,
+    receivers: BTreeSet<MessageSpec>,
     #[builder(default, with = <_>::from_iter)]
-    senders: BTreeSet<MessageDescription>,
+    senders: BTreeSet<MessageSpec>,
     #[builder(default)]
-    params_schema: Schema,
+    params: Schema,
 }
 
-impl PartialEq for LeafDescription {
+impl PartialEq for LeafSpec {
     fn eq(&self, other: &Self) -> bool {
         self.hash == other.hash
     }
 }
 
-impl PartialOrd for LeafDescription {
+impl PartialOrd for LeafSpec {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for LeafDescription {
+impl Ord for LeafSpec {
     fn cmp(&self, other: &Self) -> Ordering {
         self.name.cmp(&other.name)
     }

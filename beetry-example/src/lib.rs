@@ -10,7 +10,7 @@ use beetry_plugin::{
     channel::{ChannelPlugin, ChannelPluginConstructor, Factory},
     node::{ActionNodePluginConstructor, ConditionNodePluginConstructor},
 };
-use beetry_serde::ser::channel::{ChannelDescription, Message};
+use beetry_serde::ser::channel::{ChannelSpec, Message};
 
 use type_hash::TypeHash;
 

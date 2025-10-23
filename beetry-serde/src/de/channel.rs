@@ -7,18 +7,18 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     de::tree::{ExportResult, ExportValidationError},
-    ser::channel::ChannelDescription,
+    ser::channel::ChannelSpec,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
 pub struct ChannelExport {
-    desc: ChannelDescription,
+    spec: ChannelSpec,
     metadata: ChannelMetadata,
 }
 
 impl ChannelExport {
-    pub fn new(desc: ChannelDescription, metadata: ChannelMetadata) -> Self {
-        Self { desc, metadata }
+    pub fn new(spec: ChannelSpec, metadata: ChannelMetadata) -> Self {
+        Self { spec, metadata }
     }
 }
 

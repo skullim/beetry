@@ -1,5 +1,5 @@
 use beetry_core::MessageHash;
-use beetry_serde::ser::channel::MessageDescription;
+use beetry_serde::ser::channel::MessageSpec;
 use dioxus::prelude::*;
 
 use crate::{
@@ -29,7 +29,7 @@ impl Handlers {
 pub(crate) struct SenderProps {
     id: NodeId,
     position: Point,
-    desc: MessageDescription,
+    spec: MessageSpec,
     channel_idx: usize,
 }
 
@@ -45,7 +45,7 @@ pub(crate) fn Sender(props: SenderProps) -> Element {
     };
 
     let font_size = 10;
-    let port_width = text_width_from(props.desc.as_str(), font_size);
+    let port_width = text_width_from(props.spec.as_str(), font_size);
 
     rsx! {
         g {
@@ -77,7 +77,7 @@ pub(crate) fn Sender(props: SenderProps) -> Element {
                                 id: props.id,
                                 offset,
                             },
-                            *props.desc.hash(),
+                            *props.spec.hash(),
                         ))
                 },
             }
@@ -90,7 +90,7 @@ pub(crate) fn Sender(props: SenderProps) -> Element {
                 font_weight: "medium",
                 text_anchor: "middle",
                 pointer_events: "none",
-                "{props.desc.as_str()}"
+                "{props.spec.as_str()}"
             }
         }
     }

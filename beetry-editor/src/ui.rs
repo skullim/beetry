@@ -9,8 +9,8 @@ pub(crate) mod viewport;
 
 use beetry_core::MessageHash;
 use beetry_serde::{
-    de::{node::ControlKind, parameter::SerializedParameters},
-    ser::node::LeafDescription,
+    de::{node::ControlKind, parameter::Parameters},
+    ser::node::LeafSpec,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap};
@@ -22,8 +22,8 @@ pub(crate) enum NodeKind {
     Root,
     Control(ControlKind),
     Leaf {
-        desc: LeafDescription,
-        params: SerializedParameters,
+        desc: LeafSpec,
+        params: Parameters,
         external_receivers: BTreeSet<MessageHash>,
     },
 }

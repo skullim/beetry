@@ -3,8 +3,8 @@ use anyhow::{Result, anyhow};
 use beetry_core::{self, ActionBehavior, NodeTask, Task, TickStatus};
 use beetry_plugin::node::{self, ActionFactory, NodePlugin, NodeReconstructionData};
 use beetry_serde::ser::{
-    channel::MessageDescription,
-    node::{LeafDescription, LeafKind, NodeHashProvider},
+    channel::MessageSpec,
+    node::{LeafKind, LeafSpec, NodeHashProvider},
 };
 use type_hash::TypeHash;
 
@@ -58,7 +58,7 @@ pub struct ReadExternalDataPlugin {
 }
 
 impl NodePlugin for ReadExternalDataPlugin {
-    type Description = LeafDescription;
+    type Spec = LeafSpec;
     type Factory = ActionFactory;
 
     fn new() -> Self
@@ -83,12 +83,12 @@ impl NodePlugin for ReadExternalDataPlugin {
         }
     }
 
-    fn desc(&self) -> LeafDescription {
-        LeafDescription::builder()
+    fn spec(&self) -> LeafSpec {
+        LeafSpec::builder()
             .name("ReadExternalData")
             .hash(ReadExternalDataTask::hash())
             .kind(LeafKind::Action)
-            .receivers([MessageDescription::new::<ExternalData>("External data")])
+            .receivers([MessageSpec::new::<ExternalData>("External data")])
             .build()
     }
 

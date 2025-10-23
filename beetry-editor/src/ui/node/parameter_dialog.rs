@@ -1,7 +1,7 @@
 use beetry_serde::{
-    de::parameter::SerializedParameters,
+    de::parameter::Parameters,
     ser::{
-        node::LeafDescription,
+        node::LeafSpec,
         parameter::{Definition, Type},
     },
 };
@@ -13,13 +13,13 @@ use crate::definitions::Point;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Handlers {
-    pub(crate) on_confirm: EventHandler<(LeafDescription, SerializedParameters)>,
+    pub(crate) on_confirm: EventHandler<(LeafSpec, Parameters)>,
     pub(crate) on_cancel: EventHandler<()>,
 }
 
 impl Handlers {
     pub(crate) fn new(
-        on_confirm: impl FnMut((LeafDescription, SerializedParameters)) + 'static,
+        on_confirm: impl FnMut((LeafSpec, Parameters)) + 'static,
         on_cancel: impl FnMut(()) + 'static,
     ) -> Self {
         Self {
@@ -35,7 +35,7 @@ pub(crate) enum State {
     Idle,
     Visible {
         position: Point,
-        desc: LeafDescription,
+        desc: LeafSpec,
         schema: beetry_serde::ser::parameter::Schema,
     },
 }
@@ -97,7 +97,7 @@ pub(crate) fn Dialog(props: DialogProps) -> Element {
     let on_confirm = move |_| {
         if !has_validation_errors() {
             let values = parameter_values.read();
-            let serialized_params = SerializedParameters::from_value(Value::Object(values.clone()));
+            let serialized_params = Parameters::from_value(Value::Object(values.clone()));
             handlers
                 .on_confirm
                 .call((desc_for_confirm.clone(), serialized_params));

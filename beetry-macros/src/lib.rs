@@ -157,7 +157,7 @@ pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
 /// Derive macro to automatically implement ChannelPlugin for message types.
 ///
 /// This macro generates a ChannelPlugin implementation that:
-/// - Creates a ChannelDescription using the type
+/// - Creates a ChannelSpec using the type
 /// - Creates a Factory using Factory::from_msg_type
 /// - Returns the factory when requested
 #[proc_macro_derive(ChannelPlugin)]
@@ -196,8 +196,8 @@ fn generate_channel_plugin_impl(input: DeriveInput) -> (syn::Ident, TokenStream)
         }
 
         impl ChannelPlugin for #channel_name {
-            fn desc(&self) -> ChannelDescription {
-                ChannelDescription::new::<#message_type>()
+            fn spec(&self) -> ChannelSpec {
+                ChannelSpec::new::<#message_type>()
             }
 
             fn new() -> Self

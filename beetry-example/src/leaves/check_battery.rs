@@ -1,8 +1,8 @@
 use beetry_core::ConditionBehavior;
 use beetry_macros::ProvideSchema;
 use beetry_plugin::node::{self, ConditionFactory, NodePlugin};
-use beetry_serde::de::parameter::SerializedParametersMarker;
-use beetry_serde::ser::node::{LeafDescription, LeafKind, NodeHashProvider};
+use beetry_serde::de::parameter::ParametersMarker;
+use beetry_serde::ser::node::{LeafKind, LeafSpec, NodeHashProvider};
 use beetry_serde::ser::parameter::{self, Bounds, ProvideSchema, Schema};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -23,7 +23,7 @@ pub struct CheckBatteryParams {
     level: f32,
 }
 
-impl SerializedParametersMarker for CheckBatteryParams {}
+impl ParametersMarker for CheckBatteryParams {}
 
 impl Default for CheckBatteryParams {
     fn default() -> Self {
@@ -59,7 +59,7 @@ pub struct CheckBatteryPlugin {
 }
 
 impl NodePlugin for CheckBatteryPlugin {
-    type Description = LeafDescription;
+    type Spec = LeafSpec;
     type Factory = ConditionFactory;
 
     fn new() -> Self
@@ -76,12 +76,12 @@ impl NodePlugin for CheckBatteryPlugin {
         }
     }
 
-    fn desc(&self) -> LeafDescription {
-        LeafDescription::builder()
+    fn spec(&self) -> LeafSpec {
+        LeafSpec::builder()
             .name("CheckBattery")
             .hash(CheckBattery::hash())
             .kind(LeafKind::Condition)
-            .params_schema(CheckBatteryParams::provide())
+            .params(CheckBatteryParams::provide())
             .build()
     }
 

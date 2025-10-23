@@ -1,7 +1,7 @@
 use anyhow::{Result, anyhow};
 use beetry_serde::{
     de::channel::{ChannelImplKind, ChannelMetadata, TokioChannelConfig},
-    ser::channel::ChannelDescription,
+    ser::channel::ChannelSpec,
 };
 use bon::Builder;
 
@@ -14,7 +14,7 @@ pub trait ChannelPlugin: Send + Sync {
     where
         Self: Sized;
 
-    fn desc(&self) -> ChannelDescription;
+    fn spec(&self) -> ChannelSpec;
 
     fn factory(self: Box<Self>) -> Factory;
 }

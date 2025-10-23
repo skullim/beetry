@@ -4,12 +4,12 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
 #[derive(Debug, Clone, PartialEq, Eq, Getters, Serialize, Deserialize)]
-pub struct MessageDescription {
+pub struct MessageSpec {
     desc: String,
     hash: MessageHash,
 }
 
-impl MessageDescription {
+impl MessageSpec {
     pub fn new<T>(desc: impl Into<String>) -> Self
     where
         T: MessageHashProvider + 'static,
@@ -25,13 +25,13 @@ impl MessageDescription {
     }
 }
 
-impl PartialOrd for MessageDescription {
+impl PartialOrd for MessageSpec {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for MessageDescription {
+impl Ord for MessageSpec {
     fn cmp(&self, other: &Self) -> Ordering {
         self.desc.cmp(&other.desc)
     }
@@ -68,13 +68,13 @@ impl<T: Message> MessageTypeProvider for T {
 }
 
 #[derive(Debug, Clone, Getters, PartialEq, Serialize, Deserialize)]
-pub struct ChannelDescription {
+pub struct ChannelSpec {
     // labels concrete channel and its factory
     msg_hash: MessageHash,
     msg_type_name: String,
 }
 
-impl ChannelDescription {
+impl ChannelSpec {
     pub fn new<T: MessageHashProvider + MessageTypeProvider>() -> Self {
         Self {
             msg_hash: T::hash(),

@@ -6,7 +6,7 @@ mod toolbar;
 mod ui;
 mod workspace;
 
-use beetry_serde::ser::{channel::ChannelDescription, node::LeafDescription};
+use beetry_serde::ser::{channel::ChannelSpec, node::LeafSpec};
 use dioxus::{logger::tracing::Level, prelude::*};
 
 pub use project::ProjectData;
@@ -36,8 +36,8 @@ fn app() -> Element {
 
 #[derive(Clone, PartialEq)]
 struct Plugins {
-    leaves: Vec<LeafDescription>,
-    channels: Vec<ChannelDescription>,
+    leaves: Vec<LeafSpec>,
+    channels: Vec<ChannelSpec>,
 }
 
 #[component]
@@ -48,15 +48,15 @@ pub fn PluginsProvider(children: Element) -> Element {
 
         let mut plugins = action_plugins
             .into_iter()
-            .map(|p| p.desc())
+            .map(|p| p.spec())
             .collect::<Vec<_>>();
-        plugins.extend(condition_plugins.into_iter().map(|p| p.desc()));
+        plugins.extend(condition_plugins.into_iter().map(|p| p.spec()));
         plugins
     };
 
     let channel_descriptions = {
         let plugins = beetry_plugin::channel::plugins();
-        plugins.into_iter().map(|p| p.desc()).collect()
+        plugins.into_iter().map(|p| p.spec()).collect()
     };
 
     use_context_provider(move || Plugins {
