@@ -32,9 +32,9 @@ pub(crate) fn Renderer(ui_nodes: Signal<NodeMap>) -> Element {
                 id,
                 position: data.pos,
                 name: spec.name().clone(),
-                kind: spec.kind(),
-                receivers: spec.receivers().clone(),
-                senders: spec.senders().clone(),
+                kind: spec.schema().kind(),
+                receivers: spec.schema().receivers().clone(),
+                senders: spec.schema().senders().clone(),
                 external_receivers: external_receivers.clone(),
             }
         },

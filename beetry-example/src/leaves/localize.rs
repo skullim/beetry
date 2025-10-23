@@ -6,7 +6,9 @@ use beetry_core::{self, ActionBehavior, NodeTask, Task, TickStatus};
 use beetry_plugin::node::ActionFactory;
 use beetry_plugin::node::{self, NodePlugin, NodeReconstructionData};
 use beetry_serde::ser::channel::MessageSpec;
-use beetry_serde::ser::node::{LeafKind, LeafSpec, NodeHashProvider};
+use beetry_serde::ser::node::LeafSchema;
+use beetry_serde::ser::node::NodeName;
+use beetry_serde::ser::node::{LeafKind, LeafSpec};
 use tokio::sync::mpsc::{Receiver, Sender, channel as mpsc_channel};
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
@@ -126,12 +128,13 @@ impl NodePlugin for LocalizePlugin {
     }
 
     fn spec(&self) -> LeafSpec {
-        LeafSpec::builder()
-            .name("Localize")
-            .hash(<Localize<()>>::hash())
-            .kind(LeafKind::Action)
-            .senders([MessageSpec::new::<Pose>("Localized pose")])
-            .build()
+        LeafSpec::new(
+            NodeName::new("Localize"),
+            LeafSchema::builder()
+                .kind(LeafKind::Action)
+                .senders([MessageSpec::new::<Pose>("Localized pose")])
+                .build(),
+        )
     }
 
     fn factory(self: Box<Self>) -> node::ActionFactory {

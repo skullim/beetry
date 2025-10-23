@@ -4,7 +4,7 @@ use beetry_core::{self, ActionBehavior, NodeTask, Task, TickStatus};
 use beetry_plugin::node::{self, ActionFactory, NodePlugin, NodeReconstructionData};
 use beetry_serde::ser::{
     channel::MessageSpec,
-    node::{LeafKind, LeafSpec, NodeHashProvider},
+    node::{LeafKind, LeafSchema, LeafSpec, NodeName},
 };
 use type_hash::TypeHash;
 
@@ -84,12 +84,13 @@ impl NodePlugin for ReadExternalDataPlugin {
     }
 
     fn spec(&self) -> LeafSpec {
-        LeafSpec::builder()
-            .name("ReadExternalData")
-            .hash(ReadExternalDataTask::hash())
-            .kind(LeafKind::Action)
-            .receivers([MessageSpec::new::<ExternalData>("External data")])
-            .build()
+        LeafSpec::new(
+            NodeName::new("ReadExternalData"),
+            LeafSchema::builder()
+                .kind(LeafKind::Action)
+                .receivers([MessageSpec::new::<ExternalData>("External data")])
+                .build(),
+        )
     }
 
     fn factory(self: Box<Self>) -> node::ActionFactory {
