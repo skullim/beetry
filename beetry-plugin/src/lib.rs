@@ -13,3 +13,15 @@ pub trait Plugin: Send + Sync {
 
     fn factory(self: Box<Self>) -> Self::Factory;
 }
+
+pub type BoxPlugin<S, F> = Box<dyn Plugin<Spec = S, Factory = F>>;
+
+pub trait Named {
+    fn name(&self) -> &str;
+}
+
+pub trait ConstructPlugin {
+    type Spec: Named;
+    type Factory;
+    fn construct(&self) -> BoxPlugin<Self::Spec, Self::Factory>;
+}
