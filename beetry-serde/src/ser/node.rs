@@ -40,7 +40,7 @@ impl LeafSpecCollection {
 }
 
 #[derive(Debug, Display, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct NodeName(String);
+pub struct NodeName(pub String);
 
 impl NodeName {
     pub fn new(name: impl Into<String>) -> Self {

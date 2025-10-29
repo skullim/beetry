@@ -1,13 +1,10 @@
 use std::collections::HashSet;
 
 use anyhow::Result;
-use beetry_serde::{
-    de::parameter::Parameters,
-    ser::node::{LeafSpec, NodeName},
-};
+use beetry_serde::{de::parameter::Parameters, ser::node::LeafSpec};
 use bon::Builder;
 
-use crate::Plugin;
+use crate::{BoxPlugin, ConstructPlugin, Named, Plugin};
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
 use beetry_core::{BoxActionBehavior, BoxConditionBehavior};
 
@@ -43,40 +40,9 @@ impl ActionFactory {
         (self.func)(data)
     }
 }
-
-type BoxLeafPlugin<F> = Box<dyn Plugin<Spec = LeafSpec, Factory = F>>;
+type BoxLeafPlugin<F> = BoxPlugin<LeafSpec, F>;
 pub type BoxActionPlugin = BoxLeafPlugin<ActionFactory>;
 pub type BoxConditionPlugin = BoxLeafPlugin<ConditionFactory>;
-
-trait NodePluginConstructor: Sized {
-    type Factory;
-    fn construct(&self) -> BoxLeafPlugin<Self::Factory>;
-}
-
-pub struct ActionPluginConstructor(pub fn() -> BoxActionPlugin);
-impl ActionPluginConstructor {
-    pub const fn new<P: ActionPlugin + 'static>() -> Self {
-        ActionPluginConstructor(|| Box::new(P::new()))
-    }
-
-    pub fn construct(&self) -> BoxActionPlugin {
-        (self.0)()
-    }
-
-    pub fn plugins() -> Result<Vec<BoxActionPlugin>, PluginError> {
-        unique_plugins::<ActionPluginConstructor, ActionFactory>()
-    }
-}
-
-impl NodePluginConstructor for ActionPluginConstructor {
-    type Factory = ActionFactory;
-    fn construct(&self) -> BoxLeafPlugin<Self::Factory> {
-        (self.0)()
-    }
-}
-
-inventory::collect!(ActionPluginConstructor);
-
 pub struct ConditionFactory {
     func: Box<dyn Fn(NodeReconstructionData) -> Result<BoxConditionBehavior> + Send + Sync>,
 }
@@ -93,47 +59,75 @@ impl ConditionFactory {
     }
 }
 
-pub struct ConditionPluginConstructor(pub fn() -> BoxConditionPlugin);
+pub struct PluginConstructor<S, F>(pub fn() -> BoxPlugin<S, F>);
 
-impl NodePluginConstructor for ConditionPluginConstructor {
-    type Factory = ConditionFactory;
-    fn construct(&self) -> BoxConditionPlugin {
+impl<S, F> PluginConstructor<S, F>
+where
+    S: 'static,
+    F: 'static,
+{
+    pub const fn new<P: Plugin<Spec = S, Factory = F> + 'static>() -> Self {
+        Self(|| Box::new(P::new()))
+    }
+}
+
+impl<S, F> ConstructPlugin for PluginConstructor<S, F>
+where
+    S: Named,
+{
+    type Factory = F;
+    type Spec = S;
+    fn construct(&self) -> BoxPlugin<Self::Spec, Self::Factory> {
         (self.0)()
     }
 }
 
-impl ConditionPluginConstructor {
-    pub const fn new<C: ConditionPlugin + 'static>() -> Self {
-        ConditionPluginConstructor(|| Box::new(C::new()))
-    }
-
-    pub fn plugins() -> Result<Vec<BoxConditionPlugin>, PluginError> {
-        unique_plugins::<ConditionPluginConstructor, ConditionFactory>()
+impl Named for LeafSpec {
+    fn name(&self) -> &str {
+        self.name.0.as_str()
     }
 }
 
-inventory::collect!(ConditionPluginConstructor);
+pub type ConditionPluginConstructor = PluginConstructor<LeafSpec, ConditionFactory>;
+pub type ActionPluginConstructor = PluginConstructor<LeafSpec, ActionFactory>;
+
+impl ActionPluginConstructor {
+    pub fn plugins() -> Result<Vec<BoxActionPlugin>, PluginError> {
+        unique_plugins::<Self, LeafSpec, ActionFactory>()
+    }
+}
+
+impl ConditionPluginConstructor {
+    pub fn plugins() -> Result<Vec<BoxConditionPlugin>, PluginError> {
+        unique_plugins::<Self, LeafSpec, ConditionFactory>()
+    }
+}
+
+inventory::collect! {ConditionPluginConstructor}
+inventory::collect! {ActionPluginConstructor}
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum PluginError {
     #[error("duplicate plugin name: '{0}'. Each plugin must have a unique name.")]
-    DuplicateName(NodeName),
+    DuplicateName(String),
 }
 
-fn unique_plugins<C, F>() -> Result<Vec<BoxLeafPlugin<F>>, PluginError>
+fn unique_plugins<C, S, F>() -> Result<Vec<BoxPlugin<S, F>>, PluginError>
 where
-    C: inventory::Collect + NodePluginConstructor<Factory = F>,
+    S: Named,
+    C: inventory::Collect + ConstructPlugin<Spec = S, Factory = F>,
 {
     let mut seen_names = HashSet::new();
 
-    inventory::iter::<C>().try_fold(Vec::new(), |mut plugins, plugin_constructor| {
-        let plugin = plugin_constructor.construct();
-        let name = plugin.spec().name;
+    inventory::iter::<C>().try_fold(Vec::new(), |mut plugins, constructor| {
+        let plugin = constructor.construct();
+        let spec = plugin.spec();
+        let name = spec.name();
 
-        if seen_names.contains(&name) {
-            return Err(PluginError::DuplicateName(name));
+        if seen_names.contains(name) {
+            return Err(PluginError::DuplicateName(name.into()));
         }
-        seen_names.insert(name);
+        seen_names.insert(name.to_string());
 
         plugins.push(plugin);
         Ok(plugins)
@@ -208,7 +202,7 @@ mod tests {
         let result = ActionPluginConstructor::plugins();
         assert!(matches!(
             result,
-            Err(PluginError::DuplicateName(name)) if name == NodeName::new("TestPlugin")
+            Err(PluginError::DuplicateName(name)) if name == NodeName::new("TestPlugin").0
         ));
     }
 }
