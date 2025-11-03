@@ -10,8 +10,8 @@ beetry-core = { version = "0.1.0", path = "../beetry-core" }
 beetry-serde = { version = "0.1.0", path = "../beetry-serde" }
 beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
 beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }
-dioxus = { version = "=0.7.0-rc.2", features = [] }
-dioxus-logger = "=0.7.0-rc.2"
+dioxus = { version = "0.7.0", features = [] }
+dioxus-logger = "0.7.0"
 indexmap = "2.11.3"
 rfd = { version = "0.15.4", default-features = false, features = [
     "xdg-portal",
