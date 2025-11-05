@@ -10,7 +10,7 @@ pub use leaf::{
 };
 #[cfg(any(test, feature = "mock"))]
 pub use node::MockNode;
-pub use node::{BoxNode, Node};
+pub use node::{BoxNode, ControlNode, Node};
 
 pub use root::Root;
 pub use tree::{Ticker as BehaviorTreeTicker, Tree, TreeEngine};

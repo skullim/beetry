@@ -8,7 +8,7 @@ use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
 use beetry_serde::{
     de::{
-        node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, RootSnapshot},
+        node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotKind, RootSnapshot},
         tree::TreeSnapshot,
     },
     ser::node::LeafSpec,
@@ -115,10 +115,12 @@ impl ProjectData {
                         channel_tracker,
                     )?));
                 }
-                Ok(NodeSnapshot::Control(ControlSnapshot::new(
-                    *kind,
-                    children.into_iter(),
-                )?))
+                Ok(NodeSnapshot::builder()
+                    .kind(NodeSnapshotKind::Control(ControlSnapshot::new(
+                        *kind,
+                        children.into_iter(),
+                    )?))
+                    .build())
             }
 
             ui::NodeKind::Leaf {
@@ -142,15 +144,18 @@ impl ProjectData {
                     .get(&node_id)
                     .map(|senders| senders.iter().cloned());
 
-                let builder = LeafSnapshot::builder()
+                let leaf_snapshot = LeafSnapshot::builder()
                     .name(spec.name().clone())
                     .kind(spec.schema().kind())
                     .maybe_receivers(receivers)
                     .maybe_senders(senders)
                     .ext_receivers(external_receivers.iter().cloned().collect())
-                    .parameters(params.clone());
+                    .build();
 
-                Ok(NodeSnapshot::Leaf(builder.build()))
+                Ok(NodeSnapshot::builder()
+                    .kind(NodeSnapshotKind::Leaf(leaf_snapshot))
+                    .parameters(params.clone())
+                    .build())
             }
 
             _ => {

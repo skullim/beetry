@@ -1,4 +1,4 @@
-use beetry_core::{Node, TickStatus};
+use beetry_core::{ControlNode, Node, TickStatus};
 
 use crate::{
     control::RunningNodesAborter,
@@ -58,6 +58,8 @@ impl Node for Sequence {
         }
     }
 }
+
+impl ControlNode for Sequence {}
 
 #[cfg(test)]
 mod tests {

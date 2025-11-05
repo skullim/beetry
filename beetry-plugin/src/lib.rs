@@ -1,7 +1,7 @@
 pub mod channel;
 pub mod node;
 
-pub trait Plugin: Send + Sync {
+pub trait Plugin {
     type Spec;
     type Factory;
 

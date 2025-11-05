@@ -12,9 +12,9 @@ use crate::{
     ser::node::{LeafKind, NodeName},
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize, Getters)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RootSnapshot {
-    child: NodeSnapshot,
+    pub child: NodeSnapshot,
 }
 
 impl RootSnapshot {
@@ -27,8 +27,21 @@ impl RootSnapshot {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Builder)]
+pub struct NodeSnapshot {
+    pub kind: NodeSnapshotKind,
+    #[builder(default)]
+    pub parameters: Parameters,
+}
+
+impl NodeSnapshot {
+    pub fn take_parameters(&mut self) -> Parameters {
+        std::mem::take(&mut self.parameters)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum NodeSnapshot {
+pub enum NodeSnapshotKind {
     Control(ControlSnapshot),
     Leaf(LeafSnapshot),
 }
@@ -74,8 +87,6 @@ pub struct LeafSnapshot {
     senders: BTreeSet<ChannelId>,
     #[builder(default)]
     ext_receivers: Vec<MessageHash>,
-    #[builder(default)]
-    parameters: Parameters,
 }
 
 impl LeafSnapshot {
@@ -92,9 +103,5 @@ impl LeafSnapshot {
 
     pub fn take_senders(&mut self) -> impl IntoIterator<Item = ChannelId> {
         std::mem::take(&mut self.senders)
-    }
-
-    pub fn take_parameters(&mut self) -> Parameters {
-        std::mem::take(&mut self.parameters)
     }
 }

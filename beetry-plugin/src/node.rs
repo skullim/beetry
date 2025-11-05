@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, marker::PhantomData};
 
 use anyhow::Result;
 use beetry_serde::{de::parameter::Parameters, ser::node::LeafSpec};
@@ -16,48 +16,81 @@ impl<P> ConditionPlugin for P where P: Plugin<Spec = LeafSpec, Factory = Conditi
 
 #[derive(Builder)]
 pub struct NodeReconstructionData {
-    #[builder(default)]
-    pub receivers: Vec<AnyBoxReceiver>,
-    #[builder(default)]
-    pub senders: Vec<AnyBoxSender>,
+    pub kind: NodeReconstructionKind,
     #[builder(default)]
     pub parameters: Parameters,
 }
 
-type BoxActionFactoryFn =
-    Box<dyn Fn(NodeReconstructionData) -> Result<BoxActionBehavior> + Send + Sync>;
-
-pub struct ActionFactory {
-    func: BoxActionFactoryFn,
+#[derive(Builder)]
+pub struct NodeReconstructionData2<D> {
+    pub inner: D,
+    #[builder(default)]
+    pub parameters: Parameters,
 }
 
-impl ActionFactory {
-    pub fn new(func: BoxActionFactoryFn) -> Self {
-        Self { func }
+pub type ActionReconstructionData = NodeReconstructionData2<LeafReconstructionData>;
+pub type ConditionReconstructionData = ActionReconstructionData;
+pub type ControlReconstructionData2 = NodeReconstructionData2<ControlReconstructionData>;
+
+pub enum NodeReconstructionKind {
+    Leaf(LeafReconstructionData),
+    Control(ControlReconstructionData),
+}
+
+#[derive(Default, Builder)]
+pub struct LeafReconstructionData {
+    #[builder(default, into)]
+    pub receivers: Vec<AnyBoxReceiver>,
+    #[builder(default, into)]
+    pub senders: Vec<AnyBoxSender>,
+}
+
+impl LeafReconstructionData {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+#[derive(Default)]
+pub struct ControlReconstructionData;
+
+pub type ActionFactory = Factory<BoxActionFactoryFn, ActionReconstructionData, BoxActionBehavior>;
+type BoxActionFactoryFn =
+    Box<dyn Fn(ActionReconstructionData) -> Result<BoxActionBehavior> + Send + Sync>;
+
+pub type ConditionFactory =
+    Factory<BoxConditionFactoryFn, ConditionReconstructionData, BoxConditionBehavior>;
+type BoxConditionFactoryFn =
+    Box<dyn Fn(ConditionReconstructionData) -> Result<BoxConditionBehavior> + Send + Sync>;
+
+pub struct Factory<F, I, O> {
+    func: F,
+    _ph1: PhantomData<I>,
+    _ph2: PhantomData<O>,
+}
+
+impl<F, I, O> Factory<F, I, O>
+// I: Input
+// O: Output
+where
+    F: Fn(I) -> Result<O>,
+{
+    pub fn new(func: F) -> Self {
+        Self {
+            func,
+            _ph1: PhantomData,
+            _ph2: PhantomData,
+        }
     }
 
-    pub fn try_create(&self, data: NodeReconstructionData) -> Result<BoxActionBehavior> {
+    pub fn try_create(&self, data: I) -> Result<O> {
         (self.func)(data)
     }
 }
+
 type BoxLeafPlugin<F> = BoxPlugin<LeafSpec, F>;
 pub type BoxActionPlugin = BoxLeafPlugin<ActionFactory>;
 pub type BoxConditionPlugin = BoxLeafPlugin<ConditionFactory>;
-pub struct ConditionFactory {
-    func: Box<dyn Fn(NodeReconstructionData) -> Result<BoxConditionBehavior> + Send + Sync>,
-}
-
-impl ConditionFactory {
-    pub fn new(
-        func: Box<dyn Fn(NodeReconstructionData) -> Result<BoxConditionBehavior> + Send + Sync>,
-    ) -> Self {
-        Self { func }
-    }
-
-    pub fn try_create(&self, data: NodeReconstructionData) -> Result<BoxConditionBehavior> {
-        (self.func)(data)
-    }
-}
 
 pub struct PluginConstructor<S, F>(pub fn() -> BoxPlugin<S, F>);
 

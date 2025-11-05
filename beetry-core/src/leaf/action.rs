@@ -246,7 +246,6 @@ mod tests {
         behavior.expect_on_success().once().return_const(());
 
         let mut action = Action::new(behavior, Arc::new(registry));
-
         assert_eq!(action.tick(), TickStatus::Running);
         assert_eq!(action.tick(), TickStatus::Success);
     }
@@ -271,7 +270,6 @@ mod tests {
         behavior.expect_on_running().once().return_const(());
 
         let mut action = Action::new(behavior, Arc::new(registry));
-
         assert_eq!(action.tick(), TickStatus::Running);
         assert_eq!(action.tick(), TickStatus::Running);
     }
@@ -311,7 +309,6 @@ mod tests {
             .returning(|| Err(anyhow::anyhow!("task creation failed")));
 
         let mut action = Action::new(behavior, Arc::new(registry));
-
         assert_eq!(action.tick(), TickStatus::Failure);
     }
 
@@ -329,7 +326,6 @@ mod tests {
             .returning(|| Ok(NodeTask::new(TaskStub::new())));
 
         let mut action = Action::new(behavior, Arc::new(registry));
-
         assert_eq!(action.tick(), TickStatus::Failure);
     }
 
@@ -385,7 +381,6 @@ mod tests {
         behavior.expect_reset().once().return_const(());
 
         let mut action = Action::new(behavior, Arc::new(registry));
-
         action.reset();
     }
 }
