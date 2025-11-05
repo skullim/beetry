@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use beetry_core::{
     AbortTask, ExecutorConcept, NodeTask, QueryTask, RegisterTask, TaskDescription, TaskStatus,
 };
@@ -151,7 +151,12 @@ impl RegisterTask<TaskHandle> for TaskRegistry {
             TaskAborter::new(notify),
             exe_task.task.desc.clone(),
         );
-        self.sender.try_send(exe_task)?;
+        self.sender.try_send(exe_task).map_err(|err| {
+            anyhow!(
+                "failed to send execution task: {}",
+                err.into_inner().task.desc
+            )
+        })?;
 
         Ok(handle)
     }

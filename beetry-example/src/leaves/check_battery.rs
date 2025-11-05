@@ -68,11 +68,9 @@ impl Plugin for CheckBatteryPlugin {
         Self: Sized,
     {
         Self {
-            factory: node::ConditionFactory::new(Box::new(|reconstruct| {
-                Ok(
-                    Box::new(CheckBattery::new(reconstruct.parameters.try_into()?))
-                        as BoxConditionBehavior,
-                )
+            factory: ConditionFactory::new(Box::new(|data| {
+                Ok(Box::new(CheckBattery::new(data.parameters.try_into()?))
+                    as BoxConditionBehavior)
             })),
         }
     }
@@ -87,7 +85,7 @@ impl Plugin for CheckBatteryPlugin {
         )
     }
 
-    fn factory(self: Box<Self>) -> node::ConditionFactory {
+    fn factory(self: Box<Self>) -> ConditionFactory {
         self.factory
     }
 }
