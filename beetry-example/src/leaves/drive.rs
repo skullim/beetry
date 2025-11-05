@@ -111,11 +111,10 @@ impl Plugin for DrivePlugin {
         }
     }
 
-    fn spec(&self) -> LeafSpec {
+    fn spec(&self) -> Self::Spec {
         LeafSpec::new(
             NodeName::new("Drive"),
-            LeafSchema::builder()
-                .kind(LeafKind::Action)
+            ActionLeafSchema::builder()
                 .receivers([MessageSpec::new::<Pose>("Drive pose")])
                 .build(),
         )

@@ -6,7 +6,7 @@ use thiserror::Error as ThisError;
 
 use crate::de::{
     channel::{ChannelId, ChannelIdEndpointCountMap, ChannelIdToSnapshotMap, ChannelValidator},
-    node::{NodeSnapshot, NodeSnapshotKind, RootSnapshot},
+    node::{NodeSnapshot, NodeSnapshotData, RootSnapshot},
 };
 
 #[derive(Debug, ThisError)]
@@ -43,19 +43,19 @@ impl TreeSnapshot {
     }
 
     fn collect_channel_references(node: &NodeSnapshot, map: &mut ChannelIdEndpointCountMap) {
-        match &node.kind {
-            NodeSnapshotKind::Control(control) => {
+        match &node.data {
+            NodeSnapshotData::Control(control) => {
                 for child in control.children() {
                     Self::collect_channel_references(child, map);
                 }
             }
-            NodeSnapshotKind::Leaf(leaf) => {
-                for channel_id in leaf.senders() {
+            NodeSnapshotData::Leaf(snap) => {
+                for channel_id in snap.senders() {
                     let count = map.entry(*channel_id).or_default();
                     count.sender += 1;
                 }
 
-                for channel_id in leaf.receivers() {
+                for channel_id in snap.receivers() {
                     let count = map.entry(*channel_id).or_default();
                     count.receiver += 1;
                 }

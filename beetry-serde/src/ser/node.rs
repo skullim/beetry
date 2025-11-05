@@ -1,43 +1,14 @@
-use std::{
-    cmp::Ordering,
-    collections::{BTreeSet, HashSet},
-};
+use std::{cmp::Ordering, collections::BTreeSet};
 
-use bon::Builder;
+use bon::{Builder, builder};
 use derive_getters::Getters;
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
-use tracing::warn;
+
+use crate::ser::node::leaf_schema_builder::SetKind;
 
 use super::channel::MessageSpec;
-use super::parameter::Schema;
-
-#[derive(Debug, Clone, Getters)]
-pub struct LeafSpecCollection {
-    set: BTreeSet<LeafSpec>,
-}
-
-impl LeafSpecCollection {
-    pub fn new(iter: impl IntoIterator<Item = LeafSpec>) -> Self {
-        let mut set = BTreeSet::new();
-        let mut seen_names = HashSet::new();
-        for leaf in iter {
-            if !seen_names.insert(leaf.name.clone()) {
-                warn!(
-                    "there exist at least one other leaf specification with name: {}, consider renaming",
-                    leaf.name
-                );
-            }
-            let leaf_name = leaf.name().clone();
-            if !set.insert(leaf) {
-                warn!(
-                    "leaf specification collection already contains leaf with name {leaf_name}, skipping"
-                );
-            }
-        }
-        Self { set }
-    }
-}
+use super::parameter;
 
 #[derive(Debug, Display, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct NodeName(pub String);
@@ -48,47 +19,80 @@ impl NodeName {
     }
 }
 
-#[derive(Debug, Clone, Eq, Getters, Serialize, Deserialize)]
-pub struct LeafSpec {
+pub type LeafNodeSpec = NodeSpec<LeafSchema>;
+pub type ActionNodeSpec = LeafNodeSpec;
+pub type ConditionNodeSpec = LeafNodeSpec;
+pub type ControlNodeSpec = NodeSpec<ControlSchema>;
+
+#[derive(Debug, Builder, Clone, Eq, Getters, Serialize, Deserialize)]
+pub struct NodeSpec<S> {
     pub name: NodeName,
-    pub schema: LeafSchema,
+    pub schema: S,
+    #[builder(default)]
+    pub params: parameter::Schema,
 }
 
-impl LeafSpec {
-    pub fn new(name: NodeName, schema: LeafSchema) -> Self {
-        Self { name, schema }
-    }
-}
-
-impl PartialEq for LeafSpec {
+impl<S> PartialEq for NodeSpec<S> {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
     }
 }
 
-impl PartialOrd for LeafSpec {
+impl<S> PartialOrd for NodeSpec<S>
+where
+    S: Ord,
+{
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for LeafSpec {
+impl<S> Ord for NodeSpec<S>
+where
+    S: Eq + Ord,
+{
     fn cmp(&self, other: &Self) -> Ordering {
         self.name.cmp(&other.name)
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Builder, Getters, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+pub struct ControlSchema;
 
+#[derive(Debug, Clone, PartialEq, Eq, Builder, Getters, Serialize, Deserialize)]
+#[builder(finish_fn(vis = "pub(crate)"))]
 pub struct LeafSchema {
-    #[getter(copy)]
     pub kind: LeafKind,
     #[builder(default, with = <_>::from_iter)]
     pub receivers: BTreeSet<MessageSpec>,
     #[builder(default, with = <_>::from_iter)]
     pub senders: BTreeSet<MessageSpec>,
-    #[builder(default)]
-    pub params: Schema,
+}
+
+pub struct ActionLeafSchema;
+impl ActionLeafSchema {
+    // cannot implement Default here as that would need to return ZST instead of LeafSchema
+    #[allow(clippy::should_implement_trait)]
+    pub fn default() -> LeafSchema {
+        Self::builder().build()
+    }
+
+    pub fn builder() -> LeafSchemaBuilder<SetKind> {
+        LeafSchema::builder().kind(LeafKind::Action)
+    }
+}
+
+pub struct ConditionLeafSchema;
+impl ConditionLeafSchema {
+    // cannot implement Default here as that would need to return ZST instead of LeafSchema
+    #[allow(clippy::should_implement_trait)]
+    pub fn default() -> LeafSchema {
+        Self::builder().build()
+    }
+
+    pub fn builder() -> LeafSchemaBuilder<SetKind> {
+        LeafSchema::builder().kind(LeafKind::Condition)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

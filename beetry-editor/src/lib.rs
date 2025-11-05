@@ -6,7 +6,7 @@ mod toolbar;
 mod ui;
 mod workspace;
 
-use beetry_serde::ser::{channel::ChannelSpec, node::LeafSpec};
+use beetry_serde::ser::{channel::ChannelSpec, node::LeafNodeSpec};
 use dioxus::{logger::tracing::Level, prelude::*};
 
 pub use project::ProjectData;
@@ -36,7 +36,7 @@ fn app() -> Element {
 
 #[derive(Clone, PartialEq)]
 struct Plugins {
-    leaves: Vec<LeafSpec>,
+    leaves: Vec<LeafNodeSpec>,
     channels: Vec<ChannelSpec>,
 }
 

@@ -10,37 +10,34 @@ use crate::ui::{
 pub(crate) fn Renderer(ui_nodes: Signal<NodeMap>) -> Element {
     debug!("rendering nodes renderer");
     let rendered_lock = ui_nodes.read();
-    let rendered = rendered_lock.iter().map(|(&id, data)| match &data.kind {
-        NodeKind::Control(kind) => {
+    let rendered = rendered_lock.iter().map(|(&id, node)| match &node.kind {
+        NodeKind::Control => {
             rsx! {
                 Control {
                     key: "{id}",
                     id,
-                    position: data.pos,
-                    kind: *kind,
+                    position: node.pos,
+                    name: node.name.clone(),
                 }
             }
         }
 
         NodeKind::Leaf {
-            spec,
-            params: _,
+            schema,
             external_receivers,
         } => rsx! {
             Leaf {
                 key: "{id}",
                 id,
-                position: data.pos,
-                name: spec.name().clone(),
-                kind: spec.schema().kind(),
-                receivers: spec.schema().receivers().clone(),
-                senders: spec.schema().senders().clone(),
+                position: node.pos,
+                name: node.name.clone(),
+                schema: schema.clone(),
                 external_receivers: external_receivers.clone(),
             }
         },
         NodeKind::Root => {
             rsx! {
-                Root { key: "{id}", id, position: data.pos }
+                Root { key: "{id}", id, position: node.pos }
             }
         }
     });

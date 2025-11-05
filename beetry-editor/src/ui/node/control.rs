@@ -1,6 +1,5 @@
 use std::rc::Rc;
 
-use beetry_serde::de::node::ControlKind;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
@@ -16,14 +15,14 @@ use crate::{
 pub(crate) struct ControlProps {
     id: NodeId,
     position: Point,
-    kind: ControlKind,
+    name: String,
 }
 
 #[component]
 pub fn Control(props: ControlProps) -> Element {
     debug!("rendering control component: {}", props.id);
 
-    let style = use_hook(|| Rc::new(style(props.kind)));
+    let style = use_hook(|| Rc::new(style(&props.name)));
     let id = props.id;
     let position = props.position;
     let half_width = style.width / 2.0;
@@ -47,17 +46,11 @@ pub fn Control(props: ControlProps) -> Element {
     }
 }
 
-fn style(kind: ControlKind) -> NodeStyle {
-    let label = match kind {
-        ControlKind::Sequence => "Sequence",
-        ControlKind::Fallback => "Fallback",
-        ControlKind::Parallel => "Parallel",
-    };
-
+fn style(name: &str) -> NodeStyle {
     NodeStyle::builder()
         .fill_gradient("url(#control-gradient)")
         .hover_gradient("url(#control-hover)")
-        .label(label)
+        .label(name)
         .height(70.0)
         .build()
 }

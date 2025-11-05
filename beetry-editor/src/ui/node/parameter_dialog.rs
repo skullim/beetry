@@ -1,8 +1,8 @@
 use beetry_serde::{
     de::parameter::Parameters,
     ser::{
-        node::LeafSpec,
-        parameter::{Definition, Type},
+        node::LeafNodeSpec,
+        parameter::{self, Definition, Type},
     },
 };
 use dioxus::prelude::*;
@@ -13,13 +13,13 @@ use crate::definitions::Point;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Handlers {
-    pub(crate) on_confirm: EventHandler<(LeafSpec, Parameters)>,
+    pub(crate) on_confirm: EventHandler<(LeafNodeSpec, Parameters)>,
     pub(crate) on_cancel: EventHandler<()>,
 }
 
 impl Handlers {
     pub(crate) fn new(
-        on_confirm: impl FnMut((LeafSpec, Parameters)) + 'static,
+        on_confirm: impl FnMut((LeafNodeSpec, Parameters)) + 'static,
         on_cancel: impl FnMut(()) + 'static,
     ) -> Self {
         Self {
@@ -35,8 +35,8 @@ pub(crate) enum State {
     Idle,
     Visible {
         position: Point,
-        spec: LeafSpec,
-        schema: beetry_serde::ser::parameter::Schema,
+        spec: LeafNodeSpec,
+        schema: parameter::Schema,
     },
 }
 

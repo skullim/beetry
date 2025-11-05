@@ -6,12 +6,9 @@ use std::{
 
 use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
-use beetry_serde::{
-    de::{
-        node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotKind, RootSnapshot},
-        tree::TreeSnapshot,
-    },
-    ser::node::LeafSpec,
+use beetry_serde::de::{
+    node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotData, RootSnapshot},
+    tree::TreeSnapshot,
 };
 use beetry_serialization::{Deserializer, JsonDeserializer};
 use dioxus_logger::tracing::debug;
@@ -116,7 +113,7 @@ impl ProjectData {
                     )?));
                 }
                 Ok(NodeSnapshot::builder()
-                    .kind(NodeSnapshotKind::Control(ControlSnapshot::new(
+                    .kind(NodeSnapshotData::Control(ControlSnapshot::new(
                         *kind,
                         children.into_iter(),
                     )?))
@@ -153,7 +150,7 @@ impl ProjectData {
                     .build();
 
                 Ok(NodeSnapshot::builder()
-                    .kind(NodeSnapshotKind::Leaf(leaf_snapshot))
+                    .kind(NodeSnapshotData::Leaf(leaf_snapshot))
                     .parameters(params.clone())
                     .build())
             }

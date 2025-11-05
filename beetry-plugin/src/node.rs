@@ -1,21 +1,24 @@
+use crate::{BoxPlugin, ConstructPlugin, Named, Plugin};
+use anyhow::Result;
+use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
+use beetry_core::{BoxActionBehavior, BoxConditionBehavior, BoxNode};
+use beetry_node::NonEmptyNodes;
+use beetry_serde::{
+    de::parameter::Parameters,
+    ser::node::{ActionNodeSpec, ConditionNodeSpec, ControlNodeSpec, NodeSpec},
+};
+use bon::{Builder, builder};
 use std::{collections::HashSet, marker::PhantomData};
 
-use anyhow::Result;
-use beetry_serde::{de::parameter::Parameters, ser::node::LeafSpec};
-use bon::Builder;
+pub trait ActionPlugin: Plugin<Spec = ActionNodeSpec, Factory = ActionFactory> {}
+impl<P> ActionPlugin for P where P: Plugin<Spec = ActionNodeSpec, Factory = ActionFactory> {}
 
-use crate::{BoxPlugin, ConstructPlugin, Named, Plugin};
-use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
-use beetry_core::{BoxActionBehavior, BoxConditionBehavior};
+pub trait ConditionPlugin: Plugin<Spec = ConditionNodeSpec, Factory = ConditionFactory> {}
+impl<P> ConditionPlugin for P where P: Plugin<Spec = ConditionNodeSpec, Factory = ConditionFactory> {}
 
-pub trait ActionPlugin: Plugin<Spec = LeafSpec, Factory = ActionFactory> {}
-impl<P> ActionPlugin for P where P: Plugin<Spec = LeafSpec, Factory = ActionFactory> {}
-
-pub trait ConditionPlugin: Plugin<Spec = LeafSpec, Factory = ConditionFactory> {}
-impl<P> ConditionPlugin for P where P: Plugin<Spec = LeafSpec, Factory = ConditionFactory> {}
-
-pub type ActionReconstructionData = NodeReconstructionData<LeafMetadata>;
-pub type ConditionReconstructionData = ActionReconstructionData;
+pub type LeafReconstructionData = NodeReconstructionData<LeafMetadata>;
+pub type ActionReconstructionData = LeafReconstructionData;
+pub type ConditionReconstructionData = LeafReconstructionData;
 pub type ControlReconstructionData = NodeReconstructionData<ControlMetadata>;
 
 #[derive(Builder)]
@@ -44,8 +47,15 @@ impl LeafMetadata {
     }
 }
 
-#[derive(Default)]
-pub struct ControlMetadata;
+pub struct ControlMetadata {
+    pub children: NonEmptyNodes,
+}
+
+impl ControlMetadata {
+    pub fn new(children: NonEmptyNodes) -> Self {
+        Self { children }
+    }
+}
 
 pub type ActionFactory = Factory<BoxActionFactoryFn, ActionReconstructionData, BoxActionBehavior>;
 type BoxActionFactoryFn = Box<dyn Fn(ActionReconstructionData) -> Result<BoxActionBehavior>>;
@@ -54,6 +64,9 @@ pub type ConditionFactory =
     Factory<BoxConditionFactoryFn, ConditionReconstructionData, BoxConditionBehavior>;
 type BoxConditionFactoryFn =
     Box<dyn Fn(ConditionReconstructionData) -> Result<BoxConditionBehavior>>;
+
+pub type ControlFactory = Factory<BoxControlFactoryFn, ControlReconstructionData, BoxNode>;
+type BoxControlFactoryFn = Box<dyn Fn(ControlReconstructionData) -> Result<BoxNode>>;
 
 pub struct Factory<F, I, O> {
     func: F,
@@ -80,9 +93,9 @@ where
     }
 }
 
-type BoxLeafPlugin<F> = BoxPlugin<LeafSpec, F>;
-pub type BoxActionPlugin = BoxLeafPlugin<ActionFactory>;
-pub type BoxConditionPlugin = BoxLeafPlugin<ConditionFactory>;
+pub type BoxActionPlugin = BoxPlugin<ActionNodeSpec, ActionFactory>;
+pub type BoxConditionPlugin = BoxPlugin<ConditionNodeSpec, ConditionFactory>;
+pub type BoxControlPlugin = BoxPlugin<ControlNodeSpec, ControlFactory>;
 
 pub struct PluginConstructor<S, F>(pub fn() -> BoxPlugin<S, F>);
 
@@ -107,29 +120,40 @@ where
     }
 }
 
-impl Named for LeafSpec {
+impl<S> Named for NodeSpec<S> {
     fn name(&self) -> &str {
         self.name.0.as_str()
     }
 }
 
-pub type ConditionPluginConstructor = PluginConstructor<LeafSpec, ConditionFactory>;
-pub type ActionPluginConstructor = PluginConstructor<LeafSpec, ActionFactory>;
+pub type ActionPluginConstructor = PluginConstructor<ActionNodeSpec, ActionFactory>;
+pub type ConditionPluginConstructor = PluginConstructor<ConditionNodeSpec, ConditionFactory>;
+pub type ControlPluginConstructor = PluginConstructor<ControlNodeSpec, ControlFactory>;
 
 impl ActionPluginConstructor {
     pub fn plugins() -> Result<Vec<BoxActionPlugin>, PluginError> {
-        unique_plugins::<Self, LeafSpec, ActionFactory>()
+        unique_plugins::<Self, <Self as ConstructPlugin>::Spec, <Self as ConstructPlugin>::Factory>(
+        )
     }
 }
 
 impl ConditionPluginConstructor {
     pub fn plugins() -> Result<Vec<BoxConditionPlugin>, PluginError> {
-        unique_plugins::<Self, LeafSpec, ConditionFactory>()
+        unique_plugins::<Self, <Self as ConstructPlugin>::Spec, <Self as ConstructPlugin>::Factory>(
+        )
     }
 }
 
-inventory::collect! {ConditionPluginConstructor}
+impl ControlPluginConstructor {
+    pub fn plugins() -> Result<Vec<BoxControlPlugin>, PluginError> {
+        unique_plugins::<Self, <Self as ConstructPlugin>::Spec, <Self as ConstructPlugin>::Factory>(
+        )
+    }
+}
+
 inventory::collect! {ActionPluginConstructor}
+inventory::collect! {ConditionPluginConstructor}
+inventory::collect! {ControlPluginConstructor}
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum PluginError {
@@ -162,12 +186,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use beetry_serde::ser::node::{LeafKind, LeafSchema, NodeName};
+    use beetry_serde::ser::node::{ActionLeafSchema, NodeName};
 
     struct TestPluginA;
 
     impl Plugin for TestPluginA {
-        type Spec = LeafSpec;
+        type Spec = ActionNodeSpec;
         type Factory = ActionFactory;
 
         fn new() -> Self {
@@ -175,10 +199,10 @@ mod tests {
         }
 
         fn spec(&self) -> Self::Spec {
-            LeafSpec::new(
-                NodeName::new("TestPlugin"),
-                LeafSchema::builder().kind(LeafKind::Action).build(),
-            )
+            ActionNodeSpec::builder()
+                .name(NodeName::new("TestPlugin"))
+                .schema(ActionLeafSchema::default())
+                .build()
         }
 
         fn factory(self: Box<Self>) -> Self::Factory {
@@ -191,7 +215,7 @@ mod tests {
     struct TestPluginB;
 
     impl Plugin for TestPluginB {
-        type Spec = LeafSpec;
+        type Spec = ActionNodeSpec;
         type Factory = ActionFactory;
 
         fn new() -> Self {
@@ -199,10 +223,10 @@ mod tests {
         }
 
         fn spec(&self) -> Self::Spec {
-            LeafSpec::new(
-                NodeName::new("TestPlugin"),
-                LeafSchema::builder().kind(LeafKind::Action).build(),
-            )
+            ActionNodeSpec::builder()
+                .name(NodeName::new("TestPlugin"))
+                .schema(ActionLeafSchema::default())
+                .build()
         }
 
         fn factory(self: Box<Self>) -> Self::Factory {
