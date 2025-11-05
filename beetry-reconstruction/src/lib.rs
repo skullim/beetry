@@ -1,26 +1,25 @@
 use anyhow::{Result, anyhow};
+use beetry_builder::Builder as BehaviorTreeBuilder;
+use beetry_channel::external;
+use beetry_core::{BoxNode, MessageHash, RegisterTask, Root, TaskControl, Tree};
 use beetry_node::NonEmptyNodes;
+use beetry_plugin::{
+    BoxPlugin, Named,
+    channel::{self, BoxChannelPlugin, TypeErasedChannel},
+    node::{
+        self, ControlMetadata, ControlReconstructionData, LeafMetadata, LeafReconstructionData,
+    },
+};
 use beetry_serde::{
     de::{
         channel::{ChannelId, ChannelIdToSnapshotMap},
-        node::{ControlKind, NodeSnapshot, NodeSnapshotKind},
+        node::{NodeSnapshot, NodeSnapshotData},
         tree::TreeSnapshot,
     },
     ser::node::{LeafKind, NodeName},
 };
 use std::collections::HashMap;
 use tracing::debug;
-
-use beetry_builder::Builder as BehaviorTreeBuilder;
-use beetry_channel::external;
-use beetry_core::{BoxNode, MessageHash, RegisterTask, Root, TaskControl, Tree};
-use beetry_node::{Fallback, Parallel, Sequence};
-
-use beetry_plugin::{
-    BoxPlugin, Named,
-    channel::{self, BoxChannelPlugin, TypeErasedChannel},
-    node::{self, ActionReconstructionData, LeafMetadata},
-};
 
 pub struct TreeReconstructor {
     ext_receivers: external::ReceiverRegistry,
@@ -99,16 +98,16 @@ impl TreeReconstructor {
         R: RegisterTask<T> + 'static,
         T: TaskControl + 'static,
     {
+        let node_name = node.name.clone();
         let parameters = node.take_parameters();
-        match node.kind {
-            NodeSnapshotKind::Control(control) => {
-                let control_kind = control.kind();
+        match node.data {
+            NodeSnapshotData::Control(control) => {
                 let children: Vec<_> = control
                     .into_children_iter()
                     .into_iter()
                     .map(|child| {
                         Self::try_reconstruct_tree(
-                            *child,
+                            child,
                             node_factory,
                             channel_map,
                             ext_receivers_registry,
@@ -119,13 +118,16 @@ impl TreeReconstructor {
                 let children = NonEmptyNodes::try_from(children)
                     .map_err(|_| anyhow!("wrong export, no children found for control node"))?;
 
-                match control_kind {
-                    ControlKind::Fallback => Ok(Box::new(Fallback::new(children))),
-                    ControlKind::Sequence => Ok(Box::new(Sequence::new(children))),
-                    ControlKind::Parallel => Ok(Box::new(Parallel::new(children))),
-                }
+                let factory = node_factory.control.get(&node_name).ok_or_else(|| {
+                    anyhow!("control factory for node: {node_name} does not exist")
+                })?;
+                let data = ControlReconstructionData::builder()
+                    .inner(ControlMetadata::new(children))
+                    .parameters(parameters)
+                    .build();
+                factory.try_create(data)
             }
-            NodeSnapshotKind::Leaf(mut leaf) => {
+            NodeSnapshotData::Leaf(mut leaf) => {
                 let mut receivers: Vec<_> = leaf
                     .take_receivers()
                     .into_iter()
@@ -149,7 +151,7 @@ impl TreeReconstructor {
                     .map(|id| Self::try_get_channel_mut(channel_map, &id)?.try_take_sender())
                     .collect::<Result<_>>()?;
 
-                let data = ActionReconstructionData::builder()
+                let data = LeafReconstructionData::builder()
                     .inner(
                         LeafMetadata::builder()
                             .receivers(receivers)
@@ -159,18 +161,17 @@ impl TreeReconstructor {
                     .parameters(parameters)
                     .build();
 
-                let leaf_name = leaf.name();
                 match leaf.kind() {
                     LeafKind::Action => {
-                        let factory = node_factory.action.get(leaf_name).ok_or_else(|| {
-                            anyhow!("action factory with name: {leaf_name} does not exist")
+                        let factory = node_factory.action.get(&node_name).ok_or_else(|| {
+                            anyhow!("action factory for node: {node_name} does not exist")
                         })?;
                         let action = factory.try_create(data)?;
                         Ok(builder.action(action))
                     }
                     LeafKind::Condition => {
-                        let factory = node_factory.condition.get(leaf_name).ok_or_else(|| {
-                            anyhow!("condition factory with name: {leaf_name:?} does not exist")
+                        let factory = node_factory.condition.get(&node_name).ok_or_else(|| {
+                            anyhow!("condition factory for node: {node_name} does not exist")
                         })?;
                         let condition = factory.try_create(data)?;
                         Ok(builder.condition(condition))
@@ -192,6 +193,7 @@ impl TreeReconstructor {
 struct NodeFactoryRegistry {
     action: ActionNameToFactoryMap,
     condition: ConditionNameToFactoryMap,
+    control: ControlNameToFactoryMap,
 }
 
 impl NodeFactoryRegistry {
@@ -199,12 +201,14 @@ impl NodeFactoryRegistry {
         Ok(Self {
             action: ActionNameToFactoryMap::new(node::ActionPluginConstructor::plugins()?),
             condition: ConditionNameToFactoryMap::new(node::ConditionPluginConstructor::plugins()?),
+            control: ControlNameToFactoryMap::new(node::ControlPluginConstructor::plugins()?),
         })
     }
 }
 
 type ConditionNameToFactoryMap = NameToFactoryMap<node::ConditionFactory>;
 type ActionNameToFactoryMap = NameToFactoryMap<node::ActionFactory>;
+type ControlNameToFactoryMap = NameToFactoryMap<node::ControlFactory>;
 
 struct NameToFactoryMap<F> {
     map: HashMap<NodeName, F>,

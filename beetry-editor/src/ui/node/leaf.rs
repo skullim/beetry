@@ -1,7 +1,7 @@
 use std::{collections::BTreeSet, rc::Rc};
 
 use beetry_core::MessageHash;
-use beetry_serde::ser::{channel::MessageSpec, node::LeafKind};
+use beetry_serde::ser::node::{LeafKind, LeafSchema};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
@@ -17,20 +17,22 @@ use crate::{
 pub(crate) struct LeafProps {
     id: NodeId,
     position: Point,
+    schema: LeafSchema,
     name: String,
-    kind: LeafKind,
-    receivers: BTreeSet<MessageSpec>,
-    senders: BTreeSet<MessageSpec>,
+    //@todo higher level can provide the info what channel type it is
     external_receivers: BTreeSet<MessageHash>,
 }
 
 #[component]
 pub(crate) fn Leaf(props: LeafProps) -> Element {
     debug!("rendering leaf component: {}", props.id);
+    let leaf_schema = props.schema;
 
-    let style = use_hook(|| Rc::new(style(props.kind, &props.name)));
+    let style = use_hook(|| Rc::new(style(leaf_schema.kind, &props.name)));
     let position = props.position;
     let id = props.id;
+    let external_receivers = props.external_receivers;
+
     let half_width = style.width / 2.0;
     let width = style.width;
 
@@ -48,25 +50,25 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
         }
 
         g { transform: "translate(-80, 10)",
-            for (idx , spec) in props.receivers.iter().enumerate() {
+            for (idx , msg_spec) in leaf_schema.receivers.iter().enumerate() {
                 port::Receiver {
                     key: "{idx}",
                     id,
                     position,
-                    spec: spec.clone(),
+                    spec: msg_spec.clone(),
                     channel_idx: idx,
-                    is_external: props.external_receivers.contains(spec.hash()),
+                    is_external: external_receivers.contains(msg_spec.hash()),
                 }
             }
         }
 
         g { transform: "translate({width}, 10)",
-            for (idx , spec) in props.senders.iter().enumerate() {
+            for (idx , msg_spec) in leaf_schema.senders.iter().enumerate() {
                 port::Sender {
                     key: "{idx}",
                     id,
                     position,
-                    spec: spec.clone(),
+                    spec: msg_spec.clone(),
                     channel_idx: idx,
                 }
             }

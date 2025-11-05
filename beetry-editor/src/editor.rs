@@ -1,6 +1,12 @@
 use std::collections::BTreeSet;
 
-use beetry_serde::de::channel::{ChannelMetadata, ChannelSnapshot};
+use beetry_serde::{
+    de::{
+        channel::{ChannelMetadata, ChannelSnapshot},
+        parameter::Parameters,
+    },
+    ser::node::{LeafNodeSpec, NodeName},
+};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
@@ -30,7 +36,10 @@ impl EditorContext {
         let mut id = Signal::new(0);
         let ui_nodes = Signal::new({
             let mut map = ui::NodeMap::new();
-            map.insert(id(), ui::Node::new(ui::NodeKind::Root));
+            map.insert(
+                id(),
+                ui::Node::new(NodeName::new("Root"), ui::NodeKind::Root),
+            );
             id += 1;
             map
         });
@@ -60,8 +69,8 @@ pub(crate) fn Editor() -> Element {
         use_signal(ParameterDialogState::default);
 
     let sidebar_handlers = use_context_provider(move || {
-        let on_new_node = move |ui: ui::NodeKind| {
-            ui_nodes.write().insert(id(), ui::Node::new(ui));
+        let on_new_node = move |node: ui::Node| {
+            ui_nodes.write().insert(id(), node);
             id += 1;
         };
 
@@ -126,12 +135,17 @@ fn parameter_dialog_handlers(
     mut state: Signal<ParameterDialogState>,
     sidebar_handlers: SidebarEventHandlers,
 ) -> ParameterDialogHandlers {
-    let on_confirm = move |(spec, params)| {
-        sidebar_handlers.on_new_node.call(ui::NodeKind::Leaf {
-            spec,
-            params,
-            external_receivers: BTreeSet::new(),
-        });
+    let on_confirm = move |(spec, params): (LeafNodeSpec, Parameters)| {
+        sidebar_handlers.on_new_node.call(
+            ui::Node::new(
+                spec.name,
+                ui::NodeKind::Leaf {
+                    schema: spec.schema,
+                    external_receivers: BTreeSet::new(),
+                },
+            )
+            .with_params(params),
+        );
         state.take();
     };
 

@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 
 use beetry_serde::{
-    de::{node::ControlKind, parameter::Parameters},
-    ser::node::{LeafKind, LeafSpec},
+    de::parameter::Parameters,
+    ser::node::{ControlNodeSpec, LeafKind, LeafNodeSpec},
 };
 use dioxus::{logger::tracing::info, prelude::*};
 use dioxus_logger::tracing::debug;
@@ -19,11 +19,11 @@ use crate::{
 
 #[derive(Clone)]
 pub(crate) struct SidebarEventHandlers {
-    pub(crate) on_new_node: EventHandler<ui::NodeKind>,
+    pub(crate) on_new_node: EventHandler<ui::Node>,
 }
 
 impl SidebarEventHandlers {
-    pub(crate) fn new(on_new_node: impl FnMut(ui::NodeKind) + 'static) -> Self {
+    pub(crate) fn new(on_new_node: impl FnMut(ui::Node) + 'static) -> Self {
         Self {
             on_new_node: EventHandler::new(on_new_node),
         }
@@ -44,14 +44,9 @@ pub(crate) fn Sidebar(
     debug!("rendering sidebar");
     info!("registered {} leaf nodes", leaves.len());
 
-    let controls = [
-        ("Sequence", ControlKind::Sequence),
-        ("Fallback", ControlKind::Fallback),
-        ("Parallel", ControlKind::Parallel),
-    ];
-    let new_control_handler = |kind: ControlKind| {
+    let new_control_handler = |spec: ControlNodeSpec| {
         move |_| {
-            on_new_node.call(ui::NodeKind::Control(kind));
+            on_new_node.call(ui::Node);
         }
     };
 
@@ -67,9 +62,9 @@ pub(crate) fn Sidebar(
         .cloned()
         .collect();
 
-    let new_leaf_handler = |spec: LeafSpec| {
+    let new_leaf_handler = |spec: LeafNodeSpec| {
         move |_| {
-            let schema = spec.schema().params().clone();
+            let schema = spec.schema();
             debug!(
                 "creating node '{}' with {} parameters",
                 spec.name(),

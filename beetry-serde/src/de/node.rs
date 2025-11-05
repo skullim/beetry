@@ -29,7 +29,9 @@ impl RootSnapshot {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Builder)]
 pub struct NodeSnapshot {
-    pub kind: NodeSnapshotKind,
+    #[builder(into)]
+    pub name: NodeName,
+    pub data: NodeSnapshotData,
     #[builder(default)]
     pub parameters: Parameters,
 }
@@ -41,44 +43,30 @@ impl NodeSnapshot {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum NodeSnapshotKind {
+pub enum NodeSnapshotData {
     Control(ControlSnapshot),
     Leaf(LeafSnapshot),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Getters)]
 pub struct ControlSnapshot {
-    #[getter(copy)]
-    kind: ControlKind,
-    children: Vec1<Box<NodeSnapshot>>,
+    children: Vec1<NodeSnapshot>,
 }
 
 impl ControlSnapshot {
-    pub fn new(
-        kind: ControlKind,
-        children: impl IntoIterator<Item = Box<NodeSnapshot>>,
-    ) -> Result<Self> {
+    pub fn new(children: impl IntoIterator<Item = NodeSnapshot>) -> Result<Self> {
         let children = Vec1::try_from_iter(children)
             .map_err(|_| anyhow!("received empty children iterator"))?;
-        Ok(Self { kind, children })
+        Ok(Self { children })
     }
 
-    pub fn into_children_iter(self) -> impl IntoIterator<Item = Box<NodeSnapshot>> {
+    pub fn into_children_iter(self) -> impl IntoIterator<Item = NodeSnapshot> {
         self.children.into_iter()
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub enum ControlKind {
-    Sequence,
-    Fallback,
-    Parallel,
-}
-
 #[derive(Debug, Clone, Builder, Serialize, Deserialize, Getters)]
 pub struct LeafSnapshot {
-    #[builder(into)]
-    name: NodeName,
     #[getter(copy)]
     kind: LeafKind,
     #[builder(default, with = <_>::from_iter)]
