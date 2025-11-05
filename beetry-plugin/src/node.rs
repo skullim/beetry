@@ -48,13 +48,12 @@ impl LeafMetadata {
 pub struct ControlMetadata;
 
 pub type ActionFactory = Factory<BoxActionFactoryFn, ActionReconstructionData, BoxActionBehavior>;
-type BoxActionFactoryFn =
-    Box<dyn Fn(ActionReconstructionData) -> Result<BoxActionBehavior> + Send + Sync>;
+type BoxActionFactoryFn = Box<dyn Fn(ActionReconstructionData) -> Result<BoxActionBehavior>>;
 
 pub type ConditionFactory =
     Factory<BoxConditionFactoryFn, ConditionReconstructionData, BoxConditionBehavior>;
 type BoxConditionFactoryFn =
-    Box<dyn Fn(ConditionReconstructionData) -> Result<BoxConditionBehavior> + Send + Sync>;
+    Box<dyn Fn(ConditionReconstructionData) -> Result<BoxConditionBehavior>>;
 
 pub struct Factory<F, I, O> {
     func: F,

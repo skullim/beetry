@@ -10,7 +10,7 @@ use anyhow::{Error, Result, anyhow};
 use std::{pin::Pin, str::FromStr};
 
 pub trait Task {
-    fn run(self) -> impl Future<Output = TickStatus> + Send + Sync + 'static;
+    fn run(self) -> impl Future<Output = TickStatus> + 'static;
     fn task_desc(&self) -> TaskDescription {
         TaskDescription::from_str(std::any::type_name::<Self>()).unwrap()
     }
@@ -70,7 +70,7 @@ impl TryFrom<TaskStatus> for TickStatus {
     }
 }
 
-pub type BoxTaskFuture = Box<dyn Future<Output = TickStatus> + Send + Sync + 'static>;
+pub type BoxTaskFuture = Box<dyn Future<Output = TickStatus> + 'static>;
 
 pub struct NodeTask {
     task: BoxTaskFuture,

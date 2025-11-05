@@ -35,7 +35,7 @@ impl TypeErasedChannel {
 }
 
 pub struct Factory {
-    func: Box<dyn Fn(ChannelMetadata) -> TypeErasedChannel + Send + Sync>,
+    func: Box<dyn Fn(ChannelMetadata) -> TypeErasedChannel>,
 }
 
 impl std::fmt::Debug for Factory {
