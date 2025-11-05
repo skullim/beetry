@@ -5,7 +5,7 @@ use anyhow::{Result, anyhow};
 use beetry_core::{ActionBehavior, BoxActionBehavior, NodeTask, Receiver, Task, TickStatus};
 use beetry_plugin::{
     Plugin,
-    node::{self, ActionFactory, NodeReconstructionData},
+    node::{self, ActionFactory, ActionReconstructionData},
 };
 use beetry_serde::ser::{
     channel::MessageSpec,
@@ -91,8 +91,9 @@ impl Plugin for DrivePlugin {
     where
         Self: Sized,
     {
-        let closure = |mut data: NodeReconstructionData| {
+        let closure = |mut data: ActionReconstructionData| {
             let recv = data
+                .inner
                 .receivers
                 .pop()
                 .ok_or_else(|| anyhow!("expected non empty receivers vector"))?;
@@ -129,7 +130,10 @@ impl Plugin for DrivePlugin {
 mod tests {
     use beetry_channel::tokio;
     use beetry_core::BoxReceiver;
-    use beetry_plugin::{Plugin, node::NodeReconstructionData};
+    use beetry_plugin::{
+        Plugin,
+        node::{ActionReconstructionData, LeafReconstructionData},
+    };
 
     use crate::{Pose, leaves::drive::DrivePlugin};
 
@@ -137,8 +141,12 @@ mod tests {
     fn test_reconstruction() {
         let (_, receiver) = tokio::mpsc::channel::<Pose>(1);
         let receiver: BoxReceiver<Pose> = Box::new(receiver);
-        let data = NodeReconstructionData::builder()
-            .receivers(vec![receiver.into()])
+        let data = ActionReconstructionData::builder()
+            .inner(
+                LeafReconstructionData::builder()
+                    .receivers([receiver.into()])
+                    .build(),
+            )
             .build();
 
         let plugin = Box::new(DrivePlugin::new());

@@ -12,6 +12,8 @@ pub trait Node {
     fn abort(&mut self) {}
 }
 
+pub trait ControlNode: Node {}
+
 pub type BoxNode = Box<dyn Node>;
 
 impl Node for BoxNode {

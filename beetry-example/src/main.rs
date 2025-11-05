@@ -95,7 +95,7 @@ where
     let mut content_buffer = String::new();
     file.read_to_string(&mut content_buffer)?;
     let data: ProjectData = JsonDeserializer::deserialize(&content_buffer)?;
-    let mut reconstructor = TreeReconstructor::with_receiver_registry(receiver_registry);
+    let mut reconstructor = TreeReconstructor::with_receiver_registry(receiver_registry)?;
     reconstructor.try_reconstruct(data.tree, builder)
 }
 

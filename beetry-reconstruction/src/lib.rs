@@ -3,7 +3,7 @@ use beetry_node::NonEmptyNodes;
 use beetry_serde::{
     de::{
         channel::{ChannelId, ChannelIdToSnapshotMap},
-        node::{ControlKind, NodeSnapshot},
+        node::{ControlKind, NodeSnapshot, NodeSnapshotKind},
         tree::TreeSnapshot,
     },
     ser::node::{LeafKind, NodeName},
@@ -17,28 +17,33 @@ use beetry_core::{BoxNode, MessageHash, RegisterTask, Root, TaskControl, Tree};
 use beetry_node::{Fallback, Parallel, Sequence};
 
 use beetry_plugin::{
+    BoxPlugin, Named,
     channel::{self, BoxChannelPlugin, TypeErasedChannel},
-    node::{self, BoxActionPlugin, BoxConditionPlugin, NodeReconstructionData},
+    node::{self, ActionReconstructionData, LeafReconstructionData},
 };
 
-#[derive(Default)]
 pub struct TreeReconstructor {
-    external_receivers: external::ReceiverRegistry,
+    ext_receivers: external::ReceiverRegistry,
+    node_factory: NodeFactoryRegistry,
 }
 
 impl TreeReconstructor {
-    pub fn new() -> Self {
-        Self {
-            external_receivers: external::ReceiverRegistry::new(),
-        }
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            ext_receivers: external::ReceiverRegistry::new(),
+            node_factory: NodeFactoryRegistry::new()?,
+        })
     }
 
-    pub fn with_receiver_registry(external_receivers: external::ReceiverRegistry) -> Self {
-        Self { external_receivers }
+    pub fn with_receiver_registry(ext_receivers: external::ReceiverRegistry) -> Result<Self> {
+        Ok(Self {
+            ext_receivers,
+            node_factory: NodeFactoryRegistry::new()?,
+        })
     }
 
-    // Reconstruct criteria:
-    // 1. Leaf nodes exist in node plugin registry.
+    // Reconstruction criteria:
+    // 1. Nodes exist in node factory registry.
     // 2. Channels exist in channel plugin registry.
     // 3. Each hash of leaf node matches with the corresponding node found in plugin registry.
     // 4. External receivers (if any) have been created when initializing Self instance
@@ -54,16 +59,11 @@ impl TreeReconstructor {
         let channel_factory_map = ChannelHashToFactoryMap::new(channel::plugins());
         let mut channels = Self::try_reconstruct_channels(snapshot.channels, channel_factory_map)?;
 
-        let action_factory_map =
-            ActionNameToFactoryMap::new(node::ActionPluginConstructor::plugins()?);
-        let condition_factory_map =
-            ConditionNameToFactoryMap::new(node::ConditionPluginConstructor::plugins()?);
         let child = Self::try_reconstruct_tree(
             snapshot.root.into_child(),
-            &action_factory_map,
-            &condition_factory_map,
+            &self.node_factory,
             &mut channels,
-            &mut self.external_receivers,
+            &mut self.ext_receivers,
             builder,
         )?;
         Ok(Tree::new(Root::new(child)))
@@ -89,19 +89,19 @@ impl TreeReconstructor {
     }
 
     fn try_reconstruct_tree<R, T>(
-        node: NodeSnapshot,
-        action_factory_map: &ActionNameToFactoryMap,
-        condition_factory_map: &ConditionNameToFactoryMap,
+        mut node: NodeSnapshot,
+        node_factory: &NodeFactoryRegistry,
         channel_map: &mut ChannelIdToChannelMap,
-        receivers_registry: &mut external::ReceiverRegistry,
+        ext_receivers_registry: &mut external::ReceiverRegistry,
         builder: &BehaviorTreeBuilder<R, T>,
     ) -> Result<BoxNode>
     where
         R: RegisterTask<T> + 'static,
         T: TaskControl + 'static,
     {
-        match node {
-            NodeSnapshot::Control(control) => {
+        let parameters = node.take_parameters();
+        match node.kind {
+            NodeSnapshotKind::Control(control) => {
                 let control_kind = control.kind();
                 let children: Vec<_> = control
                     .into_children_iter()
@@ -109,10 +109,9 @@ impl TreeReconstructor {
                     .map(|child| {
                         Self::try_reconstruct_tree(
                             *child,
-                            action_factory_map,
-                            condition_factory_map,
+                            node_factory,
                             channel_map,
-                            receivers_registry,
+                            ext_receivers_registry,
                             builder,
                         )
                     })
@@ -126,7 +125,7 @@ impl TreeReconstructor {
                     ControlKind::Parallel => Ok(Box::new(Parallel::new(children))),
                 }
             }
-            NodeSnapshot::Leaf(mut leaf) => {
+            NodeSnapshotKind::Leaf(mut leaf) => {
                 let mut receivers: Vec<_> = leaf
                     .take_receivers()
                     .into_iter()
@@ -136,7 +135,7 @@ impl TreeReconstructor {
                 if let Some(ext_receivers_snapshot) = leaf.take_ext_receivers() {
                     ext_receivers_snapshot
                         .into_iter()
-                        .map(|hash| receivers_registry.take(hash))
+                        .map(|hash| ext_receivers_registry.take(hash))
                         .for_each(|o_external_receiver| {
                             if let Some(external_receiver) = o_external_receiver {
                                 receivers.push(external_receiver);
@@ -150,23 +149,27 @@ impl TreeReconstructor {
                     .map(|id| Self::try_get_channel_mut(channel_map, &id)?.try_take_sender())
                     .collect::<Result<_>>()?;
 
-                let data = NodeReconstructionData::builder()
-                    .receivers(receivers)
-                    .senders(senders)
-                    .parameters(leaf.take_parameters())
+                let data = ActionReconstructionData::builder()
+                    .inner(
+                        LeafReconstructionData::builder()
+                            .receivers(receivers)
+                            .senders(senders)
+                            .build(),
+                    )
+                    .parameters(parameters)
                     .build();
 
                 let leaf_name = leaf.name();
                 match leaf.kind() {
                     LeafKind::Action => {
-                        let factory = action_factory_map.get(leaf_name).ok_or_else(|| {
+                        let factory = node_factory.action.get(leaf_name).ok_or_else(|| {
                             anyhow!("action factory with name: {leaf_name} does not exist")
                         })?;
                         let action = factory.try_create(data)?;
                         Ok(builder.action(action))
                     }
                     LeafKind::Condition => {
-                        let factory = condition_factory_map.get(leaf_name).ok_or_else(|| {
+                        let factory = node_factory.condition.get(leaf_name).ok_or_else(|| {
                             anyhow!("condition factory with name: {leaf_name:?} does not exist")
                         })?;
                         let condition = factory.try_create(data)?;
@@ -186,43 +189,45 @@ impl TreeReconstructor {
     }
 }
 
+struct NodeFactoryRegistry {
+    action: ActionNameToFactoryMap,
+    condition: ConditionNameToFactoryMap,
+}
+
+impl NodeFactoryRegistry {
+    fn new() -> Result<Self> {
+        Ok(Self {
+            action: ActionNameToFactoryMap::new(node::ActionPluginConstructor::plugins()?),
+            condition: ConditionNameToFactoryMap::new(node::ConditionPluginConstructor::plugins()?),
+        })
+    }
+}
+
+type ConditionNameToFactoryMap = NameToFactoryMap<node::ConditionFactory>;
+type ActionNameToFactoryMap = NameToFactoryMap<node::ActionFactory>;
+
+struct NameToFactoryMap<F> {
+    map: HashMap<NodeName, F>,
+}
+
+impl<F> NameToFactoryMap<F> {
+    fn new<S>(plugins: impl IntoIterator<Item = BoxPlugin<S, F>>) -> Self
+    where
+        S: Named,
+    {
+        let map = plugins
+            .into_iter()
+            .map(|plugin| (NodeName(plugin.spec().name().to_string()), plugin.factory()))
+            .collect();
+        Self { map }
+    }
+
+    fn get(&self, name: &NodeName) -> Option<&F> {
+        self.map.get(name)
+    }
+}
+
 type ChannelIdToChannelMap = HashMap<ChannelId, TypeErasedChannel>;
-
-struct ActionNameToFactoryMap {
-    map: HashMap<NodeName, node::ActionFactory>,
-}
-
-impl ActionNameToFactoryMap {
-    fn new(plugins: Vec<BoxActionPlugin>) -> Self {
-        let map = plugins
-            .into_iter()
-            .map(|plugin| (plugin.spec().name, plugin.factory()))
-            .collect();
-        Self { map }
-    }
-
-    fn get(&self, name: &NodeName) -> Option<&node::ActionFactory> {
-        self.map.get(name)
-    }
-}
-
-struct ConditionNameToFactoryMap {
-    map: HashMap<NodeName, node::ConditionFactory>,
-}
-
-impl ConditionNameToFactoryMap {
-    fn new(plugins: Vec<BoxConditionPlugin>) -> Self {
-        let map = plugins
-            .into_iter()
-            .map(|plugin| (plugin.spec().name, plugin.factory()))
-            .collect();
-        Self { map }
-    }
-
-    fn get(&self, name: &NodeName) -> Option<&node::ConditionFactory> {
-        self.map.get(name)
-    }
-}
 
 #[derive(Debug)]
 struct ChannelHashToFactoryMap {

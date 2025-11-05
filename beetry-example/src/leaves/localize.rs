@@ -5,8 +5,7 @@ use anyhow::anyhow;
 use beetry_core::BoxActionBehavior;
 use beetry_core::{self, ActionBehavior, NodeTask, Task, TickStatus};
 use beetry_plugin::Plugin;
-use beetry_plugin::node::ActionFactory;
-use beetry_plugin::node::{self, NodeReconstructionData};
+use beetry_plugin::node::{self, ActionFactory, ActionReconstructionData};
 use beetry_serde::ser::channel::MessageSpec;
 use beetry_serde::ser::node::LeafSchema;
 use beetry_serde::ser::node::NodeName;
@@ -113,8 +112,9 @@ impl Plugin for LocalizePlugin {
     where
         Self: Sized,
     {
-        let closure = |mut data: NodeReconstructionData| {
+        let closure = |mut data: ActionReconstructionData| {
             let any_sender = data
+                .inner
                 .senders
                 .pop()
                 .ok_or_else(|| anyhow!("expected non empty senders vector"))?;

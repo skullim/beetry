@@ -3,7 +3,7 @@ use anyhow::{Result, anyhow};
 use beetry_core::{self, ActionBehavior, BoxActionBehavior, NodeTask, Task, TickStatus};
 use beetry_plugin::{
     Plugin,
-    node::{self, ActionFactory, NodeReconstructionData},
+    node::{self, ActionFactory, ActionReconstructionData},
 };
 use beetry_serde::ser::{
     channel::MessageSpec,
@@ -68,8 +68,9 @@ impl Plugin for ReadExternalDataPlugin {
     where
         Self: Sized,
     {
-        let closure = |mut data: NodeReconstructionData| {
+        let closure = |mut data: ActionReconstructionData| {
             let recv = data
+                .inner
                 .receivers
                 .pop()
                 .ok_or_else(|| anyhow!("expected non empty receivers vector"))?;
