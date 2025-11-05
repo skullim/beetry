@@ -14,45 +14,38 @@ impl<P> ActionPlugin for P where P: Plugin<Spec = LeafSpec, Factory = ActionFact
 pub trait ConditionPlugin: Plugin<Spec = LeafSpec, Factory = ConditionFactory> {}
 impl<P> ConditionPlugin for P where P: Plugin<Spec = LeafSpec, Factory = ConditionFactory> {}
 
-#[derive(Builder)]
-pub struct NodeReconstructionData {
-    pub kind: NodeReconstructionKind,
-    #[builder(default)]
-    pub parameters: Parameters,
-}
+pub type ActionReconstructionData = NodeReconstructionData<LeafMetadata>;
+pub type ConditionReconstructionData = ActionReconstructionData;
+pub type ControlReconstructionData = NodeReconstructionData<ControlMetadata>;
 
 #[derive(Builder)]
-pub struct NodeReconstructionData2<D> {
+pub struct NodeReconstructionData<D> {
     pub inner: D,
     #[builder(default)]
     pub parameters: Parameters,
 }
 
-pub type ActionReconstructionData = NodeReconstructionData2<LeafReconstructionData>;
-pub type ConditionReconstructionData = ActionReconstructionData;
-pub type ControlReconstructionData2 = NodeReconstructionData2<ControlReconstructionData>;
-
-pub enum NodeReconstructionKind {
-    Leaf(LeafReconstructionData),
-    Control(ControlReconstructionData),
+pub enum NodeMetadata {
+    Leaf(LeafMetadata),
+    Control(ControlMetadata),
 }
 
 #[derive(Default, Builder)]
-pub struct LeafReconstructionData {
+pub struct LeafMetadata {
     #[builder(default, into)]
     pub receivers: Vec<AnyBoxReceiver>,
     #[builder(default, into)]
     pub senders: Vec<AnyBoxSender>,
 }
 
-impl LeafReconstructionData {
+impl LeafMetadata {
     pub fn new() -> Self {
         Self::default()
     }
 }
 
 #[derive(Default)]
-pub struct ControlReconstructionData;
+pub struct ControlMetadata;
 
 pub type ActionFactory = Factory<BoxActionFactoryFn, ActionReconstructionData, BoxActionBehavior>;
 type BoxActionFactoryFn =

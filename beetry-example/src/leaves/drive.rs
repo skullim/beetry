@@ -132,7 +132,7 @@ mod tests {
     use beetry_core::BoxReceiver;
     use beetry_plugin::{
         Plugin,
-        node::{ActionReconstructionData, LeafReconstructionData},
+        node::{ActionReconstructionData, LeafMetadata},
     };
 
     use crate::{Pose, leaves::drive::DrivePlugin};
@@ -142,11 +142,7 @@ mod tests {
         let (_, receiver) = tokio::mpsc::channel::<Pose>(1);
         let receiver: BoxReceiver<Pose> = Box::new(receiver);
         let data = ActionReconstructionData::builder()
-            .inner(
-                LeafReconstructionData::builder()
-                    .receivers([receiver.into()])
-                    .build(),
-            )
+            .inner(LeafMetadata::builder().receivers([receiver.into()]).build())
             .build();
 
         let plugin = Box::new(DrivePlugin::new());

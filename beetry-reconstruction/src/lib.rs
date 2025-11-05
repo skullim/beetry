@@ -19,7 +19,7 @@ use beetry_node::{Fallback, Parallel, Sequence};
 use beetry_plugin::{
     BoxPlugin, Named,
     channel::{self, BoxChannelPlugin, TypeErasedChannel},
-    node::{self, ActionReconstructionData, LeafReconstructionData},
+    node::{self, ActionReconstructionData, LeafMetadata},
 };
 
 pub struct TreeReconstructor {
@@ -151,7 +151,7 @@ impl TreeReconstructor {
 
                 let data = ActionReconstructionData::builder()
                     .inner(
-                        LeafReconstructionData::builder()
+                        LeafMetadata::builder()
                             .receivers(receivers)
                             .senders(senders)
                             .build(),
