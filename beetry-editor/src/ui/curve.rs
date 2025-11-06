@@ -1,6 +1,6 @@
 use crate::definitions::Point;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Curve;
 
 impl Curve {

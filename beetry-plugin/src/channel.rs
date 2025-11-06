@@ -99,7 +99,7 @@ pub struct ChannelPluginConstructor(fn() -> BoxChannelPlugin);
 
 impl ChannelPluginConstructor {
     pub const fn new<T: ChannelPlugin + 'static>() -> Self {
-        ChannelPluginConstructor(|| Box::new(T::new()))
+        Self(|| Box::new(T::new()))
     }
 
     fn create(&self) -> BoxChannelPlugin {

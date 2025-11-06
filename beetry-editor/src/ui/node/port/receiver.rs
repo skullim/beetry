@@ -11,7 +11,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-pub(crate) struct Handlers {
+pub struct Handlers {
     on_mouse_down: EventHandler<(ConnectionOrigin, IndexedDragOffset, MessageHash)>,
     on_context_menu: EventHandler<(NodeId, MessageHash)>,
 }
@@ -29,7 +29,7 @@ impl Handlers {
 }
 
 #[derive(Props, PartialEq, Clone)]
-pub(crate) struct ReceiverProps {
+pub struct ReceiverProps {
     id: NodeId,
     position: Point,
     spec: MessageSpec,
@@ -38,7 +38,7 @@ pub(crate) struct ReceiverProps {
 }
 
 #[component]
-pub(crate) fn Receiver(props: ReceiverProps) -> Element {
+pub fn Receiver(props: ReceiverProps) -> Element {
     let position = props.position;
     let node_id = props.id;
     let message_hash = *props.spec.hash();

@@ -26,9 +26,9 @@ pub use channel::{
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TickStatus {
+    Failure,
     Success,
     Running,
-    Failure,
 }
 
 impl TickStatus {

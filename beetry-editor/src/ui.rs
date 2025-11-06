@@ -1,11 +1,11 @@
-pub(crate) mod channel;
-pub(crate) mod curve;
-pub(crate) mod edge;
-pub(crate) mod node;
-pub(crate) mod shadow;
-pub(crate) mod text;
-pub(crate) mod transfer;
-pub(crate) mod viewport;
+pub mod channel;
+pub mod curve;
+pub mod edge;
+pub mod node;
+pub mod shadow;
+pub mod text;
+pub mod transfer;
+pub mod viewport;
 
 use beetry_core::MessageHash;
 use beetry_serde::{
@@ -20,8 +20,8 @@ use std::collections::{BTreeSet, HashMap};
 
 use crate::definitions::{NodeId, Point};
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) enum NodeKind {
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum NodeKind {
     Root,
     Control {
         params_schema: parameter::Schema,
@@ -33,7 +33,7 @@ pub(crate) enum NodeKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct Node {
+pub struct Node {
     pub(crate) name: NodeName,
     pub(crate) kind: NodeKind,
     // placeholder for future selection (if any)
@@ -57,4 +57,4 @@ impl Node {
     }
 }
 
-pub(crate) type NodeMap = HashMap<NodeId, Node>;
+pub type NodeMap = HashMap<NodeId, Node>;

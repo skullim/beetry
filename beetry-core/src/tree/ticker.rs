@@ -66,7 +66,7 @@ impl Ticker {
                     debug!("finished executing bt with status: {status:?}");
                     return status;
                 }
-                TickStatus::Running => continue,
+                TickStatus::Running => {}
             }
         }
     }

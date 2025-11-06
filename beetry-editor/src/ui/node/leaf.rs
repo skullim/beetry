@@ -14,7 +14,7 @@ use crate::{
 };
 
 #[derive(PartialEq, Clone, Props)]
-pub(crate) struct LeafProps {
+pub struct LeafProps {
     id: NodeId,
     position: Point,
     schema: LeafSchema,

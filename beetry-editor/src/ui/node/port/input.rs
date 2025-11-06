@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use crate::definitions::{NodeId, Point};
 
 #[derive(Debug, Clone)]
-pub(crate) struct Handlers {
+pub struct Handlers {
     pub(crate) on_mouse_up: EventHandler<NodeId>,
 }
 
@@ -16,7 +16,7 @@ impl Handlers {
 }
 
 #[derive(Props, PartialEq, Clone)]
-pub(crate) struct PortProps {
+pub struct PortProps {
     id: NodeId,
     position: Point,
 }

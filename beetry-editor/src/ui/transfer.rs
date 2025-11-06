@@ -1,21 +1,21 @@
 mod export;
 mod import;
 
-pub(crate) use export::{Export, Handlers as ExportHandlers};
-pub(crate) use import::{Handlers as ImportHandlers, Import};
+pub use export::{Export, Handlers as ExportHandlers};
+pub use import::{Handlers as ImportHandlers, Import};
 
 use dioxus::prelude::*;
 
-#[derive(Debug, Default, Clone, PartialEq)]
-pub(crate) enum OperationStatus {
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub enum OperationStatus {
     #[default]
     None,
     Success,
     Error,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Props)]
-pub(crate) struct OperationResult {
+#[derive(Debug, Default, Clone, PartialEq, Eq, Props)]
+pub struct OperationResult {
     message: String,
     status: OperationStatus,
 }

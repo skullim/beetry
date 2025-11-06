@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[derive(Props, PartialEq, Clone)]
-pub(crate) struct ControlProps {
+pub struct ControlProps {
     id: NodeId,
     position: Point,
     name: String,

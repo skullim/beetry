@@ -7,7 +7,7 @@ use crate::ui::{
 };
 
 #[component]
-pub(crate) fn Renderer(ui_nodes: Signal<NodeMap>) -> Element {
+pub fn Renderer(ui_nodes: Signal<NodeMap>) -> Element {
     debug!("rendering nodes renderer");
     let rendered_lock = ui_nodes.read();
     let rendered = rendered_lock.iter().map(|(&id, node)| match &node.kind {

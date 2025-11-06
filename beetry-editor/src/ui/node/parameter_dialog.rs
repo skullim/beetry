@@ -12,7 +12,7 @@ use serde_json::Value;
 use crate::definitions::Point;
 
 #[derive(Debug, Clone)]
-pub(crate) struct Handlers {
+pub struct Handlers {
     pub(crate) on_confirm: EventHandler<(LeafSpec, Parameters)>,
     pub(crate) on_cancel: EventHandler<()>,
 }
@@ -30,7 +30,7 @@ impl Handlers {
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
-pub(crate) enum State {
+pub enum State {
     #[default]
     Idle,
     Visible {
@@ -39,13 +39,13 @@ pub(crate) enum State {
     },
 }
 
-#[derive(Debug, Props, Clone, PartialEq)]
-pub(crate) struct DialogProps {
+#[derive(Debug, Props, Clone, PartialEq, Eq)]
+pub struct DialogProps {
     state: Signal<State>,
 }
 
 #[component]
-pub(crate) fn Dialog(props: DialogProps) -> Element {
+pub fn Dialog(props: DialogProps) -> Element {
     debug!("rendering parameter dialog");
     let state_read = props.state.read();
 

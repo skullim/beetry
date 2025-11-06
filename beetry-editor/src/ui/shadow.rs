@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-pub(crate) fn style_defs() -> Element {
+pub fn style_defs() -> Element {
     rsx! {
         defs {
             filter { id: "shadow",

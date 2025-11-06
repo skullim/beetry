@@ -1,7 +1,7 @@
 mod execution;
 
 #[cfg(test)]
-pub(crate) use execution::MockRegisterTask;
+pub use execution::MockRegisterTask;
 
 pub use execution::{AbortTask, ExecutorConcept, QueryTask, RegisterTask, TaskControl};
 
@@ -10,7 +10,7 @@ use anyhow::{Error, Result, anyhow};
 use std::{pin::Pin, str::FromStr};
 
 pub trait Task {
-    fn run(self) -> impl Future<Output = TickStatus> + 'static;
+    fn run(self) -> impl Future<Output = TickStatus> + Send + 'static;
     fn task_desc(&self) -> TaskDescription {
         TaskDescription::from_str(std::any::type_name::<Self>()).unwrap()
     }
@@ -24,7 +24,7 @@ pub struct TaskDescription {
 impl FromStr for TaskDescription {
     type Err = anyhow::Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(TaskDescription { desc: s.into() })
+        Ok(Self { desc: s.into() })
     }
 }
 
@@ -34,7 +34,7 @@ impl std::fmt::Display for TaskDescription {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TaskStatus {
     Success,
     Running,
@@ -62,15 +62,15 @@ impl TryFrom<TaskStatus> for TickStatus {
     type Error = Error;
     fn try_from(value: TaskStatus) -> Result<Self, Self::Error> {
         match value {
-            TaskStatus::Success => Ok(TickStatus::Success),
-            TaskStatus::Running => Ok(TickStatus::Running),
-            TaskStatus::Failure => Ok(TickStatus::Failure),
+            TaskStatus::Success => Ok(Self::Success),
+            TaskStatus::Running => Ok(Self::Running),
+            TaskStatus::Failure => Ok(Self::Failure),
             _ => Err(anyhow!("expected tree status subset of task status")),
         }
     }
 }
 
-pub type BoxTaskFuture = Box<dyn Future<Output = TickStatus> + 'static>;
+pub type BoxTaskFuture = Box<dyn Future<Output = TickStatus> + Send + 'static>;
 
 pub struct NodeTask {
     task: BoxTaskFuture,

@@ -196,7 +196,7 @@ mod tests {
         type Factory = ActionFactory;
 
         fn new() -> Self {
-            TestPluginA
+            Self
         }
 
         fn spec(&self) -> Self::Spec {
@@ -220,7 +220,7 @@ mod tests {
         type Factory = ActionFactory;
 
         fn new() -> Self {
-            TestPluginB
+            Self
         }
 
         fn spec(&self) -> Self::Spec {

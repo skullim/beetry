@@ -1,10 +1,10 @@
-pub(crate) mod input;
-pub(crate) mod output;
-pub(crate) mod receiver;
-pub(crate) mod sender;
+pub mod input;
+pub mod output;
+pub mod receiver;
+pub mod sender;
 
-pub(crate) use receiver::Receiver;
-pub(crate) use sender::Sender;
+pub use receiver::Receiver;
+pub use sender::Sender;
 
 use dioxus::prelude::*;
 

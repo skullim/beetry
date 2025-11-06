@@ -56,9 +56,7 @@ impl Task for ReadExternalDataTask {
     }
 }
 
-pub struct ReadExternalDataPlugin {
-    factory: node::ActionFactory,
-}
+pub struct ReadExternalDataPlugin;
 
 impl Plugin for ReadExternalDataPlugin {
     type Spec = ActionSpec;
@@ -68,23 +66,7 @@ impl Plugin for ReadExternalDataPlugin {
     where
         Self: Sized,
     {
-        let closure = |mut data: ActionReconstructionData| {
-            let recv = data
-                .inner
-                .receivers
-                .pop()
-                .ok_or_else(|| anyhow!("expected non empty receivers vector"))?;
-            if let Ok(recv) = recv.into_receiver_of::<ExternalData>() {
-                Ok(Box::new(ReadExternalData::new(
-                    ReadExternalDataInput::builder().data(recv).build(),
-                )) as BoxActionBehavior)
-            } else {
-                anyhow::bail!("failed to instantiate node from erased type");
-            }
-        };
-        Self {
-            factory: node::ActionFactory::new(Box::new(closure)),
-        }
+        Self
     }
 
     fn spec(&self) -> ActionSpec {
@@ -99,6 +81,20 @@ impl Plugin for ReadExternalDataPlugin {
     }
 
     fn factory(self: Box<Self>) -> node::ActionFactory {
-        self.factory
+        let factory_fn = |mut data: ActionReconstructionData| {
+            let recv = data
+                .inner
+                .receivers
+                .pop()
+                .ok_or_else(|| anyhow!("expected non empty receivers vector"))?;
+            if let Ok(recv) = recv.into_receiver_of::<ExternalData>() {
+                Ok(Box::new(ReadExternalData::new(
+                    ReadExternalDataInput::builder().data(recv).build(),
+                )) as BoxActionBehavior)
+            } else {
+                anyhow::bail!("failed to instantiate node from erased type");
+            }
+        };
+        node::ActionFactory::new(Box::new(factory_fn))
     }
 }

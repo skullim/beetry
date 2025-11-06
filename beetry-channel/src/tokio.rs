@@ -11,8 +11,8 @@ pub mod mpsc {
         impl<T> From<TokioTrySendError<T>> for error::TrySendError<T> {
             fn from(value: TokioTrySendError<T>) -> Self {
                 match value.0 {
-                    TrySendError::Full(v) => error::TrySendError::Full(v),
-                    TrySendError::Closed(v) => error::TrySendError::Disconnected(v),
+                    TrySendError::Full(v) => Self::Full(v),
+                    TrySendError::Closed(v) => Self::Disconnected(v),
                 }
             }
         }
@@ -20,8 +20,8 @@ pub mod mpsc {
         impl From<TokioTryRecvError> for error::TryRecvError {
             fn from(value: TokioTryRecvError) -> Self {
                 match value.0 {
-                    TryRecvError::Empty => error::TryRecvError::Empty,
-                    TryRecvError::Disconnected => error::TryRecvError::Disconnected,
+                    TryRecvError::Empty => Self::Empty,
+                    TryRecvError::Disconnected => Self::Disconnected,
                 }
             }
         }
@@ -65,16 +65,16 @@ pub mod broadcast {
             fn from(value: TokioSendError<T>) -> Self {
                 // error is returned only if there are no active receivers
                 // check https://docs.rs/tokio/latest/tokio/sync/broadcast/error/struct.SendError.html for details
-                error::TrySendError::Disconnected(value.0.0)
+                Self::Disconnected(value.0.0)
             }
         }
 
         impl From<TokioTryRecvError> for error::TryRecvError {
             fn from(value: TokioTryRecvError) -> Self {
                 match value.0 {
-                    TryRecvError::Empty => error::TryRecvError::Empty,
-                    TryRecvError::Closed => error::TryRecvError::Disconnected,
-                    TryRecvError::Lagged(n) => error::TryRecvError::Lagged(n),
+                    TryRecvError::Empty => Self::Empty,
+                    TryRecvError::Closed => Self::Disconnected,
+                    TryRecvError::Lagged(n) => Self::Lagged(n),
                 }
             }
         }
