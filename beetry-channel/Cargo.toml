@@ -3,6 +3,10 @@ name = "beetry-channel"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = ["tokio"]
+tokio = ["dep:tokio"]
+
 [dependencies]
 anyhow.workspace = true
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
@@ -14,8 +18,3 @@ tokio = { version = "1.47.1", features = [
 
 [dev-dependencies]
 bon.workspace = true
-
-
-[features]
-default = ["tokio"]
-tokio = ["dep:tokio"]

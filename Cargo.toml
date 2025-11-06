@@ -2,31 +2,31 @@
 resolver = "3"
 members = [
     "beetry",
-    "beetry-example",
+    "beetry-builder",
+    "beetry-channel",
+    "beetry-core",
     "beetry-editor",
     "beetry-editor-launch",
+    "beetry-example",
+    "beetry-exec",
     "beetry-macros",
+    "beetry-node",
     "beetry-plugin",
     "beetry-reconstruction",
-    "beetry-serialization",
-    "beetry-core",
-    "beetry-node",
-    "beetry-channel",
     "beetry-serde",
-    "beetry-exec",
-    "beetry-builder",
+    "beetry-serialization",
 ]
 
 [workspace.dependencies]
 anyhow = "1.0.100"
 bon = "3.8.1"
-derive_more = { version = "2.0.1", features = ["full"] }
-tracing = "0.1.41"
-strum_macros = "0.27.2"
-serde = { version = "1.0.228", features = ["derive"] }
-thiserror = "2.0.17"
-mitsein = { version = "0.8.0", features = ["serde"] }
 derive-getters = "0.5.0"
+derive_more = { version = "2.0.1", features = ["full"] }
+mitsein = { version = "0.8.0", features = ["serde"] }
+serde = { version = "1.0.228", features = ["derive"] }
+strum_macros = "0.27.2"
+thiserror = "2.0.17"
+tracing = "0.1.41"
 
 [profile]
 
