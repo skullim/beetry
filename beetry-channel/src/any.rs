@@ -14,6 +14,7 @@ impl AnyBoxReceiver {
         Self(Box::new(Box::new(receiver) as BoxReceiver<T>))
     }
 
+    #[must_use]
     pub fn is_receiver_of<T: 'static>(&self) -> bool {
         self.0.is::<BoxReceiver<T>>()
     }
@@ -36,6 +37,7 @@ impl<T: 'static> From<BoxReceiver<T>> for AnyBoxReceiver {
 pub struct AnyBoxSender(Box<dyn Any>);
 
 impl AnyBoxSender {
+    #[must_use]
     pub fn is_sender_of<T: 'static>(&self) -> bool {
         self.0.is::<BoxSender<T>>()
     }

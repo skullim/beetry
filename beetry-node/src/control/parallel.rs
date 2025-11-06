@@ -24,11 +24,9 @@ impl Node for Parallel {
             match node.tick() {
                 TickStatus::Success => {
                     aborter.untrack(idx);
-                    continue;
                 }
                 TickStatus::Running => {
                     aborter.track(idx);
-                    continue;
                 }
                 TickStatus::Failure => {
                     aborter.untrack(idx);
@@ -38,22 +36,23 @@ impl Node for Parallel {
             }
         }
 
-        match aborter.is_any_tracked() {
-            true => TickStatus::Running,
-            false => TickStatus::Success,
+        if aborter.is_any_tracked() {
+            TickStatus::Running
+        } else {
+            TickStatus::Success
         }
     }
 
     fn abort(&mut self) {
         self.aborter.clear();
-        for node in self.nodes.iter_mut() {
+        for node in &mut self.nodes {
             node.abort();
         }
     }
 
     fn reset(&mut self) {
         self.aborter.clear();
-        for node in self.nodes.iter_mut() {
+        for node in &mut self.nodes {
             node.reset();
         }
     }
