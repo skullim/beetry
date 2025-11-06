@@ -21,10 +21,10 @@ impl NodeName {
     }
 }
 
-pub type LeafNodeSpec = NodeSpec<LeafSchema>;
-pub type ActionNodeSpec = LeafNodeSpec;
-pub type ConditionNodeSpec = LeafNodeSpec;
-pub type ControlNodeSpec = NodeSpec<ControlSchema>;
+pub type LeafSpec = NodeSpec<LeafSchema>;
+pub type ActionSpec = LeafSpec;
+pub type ConditionSpec = LeafSpec;
+pub type ControlSpec = NodeSpec<ControlSchema>;
 
 #[derive(Debug, Builder, Clone, Eq, Getters, Serialize, Deserialize)]
 pub struct NodeSpec<S> {

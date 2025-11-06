@@ -11,7 +11,7 @@ use beetry_plugin::node::{
 };
 use beetry_serde::ser::{
     channel::ChannelSpec,
-    node::{ControlNodeSpec, LeafNodeSpec},
+    node::{ControlSpec, LeafSpec},
 };
 use dioxus::{logger::tracing::Level, prelude::*};
 
@@ -42,8 +42,8 @@ fn app() -> Element {
 
 #[derive(Clone, PartialEq)]
 struct Plugins {
-    leaves: Vec<LeafNodeSpec>,
-    controls: Vec<ControlNodeSpec>,
+    leaves: Vec<LeafSpec>,
+    controls: Vec<ControlSpec>,
     channels: Vec<ChannelSpec>,
 }
 

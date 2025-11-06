@@ -1,4 +1,5 @@
 use crate::TickStatus;
+use mitsein::vec1::Vec1;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait Node {
@@ -29,3 +30,5 @@ impl Node for BoxNode {
         (**self).abort()
     }
 }
+
+pub type NonEmptyNodes = Vec1<BoxNode>;

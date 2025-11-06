@@ -8,7 +8,7 @@ use beetry_plugin::Plugin;
 use beetry_plugin::node::{self, ActionFactory, ActionReconstructionData};
 use beetry_serde::ser::channel::MessageSpec;
 use beetry_serde::ser::node::ActionLeafSchema;
-use beetry_serde::ser::node::ActionNodeSpec;
+use beetry_serde::ser::node::ActionSpec;
 use tokio::sync::mpsc::{Receiver, Sender, channel as mpsc_channel};
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
@@ -104,7 +104,7 @@ pub struct LocalizePlugin {
 }
 
 impl Plugin for LocalizePlugin {
-    type Spec = ActionNodeSpec;
+    type Spec = ActionSpec;
     type Factory = ActionFactory;
 
     fn new() -> Self
@@ -128,8 +128,8 @@ impl Plugin for LocalizePlugin {
         }
     }
 
-    fn spec(&self) -> ActionNodeSpec {
-        ActionNodeSpec::builder()
+    fn spec(&self) -> ActionSpec {
+        ActionSpec::builder()
             .name("Localize".to_string())
             .schema(
                 ActionLeafSchema::builder()

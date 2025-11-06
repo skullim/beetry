@@ -52,8 +52,8 @@ impl ExternalData {
     }
 }
 
-inventory::submit!(ActionPluginConstructor::new::<DrivePlugin>());
-inventory::submit!(ActionPluginConstructor::new::<LocalizePlugin>());
-inventory::submit!(ActionPluginConstructor::new::<ReadExternalDataPlugin>());
+beetry_plugin::submit!(ActionPluginConstructor::new::<DrivePlugin>());
+beetry_plugin::submit!(ActionPluginConstructor::new::<LocalizePlugin>());
+beetry_plugin::submit!(ActionPluginConstructor::new::<ReadExternalDataPlugin>());
 
-inventory::submit!(ConditionPluginConstructor::new::<CheckBatteryPlugin>());
+beetry_plugin::submit!(ConditionPluginConstructor::new::<CheckBatteryPlugin>());

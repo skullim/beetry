@@ -9,7 +9,7 @@ use beetry_plugin::{
 };
 use beetry_serde::ser::{
     channel::MessageSpec,
-    node::{ActionLeafSchema, ActionNodeSpec, NodeName},
+    node::{ActionLeafSchema, ActionSpec},
 };
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
@@ -79,18 +79,31 @@ impl Task for DriveTask {
     }
 }
 
-pub struct DrivePlugin {
-    factory: node::ActionFactory,
-}
+pub struct DrivePlugin;
 
 impl Plugin for DrivePlugin {
-    type Spec = ActionNodeSpec;
+    type Spec = ActionSpec;
     type Factory = ActionFactory;
 
     fn new() -> Self
     where
         Self: Sized,
     {
+        Self {}
+    }
+
+    fn spec(&self) -> Self::Spec {
+        ActionSpec::builder()
+            .name("Drive".to_string())
+            .schema(
+                ActionLeafSchema::builder()
+                    .receivers([MessageSpec::new::<Pose>("Drive pose")])
+                    .build(),
+            )
+            .build()
+    }
+
+    fn factory(self: Box<Self>) -> node::ActionFactory {
         let closure = |mut data: ActionReconstructionData| {
             let recv = data
                 .inner
@@ -106,24 +119,7 @@ impl Plugin for DrivePlugin {
                 anyhow::bail!("failed to instantiate node from erased type");
             }
         };
-        Self {
-            factory: node::ActionFactory::new(Box::new(closure)),
-        }
-    }
-
-    fn spec(&self) -> Self::Spec {
-        ActionNodeSpec::builder()
-            .name(NodeName::new("Drive"))
-            .schema(
-                ActionLeafSchema::builder()
-                    .receivers([MessageSpec::new::<Pose>("Drive pose")])
-                    .build(),
-            )
-            .build()
-    }
-
-    fn factory(self: Box<Self>) -> node::ActionFactory {
-        self.factory
+        node::ActionFactory::new(Box::new(closure))
     }
 }
 

@@ -166,11 +166,11 @@ pub fn derive_channel_plugin(input: TokenStream) -> TokenStream {
     impl_tokens
 }
 
-/// Attribute macro to generate both the channel plugin and register it with inventory.
+/// Attribute macro to generate both the channel plugin and register it.
 ///
 /// This macro:
 /// 1. Generates the ChannelPlugin implementation (like the derive macro)
-/// 2. Automatically registers it with inventory
+/// 2. Automatically registers the plugin
 #[proc_macro_attribute]
 pub fn submit_as_channel_plugin(_args: TokenStream, input: TokenStream) -> TokenStream {
     let input_parsed = parse_macro_input!(input as DeriveInput);
@@ -181,7 +181,7 @@ pub fn submit_as_channel_plugin(_args: TokenStream, input: TokenStream) -> Token
     quote! {
         #input_parsed
         #channel_impl
-        inventory::submit!(ChannelPluginConstructor::new::<#channel_name>());
+        beetry_plugin::submit!(ChannelPluginConstructor::new::<#channel_name>());
     }
     .into()
 }

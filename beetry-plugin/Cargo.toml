@@ -7,12 +7,11 @@ edition = "2024"
 anyhow.workspace = true
 bon.workspace = true
 serde.workspace = true
+thiserror.workspace = true
+mitsein.workspace = true
 
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
 beetry-channel = { version = "0.1.0", path = "../beetry-channel" }
 beetry-serde = { version = "0.1.0", path = "../beetry-serde" }
 inventory = "0.3.21"
 serde_json = "1.0.145"
-thiserror.workspace = true
-mitsein.workspace = true
-beetry-node = { version = "0.1.0", path = "../beetry-node" }

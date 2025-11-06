@@ -25,3 +25,12 @@ pub trait ConstructPlugin {
     type Factory;
     fn construct(&self) -> BoxPlugin<Self::Spec, Self::Factory>;
 }
+
+pub use inventory;
+
+#[macro_export]
+macro_rules! submit {
+    ($plugin:expr) => {
+        $crate::inventory::submit!($plugin);
+    };
+}
