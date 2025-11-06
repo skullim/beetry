@@ -1,9 +1,6 @@
 use std::collections::BTreeSet;
 
-use beetry_serde::{
-    de::parameter::Parameters,
-    ser::node::{ControlNodeSpec, LeafKind, LeafNodeSpec},
-};
+use beetry_serde::ser::node::{ControlNodeSpec, LeafKind, LeafNodeSpec};
 use dioxus::{logger::tracing::info, prelude::*};
 use dioxus_logger::tracing::debug;
 
@@ -39,6 +36,7 @@ pub(crate) fn Sidebar(
 
     let plugins = use_context::<Plugins>();
     let leaves = &plugins.leaves;
+    let controls = plugins.controls;
     let channels = plugins.channels;
 
     debug!("rendering sidebar");
@@ -46,7 +44,12 @@ pub(crate) fn Sidebar(
 
     let new_control_handler = |spec: ControlNodeSpec| {
         move |_| {
-            on_new_node.call(ui::Node);
+            on_new_node.call(ui::Node::new(
+                spec.name.clone(),
+                ui::NodeKind::Control {
+                    params_schema: spec.params_schema.clone(),
+                },
+            ));
         }
     };
 
@@ -65,31 +68,32 @@ pub(crate) fn Sidebar(
     let new_leaf_handler = |spec: LeafNodeSpec| {
         move |_| {
             let schema = spec.schema();
+            let params_schema = spec.params_schema();
+            let params_len = params_schema.defs.len();
             debug!(
-                "creating node '{}' with {} parameters",
+                "creating node '{}' with {params_len} parameters",
                 spec.name(),
-                schema.params.len()
             );
-            if schema.params.is_empty() {
+            if params_schema.defs.is_empty() {
                 debug!(
                     "no parameters needed for '{}', creating node directly",
                     spec.name()
                 );
-                on_new_node.call(ui::NodeKind::Leaf {
-                    spec: spec.clone(),
-                    params: Parameters::default(),
-                    external_receivers: BTreeSet::new(),
-                });
+                on_new_node.call(ui::Node::new(
+                    spec.name.clone(),
+                    ui::NodeKind::Leaf {
+                        schema: schema.clone(),
+                        external_receivers: BTreeSet::new(),
+                    },
+                ));
             } else {
                 debug!(
-                    "parameter dialog for '{}' with {} parameters",
+                    "parameter dialog for '{}' with {params_len} parameters",
                     spec.name(),
-                    schema.params.len()
                 );
                 parameter_dialog_state.set(node::ParameterDialogState::Visible {
                     position: Point { x: 300.0, y: 200.0 },
                     spec: spec.clone(),
-                    schema,
                 });
             }
         }
@@ -98,8 +102,8 @@ pub(crate) fn Sidebar(
     rsx! {
         div {
             h3 { "Control Nodes" }
-            for (label , kind) in controls {
-                button { onclick: new_control_handler(kind), {label} }
+            for spec in controls {
+                button { onclick: new_control_handler(spec), {format!("{}", spec.name())} }
             }
 
             h3 { "Action Nodes" }

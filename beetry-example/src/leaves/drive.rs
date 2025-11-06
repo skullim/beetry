@@ -9,7 +9,7 @@ use beetry_plugin::{
 };
 use beetry_serde::ser::{
     channel::MessageSpec,
-    node::{LeafKind, LeafSchema, LeafSpec, NodeName},
+    node::{ActionLeafSchema, ActionNodeSpec, NodeName},
 };
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
@@ -84,7 +84,7 @@ pub struct DrivePlugin {
 }
 
 impl Plugin for DrivePlugin {
-    type Spec = LeafSpec;
+    type Spec = ActionNodeSpec;
     type Factory = ActionFactory;
 
     fn new() -> Self
@@ -112,12 +112,14 @@ impl Plugin for DrivePlugin {
     }
 
     fn spec(&self) -> Self::Spec {
-        LeafSpec::new(
-            NodeName::new("Drive"),
-            ActionLeafSchema::builder()
-                .receivers([MessageSpec::new::<Pose>("Drive pose")])
-                .build(),
-        )
+        ActionNodeSpec::builder()
+            .name(NodeName::new("Drive"))
+            .schema(
+                ActionLeafSchema::builder()
+                    .receivers([MessageSpec::new::<Pose>("Drive pose")])
+                    .build(),
+            )
+            .build()
     }
 
     fn factory(self: Box<Self>) -> node::ActionFactory {

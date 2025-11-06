@@ -4,6 +4,7 @@ use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
 use bon::{Builder, builder};
 use derive_getters::Getters;
+use derive_more::From;
 use mitsein::{iter1::FromIterator1, vec1::Vec1};
 use serde::{Deserialize, Serialize};
 
@@ -31,6 +32,7 @@ impl RootSnapshot {
 pub struct NodeSnapshot {
     #[builder(into)]
     pub name: NodeName,
+    #[builder(into)]
     pub data: NodeSnapshotData,
     #[builder(default)]
     pub parameters: Parameters,
@@ -42,7 +44,7 @@ impl NodeSnapshot {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, From)]
 pub enum NodeSnapshotData {
     Control(ControlSnapshot),
     Leaf(LeafSnapshot),
