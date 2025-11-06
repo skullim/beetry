@@ -30,7 +30,7 @@ pub struct ProjectData {
 }
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct EditorMetadata {
+pub struct EditorMetadata {
     pub(crate) nodes: ui::NodeMap,
     pub(crate) edges: Vec<NodeEdge>,
     pub(crate) last_id: NodeId,
@@ -47,7 +47,7 @@ impl ProjectData {
         let (id, root) = nodes
             .iter()
             .find(|(_, node)| node.kind == ui::NodeKind::Root)
-            .ok_or(anyhow!("root has to exist in nodes map"))?;
+            .ok_or_else(|| anyhow!("root has to exist in nodes map"))?;
         let root_snapshot = Self::export_root(root, *id, nodes, edge_tracker, channel_tracker)?;
         let tree_snapshot = TreeSnapshot::builder()
             .root(root_snapshot)
@@ -78,12 +78,12 @@ impl ProjectData {
         edge_tracker: &edge::Tracker,
         channel_tracker: &channel::Tracker,
     ) -> Result<RootSnapshot> {
-        if let ui::NodeKind::Root = root.kind {
+        if root.kind == ui::NodeKind::Root {
             let child_id = edge_tracker
                 .children_of(&root_id)
-                .ok_or(anyhow!("root is not connected to any child"))?
+                .ok_or_else(|| anyhow!("root is not connected to any child"))?
                 .first()
-                .ok_or(anyhow!("root is not connected to any child"))?;
+                .ok_or_else(|| anyhow!("root is not connected to any child"))?;
             let child_node = nodes.get(child_id).unwrap();
             let child =
                 Self::export_node(child_node, *child_id, nodes, edge_tracker, channel_tracker)?;
@@ -166,7 +166,7 @@ impl ProjectData {
         let ext = path
             .extension()
             .and_then(|s| s.to_str())
-            .ok_or(anyhow!("import path should contain extension"))?;
+            .ok_or_else(|| anyhow!("import path should contain extension"))?;
         if !matches!(ext, "json") {
             return Err(anyhow!("unsupported extension: {ext:?}"));
         }
@@ -174,7 +174,7 @@ impl ProjectData {
         let mut file = std::fs::File::open(path)?;
         let mut content_buffer = String::new();
         file.read_to_string(&mut content_buffer)?;
-        let data: ProjectData = JsonDeserializer::deserialize(&content_buffer)?;
+        let data: Self = JsonDeserializer::deserialize(&content_buffer)?;
         Ok(data.editor)
     }
 
@@ -204,8 +204,8 @@ impl ProjectData {
         debug!("Expected receivers: {expected_receivers:?}");
         debug!("Expected senders: {expected_senders:?}");
 
-        let mut unconnected_receivers = expected_receivers.clone();
-        let mut unconnected_senders = expected_senders.clone();
+        let mut unconnected_receivers = expected_receivers;
+        let mut unconnected_senders = expected_senders;
 
         let channels = channel_tracker.channels();
 

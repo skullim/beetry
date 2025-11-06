@@ -64,7 +64,7 @@ impl Plugin for CheckBatteryPlugin {
     where
         Self: Sized,
     {
-        Self {}
+        Self
     }
 
     fn spec(&self) -> ConditionSpec {

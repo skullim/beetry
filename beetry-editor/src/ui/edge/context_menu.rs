@@ -4,7 +4,7 @@ use dioxus_logger::tracing::debug;
 use crate::definitions::Point;
 
 #[derive(Debug, Clone)]
-pub(crate) struct Handlers {
+pub struct Handlers {
     on_delete: EventHandler<usize>, // Pass edge index
     on_close: EventHandler<()>,
 }
@@ -22,19 +22,19 @@ impl Handlers {
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub(crate) struct State {
+pub struct State {
     pub(crate) position: Point,
     pub(crate) target_edge_index: usize,
     pub(crate) is_visible: bool,
 }
 
 #[derive(Debug, Props, PartialEq, Clone)]
-pub(crate) struct ContextMenuProps {
+pub struct ContextMenuProps {
     state: ReadSignal<State>,
 }
 
 #[component]
-pub(crate) fn ContextMenu(props: ContextMenuProps) -> Element {
+pub fn ContextMenu(props: ContextMenuProps) -> Element {
     debug!("rendering edge context menu");
     let state_read = props.state.read();
 

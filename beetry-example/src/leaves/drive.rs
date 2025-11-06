@@ -89,7 +89,7 @@ impl Plugin for DrivePlugin {
     where
         Self: Sized,
     {
-        Self {}
+        Self
     }
 
     fn spec(&self) -> Self::Spec {

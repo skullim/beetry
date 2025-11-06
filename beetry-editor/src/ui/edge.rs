@@ -2,13 +2,11 @@ mod context_menu;
 mod renderer;
 mod tracker;
 
-pub(crate) mod temporary;
-pub(crate) use context_menu::{
-    ContextMenu, Handlers as ContextMenuHandlers, State as ContextMenuState,
-};
-pub(crate) use renderer::Renderer;
-pub(crate) use temporary::Temporary;
-pub(crate) use tracker::Tracker;
+pub mod temporary;
+pub use context_menu::{ContextMenu, Handlers as ContextMenuHandlers, State as ContextMenuState};
+pub use renderer::Renderer;
+pub use temporary::Temporary;
+pub use tracker::Tracker;
 
 use dioxus::prelude::*;
 
@@ -17,8 +15,8 @@ use crate::{
     ui::curve::Curve,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct Context {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Context {
     pub(crate) tracker: Signal<Tracker>,
 }
 
@@ -31,7 +29,7 @@ impl Context {
 }
 
 #[derive(Props, Clone, PartialEq)]
-pub(crate) struct EdgeProps {
+pub struct EdgeProps {
     edge: PointEdge,
     edge_index: usize,
     on_context_menu: EventHandler<(usize, Point)>,

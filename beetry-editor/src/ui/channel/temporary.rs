@@ -7,8 +7,8 @@ use crate::{
     ui::curve::Curve,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct Context {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Context {
     state: Signal<ConnectionState>,
     edge: Signal<PointEdge>,
 }
@@ -89,14 +89,14 @@ impl Context {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) enum ConnectionOrigin {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ConnectionOrigin {
     Sender,
     Receiver,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) enum ConnectionState {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ConnectionState {
     Idle,
     Dragged {
         origin: ConnectionOrigin,
@@ -112,7 +112,7 @@ impl Default for ConnectionState {
 }
 
 #[component]
-pub(crate) fn Temporary(edge: ReadSignal<PointEdge>) -> Element {
+pub fn Temporary(edge: ReadSignal<PointEdge>) -> Element {
     debug!("rendering temp channel connection with data: {edge:?}");
     let edge = edge.read();
 

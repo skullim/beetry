@@ -15,7 +15,7 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub(crate) struct SidebarEventHandlers {
+pub struct SidebarEventHandlers {
     pub(crate) on_new_node: EventHandler<ui::Node>,
 }
 
@@ -53,17 +53,15 @@ pub(crate) fn Sidebar(
         }
     };
 
-    let actions: Vec<_> = leaves
+    let actions = leaves
         .iter()
         .filter(|spec| matches!(spec.schema().kind(), LeafKind::Action))
-        .cloned()
-        .collect();
+        .cloned();
 
-    let conditions: Vec<_> = leaves
+    let conditions = leaves
         .iter()
         .filter(|spec| matches!(spec.schema().kind(), LeafKind::Condition))
-        .cloned()
-        .collect();
+        .cloned();
 
     let new_leaf_handler = |spec: LeafSpec| {
         move |_| {

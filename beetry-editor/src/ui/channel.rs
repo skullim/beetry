@@ -1,6 +1,6 @@
-pub(crate) mod config_dialog;
+pub mod config_dialog;
 mod renderer;
-pub(crate) mod temporary;
+pub mod temporary;
 mod tracker;
 
 use beetry_core::MessageHash;
@@ -8,11 +8,11 @@ use beetry_serde::{
     de::channel::{ChannelId, ChannelSnapshot},
     ser::channel::ChannelSpec,
 };
-pub(crate) use config_dialog::Dialog as ConfigDialog;
-pub(crate) use renderer::Renderer;
+pub use config_dialog::Dialog as ConfigDialog;
+pub use renderer::Renderer;
 use serde::{Deserialize, Serialize};
-pub(crate) use temporary::Temporary;
-pub(crate) use tracker::Tracker;
+pub use temporary::Temporary;
+pub use tracker::Tracker;
 
 use dioxus::{html::input_data::MouseButton, prelude::*};
 
@@ -25,8 +25,8 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct Context {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Context {
     pub(crate) tracker: Signal<tracker::Tracker>,
 }
 
@@ -39,7 +39,7 @@ impl Context {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct ChannelElement {
+pub struct ChannelElement {
     pub(crate) pos: Point,
     pub(crate) snapshot: ChannelSnapshot,
 }
@@ -54,7 +54,7 @@ impl ChannelElement {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct Handlers {
+pub struct Handlers {
     on_drag_start: EventHandler<(ChannelId, Point)>,
     on_receiver: EventHandler<(ChannelId, MessageHash)>,
     on_sender: EventHandler<(ChannelId, MessageHash)>,
@@ -75,7 +75,7 @@ impl Handlers {
 }
 
 #[derive(Props, PartialEq, Clone)]
-pub(crate) struct ChannelProps {
+pub struct ChannelProps {
     pos: Point,
     spec: ChannelSpec,
     id: ChannelId,
@@ -249,7 +249,7 @@ fn on_mouse_down(
     }
 }
 
-pub(crate) fn style_defs() -> Element {
+pub fn style_defs() -> Element {
     rsx! {
         defs {
             linearGradient { id: "channel-sender-gradient",

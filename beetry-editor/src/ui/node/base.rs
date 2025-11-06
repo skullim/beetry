@@ -13,7 +13,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-pub(crate) struct Handlers {
+pub struct Handlers {
     on_drag_start: EventHandler<IndexedDragOffset>,
     on_context_menu: EventHandler<(NodeId, Point)>,
 }
@@ -45,7 +45,7 @@ pub(super) struct NodeStyle {
 }
 
 #[derive(Props, Clone, PartialEq)]
-pub(crate) struct NodeBaseProps {
+pub struct NodeBaseProps {
     id: NodeId,
     position: Point,
     style: Rc<NodeStyle>,

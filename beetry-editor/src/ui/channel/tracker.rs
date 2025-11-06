@@ -9,10 +9,10 @@ use bon::Builder;
 use dioxus_logger::tracing::debug;
 use serde::{Deserialize, Serialize};
 
-pub(crate) type ChannelIdToElementMap = HashMap<ChannelId, ChannelElement>;
+pub type ChannelIdToElementMap = HashMap<ChannelId, ChannelElement>;
 
 #[derive(Debug, Default, Clone, Builder, Serialize, Deserialize)]
-pub(crate) struct Tracker {
+pub struct Tracker {
     channel_id: ChannelId,
     channels: ChannelIdToElementMap,
     senders: HashMap<NodeId, BTreeSet<ChannelId>>,

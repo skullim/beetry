@@ -11,7 +11,7 @@ impl AnyBoxReceiver {
         R: Receiver<T> + 'static,
         T: 'static,
     {
-        AnyBoxReceiver(Box::new(Box::new(receiver) as BoxReceiver<T>))
+        Self(Box::new(Box::new(receiver) as BoxReceiver<T>))
     }
 
     pub fn is_receiver_of<T: 'static>(&self) -> bool {
@@ -29,7 +29,7 @@ impl AnyBoxReceiver {
 
 impl<T: 'static> From<BoxReceiver<T>> for AnyBoxReceiver {
     fn from(value: BoxReceiver<T>) -> Self {
-        AnyBoxReceiver(Box::new(value))
+        Self(Box::new(value))
     }
 }
 
@@ -50,7 +50,7 @@ impl AnyBoxSender {
 }
 impl<T: 'static> From<BoxSender<T>> for AnyBoxSender {
     fn from(value: BoxSender<T>) -> Self {
-        AnyBoxSender(Box::new(value))
+        Self(Box::new(value))
     }
 }
 

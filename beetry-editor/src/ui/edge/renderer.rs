@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[component]
-pub(crate) fn Renderer(
+pub fn Renderer(
     tracker: Signal<Tracker>,
     ui_nodes: ReadSignal<NodeMap>,
     mut edge_context_menu_state: Signal<ContextMenuState>,

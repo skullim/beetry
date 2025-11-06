@@ -4,13 +4,13 @@ use dioxus_logger::tracing::debug;
 use crate::definitions::{NodeId, Point};
 
 #[derive(Debug, Clone)]
-pub(crate) struct Handlers {
+pub struct Handlers {
     on_delete: EventHandler<NodeId>,
     on_close: EventHandler<()>,
 }
 
 impl Handlers {
-    pub(crate) fn new(
+    pub fn new(
         on_delete: impl FnMut(NodeId) + 'static,
         on_close: impl FnMut(()) + 'static,
     ) -> Self {
@@ -22,19 +22,19 @@ impl Handlers {
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub(crate) struct State {
-    pub(crate) position: Point,
-    pub(crate) target_node: NodeId,
-    pub(crate) is_visible: bool,
+pub struct State {
+    pub position: Point,
+    pub target_node: NodeId,
+    pub is_visible: bool,
 }
 
 #[derive(Debug, Props, PartialEq, Clone)]
-pub(crate) struct ContextMenuProps {
+pub struct ContextMenuProps {
     state: ReadSignal<State>,
 }
 
 #[component]
-pub(crate) fn ContextMenu(props: ContextMenuProps) -> Element {
+pub fn ContextMenu(props: ContextMenuProps) -> Element {
     debug!("rendering context menu");
     let state_read = props.state.read();
 

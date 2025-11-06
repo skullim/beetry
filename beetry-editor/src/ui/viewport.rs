@@ -1,14 +1,14 @@
 use dioxus::{html::geometry::WheelDelta, prelude::*};
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct ZoomLevel(f64);
+pub struct ZoomLevel(f64);
 
 impl ZoomLevel {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self(1.0)
     }
 
-    pub(crate) fn update(&mut self, wheel_delta: &WheelDelta) {
+    pub fn update(&mut self, wheel_delta: &WheelDelta) {
         let zoom_factor = match wheel_delta {
             WheelDelta::Pixels(vector) => {
                 if vector.y > 0.0 {
@@ -35,18 +35,18 @@ impl ZoomLevel {
         self.0 = (self.0 * zoom_factor).clamp(0.1, 10.0);
     }
 
-    pub(crate) fn get(&self) -> f64 {
+    pub fn get(&self) -> f64 {
         self.0
     }
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct ViewportContext {
-    pub(crate) zoom_level: Signal<ZoomLevel>,
+pub struct ViewportContext {
+    pub zoom_level: Signal<ZoomLevel>,
 }
 
 impl ViewportContext {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             zoom_level: Signal::new(ZoomLevel::new()),
         }

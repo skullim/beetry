@@ -70,7 +70,7 @@ impl ChannelId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
 pub enum ChannelKind {
     Internal,
     External,
@@ -81,13 +81,13 @@ pub enum ChannelImplKind {
     Tokio(TokioChannelConfig),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TokioChannelConfig {
     Mpsc(MpscConfig),
     Broadcast(BroadcastConfig),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Getters)]
 pub struct MpscConfig {
     #[getter(copy)]
     n_senders: NonZeroUsize,
@@ -99,7 +99,7 @@ impl MpscConfig {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Builder, Serialize, Deserialize, Getters)]
+#[derive(Debug, Clone, PartialEq, Eq, Builder, Serialize, Deserialize, Getters)]
 pub struct BroadcastConfig {
     #[getter(copy)]
     n_senders: NonZeroUsize,
@@ -133,13 +133,14 @@ impl ChannelValidator {
         snapshot_map: &'a ChannelIdToSnapshotMap,
         id: &ChannelId,
     ) -> ExportResult<&'a ChannelSnapshot> {
-        match snapshot_map.get(id) {
-            Some(e) => Ok(e),
-            None => Err(ExportValidationError::ChannelNotFound(*id)),
-        }
+        snapshot_map
+            .get(id)
+            .map_or(Err(ExportValidationError::ChannelNotFound(*id)), |snap| {
+                Ok(snap)
+            })
     }
 
-    fn validate_endpoint_count(
+    const fn validate_endpoint_count(
         snapshot: &ChannelSnapshot,
         id: ChannelId,
         count: &SenderReceiverCount,

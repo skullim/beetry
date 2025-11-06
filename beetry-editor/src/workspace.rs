@@ -15,7 +15,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-pub(crate) struct WorkspaceContext {
+pub struct WorkspaceContext {
     dimensions_ctx: DimensionsContext,
     drag_node_state: Signal<DragNodeState>,
     drag_channel_state: Signal<DragChannelState>,
@@ -287,7 +287,7 @@ fn input_port_handlers(
             }
 
             // root can only have one child
-            if let ui::NodeKind::Root = from_node.kind {
+            if from_node.kind == ui::NodeKind::Root {
                 edge_ctx
                     .tracker
                     .with_mut(|tracker| tracker.remove_first_edge_from(&edge));

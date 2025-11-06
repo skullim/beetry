@@ -11,7 +11,7 @@ use crate::{
     ui::{self, channel, edge, transfer},
 };
 #[derive(Debug, Clone)]
-pub(crate) struct ToolbarHandlers {
+pub struct ToolbarHandlers {
     pub(crate) import: transfer::ImportHandlers,
     pub(crate) export: transfer::ExportHandlers,
 }

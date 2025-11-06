@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-pub(crate) struct Handlers {
+pub struct Handlers {
     on_click: EventHandler<()>,
 }
 
@@ -19,7 +19,7 @@ impl Handlers {
 }
 
 #[component]
-pub(crate) fn Import(result: ReadSignal<OperationResult>) -> Element {
+pub fn Import(result: ReadSignal<OperationResult>) -> Element {
     rsx! {
         button { onclick: move |_| { use_context::<ToolbarHandlers>().import.on_click.call(()) },
             "Import"

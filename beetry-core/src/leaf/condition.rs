@@ -36,9 +36,10 @@ where
     B: Behavior,
 {
     fn tick(&mut self) -> TickStatus {
-        match self.behavior.cond() {
-            true => TickStatus::Success,
-            false => TickStatus::Failure,
+        if self.behavior.cond() {
+            TickStatus::Success
+        } else {
+            TickStatus::Failure
         }
     }
     fn reset(&mut self) {

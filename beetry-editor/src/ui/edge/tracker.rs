@@ -3,7 +3,7 @@ use indexmap::IndexSet;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Default)]
-pub(crate) struct Tracker {
+pub struct Tracker {
     parent_children_map: HashMap<NodeId, IndexSet<NodeId>>,
     edges: Vec<NodeEdge>,
 }

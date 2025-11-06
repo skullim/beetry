@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[derive(Props, PartialEq, Clone)]
-pub(crate) struct RootProps {
+pub struct RootProps {
     id: NodeId,
     position: Point,
 }

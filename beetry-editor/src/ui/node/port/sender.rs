@@ -11,7 +11,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-pub(crate) struct Handlers {
+pub struct Handlers {
     on_mouse_down: EventHandler<(ConnectionOrigin, IndexedDragOffset, MessageHash)>,
 }
 
@@ -26,7 +26,7 @@ impl Handlers {
 }
 
 #[derive(Props, PartialEq, Clone)]
-pub(crate) struct SenderProps {
+pub struct SenderProps {
     id: NodeId,
     position: Point,
     spec: MessageSpec,
@@ -34,7 +34,7 @@ pub(crate) struct SenderProps {
 }
 
 #[component]
-pub(crate) fn Sender(props: SenderProps) -> Element {
+pub fn Sender(props: SenderProps) -> Element {
     let position = props.position;
 
     let mut is_hovered = use_signal(|| false);

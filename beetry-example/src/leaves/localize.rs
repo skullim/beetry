@@ -108,7 +108,7 @@ impl Plugin for LocalizePlugin {
     where
         Self: Sized,
     {
-        Self {}
+        Self
     }
 
     fn spec(&self) -> ActionSpec {

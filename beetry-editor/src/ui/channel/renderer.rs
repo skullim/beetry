@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[component]
-pub(crate) fn Renderer(tracker: ReadSignal<Tracker>, ui_nodes: ReadSignal<ui::NodeMap>) -> Element {
+pub fn Renderer(tracker: ReadSignal<Tracker>, ui_nodes: ReadSignal<ui::NodeMap>) -> Element {
     let nodes_read = ui_nodes.read();
     let tracker_read = tracker.read();
 

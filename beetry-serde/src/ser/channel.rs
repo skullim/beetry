@@ -63,11 +63,11 @@ impl<T: Message> MessageTypeProvider for T {
         std::any::type_name::<T>()
             .split("::")
             .last()
-            .unwrap_or(std::any::type_name::<T>())
+            .unwrap_or_else(|| std::any::type_name::<T>())
     }
 }
 
-#[derive(Debug, Clone, Getters, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Getters, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChannelSpec {
     // labels concrete channel and its factory
     msg_hash: MessageHash,
