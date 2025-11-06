@@ -9,4 +9,3 @@ beetry-example = { version = "0.1.0", path = "../beetry-example" }
 beetry-node = { version = "0.1.0", path = "../beetry-node", features = [
     "registry",
 ] }
-beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
