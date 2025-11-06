@@ -55,7 +55,7 @@ impl TreeReconstructor {
         T: TaskControl + 'static,
     {
         let channel_factory_map = ChannelHashToFactoryMap::new(channel::plugins());
-        let mut channels = Self::try_reconstruct_channels(snapshot.channels, channel_factory_map)?;
+        let mut channels = Self::try_reconstruct_channels(snapshot.channels, &channel_factory_map)?;
 
         let child = Self::try_reconstruct_tree(
             snapshot.root.into_child(),
@@ -69,14 +69,14 @@ impl TreeReconstructor {
 
     fn try_reconstruct_channels(
         snapshot_map: ChannelIdToSnapshotMap,
-        factory_map: ChannelHashToFactoryMap,
+        factory_map: &ChannelHashToFactoryMap,
     ) -> Result<ChannelIdToChannelMap> {
         snapshot_map
             .into_iter()
             .map(|(k, v)| {
                 let msg_hash = v.spec().msg_hash();
                 debug!("{factory_map:?}");
-                let factory = factory_map.get(msg_hash).ok_or_else(|| {
+                let factory = factory_map.get(*msg_hash).ok_or_else(|| {
                     anyhow!(
                         "cannot create channel, did not find channel with required hash {msg_hash:?}"
                     )
@@ -130,7 +130,7 @@ impl TreeReconstructor {
                 let mut receivers: Vec<_> = leaf
                     .take_receivers()
                     .into_iter()
-                    .map(|id| Self::try_get_channel_mut(channel_map, &id)?.try_take_receiver())
+                    .map(|id| Self::try_get_channel_mut(channel_map, id)?.try_take_receiver())
                     .collect::<Result<_>>()?;
 
                 if let Some(ext_receivers_snapshot) = leaf.take_ext_receivers() {
@@ -147,7 +147,7 @@ impl TreeReconstructor {
                 let senders: Vec<_> = leaf
                     .take_senders()
                     .into_iter()
-                    .map(|id| Self::try_get_channel_mut(channel_map, &id)?.try_take_sender())
+                    .map(|id| Self::try_get_channel_mut(channel_map, id)?.try_take_sender())
                     .collect::<Result<_>>()?;
 
                 let data = LeafReconstructionData::builder()
@@ -180,11 +180,11 @@ impl TreeReconstructor {
         }
     }
 
-    fn try_get_channel_mut<'a>(
-        map: &'a mut ChannelIdToChannelMap,
-        id: &ChannelId,
-    ) -> Result<&'a mut TypeErasedChannel> {
-        map.get_mut(id)
+    fn try_get_channel_mut(
+        map: &mut ChannelIdToChannelMap,
+        id: ChannelId,
+    ) -> Result<&mut TypeErasedChannel> {
+        map.get_mut(&id)
             .ok_or_else(|| anyhow!("channel id: {id:?} does not exist"))
     }
 }
@@ -246,7 +246,7 @@ impl ChannelHashToFactoryMap {
         Self { map }
     }
 
-    fn get(&self, hash: &MessageHash) -> Option<&channel::Factory> {
-        self.map.get(hash)
+    fn get(&self, hash: MessageHash) -> Option<&channel::Factory> {
+        self.map.get(&hash)
     }
 }

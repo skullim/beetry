@@ -80,7 +80,7 @@ impl ProjectData {
     ) -> Result<RootSnapshot> {
         if root.kind == ui::NodeKind::Root {
             let child_id = edge_tracker
-                .children_of(&root_id)
+                .children_of(root_id)
                 .ok_or_else(|| anyhow!("root is not connected to any child"))?
                 .first()
                 .ok_or_else(|| anyhow!("root is not connected to any child"))?;
@@ -102,7 +102,7 @@ impl ProjectData {
         match &node.kind {
             ui::NodeKind::Control { params_schema: _ } => {
                 let children_id = edge_tracker
-                    .children_of(&node_id)
+                    .children_of(node_id)
                     .ok_or_else(|| anyhow!("control node must have at least one child"))?;
                 let mut children = vec![];
                 for id in children_id {
@@ -136,17 +136,17 @@ impl ProjectData {
                 let receivers_read = channel_tracker.receivers();
                 let receivers = receivers_read
                     .get(&node_id)
-                    .map(|receivers| receivers.iter().cloned());
+                    .map(|receivers| receivers.iter().copied());
                 let senders_read = channel_tracker.senders();
                 let senders = senders_read
                     .get(&node_id)
-                    .map(|senders| senders.iter().cloned());
+                    .map(|senders| senders.iter().copied());
 
                 let leaf_snapshot = LeafSnapshot::builder()
                     .kind(*schema.kind())
                     .maybe_receivers(receivers)
                     .maybe_senders(senders)
-                    .ext_receivers(external_receivers.iter().cloned().collect())
+                    .ext_receivers(external_receivers.iter().copied().collect())
                     .build();
 
                 Ok(NodeSnapshot::builder()
@@ -156,7 +156,7 @@ impl ProjectData {
                     .build())
             }
 
-            _ => {
+            ui::NodeKind::Root => {
                 unreachable!()
             }
         }
@@ -211,7 +211,7 @@ impl ProjectData {
 
         if let Some(node_receivers) = channel_tracker.receivers().get(&node_id) {
             debug!("Node has receiver channels: {node_receivers:?}");
-            for channel_id in node_receivers.iter() {
+            for channel_id in node_receivers {
                 if let Some(element) = channels.get(channel_id) {
                     let snapshot = element.snapshot.clone();
                     let msg_hash = snapshot.spec().msg_hash();
@@ -232,7 +232,7 @@ impl ProjectData {
 
         if let Some(node_senders) = channel_tracker.senders().get(&node_id) {
             debug!("Node has sender channels: {node_senders:?}");
-            for channel_id in node_senders.iter() {
+            for channel_id in node_senders {
                 if let Some(element) = channels.get(channel_id) {
                     let snapshot = element.snapshot.clone();
                     let msg_hash = snapshot.spec().msg_hash();

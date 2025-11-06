@@ -65,7 +65,7 @@ impl TryFrom<TaskStatus> for TickStatus {
             TaskStatus::Success => Ok(Self::Success),
             TaskStatus::Running => Ok(Self::Running),
             TaskStatus::Failure => Ok(Self::Failure),
-            _ => Err(anyhow!("expected tree status subset of task status")),
+            TaskStatus::Aborted => Err(anyhow!("expected tree status subset of task status")),
         }
     }
 }

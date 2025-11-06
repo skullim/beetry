@@ -22,8 +22,6 @@ impl Tracker {
     }
 
     pub(crate) fn insert(&mut self, edge: NodeEdge) {
-        self.edges.push(edge.clone());
-
         self.parent_children_map
             .entry(edge.from)
             .and_modify(|set| {
@@ -34,6 +32,8 @@ impl Tracker {
                 set.insert(edge.to);
                 set
             });
+
+        self.edges.push(edge);
     }
 
     pub(crate) fn remove_node(&mut self, id: NodeId) {
@@ -57,8 +57,8 @@ impl Tracker {
         }
     }
 
-    pub(crate) fn children_of(&self, id: &NodeId) -> Option<&IndexSet<NodeId>> {
-        self.parent_children_map.get(id)
+    pub(crate) fn children_of(&self, id: NodeId) -> Option<&IndexSet<NodeId>> {
+        self.parent_children_map.get(&id)
     }
 
     pub(crate) fn edges(&self) -> &Vec<NodeEdge> {
@@ -79,7 +79,7 @@ impl Tracker {
             }
 
             if visited.insert(current)
-                && let Some(children) = self.children_of(&current)
+                && let Some(children) = self.children_of(current)
             {
                 for &child in children {
                     if !visited.contains(&child) {

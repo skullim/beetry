@@ -27,7 +27,7 @@ pub(crate) fn Toolbar(
     let mut import_result = use_signal(transfer::OperationResult::default);
 
     {
-        let on_export = move |_| {
+        let on_export = move |()| {
             let nodes = ui_nodes.peek();
             let edge_tracker = edge_tracker.read();
             let result = export_to_file(&nodes, id(), &edge_tracker, &channel_tracker.peek());
@@ -41,14 +41,14 @@ pub(crate) fn Toolbar(
                 }
                 Err(error) => {
                     export_result.set(transfer::OperationResult::new(
-                        format!("Export failed:\n{}", error),
+                        format!("Export failed:\n{error}"),
                         transfer::OperationStatus::Error,
                     ));
                 }
             }
         };
 
-        let on_import = move |_| {
+        let on_import = move |()| {
             let result = import_from_file();
 
             match result {
@@ -70,7 +70,7 @@ pub(crate) fn Toolbar(
                 }
                 Err(error) => {
                     import_result.set(transfer::OperationResult::new(
-                        format!("Import failed:\n{}", error),
+                        format!("Import failed:\n{error}"),
                         transfer::OperationStatus::Error,
                     ));
                 }

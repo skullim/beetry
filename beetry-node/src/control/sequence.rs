@@ -23,7 +23,6 @@ impl Node for Sequence {
             match node.tick() {
                 TickStatus::Success => {
                     aborter.untrack(idx);
-                    continue;
                 }
                 TickStatus::Running => {
                     aborter.abort_if_other_running(&mut self.nodes, idx);
@@ -42,14 +41,14 @@ impl Node for Sequence {
 
     fn abort(&mut self) {
         self.aborter.clear();
-        for node in self.nodes.iter_mut() {
+        for node in &mut self.nodes {
             node.abort();
         }
     }
 
     fn reset(&mut self) {
         self.aborter.clear();
-        for node in self.nodes.iter_mut() {
+        for node in &mut self.nodes {
             node.reset();
         }
     }

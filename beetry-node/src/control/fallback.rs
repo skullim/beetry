@@ -23,7 +23,6 @@ impl Node for Fallback {
             match node.tick() {
                 TickStatus::Failure => {
                     aborter.untrack(idx);
-                    continue;
                 }
                 TickStatus::Running => {
                     aborter.abort_if_other_running(&mut self.nodes, idx);
@@ -41,14 +40,14 @@ impl Node for Fallback {
 
     fn abort(&mut self) {
         self.aborter.clear();
-        for node in self.nodes.iter_mut() {
+        for node in &mut self.nodes {
             node.abort();
         }
     }
 
     fn reset(&mut self) {
         self.aborter.clear();
-        for node in self.nodes.iter_mut() {
+        for node in &mut self.nodes {
             node.reset();
         }
     }

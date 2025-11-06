@@ -123,19 +123,19 @@ impl ChannelValidator {
         count_map: &ChannelIdEndpointCountMap,
     ) -> ExportResult<()> {
         for (id, count) in count_map {
-            let snapshot = Self::validate_channel_presence(snapshot_map, id)?;
+            let snapshot = Self::validate_channel_presence(snapshot_map, *id)?;
             Self::validate_endpoint_count(snapshot, *id, count)?;
         }
         Ok(())
     }
 
-    fn validate_channel_presence<'a>(
-        snapshot_map: &'a ChannelIdToSnapshotMap,
-        id: &ChannelId,
-    ) -> ExportResult<&'a ChannelSnapshot> {
+    fn validate_channel_presence(
+        snapshot_map: &ChannelIdToSnapshotMap,
+        id: ChannelId,
+    ) -> ExportResult<&ChannelSnapshot> {
         snapshot_map
-            .get(id)
-            .map_or(Err(ExportValidationError::ChannelNotFound(*id)), |snap| {
+            .get(&id)
+            .map_or(Err(ExportValidationError::ChannelNotFound(id)), |snap| {
                 Ok(snap)
             })
     }

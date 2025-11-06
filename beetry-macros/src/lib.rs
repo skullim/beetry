@@ -169,7 +169,7 @@ pub fn derive_channel_plugin(input: TokenStream) -> TokenStream {
 /// Attribute macro to generate both the channel plugin and register it.
 ///
 /// This macro:
-/// 1. Generates the ChannelPlugin implementation (like the derive macro)
+/// 1. Generates the ``ChannelPlugin`` implementation (like the derive macro)
 /// 2. Automatically registers the plugin
 #[proc_macro_attribute]
 pub fn submit_as_channel_plugin(_args: TokenStream, input: TokenStream) -> TokenStream {

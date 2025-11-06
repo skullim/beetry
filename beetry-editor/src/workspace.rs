@@ -366,7 +366,7 @@ fn edge_context_menu_handlers(
         edge_ctx_menu_state.with_mut(|state| state.is_visible = false);
     };
 
-    let on_close = move |_| {
+    let on_close = move |()| {
         edge_ctx_menu_state.with_mut(|state| state.is_visible = false);
     };
 
