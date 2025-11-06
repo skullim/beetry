@@ -5,14 +5,13 @@ edition = "2024"
 
 [dependencies]
 anyhow.workspace = true
+beetry-core = { version = "0.1.0", path = "../beetry-core" }
 bon.workspace = true
-derive_more.workspace = true
 derive-getters.workspace = true
+derive_more.workspace = true
 mitsein.workspace = true
 serde.workspace = true
-tracing.workspace = true
-type_hash = "0.3.0"
 serde_json = "1.0.145"
 thiserror.workspace = true
-
-beetry-core = { version = "0.1.0", path = "../beetry-core" }
+tracing.workspace = true
+type_hash = "0.3.0"

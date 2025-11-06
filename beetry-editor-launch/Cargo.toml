@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-beetry-example = { version = "0.1.0", path = "../beetry-example" }
 beetry-editor = { version = "0.1.0", path = "../beetry-editor" }
-beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
+beetry-example = { version = "0.1.0", path = "../beetry-example" }
 beetry-node = { version = "0.1.0", path = "../beetry-node", features = [
     "registry",
 ] }
+beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
