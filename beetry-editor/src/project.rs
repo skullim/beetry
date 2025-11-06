@@ -6,9 +6,12 @@ use std::{
 
 use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
-use beetry_serde::de::{
-    node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotData, RootSnapshot},
-    tree::TreeSnapshot,
+use beetry_serde::{
+    de::{
+        node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotData, RootSnapshot},
+        tree::TreeSnapshot,
+    },
+    ser::node::LeafSchema,
 };
 use beetry_serialization::{Deserializer, JsonDeserializer};
 use dioxus_logger::tracing::debug;
@@ -97,37 +100,35 @@ impl ProjectData {
         channel_tracker: &channel::Tracker,
     ) -> Result<NodeSnapshot> {
         match &node.kind {
-            ui::NodeKind::Control(kind) => {
+            ui::NodeKind::Control { params_schema: _ } => {
                 let children_id = edge_tracker
                     .children_of(&node_id)
                     .ok_or_else(|| anyhow!("control node must have at least one child"))?;
                 let mut children = vec![];
                 for id in children_id {
                     let child_node = nodes.get(id).unwrap();
-                    children.push(Box::new(Self::export_node(
+                    children.push(Self::export_node(
                         child_node,
                         *id,
                         nodes,
                         edge_tracker,
                         channel_tracker,
-                    )?));
+                    )?);
                 }
                 Ok(NodeSnapshot::builder()
-                    .kind(NodeSnapshotData::Control(ControlSnapshot::new(
-                        *kind,
-                        children.into_iter(),
-                    )?))
+                    .name(node.name.clone())
+                    .data(NodeSnapshotData::Control(ControlSnapshot::new(children)?))
                     .build())
             }
 
             ui::NodeKind::Leaf {
-                spec,
-                params,
+                schema,
                 external_receivers,
             } => {
                 Self::validate_node_connections(
                     node_id,
-                    spec,
+                    &node.name.0,
+                    schema,
                     channel_tracker,
                     external_receivers,
                 )?;
@@ -142,16 +143,16 @@ impl ProjectData {
                     .map(|senders| senders.iter().cloned());
 
                 let leaf_snapshot = LeafSnapshot::builder()
-                    .name(spec.name().clone())
-                    .kind(spec.schema().kind())
+                    .kind(*schema.kind())
                     .maybe_receivers(receivers)
                     .maybe_senders(senders)
                     .ext_receivers(external_receivers.iter().cloned().collect())
                     .build();
 
                 Ok(NodeSnapshot::builder()
-                    .kind(NodeSnapshotData::Leaf(leaf_snapshot))
-                    .parameters(params.clone())
+                    .name(node.name.clone())
+                    .data(leaf_snapshot)
+                    .parameters(node.selected_params.clone())
                     .build())
             }
 
@@ -181,25 +182,20 @@ impl ProjectData {
     /// Validate that all required senders and receivers for a node are properly connected
     fn validate_node_connections(
         node_id: NodeId,
-        spec: &LeafSpec,
+        name: &str,
+        schema: &LeafSchema,
         channel_tracker: &channel::Tracker,
         external_receivers: &BTreeSet<MessageHash>,
     ) -> Result<()> {
-        let channels = channel_tracker.channels();
-        debug!(
-            "Validating connections for node {node_id} ({})",
-            spec.name()
-        );
+        debug!("Validating connections for node {node_id} ({})", name);
 
-        let expected_receivers: HashMap<MessageHash, String> = spec
-            .schema()
+        let expected_receivers: HashMap<MessageHash, String> = schema
             .receivers()
             .iter()
             .map(|recv| (*recv.hash(), recv.desc().clone()))
             .collect();
 
-        let expected_senders: HashMap<MessageHash, String> = spec
-            .schema()
+        let expected_senders: HashMap<MessageHash, String> = schema
             .senders()
             .iter()
             .map(|send| (*send.hash(), send.desc().clone()))
@@ -210,6 +206,8 @@ impl ProjectData {
 
         let mut unconnected_receivers = expected_receivers.clone();
         let mut unconnected_senders = expected_senders.clone();
+
+        let channels = channel_tracker.channels();
 
         if let Some(node_receivers) = channel_tracker.receivers().get(&node_id) {
             debug!("Node has receiver channels: {node_receivers:?}");
@@ -262,9 +260,7 @@ impl ProjectData {
         if !unconnected_receivers.is_empty() {
             let missing_receivers: Vec<String> = unconnected_receivers.values().cloned().collect();
             return Err(anyhow!(
-                "Node '{}' (id: {}) has unconnected receivers: {}",
-                spec.name(),
-                node_id,
+                "Node '{name}' (id: {node_id}) has unconnected receivers: {}",
                 missing_receivers.join(", ")
             ));
         }
@@ -272,9 +268,7 @@ impl ProjectData {
         if !unconnected_senders.is_empty() {
             let missing_senders: Vec<String> = unconnected_senders.values().cloned().collect();
             return Err(anyhow!(
-                "Node '{}' (id: {}) has unconnected senders: {}",
-                spec.name(),
-                node_id,
+                "Node '{name}' (id: {node_id}) has unconnected senders: {}",
                 missing_senders.join(", ")
             ));
         }

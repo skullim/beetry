@@ -10,7 +10,10 @@ pub(crate) mod viewport;
 use beetry_core::MessageHash;
 use beetry_serde::{
     de::parameter::Parameters,
-    ser::node::{LeafSchema, NodeName},
+    ser::{
+        node::{LeafSchema, NodeName},
+        parameter,
+    },
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap};
@@ -20,7 +23,9 @@ use crate::definitions::{NodeId, Point};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) enum NodeKind {
     Root,
-    Control,
+    Control {
+        params_schema: parameter::Schema,
+    },
     Leaf {
         schema: LeafSchema,
         external_receivers: BTreeSet<MessageHash>,
@@ -31,6 +36,7 @@ pub(crate) enum NodeKind {
 pub(crate) struct Node {
     pub(crate) name: NodeName,
     pub(crate) kind: NodeKind,
+    // placeholder for future selection (if any)
     pub(crate) selected_params: Parameters,
     pub(crate) pos: Point,
 }

@@ -2,7 +2,7 @@ use std::{cmp::Ordering, collections::BTreeSet};
 
 use bon::{Builder, builder};
 use derive_getters::Getters;
-use derive_more::Display;
+use derive_more::{Display, From};
 use serde::{Deserialize, Serialize};
 
 use crate::ser::node::leaf_schema_builder::SetKind;
@@ -10,7 +10,9 @@ use crate::ser::node::leaf_schema_builder::SetKind;
 use super::channel::MessageSpec;
 use super::parameter;
 
-#[derive(Debug, Display, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Display, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, From,
+)]
 pub struct NodeName(pub String);
 
 impl NodeName {
@@ -26,10 +28,11 @@ pub type ControlNodeSpec = NodeSpec<ControlSchema>;
 
 #[derive(Debug, Builder, Clone, Eq, Getters, Serialize, Deserialize)]
 pub struct NodeSpec<S> {
+    #[builder(into)]
     pub name: NodeName,
     pub schema: S,
     #[builder(default)]
-    pub params: parameter::Schema,
+    pub params_schema: parameter::Schema,
 }
 
 impl<S> PartialEq for NodeSpec<S> {
@@ -56,11 +59,10 @@ where
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ControlSchema;
 
 #[derive(Debug, Clone, PartialEq, Eq, Builder, Getters, Serialize, Deserialize)]
-#[builder(finish_fn(vis = "pub(crate)"))]
 pub struct LeafSchema {
     pub kind: LeafKind,
     #[builder(default, with = <_>::from_iter)]

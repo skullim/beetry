@@ -3,7 +3,7 @@ use beetry_macros::ProvideSchema;
 use beetry_plugin::Plugin;
 use beetry_plugin::node::{self, ConditionFactory};
 use beetry_serde::de::parameter::ParametersMarker;
-use beetry_serde::ser::node::{LeafKind, LeafSchema, LeafSpec, NodeName};
+use beetry_serde::ser::node::{ActionLeafSchema, ActionNodeSpec, LeafNodeSpec, NodeName};
 use beetry_serde::ser::parameter::{self, Bounds, ProvideSchema, Schema};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -60,7 +60,7 @@ pub struct CheckBatteryPlugin {
 }
 
 impl Plugin for CheckBatteryPlugin {
-    type Spec = LeafSpec;
+    type Spec = LeafNodeSpec;
     type Factory = ConditionFactory;
 
     fn new() -> Self
@@ -75,14 +75,12 @@ impl Plugin for CheckBatteryPlugin {
         }
     }
 
-    fn spec(&self) -> LeafSpec {
-        LeafSpec::new(
-            NodeName::new("CheckBattery"),
-            LeafSchema::builder()
-                .kind(LeafKind::Condition)
-                .params(CheckBatteryParams::provide())
-                .build(),
-        )
+    fn spec(&self) -> ActionNodeSpec {
+        ActionNodeSpec::builder()
+            .name(NodeName::new("CheckBattery"))
+            .schema(ActionLeafSchema::default())
+            .params_schema(CheckBatteryParams::provide())
+            .build()
     }
 
     fn factory(self: Box<Self>) -> ConditionFactory {

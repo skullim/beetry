@@ -2,7 +2,7 @@ use beetry_serde::{
     de::parameter::Parameters,
     ser::{
         node::LeafNodeSpec,
-        parameter::{self, Definition, Type},
+        parameter::{Definition, Type},
     },
 };
 use dioxus::prelude::*;
@@ -36,7 +36,6 @@ pub(crate) enum State {
     Visible {
         position: Point,
         spec: LeafNodeSpec,
-        schema: parameter::Schema,
     },
 }
 
@@ -50,19 +49,15 @@ pub(crate) fn Dialog(props: DialogProps) -> Element {
     debug!("rendering parameter dialog");
     let state_read = props.state.read();
 
-    let (position, spec, schema) = match state_read.clone() {
+    let (position, spec) = match state_read.clone() {
         State::Idle => return rsx! {},
-        State::Visible {
-            position,
-            spec,
-            schema,
-        } => (position, spec, schema),
+        State::Visible { position, spec } => (position, spec),
     };
 
     let parameter_values = use_signal(|| {
         let mut values = serde_json::Map::new();
-        for param in &schema.params {
-            let default_value = match &param.ty {
+        for param_def in &spec.params_schema.defs {
+            let default_value = match &param_def.ty {
                 Type::Boolean => Value::Bool(false),
                 Type::Integer { bounds } => {
                     let default_val = bounds.as_ref().map(|b| b.min()).unwrap_or(0);
@@ -74,17 +69,17 @@ pub(crate) fn Dialog(props: DialogProps) -> Element {
                 }
                 Type::String { max_length: _ } => Value::String(String::new()),
             };
-            values.insert(param.name.clone(), default_value);
+            values.insert(param_def.name.clone(), default_value);
         }
         values
     });
 
-    let schema_params = schema.params.clone();
+    let param_defs = spec.params_schema.defs.clone();
     let has_validation_errors = use_memo(move || {
         let values = parameter_values.read();
 
-        for param in &schema_params {
-            if validate_parameter(param, values.get(&param.name)).is_some() {
+        for param_def in &param_defs {
+            if validate_parameter(param_def, values.get(&param_def.name)).is_some() {
                 return true;
             }
         }
@@ -135,10 +130,10 @@ pub(crate) fn Dialog(props: DialogProps) -> Element {
 
                 h3 { margin: "0 0 16px 0", "Configure Parameters for {spec.name()}" }
 
-                for param in &schema.params {
+                for param_def in &spec.params_schema.defs {
                     div { margin_bottom: "16px",
                         ParameterField {
-                            definition: param.clone(),
+                            definition: param_def.clone(),
                             values: parameter_values,
                         }
                     }

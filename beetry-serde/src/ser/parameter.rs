@@ -4,13 +4,13 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Schema {
-    pub params: Vec<Definition>,
+    pub defs: Vec<Definition>,
 }
 
 impl Schema {
-    pub fn new(params: impl IntoIterator<Item = Definition>) -> Self {
+    pub fn new(defs: impl IntoIterator<Item = Definition>) -> Self {
         Self {
-            params: params.into_iter().collect(),
+            defs: defs.into_iter().collect(),
         }
     }
 }

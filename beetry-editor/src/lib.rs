@@ -6,7 +6,13 @@ mod toolbar;
 mod ui;
 mod workspace;
 
-use beetry_serde::ser::{channel::ChannelSpec, node::LeafNodeSpec};
+use beetry_plugin::node::{
+    ActionPluginConstructor, ConditionPluginConstructor, ControlPluginConstructor,
+};
+use beetry_serde::ser::{
+    channel::ChannelSpec,
+    node::{ControlNodeSpec, LeafNodeSpec},
+};
 use dioxus::{logger::tracing::Level, prelude::*};
 
 pub use project::ProjectData;
@@ -37,14 +43,15 @@ fn app() -> Element {
 #[derive(Clone, PartialEq)]
 struct Plugins {
     leaves: Vec<LeafNodeSpec>,
+    controls: Vec<ControlNodeSpec>,
     channels: Vec<ChannelSpec>,
 }
 
 #[component]
 pub fn PluginsProvider(children: Element) -> Element {
     let leaves = {
-        let action_plugins = beetry_plugin::node::ActionPluginConstructor::plugins()?;
-        let condition_plugins = beetry_plugin::node::ConditionPluginConstructor::plugins()?;
+        let action_plugins = ActionPluginConstructor::plugins()?;
+        let condition_plugins = ConditionPluginConstructor::plugins()?;
 
         let mut plugins = action_plugins
             .into_iter()
@@ -54,11 +61,20 @@ pub fn PluginsProvider(children: Element) -> Element {
         plugins
     };
 
+    let controls = ControlPluginConstructor::plugins()?
+        .into_iter()
+        .map(|p| p.spec())
+        .collect();
+
     let channels = {
         let plugins = beetry_plugin::channel::plugins();
         plugins.into_iter().map(|p| p.spec()).collect()
     };
 
-    use_context_provider(move || Plugins { leaves, channels });
+    use_context_provider(move || Plugins {
+        leaves,
+        controls,
+        channels,
+    });
     children
 }
