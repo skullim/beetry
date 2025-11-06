@@ -1,8 +1,5 @@
-use crate::{
-    control::RunningNodesAborter,
-    nonempty::{Indices, NonEmptyNodes},
-};
-use beetry_core::{ControlNode, Node, TickStatus};
+use crate::{Indices, control::RunningNodesAborter};
+use beetry_core::{ControlNode, Node, NonEmptyNodes, TickStatus};
 
 pub struct Fallback {
     nodes: NonEmptyNodes,

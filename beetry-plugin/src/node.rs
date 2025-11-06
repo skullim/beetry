@@ -1,20 +1,21 @@
 use crate::{BoxPlugin, ConstructPlugin, Named, Plugin};
 use anyhow::Result;
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
-use beetry_core::{BoxActionBehavior, BoxConditionBehavior, BoxNode};
-use beetry_node::NonEmptyNodes;
+use beetry_core::{BoxActionBehavior, BoxConditionBehavior, BoxNode, NonEmptyNodes};
 use beetry_serde::{
     de::parameter::Parameters,
-    ser::node::{ActionNodeSpec, ConditionNodeSpec, ControlNodeSpec, NodeSpec},
+    ser::node::{ActionSpec, ConditionSpec, ControlSpec, NodeSpec},
 };
 use bon::{Builder, builder};
 use std::{collections::HashSet, marker::PhantomData};
 
-pub trait ActionPlugin: Plugin<Spec = ActionNodeSpec, Factory = ActionFactory> {}
-impl<P> ActionPlugin for P where P: Plugin<Spec = ActionNodeSpec, Factory = ActionFactory> {}
+//@todo: check if this can be simplified using https://crates.io/crates/supertrait crate
+//possibly less boilerplate code required for user
+pub trait ActionPlugin: Plugin<Spec = ActionSpec, Factory = ActionFactory> {}
+impl<P> ActionPlugin for P where P: Plugin<Spec = ActionSpec, Factory = ActionFactory> {}
 
-pub trait ConditionPlugin: Plugin<Spec = ConditionNodeSpec, Factory = ConditionFactory> {}
-impl<P> ConditionPlugin for P where P: Plugin<Spec = ConditionNodeSpec, Factory = ConditionFactory> {}
+pub trait ConditionPlugin: Plugin<Spec = ConditionSpec, Factory = ConditionFactory> {}
+impl<P> ConditionPlugin for P where P: Plugin<Spec = ConditionSpec, Factory = ConditionFactory> {}
 
 pub type LeafReconstructionData = NodeReconstructionData<LeafMetadata>;
 pub type ActionReconstructionData = LeafReconstructionData;
@@ -93,9 +94,9 @@ where
     }
 }
 
-pub type BoxActionPlugin = BoxPlugin<ActionNodeSpec, ActionFactory>;
-pub type BoxConditionPlugin = BoxPlugin<ConditionNodeSpec, ConditionFactory>;
-pub type BoxControlPlugin = BoxPlugin<ControlNodeSpec, ControlFactory>;
+pub type BoxActionPlugin = BoxPlugin<ActionSpec, ActionFactory>;
+pub type BoxConditionPlugin = BoxPlugin<ConditionSpec, ConditionFactory>;
+pub type BoxControlPlugin = BoxPlugin<ControlSpec, ControlFactory>;
 
 pub struct PluginConstructor<S, F>(pub fn() -> BoxPlugin<S, F>);
 
@@ -126,9 +127,9 @@ impl<S> Named for NodeSpec<S> {
     }
 }
 
-pub type ActionPluginConstructor = PluginConstructor<ActionNodeSpec, ActionFactory>;
-pub type ConditionPluginConstructor = PluginConstructor<ConditionNodeSpec, ConditionFactory>;
-pub type ControlPluginConstructor = PluginConstructor<ControlNodeSpec, ControlFactory>;
+pub type ActionPluginConstructor = PluginConstructor<ActionSpec, ActionFactory>;
+pub type ConditionPluginConstructor = PluginConstructor<ConditionSpec, ConditionFactory>;
+pub type ControlPluginConstructor = PluginConstructor<ControlSpec, ControlFactory>;
 
 impl ActionPluginConstructor {
     pub fn plugins() -> Result<Vec<BoxActionPlugin>, PluginError> {
@@ -191,7 +192,7 @@ mod tests {
     struct TestPluginA;
 
     impl Plugin for TestPluginA {
-        type Spec = ActionNodeSpec;
+        type Spec = ActionSpec;
         type Factory = ActionFactory;
 
         fn new() -> Self {
@@ -199,7 +200,7 @@ mod tests {
         }
 
         fn spec(&self) -> Self::Spec {
-            ActionNodeSpec::builder()
+            ActionSpec::builder()
                 .name(NodeName::new("TestPlugin"))
                 .schema(ActionLeafSchema::default())
                 .build()
@@ -215,7 +216,7 @@ mod tests {
     struct TestPluginB;
 
     impl Plugin for TestPluginB {
-        type Spec = ActionNodeSpec;
+        type Spec = ActionSpec;
         type Factory = ActionFactory;
 
         fn new() -> Self {
@@ -223,7 +224,7 @@ mod tests {
         }
 
         fn spec(&self) -> Self::Spec {
-            ActionNodeSpec::builder()
+            ActionSpec::builder()
                 .name(NodeName::new("TestPlugin"))
                 .schema(ActionLeafSchema::default())
                 .build()

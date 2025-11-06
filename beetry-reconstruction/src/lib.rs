@@ -1,8 +1,7 @@
 use anyhow::{Result, anyhow};
 use beetry_builder::Builder as BehaviorTreeBuilder;
 use beetry_channel::external;
-use beetry_core::{BoxNode, MessageHash, RegisterTask, Root, TaskControl, Tree};
-use beetry_node::NonEmptyNodes;
+use beetry_core::{BoxNode, MessageHash, NonEmptyNodes, RegisterTask, Root, TaskControl, Tree};
 use beetry_plugin::{
     BoxPlugin, Named,
     channel::{self, BoxChannelPlugin, TypeErasedChannel},

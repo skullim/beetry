@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use beetry_serde::ser::node::{ControlNodeSpec, LeafKind, LeafNodeSpec};
+use beetry_serde::ser::node::{ControlSpec, LeafKind, LeafSpec};
 use dioxus::{logger::tracing::info, prelude::*};
 use dioxus_logger::tracing::debug;
 
@@ -42,7 +42,7 @@ pub(crate) fn Sidebar(
     debug!("rendering sidebar");
     info!("registered {} leaf nodes", leaves.len());
 
-    let new_control_handler = |spec: ControlNodeSpec| {
+    let new_control_handler = |spec: ControlSpec| {
         move |_| {
             on_new_node.call(ui::Node::new(
                 spec.name.clone(),
@@ -65,7 +65,7 @@ pub(crate) fn Sidebar(
         .cloned()
         .collect();
 
-    let new_leaf_handler = |spec: LeafNodeSpec| {
+    let new_leaf_handler = |spec: LeafSpec| {
         move |_| {
             let schema = spec.schema();
             let params_schema = spec.params_schema();

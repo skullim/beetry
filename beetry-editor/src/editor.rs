@@ -5,7 +5,7 @@ use beetry_serde::{
         channel::{ChannelMetadata, ChannelSnapshot},
         parameter::Parameters,
     },
-    ser::node::{LeafNodeSpec, NodeName},
+    ser::node::{LeafSpec, NodeName},
 };
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
@@ -135,7 +135,7 @@ fn parameter_dialog_handlers(
     mut state: Signal<ParameterDialogState>,
     sidebar_handlers: SidebarEventHandlers,
 ) -> ParameterDialogHandlers {
-    let on_confirm = move |(spec, params): (LeafNodeSpec, Parameters)| {
+    let on_confirm = move |(spec, params): (LeafSpec, Parameters)| {
         sidebar_handlers.on_new_node.call(
             ui::Node::new(
                 spec.name,

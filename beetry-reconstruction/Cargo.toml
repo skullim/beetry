@@ -10,7 +10,6 @@ tracing.workspace = true
 
 beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
-beetry-node = { version = "0.1.0", path = "../beetry-node" }
 beetry-channel = { version = "0.1.0", path = "../beetry-channel" }
 beetry-builder = { version = "0.1.0", path = "../beetry-builder" }
 beetry-serde = { version = "0.1.0", path = "../beetry-serde" }

@@ -1,9 +1,5 @@
-use beetry_core::{ControlNode, Node, TickStatus};
-
-use crate::{
-    control::RunningNodesAborter,
-    nonempty::{Indices, NonEmptyNodes},
-};
+use crate::{Indices, control::RunningNodesAborter};
+use beetry_core::{ControlNode, Node, NonEmptyNodes, TickStatus};
 
 pub struct Sequence {
     nodes: NonEmptyNodes,

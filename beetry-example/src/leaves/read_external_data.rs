@@ -7,7 +7,7 @@ use beetry_plugin::{
 };
 use beetry_serde::ser::{
     channel::MessageSpec,
-    node::{ActionLeafSchema, ActionNodeSpec},
+    node::{ActionLeafSchema, ActionSpec},
 };
 use type_hash::TypeHash;
 
@@ -61,7 +61,7 @@ pub struct ReadExternalDataPlugin {
 }
 
 impl Plugin for ReadExternalDataPlugin {
-    type Spec = ActionNodeSpec;
+    type Spec = ActionSpec;
     type Factory = ActionFactory;
 
     fn new() -> Self
@@ -87,8 +87,8 @@ impl Plugin for ReadExternalDataPlugin {
         }
     }
 
-    fn spec(&self) -> ActionNodeSpec {
-        ActionNodeSpec::builder()
+    fn spec(&self) -> ActionSpec {
+        ActionSpec::builder()
             .name("ReadExternalData".to_string())
             .schema(
                 ActionLeafSchema::builder()
