@@ -1,9 +1,9 @@
 use beetry_core::{BoxConditionBehavior, ConditionBehavior};
 use beetry_macros::ProvideSchema;
 use beetry_plugin::Plugin;
-use beetry_plugin::node::{self, ConditionFactory};
+use beetry_plugin::node::ConditionFactory;
 use beetry_serde::de::parameter::ParametersMarker;
-use beetry_serde::ser::node::{ActionLeafSchema, ActionSpec, LeafSpec, NodeName};
+use beetry_serde::ser::node::{ConditionLeafSchema, ConditionSpec, LeafSpec};
 use beetry_serde::ser::parameter::{self, Bounds, ProvideSchema, Schema};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -55,10 +55,7 @@ impl ConditionBehavior for CheckBattery {
     }
 }
 
-pub struct CheckBatteryPlugin {
-    factory: node::ConditionFactory,
-}
-
+pub struct CheckBatteryPlugin;
 impl Plugin for CheckBatteryPlugin {
     type Spec = LeafSpec;
     type Factory = ConditionFactory;
@@ -67,23 +64,20 @@ impl Plugin for CheckBatteryPlugin {
     where
         Self: Sized,
     {
-        Self {
-            factory: ConditionFactory::new(Box::new(|data| {
-                Ok(Box::new(CheckBattery::new(data.parameters.try_into()?))
-                    as BoxConditionBehavior)
-            })),
-        }
+        Self {}
     }
 
-    fn spec(&self) -> ActionSpec {
-        ActionSpec::builder()
-            .name(NodeName::new("CheckBattery"))
-            .schema(ActionLeafSchema::default())
+    fn spec(&self) -> ConditionSpec {
+        ConditionSpec::builder()
+            .name("CheckBattery".to_string())
+            .schema(ConditionLeafSchema::default())
             .params_schema(CheckBatteryParams::provide())
             .build()
     }
 
     fn factory(self: Box<Self>) -> ConditionFactory {
-        self.factory
+        ConditionFactory::new(Box::new(|data| {
+            Ok(Box::new(CheckBattery::new(data.parameters.try_into()?)) as BoxConditionBehavior)
+        }))
     }
 }

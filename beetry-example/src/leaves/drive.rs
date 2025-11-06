@@ -104,7 +104,7 @@ impl Plugin for DrivePlugin {
     }
 
     fn factory(self: Box<Self>) -> node::ActionFactory {
-        let closure = |mut data: ActionReconstructionData| {
+        let factory_fn = |mut data: ActionReconstructionData| {
             let recv = data
                 .inner
                 .receivers
@@ -119,7 +119,7 @@ impl Plugin for DrivePlugin {
                 anyhow::bail!("failed to instantiate node from erased type");
             }
         };
-        node::ActionFactory::new(Box::new(closure))
+        node::ActionFactory::new(Box::new(factory_fn))
     }
 }
 
