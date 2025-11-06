@@ -10,7 +10,6 @@ mock = ["dep:mockall"]
 [dependencies]
 anyhow.workspace = true
 bon.workspace = true
-derive-getters.workspace = true
 mitsein.workspace = true
 mockall = { version = "0.13.1", optional = true }
 serde.workspace = true
