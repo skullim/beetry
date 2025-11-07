@@ -14,7 +14,7 @@ use tracing_tree::HierarchicalLayer;
 use anyhow::{Result, anyhow};
 use beetry_builder::Builder;
 use beetry_core::{
-    BehaviorTreeTicker, BoxNode, RegisterTask, Root, Sender, TaskControl, Tree, TreeEngine,
+    BehaviorTreeTicker, BoxNode, RegisterTask, Root, Sender, TaskHandle, Tree, TreeEngine,
 };
 use beetry_example::{
     ChargeCommand, CheckBattery, CheckBatteryParams, Drive, DriveInput, ExternalData, Localize,
@@ -67,7 +67,7 @@ enum BtCreationType {
 fn bt_from_code<R, T>(builder: &Builder<R, T>) -> Result<Tree<BoxNode>>
 where
     R: RegisterTask<T> + 'static,
-    T: TaskControl + 'static,
+    T: TaskHandle + 'static,
 {
     let (loc_send, loc_recv) = beetry_channel::tokio::mpsc::channel(16);
     let localize = Localize::new(loc_send);
@@ -86,7 +86,7 @@ async fn bt_from_editor<R, T>(
 ) -> Result<Tree<BoxNode>>
 where
     R: RegisterTask<T> + 'static,
-    T: TaskControl + 'static,
+    T: TaskHandle + 'static,
 {
     use beetry_reconstruction::TreeReconstructor;
 

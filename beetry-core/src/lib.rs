@@ -17,7 +17,7 @@ pub use tree::{Ticker as BehaviorTreeTicker, Tree, TreeEngine};
 
 pub use task::{
     AbortTask, BoxTaskFuture, ExecutorConcept, NodeTask, QueryTask, RegisterTask, Task,
-    TaskControl, TaskDescription, TaskStatus,
+    TaskDescription, TaskHandle, TaskStatus,
 };
 
 pub use channel::{
