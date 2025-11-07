@@ -1,7 +1,7 @@
 use anyhow::{Result, anyhow};
 use beetry_builder::Builder as BehaviorTreeBuilder;
 use beetry_channel::external;
-use beetry_core::{BoxNode, MessageHash, NonEmptyNodes, RegisterTask, Root, TaskControl, Tree};
+use beetry_core::{BoxNode, MessageHash, NonEmptyNodes, RegisterTask, Root, TaskHandle, Tree};
 use beetry_plugin::{
     BoxPlugin, Named,
     channel::{self, BoxChannelPlugin, TypeErasedChannel},
@@ -45,14 +45,14 @@ impl TreeReconstructor {
     // 2. Channels exist in channel plugin registry.
     // 3. Each hash of leaf node matches with the corresponding node found in plugin registry.
     // 4. External receivers (if any) have been created when initializing Self instance
-    pub fn try_reconstruct<R, T>(
+    pub fn try_reconstruct<RT, TH>(
         &mut self,
         snapshot: TreeSnapshot,
-        builder: &BehaviorTreeBuilder<R, T>,
+        builder: &BehaviorTreeBuilder<RT, TH>,
     ) -> Result<Tree<BoxNode>>
     where
-        R: RegisterTask<T> + 'static,
-        T: TaskControl + 'static,
+        RT: RegisterTask<TH> + 'static,
+        TH: TaskHandle + 'static,
     {
         let channel_factory_map = ChannelHashToFactoryMap::new(channel::plugins());
         let mut channels = Self::try_reconstruct_channels(snapshot.channels, &channel_factory_map)?;
@@ -86,16 +86,16 @@ impl TreeReconstructor {
             .collect::<Result<_>>()
     }
 
-    fn try_reconstruct_tree<R, T>(
+    fn try_reconstruct_tree<RT, TH>(
         mut node: NodeSnapshot,
         node_factory: &NodeFactoryRegistry,
         channel_map: &mut ChannelIdToChannelMap,
         ext_receivers_registry: &mut external::ReceiverRegistry,
-        builder: &BehaviorTreeBuilder<R, T>,
+        builder: &BehaviorTreeBuilder<RT, TH>,
     ) -> Result<BoxNode>
     where
-        R: RegisterTask<T> + 'static,
-        T: TaskControl + 'static,
+        RT: RegisterTask<TH> + 'static,
+        TH: TaskHandle + 'static,
     {
         let node_name = node.name.clone();
         let parameters = node.take_parameters();

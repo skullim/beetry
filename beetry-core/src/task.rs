@@ -3,7 +3,7 @@ mod execution;
 #[cfg(test)]
 pub use execution::MockRegisterTask;
 
-pub use execution::{AbortTask, ExecutorConcept, QueryTask, RegisterTask, TaskControl};
+pub use execution::{AbortTask, ExecutorConcept, QueryTask, RegisterTask, TaskHandle};
 
 use crate::TickStatus;
 use anyhow::{Error, Result, anyhow};

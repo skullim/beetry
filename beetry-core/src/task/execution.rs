@@ -9,15 +9,15 @@ pub trait ExecutorConcept {
 }
 
 #[cfg_attr(test, automock)]
-pub trait RegisterTask<T>
+pub trait RegisterTask<TH>
 where
-    T: TaskControl,
+    TH: TaskHandle,
 {
-    fn register(&self, task: NodeTask) -> Result<T>;
+    fn register(&self, task: NodeTask) -> Result<TH>;
 }
 
-pub trait TaskControl: QueryTask + AbortTask {}
-impl<T: QueryTask + AbortTask> TaskControl for T {}
+pub trait TaskHandle: QueryTask + AbortTask {}
+impl<T: QueryTask + AbortTask> TaskHandle for T {}
 
 #[cfg_attr(test, automock)]
 pub trait QueryTask {

@@ -1,6 +1,6 @@
 use crate::{
     Node, NodeTask, TickStatus,
-    task::{RegisterTask, TaskControl, TaskStatus},
+    task::{RegisterTask, TaskHandle, TaskStatus},
 };
 use anyhow::Result;
 use core::fmt;
@@ -51,21 +51,21 @@ fn visit_status(behavior: &mut dyn Behavior, status: TaskStatus) {
     }
 }
 
-pub struct Action<R, TC, B>
+pub struct Action<R, TH, B>
 where
-    R: RegisterTask<TC>,
-    TC: TaskControl,
+    R: RegisterTask<TH>,
+    TH: TaskHandle,
     B: Behavior,
 {
     behavior: B,
     registry: Arc<R>,
-    state: State<TC>,
+    state: State<TH>,
 }
 
-impl<R, TC, B> Action<R, TC, B>
+impl<R, TH, B> Action<R, TH, B>
 where
-    R: RegisterTask<TC>,
-    TC: TaskControl,
+    R: RegisterTask<TH>,
+    TH: TaskHandle,
     B: Behavior,
 {
     pub fn new(behavior: B, registry: Arc<R>) -> Self {
@@ -77,10 +77,10 @@ where
     }
 }
 
-impl<R, TC, B> Node for Action<R, TC, B>
+impl<R, TH, B> Node for Action<R, TH, B>
 where
-    R: RegisterTask<TC>,
-    TC: TaskControl,
+    R: RegisterTask<TH>,
+    TH: TaskHandle,
     B: Behavior,
 {
     fn tick(&mut self) -> TickStatus {
@@ -118,8 +118,11 @@ where
     }
 
     fn reset(&mut self) {
+        assert!(
+            matches!(self.state, State::Idle),
+            "requested action reset during task execution"
+        );
         self.behavior.reset();
-        self.state = State::Idle;
     }
 
     fn abort(&mut self) {
@@ -146,17 +149,17 @@ where
     }
 }
 
-enum State<TC>
+enum State<TH>
 where
-    TC: TaskControl,
+    TH: TaskHandle,
 {
     Idle,
-    Running(TC),
+    Running(TH),
 }
 
-impl<TC> fmt::Display for State<TC>
+impl<TH> fmt::Display for State<TH>
 where
-    TC: TaskControl,
+    TH: TaskHandle,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -180,13 +183,13 @@ mod tests {
     };
 
     mock! {
-        TaskControl {}
+        TaskHandle {}
 
-    impl QueryTask for TaskControl {
+    impl QueryTask for TaskHandle {
         fn query(&mut self) -> TaskStatus;
     }
 
-    impl AbortTask for TaskControl {
+    impl AbortTask for TaskHandle {
         fn abort(&mut self);
     }
     }
@@ -209,12 +212,12 @@ mod tests {
     }
 
     #[builder]
-    fn task_control(
+    fn task_handle(
         query_times: usize,
         statuses: Vec<TaskStatus>,
         abort_times: Option<usize>,
-    ) -> MockTaskControl {
-        let mut m = MockTaskControl::new();
+    ) -> MockTaskHandle {
+        let mut m = MockTaskHandle::new();
         let mut it = statuses.into_iter();
         m.expect_query()
             .returning(move || it.next().unwrap())
@@ -228,11 +231,11 @@ mod tests {
 
     #[test]
     fn test_action_success() {
-        let mut registry = MockRegisterTask::<MockTaskControl>::new();
+        let mut registry = MockRegisterTask::<MockTaskHandle>::new();
         registry
             .expect_register()
             .returning(|_| {
-                Ok(task_control()
+                Ok(task_handle()
                     .query_times(1)
                     .statuses(vec![TaskStatus::Success])
                     .call())
@@ -252,11 +255,11 @@ mod tests {
 
     #[test]
     fn test_action_running() {
-        let mut registry = MockRegisterTask::<MockTaskControl>::new();
+        let mut registry = MockRegisterTask::<MockTaskHandle>::new();
         registry
             .expect_register()
             .returning(|_| {
-                Ok(task_control()
+                Ok(task_handle()
                     .query_times(1)
                     .statuses(vec![TaskStatus::Running])
                     .call())
@@ -276,11 +279,11 @@ mod tests {
 
     #[test]
     fn test_action_failure() {
-        let mut registry = MockRegisterTask::<MockTaskControl>::new();
+        let mut registry = MockRegisterTask::<MockTaskHandle>::new();
         registry
             .expect_register()
             .returning(|_| {
-                Ok(task_control()
+                Ok(task_handle()
                     .query_times(1)
                     .statuses(vec![TaskStatus::Failure])
                     .call())
@@ -301,7 +304,7 @@ mod tests {
 
     #[test]
     fn test_task_creation_failure() {
-        let registry = MockRegisterTask::<MockTaskControl>::new();
+        let registry = MockRegisterTask::<MockTaskHandle>::new();
 
         let mut behavior = MockBehavior::new();
         behavior
@@ -314,7 +317,7 @@ mod tests {
 
     #[test]
     fn test_task_registration_failure() {
-        let mut registry = MockRegisterTask::<MockTaskControl>::new();
+        let mut registry = MockRegisterTask::<MockTaskHandle>::new();
         registry
             .expect_register()
             .returning(|_| Err(anyhow::anyhow!("registration failed")))
@@ -331,11 +334,11 @@ mod tests {
 
     #[test]
     fn test_action_abort_when_running() {
-        let mut registry = MockRegisterTask::<MockTaskControl>::new();
+        let mut registry = MockRegisterTask::<MockTaskHandle>::new();
         registry
             .expect_register()
             .returning(|_| {
-                Ok(task_control()
+                Ok(task_handle()
                     .query_times(3)
                     .statuses(vec![
                         TaskStatus::Running,
@@ -363,7 +366,7 @@ mod tests {
 
     #[test]
     fn test_action_abort_when_idle() {
-        let registry = MockRegisterTask::<MockTaskControl>::new();
+        let registry = MockRegisterTask::<MockTaskHandle>::new();
 
         let mut behavior = MockBehavior::new();
         behavior.expect_on_aborted().once().return_const(());
@@ -375,7 +378,7 @@ mod tests {
 
     #[test]
     fn test_action_reset() {
-        let registry = MockRegisterTask::<MockTaskControl>::new();
+        let registry = MockRegisterTask::<MockTaskHandle>::new();
 
         let mut behavior = MockBehavior::new();
         behavior.expect_reset().once().return_const(());

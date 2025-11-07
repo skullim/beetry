@@ -1,6 +1,6 @@
 use beetry_core::{
     Action, ActionBehavior, BoxNode, Condition, ConditionBehavior, Node, NonEmptyNodes,
-    RegisterTask, Root, TaskControl, Tree,
+    RegisterTask, Root, TaskHandle, Tree,
 };
 use beetry_node::{Parallel, Sequence};
 use std::{marker::PhantomData, sync::Arc};
@@ -14,7 +14,7 @@ pub struct Builder<R, T> {
 impl<R, T> Builder<R, T>
 where
     R: RegisterTask<T> + 'static,
-    T: TaskControl + 'static,
+    T: TaskHandle + 'static,
 {
     pub fn new(registry: R) -> Self {
         Self {
