@@ -1,0 +1,51 @@
+%%{init: {'theme':'dark'}}%%
+
+flowchart TD
+    subgraph PluginLayer["Plugin Layer"]
+        A[NodePlugin]
+        CP[ChannelPlugin]
+        PS[(NodeSpec)]
+        CS[(ChannelSpec)]
+    end
+    subgraph EditorLayer["Editor Layer"]
+        B[Editor]
+        C[ui::Node]
+        D{Parameters for ui::Node?}
+        E[Set ui::Node Parameters]
+        F[Connect ui::Node with Tree]
+        G{Channel for ui::Node?}
+        H{Is external channel?}
+        I[Mark ui::Node as external]
+        J[Create channel & connect ui::Node]
+    end
+    subgraph ExportLayer["Export Layer"]
+        K[Validate Tree with NodeSnapshot]
+        L[Generate NodeSnapshot]
+        M[(Exported NodeSnapshot Artifact)]
+    end
+
+    A -->|Provides NodeSpec| PS
+    CP -->|Provides ChannelSpec| CS
+    PS --> B
+    CS --> B
+    B -->|NodeSpec mapped into concrete ui::Node based on type and name| C
+    C --> D
+    D -->|Yes| E
+    E -->|mutated ui::Node| F
+    D -.->|No| F
+    F -->|mutated ui::Node| G
+    G -->|Yes| H
+    H -->|Yes: External flag| I
+    I -->|Flagged ui::Node data to snapshot| K
+    H -.->|No| J
+    J -->|Channel-linked ui::Node data to snapshot| K
+    G -.->|No: Direct ui::Node data| K
+    K -->|Validated data| L
+    L -->|Transform to NodeSnapshot| M
+
+    style PluginLayer fill:#3730a3
+    style EditorLayer fill:#0f766e
+    style ExportLayer fill:#047857
+    style PS fill:#818cf8
+    style CS fill:#818cf8
+    style M fill:#059669
