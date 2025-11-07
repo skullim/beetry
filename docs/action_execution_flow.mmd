@@ -1,0 +1,29 @@
+```mermaid
+sequenceDiagram
+    actor User
+    User ->>+ Action: tick()
+    Action ->>+ RegisterTask: Register(NodeTask)
+    RegisterTask ->>+ ExecutorConcept: Send(Task)
+    create participant TaskHandle
+    ExecutorConcept ->>+ TaskHandle: create
+    ExecutorConcept -->>- RegisterTask:
+    RegisterTask -->>- Action:
+    Action ->>- User: TickStatus::Running
+
+    User ->>+ Action: tick()
+    Action ->>+ TaskHandle: query()
+    TaskHandle -->>- Action: status
+    Action -->>- User: status
+
+    User ->>+ Action: abort()
+    Action ->>+ TaskHandle: abort()
+    TaskHandle ->>+ ExecutorConcept: abort()
+    ExecutorConcept -->>- TaskHandle: aborted
+    TaskHandle -->>- Action:
+    destroy TaskHandle
+    Action ->> TaskHandle: drop
+
+    Action -->> Action: on_aborted()
+
+    Action -->>- User:
+```
