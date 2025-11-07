@@ -18,7 +18,7 @@ sequenceDiagram
     Action ->>+ TaskHandle: abort()
     TaskHandle ->>+ ExecutorConcept: abort()
     ExecutorConcept -->>- TaskHandle: aborted
-    TaskHandle -->>- Action:
+    TaskHandle -->>- Action: TaskStatus::Aborted
     destroy TaskHandle
     Action ->> TaskHandle: drop
 
