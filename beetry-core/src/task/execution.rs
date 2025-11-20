@@ -1,4 +1,5 @@
-use crate::{TaskStatus, task::NodeTask};
+use crate::TaskStatus;
+use crate::task::NodeTask;
 use anyhow::Result;
 
 #[cfg(test)]

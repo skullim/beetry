@@ -3,8 +3,7 @@ use std::time::Duration;
 use tokio::time::{Instant, Interval, MissedTickBehavior};
 use tracing::{debug, instrument, warn};
 
-use crate::Node;
-use crate::{TickStatus, Tree};
+use crate::{Node, TickStatus, Tree};
 
 pub struct Ticker {
     interval: Interval,

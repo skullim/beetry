@@ -1,22 +1,20 @@
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::{
-    definitions::{NodeId, Point, PointEdge},
-    ui::curve::Curve,
-};
+use crate::definitions::{EdgePos, NodeId, Point};
+use crate::ui::curve::Curve;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Context {
     state: Signal<ConnectionState>,
-    edge: Signal<PointEdge>,
+    edge: Signal<EdgePos>,
 }
 
 impl Context {
     pub(crate) fn new() -> Self {
         Self {
             state: Signal::new(ConnectionState::Idle),
-            edge: Signal::new(PointEdge::default()),
+            edge: Signal::new(EdgePos::default()),
         }
     }
 
@@ -47,13 +45,13 @@ impl Context {
         }
     }
 
-    pub(crate) fn update_edge(&mut self, mut pos: PointEdge) {
+    pub(crate) fn update_edge(&mut self, mut pos: EdgePos) {
         self.edge.with_mut(|p| {
             std::mem::swap(p, &mut pos);
         })
     }
 
-    pub(crate) fn edge(&self) -> PointEdge {
+    pub(crate) fn edge(&self) -> EdgePos {
         self.edge.read().clone()
     }
 
@@ -62,20 +60,17 @@ impl Context {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum ConnectionState {
+    #[default]
     Idle,
-    Dragged { from: NodeId },
-}
-
-impl Default for ConnectionState {
-    fn default() -> Self {
-        Self::Idle
-    }
+    Dragged {
+        from: NodeId,
+    },
 }
 
 #[component]
-pub fn Temporary(edge: ReadSignal<PointEdge>) -> Element {
+pub fn Temporary(edge: ReadSignal<EdgePos>) -> Element {
     debug!("rendering temp edge component with data: {edge:?}");
     let edge = edge.read();
 

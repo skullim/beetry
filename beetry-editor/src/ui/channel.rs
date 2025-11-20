@@ -4,26 +4,21 @@ pub mod temporary;
 mod tracker;
 
 use beetry_core::MessageHash;
-use beetry_serde::{
-    de::channel::{ChannelId, ChannelSnapshot},
-    ser::channel::ChannelSpec,
-};
+use beetry_serde::de::channel::{ChannelId, ChannelSnapshot};
+use beetry_serde::ser::channel::ChannelSpec;
 pub use config_dialog::Dialog as ConfigDialog;
 pub use renderer::Renderer;
 use serde::{Deserialize, Serialize};
 pub use temporary::Temporary;
 pub use tracker::Tracker;
 
-use dioxus::{html::input_data::MouseButton, prelude::*};
+use dioxus::html::input_data::MouseButton;
+use dioxus::prelude::*;
 
-use crate::{
-    definitions::{Point, PointEdge},
-    ui::{
-        curve::Curve,
-        text::{self, text_width_from},
-        viewport::{ViewportContext, ZoomLevel},
-    },
-};
+use crate::definitions::{EdgePos, Point};
+use crate::ui::curve::Curve;
+use crate::ui::text::{self, text_width_from};
+use crate::ui::viewport::{ViewportContext, ZoomLevel};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Context {
@@ -138,7 +133,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
                 height: "25",
                 rx: "10",
                 ry: "10",
-                fill: if *body_hovered.read() { "url(#channel-body-gradient-hover)" } else { "url(#channel-body-gradient)" },
+                fill: if *body_hovered.peek() { "url(#channel-body-gradient-hover)" } else { "url(#channel-body-gradient)" },
                 stroke: "rgba(255,255,255,0.3)",
                 stroke_width: "1",
                 filter: "url(#shadow)",
@@ -156,10 +151,10 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
                 height: "25",
                 rx: "10",
                 ry: "10",
-                fill: if *receiver_hovered.read() { "url(#channel-receiver-gradient-hover)" } else { "url(#channel-receiver-gradient)" },
+                fill: if *receiver_hovered.peek() { "url(#channel-receiver-gradient-hover)" } else { "url(#channel-receiver-gradient)" },
                 stroke: "rgba(255,255,255,0.3)",
                 stroke_width: "1",
-                filter: if *receiver_hovered.read() { "url(#shadow-hover)" } else { "url(#shadow)" },
+                filter: if *receiver_hovered.peek() { "url(#shadow-hover)" } else { "url(#shadow)" },
                 style: "cursor: grab;",
             }
 
@@ -286,7 +281,7 @@ pub fn style_defs() -> Element {
 }
 
 #[component]
-pub(crate) fn SenderConnection(edge: PointEdge) -> Element {
+pub(crate) fn SenderConnection(edge: EdgePos) -> Element {
     rsx! {
         path {
             d: "{Curve::calculate_horizontal(&edge.start, &edge.end)}",
@@ -298,7 +293,7 @@ pub(crate) fn SenderConnection(edge: PointEdge) -> Element {
 }
 
 #[component]
-pub(crate) fn ReceiverConnection(edge: PointEdge) -> Element {
+pub(crate) fn ReceiverConnection(edge: EdgePos) -> Element {
     rsx! {
         path {
             d: "{Curve::calculate_horizontal(&edge.start, &edge.end)}",

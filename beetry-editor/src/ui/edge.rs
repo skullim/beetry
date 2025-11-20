@@ -10,10 +10,8 @@ pub use tracker::Tracker;
 
 use dioxus::prelude::*;
 
-use crate::{
-    definitions::{Point, PointEdge},
-    ui::curve::Curve,
-};
+use crate::definitions::{EdgePos, Point};
+use crate::ui::curve::Curve;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Context {
@@ -30,15 +28,15 @@ impl Context {
 
 #[derive(Props, Clone, PartialEq)]
 pub struct EdgeProps {
-    edge: PointEdge,
+    pos: EdgePos,
     edge_index: usize,
     on_context_menu: EventHandler<(usize, Point)>,
 }
 
 #[component]
 pub(crate) fn Edge(props: EdgeProps) -> Element {
-    let start = props.edge.start;
-    let end = props.edge.end;
+    let start = props.pos.start;
+    let end = props.pos.end;
     let edge_index = props.edge_index;
 
     let curve_start = Point {

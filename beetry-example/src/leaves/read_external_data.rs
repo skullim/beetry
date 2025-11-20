@@ -1,29 +1,29 @@
-use crate::{ExternalData, leaves::ReadExternalDataInput};
-use anyhow::{Result, anyhow};
-use beetry_core::{self, ActionBehavior, BoxActionBehavior, NodeTask, Task, TickStatus};
-use beetry_plugin::{
-    Plugin,
-    node::{self, ActionFactory, ActionReconstructionData},
-};
-use beetry_serde::ser::{
-    channel::MessageSpec,
-    node::{ActionLeafSchema, ActionSpec},
-};
+use crate::ExternalData;
+use anyhow::Result;
+use anyhow::anyhow;
+use beetry_channel::typed_receivers;
+use beetry_core::BoxActionBehavior;
+use beetry_core::{self, ActionBehavior, NodeTask, Task, TickStatus};
+use beetry_macros::receivers;
+use beetry_plugin::{action_plugin, node::ActionReconstructionData};
+use beetry_serde::spec;
+use bon::bon;
 use type_hash::TypeHash;
 
-struct ReadExternalData<R>
-where
-    R: beetry_core::Receiver<ExternalData>,
-{
-    input: ReadExternalDataInput<R>,
+receivers! {ReadExternalDataReceivers {
+    data: ExternalData,
+}}
+
+struct ReadExternalData<R> {
+    receivers: ReadExternalDataReceivers<R>,
 }
 
 impl<R> ReadExternalData<R>
 where
     R: beetry_core::Receiver<ExternalData>,
 {
-    pub fn new(input: ReadExternalDataInput<R>) -> Self {
-        Self { input }
+    pub fn new(receivers: ReadExternalDataReceivers<R>) -> Self {
+        Self { receivers }
     }
 }
 
@@ -32,7 +32,7 @@ where
     R: beetry_core::Receiver<ExternalData>,
 {
     fn task(&mut self) -> Result<NodeTask> {
-        let data = self.input.data()?;
+        let data = self.receivers.data()?;
         Ok(NodeTask::new(ReadExternalDataTask::new(data)))
     }
     // no reset here, queue of messages on the external channel should not be drained
@@ -56,45 +56,16 @@ impl Task for ReadExternalDataTask {
     }
 }
 
-pub struct ReadExternalDataPlugin;
+action_plugin! {
+  ReadExternalDataPlugin {
+   spec = spec! {as action, name = "ReadExternalData", receivers = [ExternalData, desc = "External data"] },
+   factory_fn = |mut data: ActionReconstructionData| {
+       let receivers = typed_receivers! {any = &mut data.inner.receivers, expected = [ExternalData]}
+       .map_err(|_| anyhow!("failed to obtain typed receivers"))?;
+           Ok(Box::new(ReadExternalData::new(
+               ReadExternalDataReceivers::builder().data(receivers.0).build(),
+           )) as BoxActionBehavior)
 
-impl Plugin for ReadExternalDataPlugin {
-    type Spec = ActionSpec;
-    type Factory = ActionFactory;
-
-    fn new() -> Self
-    where
-        Self: Sized,
-    {
-        Self
-    }
-
-    fn spec(&self) -> ActionSpec {
-        ActionSpec::builder()
-            .name("ReadExternalData".to_string())
-            .schema(
-                ActionLeafSchema::builder()
-                    .receivers([MessageSpec::new::<ExternalData>("External data")])
-                    .build(),
-            )
-            .build()
-    }
-
-    fn factory(self: Box<Self>) -> node::ActionFactory {
-        let factory_fn = |mut data: ActionReconstructionData| {
-            let recv = data
-                .inner
-                .receivers
-                .pop()
-                .ok_or_else(|| anyhow!("expected non empty receivers vector"))?;
-            if let Ok(recv) = recv.into_receiver_of::<ExternalData>() {
-                Ok(Box::new(ReadExternalData::new(
-                    ReadExternalDataInput::builder().data(recv).build(),
-                )) as BoxActionBehavior)
-            } else {
-                anyhow::bail!("failed to instantiate node from erased type");
-            }
-        };
-        node::ActionFactory::new(Box::new(factory_fn))
-    }
+   }
+}
 }

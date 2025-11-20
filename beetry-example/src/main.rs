@@ -1,14 +1,14 @@
-use beetry_channel::{AnyBoxReceiver, external::ReceiverRegistry};
+use beetry_channel::AnyBoxReceiver;
+use beetry_channel::external::ReceiverRegistry;
 use beetry_editor::ProjectData;
 use beetry_serde::ser::channel::MessageHashProvider;
 use beetry_serialization::{Deserializer, JsonDeserializer};
 use rfd::FileHandle;
-use std::{io::Read, time::Duration};
-use tracing_subscriber::{
-    Layer, Registry,
-    filter::{LevelFilter, Targets},
-    layer::SubscriberExt,
-};
+use std::io::Read;
+use std::time::Duration;
+use tracing_subscriber::filter::{LevelFilter, Targets};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::{Layer, Registry};
 use tracing_tree::HierarchicalLayer;
 
 use anyhow::{Result, anyhow};
@@ -17,7 +17,7 @@ use beetry_core::{
     BehaviorTreeTicker, BoxNode, RegisterTask, Root, Sender, TaskHandle, Tree, TreeEngine,
 };
 use beetry_example::{
-    ChargeCommand, CheckBattery, CheckBatteryParams, Drive, DriveInput, ExternalData, Localize,
+    ChargeCommand, CheckBattery, CheckBatteryParams, Drive, DriveReceivers, ExternalData, Localize,
 };
 use beetry_exec::{Executor, ExecutorConfig};
 
@@ -71,7 +71,7 @@ where
 {
     let (loc_send, loc_recv) = beetry_channel::tokio::mpsc::channel(16);
     let localize = Localize::new(loc_send);
-    let drive = Drive::new(DriveInput::builder().pose(loc_recv).build());
+    let drive = Drive::new(DriveReceivers::builder().pose(loc_recv).build());
     let check = CheckBattery::new(CheckBatteryParams::default());
 
     Ok(builder.tree(Root::new(builder.sequence([

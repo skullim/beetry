@@ -1,10 +1,10 @@
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::ui::{
-    NodeKind, NodeMap,
-    node::{control::Control, leaf::Leaf, root::Root},
-};
+use crate::ui::node::control::Control;
+use crate::ui::node::leaf::Leaf;
+use crate::ui::node::root::Root;
+use crate::ui::{NodeKind, NodeMap};
 
 #[component]
 pub fn Renderer(ui_nodes: Signal<NodeMap>) -> Element {

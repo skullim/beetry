@@ -7,7 +7,8 @@ pub use execution::{AbortTask, ExecutorConcept, QueryTask, RegisterTask, TaskHan
 
 use crate::TickStatus;
 use anyhow::{Error, Result, anyhow};
-use std::{pin::Pin, str::FromStr};
+use std::pin::Pin;
+use std::str::FromStr;
 
 pub trait Task {
     fn run(self) -> impl Future<Output = TickStatus> + Send + 'static;

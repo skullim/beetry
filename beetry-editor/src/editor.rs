@@ -1,27 +1,21 @@
-use std::collections::BTreeSet;
+use std::cell::RefCell;
+use std::collections::{BTreeSet, HashMap};
+use std::rc::Rc;
 
-use beetry_serde::{
-    de::{
-        channel::{ChannelMetadata, ChannelSnapshot},
-        parameter::Parameters,
-    },
-    ser::node::{LeafSpec, NodeName},
-};
+use beetry_serde::de::channel::{ChannelMetadata, ChannelSnapshot};
+use beetry_serde::de::parameter::Parameters;
+use beetry_serde::ser::node::{LeafSpec, NodeName};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::{
-    definitions::NodeId,
-    sidebar::{Sidebar, SidebarEventHandlers},
-    toolbar::Toolbar,
-    ui::{
-        self,
-        channel::{self, config_dialog::State as ChannelConfigDialogState},
-        edge,
-        node::{ParameterDialogHandlers, ParameterDialogState},
-    },
-    workspace::Workspace,
-};
+use crate::definitions::NodeId;
+use crate::sidebar::{Sidebar, SidebarEventHandlers};
+use crate::toolbar::Toolbar;
+use crate::ui::channel::config_dialog::State as ChannelConfigDialogState;
+use crate::ui::channel::{self};
+use crate::ui::node::{ParameterDialogHandlers, ParameterDialogState};
+use crate::ui::{self, edge};
+use crate::workspace::Workspace;
 
 #[derive(Debug, Clone)]
 struct EditorContext {
@@ -52,6 +46,13 @@ impl EditorContext {
     }
 }
 
+#[derive(Default, Clone)]
+pub struct NodeIdToNameStorage {
+    pub map: HashMap<NodeId, NodeName>,
+}
+
+pub type SharedNodeIdToNameStorage = Rc<RefCell<NodeIdToNameStorage>>;
+
 #[component]
 pub(crate) fn Editor() -> Element {
     debug!("rendering editor");
@@ -68,8 +69,12 @@ pub(crate) fn Editor() -> Element {
     let parameter_dialog_state: Signal<ParameterDialogState> =
         use_signal(ParameterDialogState::default);
 
+    use_context_provider(SharedNodeIdToNameStorage::default);
+
     let sidebar_handlers = use_context_provider(move || {
         let on_new_node = move |node: ui::Node| {
+            let storage = use_context::<SharedNodeIdToNameStorage>();
+            storage.borrow_mut().map.insert(id(), node.name.clone());
             ui_nodes.write().insert(id(), node);
             id += 1;
         };

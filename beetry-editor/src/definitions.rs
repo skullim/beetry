@@ -10,7 +10,7 @@ pub struct Point {
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Props, Serialize, Deserialize)]
-pub struct PointEdge {
+pub struct EdgePos {
     pub start: Point,
     pub end: Point,
 }

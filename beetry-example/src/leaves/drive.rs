@@ -1,36 +1,40 @@
 use std::time::Duration;
 
-use crate::{Pose, leaves::DriveInput};
+use crate::Pose;
 use anyhow::{Result, anyhow};
 use beetry_core::{ActionBehavior, BoxActionBehavior, NodeTask, Receiver, Task, TickStatus};
-use beetry_plugin::{
-    Plugin,
-    node::{self, ActionFactory, ActionReconstructionData},
-};
-use beetry_serde::ser::{
-    channel::MessageSpec,
-    node::{ActionLeafSchema, ActionSpec},
-};
+use beetry_macros::receivers;
+use beetry_plugin::Plugin;
+use beetry_plugin::node::{self, ActionFactory, ActionReconstructionData};
+use beetry_serde::ser::channel::MessageSpec;
+use beetry_serde::ser::node::{ActionLeafSchema, ActionSpec};
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
+
+use bon::bon;
+
+receivers! {
+    DriveReceivers {
+    pose: Pose,
+}}
 
 pub struct Drive<R>
 where
     R: Receiver<Pose>,
 {
-    input: DriveInput<R>,
+    receivers: DriveReceivers<R>,
 }
 
 impl<R> Drive<R>
 where
     R: Receiver<Pose>,
 {
-    pub fn new(input: DriveInput<R>) -> Self {
-        Self { input }
+    pub fn new(receivers: DriveReceivers<R>) -> Self {
+        Self { receivers }
     }
 
     fn restore_initial_state(&mut self) {
-        self.input.drain();
+        self.receivers.drain();
         debug!("restored initial state");
     }
 }
@@ -40,7 +44,7 @@ where
     R: Receiver<Pose>,
 {
     fn task(&mut self) -> Result<NodeTask> {
-        let pose = self.input.pose()?;
+        let pose = self.receivers.pose()?;
         Ok(NodeTask::new(DriveTask::new(pose)))
     }
 
@@ -112,7 +116,7 @@ impl Plugin for DrivePlugin {
                 .ok_or_else(|| anyhow!("expected non empty receivers vector"))?;
             if let Ok(recv) = recv.into_receiver_of::<Pose>() {
                 Ok(
-                    Box::new(Drive::new(DriveInput::builder().pose(recv).build()))
+                    Box::new(Drive::new(DriveReceivers::builder().pose(recv).build()))
                         as BoxActionBehavior,
                 )
             } else {
@@ -127,12 +131,11 @@ impl Plugin for DrivePlugin {
 mod tests {
     use beetry_channel::tokio;
     use beetry_core::BoxReceiver;
-    use beetry_plugin::{
-        Plugin,
-        node::{ActionReconstructionData, LeafMetadata},
-    };
+    use beetry_plugin::Plugin;
+    use beetry_plugin::node::{ActionReconstructionData, LeafMetadata};
 
-    use crate::{Pose, leaves::drive::DrivePlugin};
+    use crate::Pose;
+    use crate::leaves::drive::DrivePlugin;
 
     #[test]
     fn test_reconstruction() {

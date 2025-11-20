@@ -3,13 +3,9 @@ use std::rc::Rc;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::{
-    definitions::{NodeId, Point},
-    ui::node::{
-        base::{NodeBase, NodeStyle, NodeWithContextMenu},
-        port::{input, output},
-    },
-};
+use crate::definitions::{NodeId, Point};
+use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithContextMenu};
+use crate::ui::node::port::{input, output};
 
 #[derive(Props, PartialEq, Clone)]
 pub struct ControlProps {

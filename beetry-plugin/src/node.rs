@@ -2,12 +2,11 @@ use crate::{BoxPlugin, ConstructPlugin, Named, Plugin};
 use anyhow::Result;
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
 use beetry_core::{BoxActionBehavior, BoxConditionBehavior, BoxNode, NonEmptyNodes};
-use beetry_serde::{
-    de::parameter::Parameters,
-    ser::node::{ActionSpec, ConditionSpec, ControlSpec, NodeSpec},
-};
+use beetry_serde::de::parameter::Parameters;
+use beetry_serde::ser::node::{ActionSpec, ConditionSpec, ControlSpec, NodeSpec};
 use bon::{Builder, builder};
-use std::{collections::HashSet, marker::PhantomData};
+use std::collections::HashSet;
+use std::marker::PhantomData;
 
 //@todo: check if this can be simplified using https://crates.io/crates/supertrait crate
 //possibly less boilerplate code required for user
@@ -182,6 +181,51 @@ where
         plugins.push(plugin);
         Ok(plugins)
     })
+}
+
+#[macro_export]
+macro_rules! action_plugin {
+    ($plugin_name:ident { spec = $spec:expr,factory_fn = $factory_fn:expr }) => {
+        $crate::plugin_impl!(
+            plugin = $plugin_name,
+            spec_ty = $crate::ActionSpec,
+            factory_ty = $crate::node::ActionFactory,
+            spec = $spec,
+            factory_fn = $factory_fn
+        );
+    };
+}
+
+#[macro_export]
+macro_rules! plugin_impl {
+    (   plugin = $plugin_name:ident,
+        spec_ty = $spec_ty:ty,
+        factory_ty = $factory_ty:ty,
+        spec = $spec:expr,
+        factory_fn = $factory_fn:expr
+    ) => {
+        pub struct $plugin_name;
+
+        impl $crate::Plugin for $plugin_name {
+            type Spec = $spec_ty;
+            type Factory = $factory_ty;
+
+            fn new() -> Self
+            where
+                Self: Sized,
+            {
+                Self
+            }
+
+            fn spec(&self) -> Self::Spec {
+                $spec
+            }
+
+            fn factory(self: Box<Self>) -> Self::Factory {
+                Self::Factory::new(Box::new($factory_fn))
+            }
+        }
+    };
 }
 
 #[cfg(test)]

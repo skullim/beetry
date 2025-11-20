@@ -13,5 +13,4 @@ Improvements:
 
 UX:
 - tailwindcss
-- lit node and ports when hovering
 - focus mouse when rendering temp edge and in proximity of a port

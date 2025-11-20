@@ -1,12 +1,9 @@
 use dioxus::prelude::*;
 
-use crate::{
-    definitions::{Point, PointEdge},
-    ui::{
-        NodeMap,
-        edge::{ContextMenuState, Edge, tracker::Tracker},
-    },
-};
+use crate::definitions::{EdgePos, Point};
+use crate::ui::NodeMap;
+use crate::ui::edge::tracker::Tracker;
+use crate::ui::edge::{ContextMenuState, Edge};
 
 #[component]
 pub fn Renderer(
@@ -22,7 +19,7 @@ pub fn Renderer(
         .iter()
         .enumerate()
         .map(|(index, node_edge)| {
-            let edge = PointEdge {
+            let edge_pos = EdgePos {
                 start: nodes_read.get(&node_edge.from).unwrap().pos,
                 end: nodes_read.get(&node_edge.to).unwrap().pos,
             };
@@ -30,7 +27,7 @@ pub fn Renderer(
             rsx! {
                 Edge {
                     key: "{index}",
-                    edge,
+                    pos: edge_pos,
                     edge_index: index,
                     on_context_menu: move |(idx, point): (usize, Point)| {
                         edge_context_menu_state

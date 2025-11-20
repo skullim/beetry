@@ -1,4 +1,5 @@
-use dioxus::{html::geometry::WheelDelta, prelude::*};
+use dioxus::html::geometry::WheelDelta;
+use dioxus::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct ZoomLevel(f64);
