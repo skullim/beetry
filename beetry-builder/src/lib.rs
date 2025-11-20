@@ -3,7 +3,8 @@ use beetry_core::{
     RegisterTask, Root, TaskHandle, Tree,
 };
 use beetry_node::{Parallel, Sequence};
-use std::{marker::PhantomData, sync::Arc};
+use std::marker::PhantomData;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Builder<R, T> {

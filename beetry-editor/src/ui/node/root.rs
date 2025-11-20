@@ -3,11 +3,9 @@ use std::rc::Rc;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::{
-    definitions::{NodeId, Point},
-    ui::node::base::{NodeBase, NodeStyle},
-    ui::node::port::output,
-};
+use crate::definitions::{NodeId, Point};
+use crate::ui::node::base::{NodeBase, NodeStyle};
+use crate::ui::node::port::output;
 
 #[derive(Props, PartialEq, Clone)]
 pub struct RootProps {

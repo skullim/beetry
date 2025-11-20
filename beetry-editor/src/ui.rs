@@ -8,13 +8,9 @@ pub mod transfer;
 pub mod viewport;
 
 use beetry_core::MessageHash;
-use beetry_serde::{
-    de::parameter::Parameters,
-    ser::{
-        node::{LeafSchema, NodeName},
-        parameter,
-    },
-};
+use beetry_serde::de::parameter::Parameters;
+use beetry_serde::ser::node::{LeafSchema, NodeName};
+use beetry_serde::ser::parameter;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap};
 
@@ -31,6 +27,8 @@ pub enum NodeKind {
         external_receivers: BTreeSet<MessageHash>,
     },
 }
+
+//@todo final goal: transform Node with id: NodeId and pos: Point fields only
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Node {

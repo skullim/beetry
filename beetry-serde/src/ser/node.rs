@@ -1,4 +1,5 @@
-use std::{cmp::Ordering, collections::BTreeSet};
+use std::cmp::Ordering;
+use std::collections::BTreeSet;
 
 use bon::{Builder, builder};
 use derive_getters::Getters;
@@ -18,6 +19,12 @@ pub struct NodeName(pub String);
 impl NodeName {
     pub fn new(name: impl Into<String>) -> Self {
         Self(name.into())
+    }
+}
+
+impl From<&'static str> for NodeName {
+    fn from(value: &str) -> Self {
+        Self::new(value)
     }
 }
 
@@ -101,4 +108,54 @@ impl ConditionLeafSchema {
 pub enum LeafKind {
     Action,
     Condition,
+}
+
+#[macro_export]
+macro_rules! spec {
+    ( as action,
+      name = $name: literal
+      $(, params = $params_schema:expr )?
+      $(, receivers = [$($rcv_ty:ty, desc = $rcv_desc:literal),* $(,)?])?
+      $(, senders = [$($snd_ty:ty, desc = $snd_desc:literal),* $(,)?])?
+    )
+
+      => {
+        {
+            let builder = $crate::ser::node::ActionSpec::builder().name($name);
+            $(
+                let builder = builder.params_schema($params_schema);
+            )?
+            builder.schema($crate::action_schema! {
+                $(senders = [$($snd_ty, desc = $snd_desc),*])?
+                $(receivers = [$($rcv_ty, desc = $rcv_desc),*])?
+         }).build()
+        }
+
+    };
+}
+
+#[macro_export]
+macro_rules! action_schema {
+    (
+        $(senders = [$($snd_ty:ty, desc = $snd_desc:literal),* $(,)?])?
+        $(receivers = [$($rcv_ty:ty, desc = $rcv_desc:literal),* $(,)?])?
+    ) =>
+    {{
+        let builder = $crate::ser::node::ActionLeafSchema::builder();
+        $(
+            let builder = builder.senders([
+                $(
+                    $crate::ser::channel::MessageSpec::new::<$snd_ty>($snd_desc),
+                )*
+            ]);
+        )?
+        $(
+            let builder = builder.receivers([
+                $(
+                    $crate::ser::channel::MessageSpec::new::<$rcv_ty>($rcv_desc),
+                )*
+            ]);
+        )?
+        builder.build()
+    }};
 }

@@ -1,13 +1,9 @@
 use dioxus::prelude::*;
 
-use crate::{
-    definitions::{Point, PointEdge},
-    ui::{
-        self,
-        channel::{Channel, ReceiverConnection, SenderConnection, tracker::Tracker},
-        text,
-    },
-};
+use crate::definitions::{EdgePos, Point};
+use crate::ui::channel::tracker::Tracker;
+use crate::ui::channel::{Channel, ReceiverConnection, SenderConnection};
+use crate::ui::{self, text};
 
 #[component]
 pub fn Renderer(tracker: ReadSignal<Tracker>, ui_nodes: ReadSignal<ui::NodeMap>) -> Element {
@@ -41,7 +37,7 @@ pub fn Renderer(tracker: ReadSignal<Tracker>, ui_nodes: ReadSignal<ui::NodeMap>)
             end.x += 20.0; // Offset to center of sender port dot
             end.y += 12.0; // Offset to center of channel vertically
 
-            let edge = PointEdge { start, end };
+            let edge = EdgePos { start, end };
             rsx! {
                 SenderConnection { edge }
             }
@@ -64,7 +60,7 @@ pub fn Renderer(tracker: ReadSignal<Tracker>, ui_nodes: ReadSignal<ui::NodeMap>)
             end.x += 38.0 + body_width + 20.0; // Offset to center of receiver port dot
             end.y += 12.0; // Offset to center of channel vertically
 
-            let edge = PointEdge { start, end };
+            let edge = EdgePos { start, end };
             rsx! {
                 ReceiverConnection { edge }
             }

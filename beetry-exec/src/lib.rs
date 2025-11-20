@@ -4,11 +4,12 @@ use beetry_core::{
 };
 use futures::StreamExt;
 use futures::stream::FuturesUnordered;
-use std::{future::poll_fn, sync::Arc, task::Poll};
-use tokio::sync::{
-    Notify,
-    mpsc::{Receiver, Sender, channel, error::TryRecvError},
-};
+use std::future::poll_fn;
+use std::sync::Arc;
+use std::task::Poll;
+use tokio::sync::Notify;
+use tokio::sync::mpsc::error::TryRecvError;
+use tokio::sync::mpsc::{Receiver, Sender, channel};
 use tracing::{debug, instrument};
 
 pub struct ExecutorConfig {

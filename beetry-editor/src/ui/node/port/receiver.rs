@@ -2,13 +2,9 @@ use beetry_core::MessageHash;
 use beetry_serde::ser::channel::MessageSpec;
 use dioxus::prelude::*;
 
-use crate::{
-    definitions::{IndexedDragOffset, NodeId, Point},
-    ui::{
-        channel::temporary::ConnectionOrigin,
-        text::{self, text_width_from},
-    },
-};
+use crate::definitions::{IndexedDragOffset, NodeId, Point};
+use crate::ui::channel::temporary::ConnectionOrigin;
+use crate::ui::text::{self, text_width_from};
 
 #[derive(Debug, Clone)]
 pub struct Handlers {
@@ -44,7 +40,7 @@ pub fn Receiver(props: ReceiverProps) -> Element {
     let message_hash = *props.spec.hash();
 
     let mut is_hovered = use_signal(|| false);
-    let (fill_gradient, shadow_filter) = match (props.is_external, *is_hovered.read()) {
+    let (fill_gradient, shadow_filter) = match (props.is_external, *is_hovered.peek()) {
         (true, true) => ("url(#channel-sender-gradient-hover)", "url(#shadow-hover)"),
         (true, false) => ("url(#channel-sender-gradient)", "url(#shadow)"),
         (false, true) => (

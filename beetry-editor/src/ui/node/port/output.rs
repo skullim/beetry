@@ -26,7 +26,7 @@ pub(crate) fn Port(props: PortProps) -> Element {
     let position = props.position;
 
     let mut is_hovered = use_signal(|| false);
-    let fill_gradient = if *is_hovered.read() {
+    let fill_gradient = if *is_hovered.peek() {
         "url(#io-port-hover)"
     } else {
         "url(#io-port-gradient)"

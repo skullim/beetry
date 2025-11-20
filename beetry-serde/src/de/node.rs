@@ -5,13 +5,13 @@ use beetry_core::MessageHash;
 use bon::{Builder, builder};
 use derive_getters::Getters;
 use derive_more::From;
-use mitsein::{iter1::FromIterator1, vec1::Vec1};
+use mitsein::iter1::FromIterator1;
+use mitsein::vec1::Vec1;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    de::{channel::ChannelId, parameter::Parameters},
-    ser::node::{LeafKind, NodeName},
-};
+use crate::de::channel::ChannelId;
+use crate::de::parameter::Parameters;
+use crate::ser::node::{LeafKind, NodeName};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RootSnapshot {

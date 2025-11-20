@@ -1,9 +1,7 @@
 use dioxus::prelude::*;
 
-use crate::{
-    toolbar::ToolbarHandlers,
-    ui::transfer::{OperationResult, OperationStatus},
-};
+use crate::toolbar::ToolbarHandlers;
+use crate::ui::transfer::{OperationResult, OperationStatus};
 
 #[derive(Debug, Clone)]
 pub struct Handlers {

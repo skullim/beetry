@@ -1,9 +1,7 @@
 use crate::Sequence;
 use beetry_core::BoxNode;
-use beetry_plugin::{
-    Plugin,
-    node::{ControlFactory, ControlPluginConstructor, ControlReconstructionData},
-};
+use beetry_plugin::Plugin;
+use beetry_plugin::node::{ControlFactory, ControlPluginConstructor, ControlReconstructionData};
 use beetry_serde::ser::node::{ControlSchema, ControlSpec, NodeName};
 
 struct SequencePlugin;

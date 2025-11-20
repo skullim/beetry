@@ -1,23 +1,23 @@
-use std::{collections::BTreeSet, rc::Rc};
+use std::collections::BTreeSet;
+use std::rc::Rc;
 
 use beetry_core::MessageHash;
 use beetry_serde::ser::node::{LeafKind, LeafSchema};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::{
-    definitions::{NodeId, Point},
-    ui::node::{
-        base::{NodeBase, NodeStyle, NodeWithContextMenu},
-        port::{self, input},
-    },
-};
+use crate::definitions::{NodeId, Point};
+use crate::editor::{NodeIdToNameStorage, SharedNodeIdToNameStorage};
+use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithContextMenu};
+use crate::ui::node::port::{self, input};
 
 #[derive(PartialEq, Clone, Props)]
 pub struct LeafProps {
     id: NodeId,
     position: Point,
+    //@todo would be better if this is accessible as lookup based on NodeId
     schema: LeafSchema,
+    //@todo would be better if this is accessible as lookup based on NodeId
     name: String,
     //@todo higher level can provide the info what channel type it is
     external_receivers: BTreeSet<MessageHash>,
@@ -27,10 +27,13 @@ pub struct LeafProps {
 pub(crate) fn Leaf(props: LeafProps) -> Element {
     debug!("rendering leaf component: {}", props.id);
     let leaf_schema = props.schema;
-
-    let style = use_hook(|| Rc::new(style(leaf_schema.kind, &props.name)));
-    let position = props.position;
     let id = props.id;
+    let storage = use_context::<SharedNodeIdToNameStorage>();
+    let storage_borrow = storage.borrow();
+    let name = storage_borrow.map.get(&id).unwrap();
+
+    let style = use_hook(|| Rc::new(style(leaf_schema.kind, &name.0)));
+    let position = props.position;
     let external_receivers = props.external_receivers;
 
     let half_width = style.width / 2.0;

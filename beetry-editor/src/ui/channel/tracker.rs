@@ -1,9 +1,7 @@
 use std::collections::{BTreeSet, HashMap};
 
-use crate::{
-    definitions::{NodeId, Point},
-    ui::channel::ChannelElement,
-};
+use crate::definitions::{NodeId, Point};
+use crate::ui::channel::ChannelElement;
 use beetry_serde::de::channel::{ChannelId, ChannelSnapshot};
 use bon::Builder;
 use dioxus_logger::tracing::debug;

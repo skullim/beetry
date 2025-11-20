@@ -4,10 +4,10 @@ use bon::bon;
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 
-use crate::de::{
-    channel::{ChannelId, ChannelIdEndpointCountMap, ChannelIdToSnapshotMap, ChannelValidator},
-    node::{NodeSnapshot, NodeSnapshotData, RootSnapshot},
+use crate::de::channel::{
+    ChannelId, ChannelIdEndpointCountMap, ChannelIdToSnapshotMap, ChannelValidator,
 };
+use crate::de::node::{NodeSnapshot, NodeSnapshotData, RootSnapshot};
 
 #[derive(Debug, ThisError)]
 pub enum ExportValidationError {

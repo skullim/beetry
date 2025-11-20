@@ -1,14 +1,13 @@
-use std::{collections::HashMap, num::NonZeroUsize};
+use std::collections::HashMap;
+use std::num::NonZeroUsize;
 
 use bon::Builder;
 use derive_getters::Getters;
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    de::tree::{ExportResult, ExportValidationError},
-    ser::channel::ChannelSpec,
-};
+use crate::de::tree::{ExportResult, ExportValidationError};
+use crate::ser::channel::ChannelSpec;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
 pub struct ChannelSnapshot {

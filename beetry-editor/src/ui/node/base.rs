@@ -4,13 +4,9 @@ use bon::Builder;
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 
-use crate::{
-    definitions::{IndexedDragOffset, NodeId, Point},
-    ui::{
-        text,
-        viewport::{ViewportContext, ZoomLevel},
-    },
-};
+use crate::definitions::{IndexedDragOffset, NodeId, Point};
+use crate::ui::text;
+use crate::ui::viewport::{ViewportContext, ZoomLevel};
 
 #[derive(Debug, Clone)]
 pub struct Handlers {
@@ -75,7 +71,7 @@ pub fn NodeBase(props: NodeBaseProps) -> Element {
     let zoom_level = use_context::<ViewportContext>().zoom_level;
 
     let mut is_hovered = use_signal(|| false);
-    let fill_color = if *is_hovered.read() {
+    let fill_color = if *is_hovered.peek() {
         &style.hover_gradient
     } else {
         &style.fill_gradient

@@ -1,10 +1,7 @@
-use beetry_serde::{
-    de::channel::{
-        BroadcastConfig, ChannelImplKind, ChannelKind, ChannelMetadata, MpscConfig,
-        TokioChannelConfig,
-    },
-    ser::channel::ChannelSpec,
+use beetry_serde::de::channel::{
+    BroadcastConfig, ChannelImplKind, ChannelKind, ChannelMetadata, MpscConfig, TokioChannelConfig,
 };
+use beetry_serde::ser::channel::ChannelSpec;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 use std::num::NonZeroUsize;

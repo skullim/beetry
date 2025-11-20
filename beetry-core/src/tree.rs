@@ -4,7 +4,8 @@ mod ticker;
 pub use engine::TreeEngine;
 pub use ticker::Ticker;
 
-use crate::{Node, TickStatus, root::Root};
+use crate::root::Root;
+use crate::{Node, TickStatus};
 
 pub struct Tree<N> {
     root: Root<N>,

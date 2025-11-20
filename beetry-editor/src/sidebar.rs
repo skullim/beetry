@@ -1,18 +1,15 @@
 use std::collections::BTreeSet;
 
 use beetry_serde::ser::node::{ControlSpec, LeafKind, LeafSpec};
-use dioxus::{logger::tracing::info, prelude::*};
+use dioxus::logger::tracing::info;
+use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::{
-    Plugins,
-    definitions::Point,
-    ui::{
-        self,
-        channel::{self, config_dialog::State as ChannelConfigDialogState},
-        node,
-    },
-};
+use crate::Plugins;
+use crate::definitions::Point;
+use crate::ui::channel::config_dialog::State as ChannelConfigDialogState;
+use crate::ui::channel::{self};
+use crate::ui::{self, node};
 
 #[derive(Clone)]
 pub struct SidebarEventHandlers {

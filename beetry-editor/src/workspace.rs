@@ -1,18 +1,15 @@
 use beetry_core::MessageHash;
 use beetry_serde::de::channel::ChannelId;
 use bon::Builder;
-use dioxus::{logger::tracing::debug, prelude::*};
+use dioxus::logger::tracing::debug;
+use dioxus::prelude::*;
 
-use crate::{
-    definitions::{IndexedDragOffset, NodeEdge, NodeId, Point, PointEdge},
-    ui::{
-        self,
-        channel::{self, temporary::ConnectionOrigin},
-        edge,
-        node::{self, ContextMenuState, ReceiverPortHandlers, SenderPortHandlers},
-        viewport::ViewportContext,
-    },
-};
+use crate::definitions::{EdgePos, IndexedDragOffset, NodeEdge, NodeId, Point};
+use crate::ui::channel::temporary::ConnectionOrigin;
+use crate::ui::channel::{self};
+use crate::ui::node::{self, ContextMenuState, ReceiverPortHandlers, SenderPortHandlers};
+use crate::ui::viewport::ViewportContext;
+use crate::ui::{self, edge};
 
 #[derive(Debug, Clone)]
 pub struct WorkspaceContext {
@@ -147,7 +144,7 @@ pub(crate) fn Workspace(
                 };
 
                 ui_nodes.with_mut(|nodes| {
-                    nodes.entry(id).and_modify(|e| e.pos = updated_pos);
+                    nodes.entry(id).and_modify(|n| n.pos = updated_pos);
                 });
 
                 dimensions_ctx.resize_if_needed(ui_nodes.into());
@@ -302,7 +299,7 @@ fn output_port_handlers(mut temp_edge_ctx: edge::temporary::Context) -> node::Ou
     let on_mouse_down = move |indexed_drag_offset: IndexedDragOffset| {
         let offset = indexed_drag_offset.offset;
         temp_edge_ctx.set_dragged_from(indexed_drag_offset.id);
-        temp_edge_ctx.update_edge(PointEdge {
+        temp_edge_ctx.update_edge(EdgePos {
             start: offset,
             end: offset,
         });
@@ -383,7 +380,7 @@ fn sender_handlers(
     )| {
         let offset = indexed_drag_offset.offset;
         channel_temp_connection_ctx.set_dragged(origin, indexed_drag_offset.id, msg_hash);
-        channel_temp_connection_ctx.update_edge(PointEdge {
+        channel_temp_connection_ctx.update_edge_pos(EdgePos {
             start: offset,
             end: offset,
         });
@@ -402,7 +399,7 @@ fn receiver_handlers(
     )| {
         let offset = indexed_drag_offset.offset;
         channel_temp_connection_ctx.set_dragged(origin, indexed_drag_offset.id, msg_hash);
-        channel_temp_connection_ctx.update_edge(PointEdge {
+        channel_temp_connection_ctx.update_edge_pos(EdgePos {
             start: offset,
             end: offset,
         });

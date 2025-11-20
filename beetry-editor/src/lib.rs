@@ -1,7 +1,10 @@
+mod application;
 mod definitions;
+mod domain;
 mod editor;
 mod project;
 mod sidebar;
+mod storage;
 mod toolbar;
 mod ui;
 mod workspace;
@@ -9,11 +12,10 @@ mod workspace;
 use beetry_plugin::node::{
     ActionPluginConstructor, ConditionPluginConstructor, ControlPluginConstructor,
 };
-use beetry_serde::ser::{
-    channel::ChannelSpec,
-    node::{ControlSpec, LeafSpec},
-};
-use dioxus::{logger::tracing::Level, prelude::*};
+use beetry_serde::ser::channel::ChannelSpec;
+use beetry_serde::ser::node::{ControlSpec, LeafSpec};
+use dioxus::logger::tracing::Level;
+use dioxus::prelude::*;
 
 pub use project::ProjectData;
 

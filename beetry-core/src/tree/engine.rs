@@ -1,4 +1,5 @@
-use crate::{BehaviorTreeTicker, Node, TickStatus, Tree, task::ExecutorConcept};
+use crate::task::ExecutorConcept;
+use crate::{BehaviorTreeTicker, Node, TickStatus, Tree};
 use state_shift::{impl_state, type_state};
 
 #[type_state(states = (Initial, TickerSet, TreeSet), slots = (Initial))]

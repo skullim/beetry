@@ -5,11 +5,9 @@ use beetry_serialization::{JsonSerializer, Serializer};
 use dioxus::prelude::*;
 use rfd::FileDialog;
 
-use crate::{
-    definitions::NodeId,
-    project::{EditorMetadata, ProjectData},
-    ui::{self, channel, edge, transfer},
-};
+use crate::definitions::NodeId;
+use crate::project::{EditorMetadata, ProjectData};
+use crate::ui::{self, channel, edge, transfer};
 #[derive(Debug, Clone)]
 pub struct ToolbarHandlers {
     pub(crate) import: transfer::ImportHandlers,

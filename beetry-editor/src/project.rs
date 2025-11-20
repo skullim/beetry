@@ -1,26 +1,20 @@
-use std::{
-    collections::{BTreeSet, HashMap},
-    io::Read,
-    path::Path,
-};
+use std::collections::{BTreeSet, HashMap};
+use std::io::Read;
+use std::path::Path;
 
 use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
-use beetry_serde::{
-    de::{
-        node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotData, RootSnapshot},
-        tree::TreeSnapshot,
-    },
-    ser::node::LeafSchema,
+use beetry_serde::de::node::{
+    ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotData, RootSnapshot,
 };
+use beetry_serde::de::tree::TreeSnapshot;
+use beetry_serde::ser::node::LeafSchema;
 use beetry_serialization::{Deserializer, JsonDeserializer};
 use dioxus_logger::tracing::debug;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    definitions::{NodeEdge, NodeId},
-    ui::{self, channel, edge},
-};
+use crate::definitions::{NodeEdge, NodeId};
+use crate::ui::{self, channel, edge};
 
 #[derive(Serialize, Deserialize)]
 pub struct ProjectData {

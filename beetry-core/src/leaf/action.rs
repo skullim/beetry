@@ -1,10 +1,9 @@
-use crate::{
-    Node, NodeTask, TickStatus,
-    task::{RegisterTask, TaskHandle, TaskStatus},
-};
+use crate::task::{RegisterTask, TaskHandle, TaskStatus};
+use crate::{Node, NodeTask, TickStatus};
 use anyhow::Result;
 use core::fmt;
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
+use std::time::Duration;
 use tracing::{debug, error};
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
@@ -177,10 +176,8 @@ mod tests {
     use mockall::mock;
 
     use super::*;
-    use crate::{
-        Task, TaskDescription,
-        task::{AbortTask, MockRegisterTask, QueryTask},
-    };
+    use crate::task::{AbortTask, MockRegisterTask, QueryTask};
+    use crate::{Task, TaskDescription};
 
     mock! {
         TaskHandle {}
