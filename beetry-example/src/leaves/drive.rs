@@ -2,12 +2,12 @@ use std::time::Duration;
 
 use crate::Pose;
 use anyhow::{Result, anyhow};
+use beetry_channel::downcast;
 use beetry_core::{ActionBehavior, BoxActionBehavior, NodeTask, Receiver, Task, TickStatus};
 use beetry_macros::receivers;
-use beetry_plugin::Plugin;
-use beetry_plugin::node::{self, ActionFactory, ActionReconstructionData};
-use beetry_serde::ser::channel::MessageSpec;
-use beetry_serde::ser::node::{ActionLeafSchema, ActionSpec};
+use beetry_plugin::node::ActionReconstructionData;
+use beetry_plugin::plugin;
+use beetry_serde::spec;
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
 
@@ -83,47 +83,15 @@ impl Task for DriveTask {
     }
 }
 
-pub struct DrivePlugin;
-
-impl Plugin for DrivePlugin {
-    type Spec = ActionSpec;
-    type Factory = ActionFactory;
-
-    fn new() -> Self
-    where
-        Self: Sized,
-    {
-        Self
-    }
-
-    fn spec(&self) -> Self::Spec {
-        ActionSpec::builder()
-            .name("Drive".to_string())
-            .schema(
-                ActionLeafSchema::builder()
-                    .receivers([MessageSpec::new::<Pose>("Drive pose")])
-                    .build(),
-            )
-            .build()
-    }
-
-    fn factory(self: Box<Self>) -> node::ActionFactory {
-        let factory_fn = |mut data: ActionReconstructionData| {
-            let recv = data
-                .inner
-                .receivers
-                .pop()
-                .ok_or_else(|| anyhow!("expected non empty receivers vector"))?;
-            if let Ok(recv) = recv.into_receiver_of::<Pose>() {
-                Ok(
-                    Box::new(Drive::new(DriveReceivers::builder().pose(recv).build()))
-                        as BoxActionBehavior,
-                )
-            } else {
-                anyhow::bail!("failed to instantiate node from erased type");
-            }
-        };
-        node::ActionFactory::new(Box::new(factory_fn))
+plugin! {
+  DrivePlugin: Action {
+    spec = spec! {type = action, name = "Drive", receivers = [Pose, desc = "Drive pose"] },
+    factory_fn = |mut data: ActionReconstructionData| {
+      let receivers = downcast! {receivers = &mut data.inner.receivers, expected = [Pose]}
+      .map_err(|_| anyhow!("failed to obtain typed receivers"))?;
+      Ok(Box::new(Drive::new(
+         DriveReceivers::builder().pose(receivers.0).build())) as BoxActionBehavior)
+      }
     }
 }
 

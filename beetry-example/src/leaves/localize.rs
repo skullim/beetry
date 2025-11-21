@@ -1,11 +1,11 @@
 use std::time::Duration;
 
 use anyhow::{Result, anyhow};
+use beetry_channel::downcast;
 use beetry_core::{self, ActionBehavior, BoxActionBehavior, NodeTask, Task, TickStatus};
-use beetry_plugin::Plugin;
-use beetry_plugin::node::{self, ActionFactory, ActionReconstructionData};
-use beetry_serde::ser::channel::MessageSpec;
-use beetry_serde::ser::node::{ActionLeafSchema, ActionSpec};
+use beetry_plugin::node::ActionReconstructionData;
+use beetry_plugin::plugin;
+use beetry_serde::spec;
 use tokio::sync::mpsc::{Receiver, Sender, channel as mpsc_channel};
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
@@ -96,42 +96,14 @@ impl Task for LocalizeTask {
     }
 }
 
-pub struct LocalizePlugin;
-impl Plugin for LocalizePlugin {
-    type Spec = ActionSpec;
-    type Factory = ActionFactory;
+plugin! {
+    LocalizePlugin: Action {
+      spec = spec! {type = action, name = "Localize", senders = [Pose, desc = "Localized pose"] },
+      factory_fn = |mut data: ActionReconstructionData| {
+        let senders = downcast! {senders = &mut data.inner.senders, expected = [Pose]}
+        .map_err(|_| anyhow!("failed to obtain typed senders"))?;
+        Ok(Box::new(Localize::new(senders.0)) as BoxActionBehavior)
 
-    fn new() -> Self
-    where
-        Self: Sized,
-    {
-        Self
-    }
-
-    fn spec(&self) -> ActionSpec {
-        ActionSpec::builder()
-            .name("Localize".to_string())
-            .schema(
-                ActionLeafSchema::builder()
-                    .senders([MessageSpec::new::<Pose>("Localized pose")])
-                    .build(),
-            )
-            .build()
-    }
-
-    fn factory(self: Box<Self>) -> node::ActionFactory {
-        let factory_fn = |mut data: ActionReconstructionData| {
-            let any_sender = data
-                .inner
-                .senders
-                .pop()
-                .ok_or_else(|| anyhow!("expected non empty senders vector"))?;
-            if let Ok(sender) = any_sender.into_sender_of::<Pose>() {
-                Ok(Box::new(Localize::new(sender)) as BoxActionBehavior)
-            } else {
-                anyhow::bail!("failed to instantiate node from erased type");
-            }
-        };
-        node::ActionFactory::new(Box::new(factory_fn))
+        }
     }
 }

@@ -112,50 +112,111 @@ pub enum LeafKind {
 
 #[macro_export]
 macro_rules! spec {
-    ( as action,
+    ( type = action,
       name = $name: literal
-      $(, params = $params_schema:expr )?
-      $(, receivers = [$($rcv_ty:ty, desc = $rcv_desc:literal),* $(,)?])?
-      $(, senders = [$($snd_ty:ty, desc = $snd_desc:literal),* $(,)?])?
-    )
-
-      => {
-        {
-            let builder = $crate::ser::node::ActionSpec::builder().name($name);
-            $(
-                let builder = builder.params_schema($params_schema);
-            )?
-            builder.schema($crate::action_schema! {
-                $(senders = [$($snd_ty, desc = $snd_desc),*])?
-                $(receivers = [$($rcv_ty, desc = $rcv_desc),*])?
-         }).build()
+      $(, params = $params_schema:expr)?
+      $(, receivers = [$($rcv_ty:ty, desc = $rcv_desc:literal),* ])?
+      $(, senders = [$($snd_ty:ty, desc = $snd_desc:literal),*])?
+    ) =>
+    {
+        spec! {
+            spec_builder: $crate::ser::node::ActionSpec::builder(),
+            schema_kind = action,
+            name = $name
+            $(, params = $params_schema)?
+            $(, senders = [$($snd_ty, desc = $snd_desc),*])?
+            $(, receivers = [$($rcv_ty, desc = $rcv_desc),*])?
         }
 
     };
+
+    ( type = condition,
+      name = $name: literal
+      $(, params = $params_schema:expr )?
+      $(, receivers = [$($rcv_ty:ty, desc = $rcv_desc:literal),*])?
+      $(, senders = [$($snd_ty:ty, desc = $snd_desc:literal),*])?
+    ) =>
+    {
+        spec! {
+            spec_builder: $crate::ser::node::ConditionSpec::builder(),
+            schema_kind = condition,
+            name = $name
+            $(, params = $params_schema)?
+            $(, senders = [$($snd_ty, desc = $snd_desc),*])?
+            $(, receivers = [$($rcv_ty, desc = $rcv_desc),*])?
+        }
+    };
+
+    (
+        spec_builder: $builder: expr,
+        schema_kind = $schema_kind: ident,
+        name = $name: literal
+        $(, params = $params_schema:expr )?
+        $(, receivers = [$($rcv_ty:ty, desc = $rcv_desc:literal),*])?
+        $(, senders = [$($snd_ty:ty, desc = $snd_desc:literal),*])?
+    ) =>
+     {
+        {
+            let builder = $builder.name($name);
+            $(
+                let builder = builder.params_schema($params_schema);
+            )?
+            builder.schema($crate::schema! {
+                kind = $schema_kind
+                $(, senders = [$($snd_ty, desc = $snd_desc),*])?
+                $(, receivers = [$($rcv_ty, desc = $rcv_desc),*])?
+            }).build()
+        }
+     }
 }
 
 #[macro_export]
-macro_rules! action_schema {
-    (
-        $(senders = [$($snd_ty:ty, desc = $snd_desc:literal),* $(,)?])?
-        $(receivers = [$($rcv_ty:ty, desc = $rcv_desc:literal),* $(,)?])?
+macro_rules! schema {
+    (   kind = action
+        $(, senders = [$($snd_ty:ty, desc = $snd_desc:literal),*])?
+        $(, receivers = [$($rcv_ty:ty, desc = $rcv_desc:literal),*])?
     ) =>
-    {{
-        let builder = $crate::ser::node::ActionLeafSchema::builder();
-        $(
-            let builder = builder.senders([
-                $(
-                    $crate::ser::channel::MessageSpec::new::<$snd_ty>($snd_desc),
-                )*
-            ]);
-        )?
-        $(
-            let builder = builder.receivers([
-                $(
-                    $crate::ser::channel::MessageSpec::new::<$rcv_ty>($rcv_desc),
-                )*
-            ]);
-        )?
-        builder.build()
-    }};
+    {
+        $crate::schema! { schema_builder = $crate::ser::node::ActionLeafSchema::builder()
+                          $(, senders = [$($snd_ty, desc = $snd_desc),*])?
+                          $(, receivers = [$($rcv_ty, desc = $rcv_desc),*])?
+        }
+    };
+
+
+    (   kind = condition
+        $(, senders = [$($snd_ty:ty, desc = $snd_desc:literal),*])?
+        $(, receivers = [$($rcv_ty:ty, desc = $rcv_desc:literal),*])?
+    ) =>
+    {
+        $crate::schema! { schema_builder = $crate::ser::node::ConditionLeafSchema::builder()
+                          $(, senders = [$($snd_ty, desc = $snd_desc),*])?
+                          $(, receivers = [$($rcv_ty, desc = $rcv_desc),*])?
+        }
+    };
+
+    (   schema_builder = $builder: expr
+        $(, senders = [$($snd_ty:ty, desc = $snd_desc:literal),*])?
+        $(, receivers = [$($rcv_ty:ty, desc = $rcv_desc:literal),*])?
+    ) =>
+    {
+        {
+            let builder = $builder;
+            $(
+                let builder = builder.senders([
+                    $(
+                        $crate::ser::channel::MessageSpec::new::<$snd_ty>($snd_desc),
+                    )*
+                ]);
+            )?
+            $(
+                let builder = builder.receivers([
+                    $(
+                        $crate::ser::channel::MessageSpec::new::<$rcv_ty>($rcv_desc),
+                    )*
+                ]);
+            )?
+            builder.build()
+        }
+    }
 }

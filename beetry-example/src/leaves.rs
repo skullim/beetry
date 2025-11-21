@@ -1,6 +1,5 @@
 mod check_battery;
 mod drive;
-mod gateway;
 mod localize;
 mod read_external_data;
 
