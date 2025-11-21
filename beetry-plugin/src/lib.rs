@@ -36,4 +36,4 @@ macro_rules! submit {
 }
 
 // reexport for macro
-pub use beetry_serde::ser::node::ActionSpec;
+pub use beetry_serde::ser::node::{ActionSpec, ConditionSpec};

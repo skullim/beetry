@@ -8,8 +8,6 @@ use bon::{Builder, builder};
 use std::collections::HashSet;
 use std::marker::PhantomData;
 
-//@todo: check if this can be simplified using https://crates.io/crates/supertrait crate
-//possibly less boilerplate code required for user
 pub trait ActionPlugin: Plugin<Spec = ActionSpec, Factory = ActionFactory> {}
 impl<P> ActionPlugin for P where P: Plugin<Spec = ActionSpec, Factory = ActionFactory> {}
 
@@ -184,12 +182,28 @@ where
 }
 
 #[macro_export]
-macro_rules! action_plugin {
-    ($plugin_name:ident { spec = $spec:expr,factory_fn = $factory_fn:expr }) => {
+macro_rules! plugin {
+    ($plugin_name:ident : Action {
+        spec = $spec:expr,
+        factory_fn = $factory_fn:expr $(,)?
+    }) => {
         $crate::plugin_impl!(
             plugin = $plugin_name,
             spec_ty = $crate::ActionSpec,
             factory_ty = $crate::node::ActionFactory,
+            spec = $spec,
+            factory_fn = $factory_fn
+        );
+    };
+
+    ($plugin_name:ident : Condition {
+        spec = $spec:expr,
+        factory_fn = $factory_fn:expr $(,)?
+    }) => {
+        $crate::plugin_impl!(
+            plugin = $plugin_name,
+            spec_ty = $crate::ConditionSpec,
+            factory_ty = $crate::node::ConditionFactory,
             spec = $spec,
             factory_fn = $factory_fn
         );
