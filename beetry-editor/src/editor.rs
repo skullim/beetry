@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use beetry_serde::de::channel::{ChannelMetadata, ChannelSnapshot};
@@ -146,7 +146,7 @@ fn parameter_dialog_handlers(
                 spec.name,
                 ui::NodeKind::Leaf {
                     schema: spec.schema,
-                    external_receivers: BTreeSet::new(),
+                    external_receivers: Default::default(),
                 },
             )
             .with_params(params),

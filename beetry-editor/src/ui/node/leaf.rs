@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 use std::rc::Rc;
 
 use beetry_core::MessageHash;
@@ -20,7 +20,7 @@ pub struct LeafProps {
     //@todo would be better if this is accessible as lookup based on NodeId
     name: String,
     //@todo higher level can provide the info what channel type it is
-    external_receivers: BTreeSet<MessageHash>,
+    external_receivers: HashSet<MessageHash>,
 }
 
 #[component]

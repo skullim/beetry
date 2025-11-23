@@ -5,6 +5,9 @@ use crate::ui::channel::tracker::Tracker;
 use crate::ui::channel::{Channel, ReceiverConnection, SenderConnection};
 use crate::ui::{self, text};
 
+// Conditions to re-render the channels:
+// - new channel created
+// - node/channel position updated
 #[component]
 pub fn Renderer(tracker: ReadSignal<Tracker>, ui_nodes: ReadSignal<ui::NodeMap>) -> Element {
     let nodes_read = ui_nodes.read();

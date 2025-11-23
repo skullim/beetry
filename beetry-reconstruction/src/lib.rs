@@ -127,16 +127,15 @@ impl TreeReconstructor {
                     .map(|id| Self::try_get_channel_mut(channel_map, id)?.try_take_receiver())
                     .collect::<Result<_>>()?;
 
-                if let Some(ext_receivers_snapshot) = leaf.take_ext_receivers() {
-                    ext_receivers_snapshot
-                        .into_iter()
-                        .map(|hash| ext_receivers_registry.take(hash))
-                        .for_each(|o_external_receiver| {
-                            if let Some(external_receiver) = o_external_receiver {
-                                receivers.push(external_receiver);
-                            }
-                        });
-                }
+                let ext_receivers_snapshot = leaf.take_ext_receivers();
+                ext_receivers_snapshot
+                    .into_iter()
+                    .map(|hash| ext_receivers_registry.take(hash))
+                    .for_each(|o_external_receiver| {
+                        if let Some(external_receiver) = o_external_receiver {
+                            receivers.push(external_receiver);
+                        }
+                    });
 
                 let senders: Vec<_> = leaf
                     .take_senders()

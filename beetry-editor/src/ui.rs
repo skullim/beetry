@@ -12,7 +12,7 @@ use beetry_serde::de::parameter::Parameters;
 use beetry_serde::ser::node::{LeafSchema, NodeName};
 use beetry_serde::ser::parameter;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{HashMap, HashSet};
 
 use crate::definitions::{NodeId, Point};
 
@@ -24,7 +24,7 @@ pub enum NodeKind {
     },
     Leaf {
         schema: LeafSchema,
-        external_receivers: BTreeSet<MessageHash>,
+        external_receivers: HashSet<MessageHash>,
     },
 }
 
