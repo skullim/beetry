@@ -1,9 +1,11 @@
+use std::collections::BTreeMap;
+
 use beetry_serde::de::parameter::Parameters;
 use beetry_serde::ser::node::LeafSpec;
 use beetry_serde::ser::parameter::{Definition, Type};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
-use serde_json::Value;
+use serde_value::Value;
 
 use crate::definitions::Point;
 
@@ -51,23 +53,17 @@ pub fn Dialog(props: DialogProps) -> Element {
     };
 
     let parameter_values = use_signal(|| {
-        let mut values = serde_json::Map::new();
+        let mut values_map = BTreeMap::new();
         for param_def in &spec.params_schema.defs {
             let default_value = match &param_def.ty {
                 Type::Boolean => Value::Bool(false),
-                Type::Integer { bounds } => {
-                    let default_val = bounds.as_ref().map(|b| b.min()).unwrap_or(0);
-                    Value::Number(serde_json::Number::from(default_val))
-                }
-                Type::Float { bounds } => {
-                    let default_val = bounds.as_ref().map(|b| b.min() as f64).unwrap_or(0.0);
-                    Value::Number(serde_json::Number::from_f64(default_val).unwrap())
-                }
+                Type::Integer { bounds } => Value::I64(0),
+                Type::Float { bounds } => Value::F64(0.0),
                 Type::String { max_length: _ } => Value::String(String::new()),
             };
-            values.insert(param_def.name.clone(), default_value);
+            values_map.insert(Value::String(param_def.name.clone()), default_value);
         }
-        values
+        Value::Map(values_map)
     });
 
     let param_defs = spec.params_schema.defs.clone();
@@ -293,10 +289,9 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
 
 fn validate_parameter(param: &Definition, value: Option<&Value>) -> Option<String> {
     match (&param.ty, value) {
-        (Type::Integer { bounds }, Some(Value::Number(n))) => {
-            if let Some(i) = n.as_i64()
-                && let Some(bounds) = bounds
-                && (i < bounds.min() as i64 || i > bounds.max() as i64)
+        (Type::Integer { bounds }, Some(Value::I64(n))) => {
+            if let Some(bounds) = bounds
+                && (*n < bounds.min() || *n > bounds.max())
             {
                 return Some(format!(
                     "Value must be between {} and {}",
@@ -306,15 +301,15 @@ fn validate_parameter(param: &Definition, value: Option<&Value>) -> Option<Strin
             }
             None
         }
-        (Type::Float { bounds }, Some(Value::Number(n))) => {
-            if let Some(f) = n.as_f64()
-                && let Some(bounds) = bounds
+        (Type::Float { bounds }, Some(Value::F64(n))) => {
+            if let Some(bounds) = bounds
+                && (*n < bounds.min() as f64 || *n > bounds.max() as f64)
             {
-                let min = bounds.min() as f64;
-                let max = bounds.max() as f64;
-                if f < min || f > max {
-                    return Some(format!("Value must be between {} and {}", min, max));
-                }
+                return Some(format!(
+                    "Value must be between {} and {}",
+                    bounds.min(),
+                    bounds.max()
+                ));
             }
             None
         }

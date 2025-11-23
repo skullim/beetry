@@ -27,9 +27,9 @@ pub struct Definition {
 #[derive(Debug, Clone, Builder, PartialEq, Eq, Serialize, Deserialize, Getters)]
 pub struct Bounds {
     #[getter(copy)]
-    min: i32,
+    min: i64,
     #[getter(copy)]
-    max: i32,
+    max: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
