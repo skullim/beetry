@@ -4,6 +4,8 @@ use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Default)]
 pub struct Tracker {
+    //@todo: Long term it should be just hash set. Right now the order matters to determine the children order.
+    // However, this should be changed to be based on the children position at the export time.
     parent_children_map: HashMap<NodeId, IndexSet<NodeId>>,
     edges: Vec<NodeEdge>,
 }
@@ -36,7 +38,7 @@ impl Tracker {
         self.edges.push(edge);
     }
 
-    pub(crate) fn remove_node(&mut self, id: NodeId) {
+    pub(crate) fn on_node_removal(&mut self, id: NodeId) {
         self.edges.retain(|edge| edge.from != id && edge.to != id);
         self.parent_children_map.remove(&id);
 

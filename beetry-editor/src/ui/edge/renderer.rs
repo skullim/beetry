@@ -5,6 +5,9 @@ use crate::ui::NodeMap;
 use crate::ui::edge::tracker::Tracker;
 use crate::ui::edge::{ContextMenuState, Edge};
 
+// Conditions to re-render the edges:
+// - new edge created
+// - node position updated
 #[component]
 pub fn Renderer(
     tracker: Signal<Tracker>,
@@ -26,6 +29,7 @@ pub fn Renderer(
 
             rsx! {
                 Edge {
+                    // should be stable across inserts, but not for deletions
                     key: "{index}",
                     pos: edge_pos,
                     edge_index: index,

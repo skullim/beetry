@@ -339,7 +339,7 @@ fn context_menu_handlers(
             elements.remove(&node_id);
         });
         edge_ctx.tracker.with_mut(|tracker| {
-            tracker.remove_node(node_id);
+            tracker.on_node_removal(node_id);
         });
         channel_ctx.tracker.with_mut(|tracker| {
             tracker.remove_node(node_id);
@@ -406,6 +406,7 @@ fn receiver_handlers(
     };
 
     let on_context_menu = move |(node_id, message_hash): (NodeId, MessageHash)| {
+        // add
         ui_nodes.with_mut(|nodes| {
             if let Some(node) = nodes.get_mut(&node_id)
                 && let ui::NodeKind::Leaf {

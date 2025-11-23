@@ -84,11 +84,8 @@ impl LeafSnapshot {
         std::mem::take(&mut self.receivers)
     }
 
-    pub fn take_ext_receivers(&mut self) -> Option<impl IntoIterator<Item = MessageHash>> {
-        if self.ext_receivers.is_empty() {
-            return None;
-        }
-        Some(std::mem::take(&mut self.ext_receivers))
+    pub fn take_ext_receivers(&mut self) -> impl IntoIterator<Item = MessageHash> {
+        std::mem::take(&mut self.ext_receivers)
     }
 
     pub fn take_senders(&mut self) -> impl IntoIterator<Item = ChannelId> {

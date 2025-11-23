@@ -6,6 +6,9 @@ use crate::ui::node::leaf::Leaf;
 use crate::ui::node::root::Root;
 use crate::ui::{NodeKind, NodeMap};
 
+// Conditions to re-render the nodes:
+// - new node created
+// - node position updated
 #[component]
 pub fn Renderer(ui_nodes: Signal<NodeMap>) -> Element {
     debug!("rendering nodes renderer");

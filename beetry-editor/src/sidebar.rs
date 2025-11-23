@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 use beetry_serde::ser::node::{ControlSpec, LeafKind, LeafSpec};
 use dioxus::logger::tracing::info;
@@ -78,7 +78,7 @@ pub(crate) fn Sidebar(
                     spec.name.clone(),
                     ui::NodeKind::Leaf {
                         schema: schema.clone(),
-                        external_receivers: BTreeSet::new(),
+                        external_receivers: HashSet::new(),
                     },
                 ));
             } else {

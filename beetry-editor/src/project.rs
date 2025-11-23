@@ -124,7 +124,7 @@ impl ProjectData {
                     &node.name.0,
                     schema,
                     channel_tracker,
-                    external_receivers,
+                    external_receivers.iter().copied(),
                 )?;
 
                 let receivers_read = channel_tracker.receivers();
@@ -179,7 +179,7 @@ impl ProjectData {
         name: &str,
         schema: &LeafSchema,
         channel_tracker: &channel::Tracker,
-        external_receivers: &BTreeSet<MessageHash>,
+        external_receivers: impl Iterator<Item = MessageHash>,
     ) -> Result<()> {
         debug!("Validating connections for node {node_id} ({})", name);
 
@@ -246,7 +246,7 @@ impl ProjectData {
         }
 
         for external in external_receivers {
-            if let Some(desc_str) = unconnected_receivers.remove(external) {
+            if let Some(desc_str) = unconnected_receivers.remove(&external) {
                 debug!("✓ External receiver for message: {}", desc_str);
             }
         }

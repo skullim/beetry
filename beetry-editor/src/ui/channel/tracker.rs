@@ -51,7 +51,7 @@ impl Tracker {
     }
 
     pub(crate) fn remove_node(&mut self, id: NodeId) {
-        let mut references = vec![];
+        let mut references: Vec<ChannelId> = vec![];
         if let Some(recv_references) = self.receivers.remove(&id) {
             references.extend(recv_references);
         }
