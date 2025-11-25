@@ -51,8 +51,8 @@ pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
         let field_type = &field.ty;
 
         let mut description: Option<LitStr> = None;
-        let mut min_bound: Option<i32> = None;
-        let mut max_bound: Option<i32> = None;
+        let mut min_bound: Option<i64> = None;
+        let mut max_bound: Option<i64> = None;
 
         for attr in &field.attrs {
             if attr.path().is_ident("param")
@@ -65,10 +65,10 @@ pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
                             let value: Lit = meta.value()?.parse()?;
                             match value {
                                 Lit::Int(lit_int) => {
-                                    min_bound = Some(lit_int.base10_parse::<i32>()?);
+                                    min_bound = Some(lit_int.base10_parse::<i64>()?);
                                 }
                                 Lit::Float(lit_float) => {
-                                    min_bound = Some(lit_float.base10_parse::<f32>()? as i32);
+                                    min_bound = Some(lit_float.base10_parse::<f32>()? as i64);
                                 }
                                 _ => {}
                             }
@@ -76,10 +76,10 @@ pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
                             let value: Lit = meta.value()?.parse()?;
                             match value {
                                 Lit::Int(lit_int) => {
-                                    max_bound = Some(lit_int.base10_parse::<i32>()?);
+                                    max_bound = Some(lit_int.base10_parse::<i64>()?);
                                 }
                                 Lit::Float(lit_float) => {
-                                    max_bound = Some(lit_float.base10_parse::<f32>()? as i32);
+                                    max_bound = Some(lit_float.base10_parse::<f32>()? as i64);
                                 }
                                 _ => {}
                             }

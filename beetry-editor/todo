@@ -6,6 +6,8 @@ Features:
 - node position in the editor should correspond to child index of control node (children sorted from left to right)
 - long term there should be button to align the nodes in the tree
 - resize nodes
+- show selected params
+- allow to change params
 
 Improvements:
 - split domain and ui related data and implement coordination layer. This will decouple ui element props and make rendering more efficient 

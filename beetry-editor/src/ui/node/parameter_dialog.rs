@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use anyhow::bail;
 use beetry_serde::de::parameter::Parameters;
 use beetry_serde::ser::node::LeafSpec;
 use beetry_serde::ser::parameter::{Definition, Type};
@@ -57,13 +58,13 @@ pub fn Dialog(props: DialogProps) -> Element {
         for param_def in &spec.params_schema.defs {
             let default_value = match &param_def.ty {
                 Type::Boolean => Value::Bool(false),
-                Type::Integer { bounds } => Value::I64(0),
-                Type::Float { bounds } => Value::F64(0.0),
+                Type::Integer { bounds: _ } => Value::I64(0),
+                Type::Float { bounds: _ } => Value::F64(0.0),
                 Type::String { max_length: _ } => Value::String(String::new()),
             };
-            values_map.insert(Value::String(param_def.name.clone()), default_value);
+            values_map.insert(param_def.name.clone(), default_value);
         }
-        Value::Map(values_map)
+        values_map
     });
 
     let param_defs = spec.params_schema.defs.clone();
@@ -71,7 +72,7 @@ pub fn Dialog(props: DialogProps) -> Element {
         let values = parameter_values.read();
 
         for param_def in &param_defs {
-            if validate_parameter(param_def, values.get(&param_def.name)).is_some() {
+            if validate_parameter(param_def, values.get(&param_def.name)).is_err() {
                 return true;
             }
         }
@@ -84,7 +85,11 @@ pub fn Dialog(props: DialogProps) -> Element {
     let on_confirm = move |_| {
         if !has_validation_errors() {
             let values = parameter_values.read();
-            let serialized_params = Parameters::from_value(Value::Object(values.clone()));
+            let value_map = values
+                .iter()
+                .map(|(k, v)| (Value::String(k.to_string()), v.clone()))
+                .collect();
+            let serialized_params = Parameters::from_value(Value::Map(value_map));
             handlers
                 .on_confirm
                 .call((spec_for_confirm.clone(), serialized_params));
@@ -166,7 +171,7 @@ pub fn Dialog(props: DialogProps) -> Element {
 #[derive(Props, Clone, PartialEq)]
 struct ParameterFieldProps {
     definition: Definition,
-    values: Signal<serde_json::Map<String, Value>>,
+    values: Signal<BTreeMap<String, Value>>,
 }
 
 #[component]
@@ -175,13 +180,13 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
     let mut values = props.values;
 
     let def_for_validation = def.clone();
-    let validation_error = use_memo(move || {
-        let current_values = values.read();
+    let validation_error = move || {
+        let current_values = values.peek();
         validate_parameter(
             &def_for_validation,
             current_values.get(&def_for_validation.name),
         )
-    });
+    };
 
     rsx! {
         label { display: "block", margin_bottom: "4px", font_weight: "bold", {def.name.clone()} }
@@ -196,7 +201,7 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                 rsx! {
                     input {
                         r#type: "checkbox",
-                        checked: values.read().get(&def.name).and_then(|v| v.as_bool()).unwrap_or(false),
+                        checked: false, //values.read().get(&def.name).and_then(|v| v.as_bool()).unwrap_or(false),
                         onchange: move |evt| {
                             let mut vals = values.write();
                             vals.insert(def_name.clone(), Value::Bool(evt.checked()));
@@ -207,67 +212,63 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
             Type::Integer { bounds } => {
                 let def_name = def.name.clone();
                 let error = validation_error();
-                let border_color = if error.is_some() { "#ff0000" } else { "#ddd" };
+                let border_color = if error.is_err() { "#ff0000" } else { "#ddd" };
                 rsx! {
                     input {
                         r#type: "number",
                         min: bounds.as_ref().map(|b| b.min().to_string()),
                         max: bounds.as_ref().map(|b| b.max().to_string()),
-                        value: values.read().get(&def.name).and_then(|v| v.as_i64()).unwrap_or(0).to_string(),
+                        value: 0i64, //values.read().get(&def.name).and_then(|v| v.as_i64()).unwrap_or(0).to_string(),
                         width: "100%",
                         padding: "4px 8px",
                         border: "1px solid {border_color}",
                         border_radius: "4px",
                         oninput: move |evt| {
                             if let Ok(val) = evt.value().parse::<i64>() {
-                                let mut vals = values.write();
-                                vals.insert(def_name.clone(), Value::Number(serde_json::Number::from(val)));
+                                values.with_mut(|write| write.insert(def_name.clone(), Value::I64(val)));
                             }
                         },
                     }
-                    if let Some(error_msg) = error {
-                        div { color: "#ff0000", font_size: "12px", margin_top: "4px", {error_msg} }
+                    if let Err(error_msg) = error {
+                        div { color: "#ff0000", font_size: "12px", margin_top: "4px", {format!("{error_msg}")} }
                     }
                 }
             }
             Type::Float { bounds } => {
                 let def_name = def.name.clone();
                 let error = validation_error();
-                let border_color = if error.is_some() { "#ff0000" } else { "#ddd" };
+                let border_color = if error.is_err() { "#ff0000" } else { "#ddd" };
                 rsx! {
                     input {
                         r#type: "number",
                         step: "1.00",
                         min: bounds.as_ref().map(|b| b.min().to_string()),
                         max: bounds.as_ref().map(|b| b.max().to_string()),
-                        value: values.read().get(&def.name).and_then(|v| v.as_f64()).unwrap_or(0.0).to_string(),
+                        value: 0.0, //values.read().get(&def.name).and_then(|v| v.as_f64()).unwrap_or(0.0).to_string(),
                         width: "100%",
                         padding: "4px 8px",
                         border: "1px solid {border_color}",
                         border_radius: "4px",
                         oninput: move |evt| {
                             if let Ok(val) = evt.value().parse::<f64>() {
-                                let mut vals = values.write();
-                                if let Some(num) = serde_json::Number::from_f64(val) {
-                                    vals.insert(def_name.clone(), Value::Number(num));
-                                }
+                                values.with_mut(|write| write.insert(def_name.clone(), Value::F64(val)));
                             }
                         },
                     }
-                    if let Some(error_msg) = error {
-                        div { color: "#ff0000", font_size: "12px", margin_top: "4px", {error_msg} }
+                    if let Err(error_msg) = error {
+                        div { color: "#ff0000", font_size: "12px", margin_top: "4px", {format!("{error_msg}")} }
                     }
                 }
             }
             Type::String { max_length } => {
                 let def_name = def.name.clone();
                 let error = validation_error();
-                let border_color = if error.is_some() { "#ff0000" } else { "#ddd" };
+                let border_color = if error.is_err() { "#ff0000" } else { "#ddd" };
                 rsx! {
                     input {
                         r#type: "text",
                         maxlength: max_length.map(|len| len.to_string()),
-                        value: values.read().get(&def.name).and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        value: "", //values.read().get(&def.name).and_then(|v| v.as_str()).unwrap_or("").to_string(),
                         width: "100%",
                         padding: "4px 8px",
                         border: "1px solid {border_color}",
@@ -278,8 +279,8 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                             vals.insert(def_name.clone(), Value::String(value));
                         },
                     }
-                    if let Some(error_msg) = error {
-                        div { color: "#ff0000", font_size: "12px", margin_top: "4px", {error_msg} }
+                    if let Err(error_msg) = error {
+                        div { color: "#ff0000", font_size: "12px", margin_top: "4px", {format!("{error_msg}")} }
                     }
                 }
             }
@@ -287,41 +288,40 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
     }
 }
 
-fn validate_parameter(param: &Definition, value: Option<&Value>) -> Option<String> {
+fn validate_parameter(param: &Definition, value: Option<&Value>) -> anyhow::Result<()> {
     match (&param.ty, value) {
         (Type::Integer { bounds }, Some(Value::I64(n))) => {
             if let Some(bounds) = bounds
                 && (*n < bounds.min() || *n > bounds.max())
             {
-                return Some(format!(
+                bail!(
                     "Value must be between {} and {}",
                     bounds.min(),
                     bounds.max()
-                ));
+                );
             }
-            None
+            Ok(())
         }
         (Type::Float { bounds }, Some(Value::F64(n))) => {
             if let Some(bounds) = bounds
                 && (*n < bounds.min() as f64 || *n > bounds.max() as f64)
             {
-                return Some(format!(
+                bail!(
                     "Value must be between {} and {}",
                     bounds.min(),
                     bounds.max()
-                ));
+                );
             }
-            None
+            Ok(())
         }
         (Type::String { max_length }, Some(Value::String(s))) => {
             if let Some(max_len) = max_length
                 && s.len() > *max_len
             {
-                return Some(format!("String must be at most {} characters", max_len));
+                bail!("String must be at most {} characters", max_len);
             }
-
-            None
+            Ok(())
         }
-        _ => None,
+        _ => Ok(()),
     }
 }

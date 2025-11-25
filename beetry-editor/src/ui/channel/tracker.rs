@@ -11,7 +11,7 @@ pub type ChannelIdToElementMap = HashMap<ChannelId, ChannelElement>;
 
 #[derive(Debug, Default, Clone, Builder, Serialize, Deserialize)]
 pub struct Tracker {
-    channel_id: ChannelId,
+    id: ChannelId,
     channels: ChannelIdToElementMap,
     senders: HashMap<NodeId, BTreeSet<ChannelId>>,
     receivers: HashMap<NodeId, BTreeSet<ChannelId>>,
@@ -25,13 +25,12 @@ impl Tracker {
     pub(crate) fn create_channel(&mut self, snapshot: ChannelSnapshot) {
         debug!(
             "creating new channel id: {:?} with message {:?}",
-            self.channel_id,
+            self.id,
             snapshot.spec().as_str()
         );
 
-        self.channels
-            .insert(self.channel_id, ChannelElement::new(snapshot));
-        self.channel_id = self.channel_id.next();
+        self.channels.insert(self.id, ChannelElement::new(snapshot));
+        self.id = self.id.next();
     }
 
     pub(crate) fn connect_sender(&mut self, from: NodeId, id: ChannelId) {
