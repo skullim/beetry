@@ -11,7 +11,6 @@ derive-getters.workspace = true
 derive_more.workspace = true
 mitsein.workspace = true
 serde.workspace = true
-serde_json = "1.0.145"
 thiserror.workspace = true
 tracing.workspace = true
 type_hash = "0.3.0"
