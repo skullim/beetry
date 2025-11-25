@@ -12,6 +12,9 @@ use crate::definitions::Point;
 
 #[derive(Debug, Clone)]
 pub struct Handlers {
+    //@todo ideally it should be only Parameters that are passed
+    // right now if node has params then it is created by the on_confirm handler.
+    // However this component should not be responsible for that, but rather only for inserting valid params into repository
     pub(crate) on_confirm: EventHandler<(LeafSpec, Parameters)>,
     pub(crate) on_cancel: EventHandler<()>,
 }
@@ -85,11 +88,8 @@ pub fn Dialog(props: DialogProps) -> Element {
     let on_confirm = move |_| {
         if !has_validation_errors() {
             let values = parameter_values.read();
-            let value_map = values
-                .iter()
-                .map(|(k, v)| (Value::String(k.to_string()), v.clone()))
-                .collect();
-            let serialized_params = Parameters::from_value(Value::Map(value_map));
+            let value_iter = values.iter().map(|(k, v)| (k.to_string(), v.clone()));
+            let serialized_params = Parameters::from_iter(value_iter);
             handlers
                 .on_confirm
                 .call((spec_for_confirm.clone(), serialized_params));
