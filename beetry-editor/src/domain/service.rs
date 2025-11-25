@@ -88,6 +88,7 @@ impl NodeService {
             fn create_action<N>(&mut self, repo: &mut N) -> Result<NodeId> where N: NodeRepository;
             fn create_condition<N>(&mut self, repo: &mut N) -> Result<NodeId> where N: NodeRepository;
             fn create_control<N>(&mut self, repo: &mut N) -> Result<NodeId> where N: NodeRepository;
+            fn create_decorator<N>(&mut self, repo: &mut N) -> Result<NodeId> where N: NodeRepository;
         }
     }
 
