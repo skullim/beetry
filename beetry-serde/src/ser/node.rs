@@ -28,10 +28,12 @@ impl From<&'static str> for NodeName {
     }
 }
 
+pub type RootSpec = NodeSpec<RootSchema>;
 pub type LeafSpec = NodeSpec<LeafSchema>;
 pub type ActionSpec = LeafSpec;
 pub type ConditionSpec = LeafSpec;
 pub type ControlSpec = NodeSpec<ControlSchema>;
+pub type DecoratorSpec = NodeSpec<DecoratorSchema>;
 
 #[derive(Debug, Builder, Clone, Eq, Getters, Serialize, Deserialize)]
 pub struct NodeSpec<S> {
@@ -67,7 +69,13 @@ where
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct RootSchema;
+
+#[derive(Debug, Clone, Default)]
 pub struct ControlSchema;
+
+#[derive(Debug, Clone, Default)]
+pub struct DecoratorSchema;
 
 #[derive(Debug, Clone, PartialEq, Eq, Builder, Getters, Serialize, Deserialize)]
 pub struct LeafSchema {

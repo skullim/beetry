@@ -32,7 +32,7 @@ pub(crate) fn Sidebar(
     let on_new_node = use_context::<SidebarEventHandlers>().on_new_node;
 
     let plugins = use_context::<Plugins>();
-    let leaves = &plugins.leaves;
+    let leaves = plugins.leaves;
     let controls = plugins.controls;
     let channels = plugins.channels;
 

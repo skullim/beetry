@@ -2,59 +2,72 @@ use crate::domain::models::{ChannelId, EdgeId, ExternalReceivers, ExternalSender
 
 use super::models::{NodeId, NodeKind, NodePosition};
 use beetry_core::MessageHash;
+use beetry_plugin::{ActionSpec, ConditionSpec};
 use beetry_serde::{
     de::parameter::Parameters,
-    ser::node::{NodeName, NodeSpec},
+    ser::node::{ControlSpec, DecoratorSpec, NodeName},
 };
 
 use anyhow::Result;
+use serde_value::Value;
 
 pub trait NodeRepository {
-    //@todo pass probably schema here
-    // should repository deal with assigning node id's? Probably yes
-    fn create_node(&mut self) -> Result<NodeId>;
+    fn create_root(&mut self, id: NodeId) -> Result<()>;
+    fn create_action(&mut self, id: NodeId) -> Result<()>;
+    fn create_condition(&mut self, id: NodeId) -> Result<()>;
+    fn create_control(&mut self, id: NodeId) -> Result<()>;
+    fn create_decorator(&mut self, id: NodeId) -> Result<()>;
 
-    fn delete_node(&mut self, id: NodeId) -> Result<()>;
+    fn remove(&mut self, id: NodeId) -> Result<()>;
 
     fn kind(&self, id: NodeId) -> Option<NodeKind>;
 
-    fn position(&self, id: NodeId) -> Option<NodePosition>;
+    fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()>;
 
-    fn name(&self, id: NodeId) -> Option<&NodeName>;
-
-    fn spec<T>(&self, id: NodeId) -> Option<&NodeSpec<T>>;
+    fn position(&self, id: NodeId) -> Option<&NodePosition>;
 
     fn nodes(&self) -> &[NodeId];
 }
 
+pub trait SpecRepository {
+    fn register_action(&mut self, spec: ActionSpec) -> Result<()>;
+    fn register_condition(&mut self, spec: ConditionSpec) -> Result<()>;
+    fn register_control(&mut self, spec: ControlSpec) -> Result<()>;
+    fn register_decorator(&mut self, spec: DecoratorSpec) -> Result<()>;
+
+    fn bind_action_id(&mut self, name: NodeName, id: NodeId) -> Result<()>;
+    fn bind_condition_id(&mut self, name: NodeName, id: NodeId) -> Result<()>;
+    fn bind_control_id(&mut self, name: NodeName, id: NodeId) -> Result<()>;
+    fn bind_decorator_id(&mut self, name: NodeName, id: NodeId) -> Result<()>;
+
+    fn action(&self, id: NodeId) -> Option<&ActionSpec>;
+    fn condition(&self, id: NodeId) -> Option<&ConditionSpec>;
+    fn control(&self, id: NodeId) -> Option<&ControlSpec>;
+    fn decorator(&self, id: NodeId) -> Option<&DecoratorSpec>;
+}
+
 pub trait ParamRepository {
     fn insert(&mut self, id: NodeId, params: Parameters);
-
+    fn update(&mut self, id: NodeId, field_name: &str, value: Value) -> Result<()>;
     fn params(&self, id: NodeId) -> &Parameters;
 }
 
 pub trait ExternalPortRepository {
     fn insert_sender(&mut self, id: NodeId, sender: MessageHash);
-
     fn senders(&self, id: NodeId) -> &ExternalSenders;
 
     fn insert_receiver(&mut self, id: NodeId, receiver: MessageHash);
-
     fn receivers(&self, id: NodeId) -> &ExternalReceivers;
 }
 
 pub trait EdgeRepository {
-    fn create_edge(&mut self, edge: NodeEdge) -> Result<EdgeId>;
-
-    fn delete_edge(&mut self, id: EdgeId) -> Result<()>;
-
+    fn create(&mut self, edge: NodeEdge) -> Result<EdgeId>;
+    fn remove(&mut self, id: EdgeId) -> Result<()>;
     fn edges(&self) -> &[EdgeId];
 }
 
 pub trait ChannelRepository {
-    fn create_channel(&mut self) -> Result<ChannelId>;
-
-    fn delete_channel(&mut self, id: ChannelId) -> Result<()>;
-
+    fn create(&mut self) -> Result<ChannelId>;
+    fn remove(&mut self, id: ChannelId) -> Result<()>;
     fn channels(&self) -> &[ChannelId];
 }
