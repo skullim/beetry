@@ -12,6 +12,7 @@ use beetry_serde::{
 
 use anyhow::{Result, anyhow, bail};
 use serde_value::Value;
+use slotmap::SlotMap;
 
 pub trait NodeRepository {
     fn create_root(&mut self, id: NodeId) -> Result<()>;
@@ -30,6 +31,61 @@ pub trait NodeRepository {
 
     fn nodes(&self) -> impl Iterator<Item = NodeId>;
 }
+
+pub trait ProvideNodeName {
+    fn name(&self) -> &NodeName;
+}
+
+pub trait NodeRepositoryConcept {
+    type Spec: Clone + ProvideNodeName;
+
+    fn create(&mut self, spec: &Self::Spec, id: NodeId) -> Result<()>;
+    fn remove(&mut self, id: NodeId) -> Result<()>;
+
+    fn register_spec(&mut self, spec: Self::Spec) -> Result<()>;
+    fn spec(&self, id: NodeId) -> Option<&Self::Spec>;
+
+    fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()>;
+    fn position(&self, id: NodeId) -> Option<&NodePosition>;
+
+    fn nodes(&self) -> impl Iterator<Item = NodeId>;
+}
+
+type NodeSchemaId = slotmap::DefaultKey;
+
+struct NodeRepositoryProto<S> {
+    nodes: HashMap<NodeId, NodeSchemaId>,
+    cached_schema_keys: HashMap<NodeName, NodeSchemaId>,
+    specs: SlotMap<NodeSchemaId, S>,
+    positions: HashMap<NodeId, NodePosition>,
+}
+
+impl<S> NodeRepositoryProto<S>
+where
+    S: Clone + ProvideNodeName,
+{
+    fn create_impl(&mut self, spec: &S, id: NodeId) -> Result<()> {
+        let name = spec.name();
+        let key = match self.cached_schema_keys.get(name) {
+            Some(key) => *key,
+            None => {
+                let new_key = self.specs.insert(spec.clone());
+                self.cached_schema_keys.insert(name.clone(), new_key);
+                new_key
+            }
+        };
+        self.nodes.insert(id, key);
+        Ok(())
+    }
+}
+
+pub type ActionNodeRepository = NodeRepositoryProto<ActionSpec>;
+
+// impl NodeRepositoryConcept for ActionNodeRepository {
+//     type Spec = ActionSpec;
+
+//     fn create(&mut self, spec: &Self::Spec, id: NodeId) -> Result<()> {}
+// }
 
 pub trait SpecRepository {
     fn register_action(&mut self, spec: ActionSpec) -> Result<()>;
@@ -65,13 +121,13 @@ pub trait ExternalPortRepository {
 pub trait EdgeRepository {
     fn create(&mut self, edge: NodeEdge) -> Result<EdgeId>;
     fn remove(&mut self, id: EdgeId) -> Result<()>;
-    fn edges(&self) -> &[EdgeId];
+    fn edges(&self) -> impl Iterator<Item = EdgeId>;
 }
 
 pub trait ChannelRepository {
     fn create(&mut self) -> Result<ChannelId>;
     fn remove(&mut self, id: ChannelId) -> Result<()>;
-    fn channels(&self) -> &[ChannelId];
+    fn channels(&self) -> impl Iterator<Item = ChannelId>;
 }
 
 pub struct NodeRepositoryImpl {
