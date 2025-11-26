@@ -163,24 +163,6 @@ derive_provide_node_name!(ActionSpec);
 derive_provide_node_name!(ControlSpec);
 derive_provide_node_name!(DecoratorSpec);
 
-// impl ProvideNodeName for ActionSpec {
-//     fn name(&self) -> &NodeName {
-//         &self.name
-//     }
-// }
-
-// impl ProvideNodeName for ControlSpec {
-//     fn name(&self) -> &NodeName {
-//         &self.name
-//     }
-// }
-
-// impl ProvideNodeName for DecoratorSpec {
-//     fn name(&self) -> &NodeName {
-//         &self.name
-//     }
-// }
-
 derive_node_repository! {ActionNodeRepository, ActionSpec}
 derive_node_repository! {ControlNodeRepository, ControlSpec}
 derive_node_repository! {DecoratorNodeRepository, DecoratorSpec}
