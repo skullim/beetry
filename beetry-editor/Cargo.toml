@@ -25,3 +25,4 @@ rfd = { version = "0.15.4", default-features = false, features = [
 ] }
 serde.workspace = true
 serde-value.workspace = true
+slotmap = "1.0.7"
