@@ -1,44 +1,45 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::domain::models::{ChannelId, EdgeId, ExternalReceivers, ExternalSenders, NodeEdge};
+use crate::domain::models::{
+    ChannelId, ChannelPosition, EdgeId, EdgePosition, ExternalReceivers, ExternalSenders, NodeEdge,
+};
 
 use super::models::{NodeId, NodeKind, NodePosition};
 use beetry_core::MessageHash;
 use beetry_plugin::{ActionSpec, ConditionSpec};
 use beetry_serde::{
     de::parameter::Parameters,
-    ser::node::{ControlSpec, DecoratorSpec, NodeName},
+    ser::{
+        channel::ChannelSpec,
+        node::{ControlSpec, DecoratorSpec, NodeName, RootSpec},
+    },
 };
 
 use anyhow::{Result, anyhow, bail};
+use getset::{Getters, MutGetters};
 use serde_value::Value;
 use slotmap::SlotMap;
 
-pub trait NodeRepository {
-    fn create_root(&mut self, id: NodeId) -> Result<()>;
-    fn create_action(&mut self, id: NodeId) -> Result<()>;
-    fn create_condition(&mut self, id: NodeId) -> Result<()>;
-    fn create_control(&mut self, id: NodeId) -> Result<()>;
-    fn create_decorator(&mut self, id: NodeId) -> Result<()>;
-
-    fn remove(&mut self, id: NodeId) -> Result<()>;
-
-    fn kind(&self, id: NodeId) -> Option<NodeKind>;
-
-    fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()>;
-
-    fn position(&self, id: NodeId) -> Option<&NodePosition>;
-
-    fn nodes(&self) -> impl Iterator<Item = NodeId>;
+#[derive(Getters, MutGetters)]
+pub struct EditorRepository<ER, KR, CR, PR> {
+    #[getset(get = "pub", get_mut = "pub")]
+    node: NodeRepositoryFacade,
+    #[getset(get = "pub", get_mut = "pub")]
+    edge: ER,
+    #[getset(get = "pub", get_mut = "pub")]
+    kind: KR,
+    #[getset(get = "pub", get_mut = "pub")]
+    channel: CR,
+    #[getset(get = "pub", get_mut = "pub")]
+    parameter: PR,
 }
 
 pub trait NodeRepositoryConcept {
     type Spec: Clone + ProvideNodeName;
 
-    fn create(&mut self, spec: &Self::Spec, id: NodeId) -> Result<()>;
+    fn create(&mut self, id: NodeId, spec: &Self::Spec) -> Result<()>;
     fn remove(&mut self, id: NodeId) -> Result<()>;
 
-    fn register_spec(&mut self, spec: Self::Spec) -> Result<()>;
     fn spec(&self, id: NodeId) -> Option<&Self::Spec>;
 
     fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()>;
@@ -47,20 +48,84 @@ pub trait NodeRepositoryConcept {
     fn nodes(&self) -> impl Iterator<Item = NodeId>;
 }
 
+pub trait ProvideNodeName {
+    fn name(&self) -> &NodeName;
+}
+
+macro_rules! derive_provide_node_name {
+    ($ty: ty) => {
+        impl ProvideNodeName for $ty {
+            fn name(&self) -> &NodeName {
+                &self.name
+            }
+        }
+    };
+}
+derive_provide_node_name!(RootSpec);
+derive_provide_node_name!(ActionSpec);
+derive_provide_node_name!(ControlSpec);
+derive_provide_node_name!(DecoratorSpec);
+
+pub struct RootNodeRepository {
+    node: Option<NodeId>,
+    spec: Option<RootSpec>,
+    position: Option<NodePosition>,
+}
+
+impl NodeRepositoryConcept for RootNodeRepository {
+    type Spec = RootSpec;
+
+    fn create(&mut self, id: NodeId, spec: &Self::Spec) -> Result<()> {
+        match self.node {
+            Some(_) => bail!("attempted to register root node twice"),
+            None => {
+                self.spec = Some(spec.clone());
+                self.node = Some(id);
+                Ok(())
+            }
+        }
+    }
+
+    fn remove(&mut self, _id: NodeId) -> Result<()> {
+        self.node.take();
+        Ok(())
+    }
+
+    fn spec(&self, _id: NodeId) -> Option<&Self::Spec> {
+        self.spec.as_ref()
+    }
+
+    fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
+        if self.node != Some(id) {
+            bail!("attempted to update root position for id: {id} that is not registered as root");
+        }
+        self.position = Some(position);
+        Ok(())
+    }
+
+    fn position(&self, _id: NodeId) -> Option<&NodePosition> {
+        self.position.as_ref()
+    }
+
+    fn nodes(&self) -> impl Iterator<Item = NodeId> {
+        self.node.iter().copied()
+    }
+}
+
 type NodeSchemaId = slotmap::DefaultKey;
 
-pub struct NodeRepositoryProto<S> {
+pub struct NodeRepository<S> {
     nodes: HashMap<NodeId, NodeSchemaId>,
     cached_schema_keys: HashMap<NodeName, NodeSchemaId>,
     specs: SlotMap<NodeSchemaId, S>,
     positions: HashMap<NodeId, NodePosition>,
 }
 
-impl<S> NodeRepositoryProto<S>
+impl<S> NodeRepository<S>
 where
     S: Clone + ProvideNodeName,
 {
-    fn create_impl(&mut self, spec: &S, id: NodeId) -> Result<()> {
+    fn create_impl(&mut self, id: NodeId, spec: &S) -> Result<()> {
         let name = spec.name();
         let key = match self.cached_schema_keys.get(name) {
             Some(key) => *key,
@@ -77,13 +142,6 @@ where
     fn remove_impl(&mut self, id: NodeId) -> Result<()> {
         self.nodes.remove(&id);
         self.positions.remove(&id);
-        Ok(())
-    }
-
-    fn register_spec_impl(&mut self, spec: S) -> Result<()> {
-        let name = spec.name().clone();
-        let key = self.specs.insert(spec);
-        self.cached_schema_keys.insert(name, key);
         Ok(())
     }
 
@@ -106,10 +164,10 @@ where
     }
 }
 
-pub type ActionNodeRepository = NodeRepositoryProto<ActionSpec>;
-pub type ConditionNodeRepository = NodeRepositoryProto<ConditionSpec>;
-pub type ControlNodeRepository = NodeRepositoryProto<ControlSpec>;
-pub type DecoratorNodeRepository = NodeRepositoryProto<DecoratorSpec>;
+pub type ActionNodeRepository = NodeRepository<ActionSpec>;
+pub type ConditionNodeRepository = NodeRepository<ConditionSpec>;
+pub type ControlNodeRepository = NodeRepository<ControlSpec>;
+pub type DecoratorNodeRepository = NodeRepository<DecoratorSpec>;
 
 //@todo replace by generic trait impl
 macro_rules! derive_node_repository {
@@ -117,16 +175,13 @@ macro_rules! derive_node_repository {
         impl NodeRepositoryConcept for $ty {
             type Spec = $spec;
 
-            fn create(&mut self, spec: &Self::Spec, id: NodeId) -> Result<()> {
-                self.create_impl(spec, id)
+            fn create(&mut self, id: NodeId, spec: &Self::Spec) -> Result<()> {
+                self.create_impl(id, spec)
             }
             fn remove(&mut self, id: NodeId) -> Result<()> {
                 self.remove_impl(id)
             }
 
-            fn register_spec(&mut self, spec: Self::Spec) -> Result<()> {
-                self.register_spec_impl(spec)
-            }
             fn spec(&self, id: NodeId) -> Option<&Self::Spec> {
                 self.spec_impl(id)
             }
@@ -145,249 +200,247 @@ macro_rules! derive_node_repository {
     };
 }
 
-pub trait ProvideNodeName {
-    fn name(&self) -> &NodeName;
-}
-
-macro_rules! derive_provide_node_name {
-    ($ty: ty) => {
-        impl ProvideNodeName for $ty {
-            fn name(&self) -> &NodeName {
-                &self.name
-            }
-        }
-    };
-}
-
-derive_provide_node_name!(ActionSpec);
-derive_provide_node_name!(ControlSpec);
-derive_provide_node_name!(DecoratorSpec);
-
 derive_node_repository! {ActionNodeRepository, ActionSpec}
 derive_node_repository! {ControlNodeRepository, ControlSpec}
 derive_node_repository! {DecoratorNodeRepository, DecoratorSpec}
 
-pub trait SpecRepository {
-    fn register_action(&mut self, spec: ActionSpec) -> Result<()>;
-    fn register_condition(&mut self, spec: ConditionSpec) -> Result<()>;
-    fn register_control(&mut self, spec: ControlSpec) -> Result<()>;
-    fn register_decorator(&mut self, spec: DecoratorSpec) -> Result<()>;
-
-    fn bind_action_id(&mut self, name: &NodeName, id: NodeId) -> Result<()>;
-    fn bind_condition_id(&mut self, name: &NodeName, id: NodeId) -> Result<()>;
-    fn bind_control_id(&mut self, name: &NodeName, id: NodeId) -> Result<()>;
-    fn bind_decorator_id(&mut self, name: &NodeName, id: NodeId) -> Result<()>;
-
-    fn action(&self, id: NodeId) -> Option<&ActionSpec>;
-    fn condition(&self, id: NodeId) -> Option<&ConditionSpec>;
-    fn control(&self, id: NodeId) -> Option<&ControlSpec>;
-    fn decorator(&self, id: NodeId) -> Option<&DecoratorSpec>;
+//@todo make it template struct (NodeRepositoryFacade<RR, AR, CR, DR, CR>) and expose this as concrete instance
+// service should take NodeRepositoryFacade<RR, AR, CR, DR, CR> as dependency to allow DI.
+#[derive(Getters, MutGetters)]
+pub struct NodeRepositoryFacade {
+    #[getset(get = "pub", get_mut = "pub")]
+    root: RootNodeRepository,
+    #[getset(get = "pub", get_mut = "pub")]
+    action: ActionNodeRepository,
+    #[getset(get = "pub", get_mut = "pub")]
+    condition: ConditionNodeRepository,
+    #[getset(get = "pub", get_mut = "pub")]
+    decorator: DecoratorNodeRepository,
+    #[getset(get = "pub", get_mut = "pub")]
+    control: ControlNodeRepository,
 }
 
-pub trait ParamRepository {
+pub trait ParamRepositoryConcept {
     fn insert(&mut self, id: NodeId, params: Parameters);
     fn update(&mut self, id: NodeId, field_name: &str, value: Value) -> Result<()>;
-    fn params(&self, id: NodeId) -> &Parameters;
+    fn params(&self, id: NodeId) -> Option<&Parameters>;
+
+    fn on_node_removal(&mut self, id: NodeId) -> Result<()>;
 }
 
-pub trait ExternalPortRepository {
-    fn insert_sender(&mut self, id: NodeId, sender: MessageHash);
-    fn senders(&self, id: NodeId) -> &ExternalSenders;
-
-    fn insert_receiver(&mut self, id: NodeId, receiver: MessageHash);
-    fn receivers(&self, id: NodeId) -> &ExternalReceivers;
+pub struct ParamRepository {
+    params: HashMap<NodeId, Parameters>,
 }
 
-pub trait EdgeRepository {
-    fn create(&mut self, edge: NodeEdge) -> Result<EdgeId>;
+impl ParamRepositoryConcept for ParamRepository {
+    /// caller has to assure that params are valid w.r.t. schema
+    fn insert(&mut self, id: NodeId, params: Parameters) {
+        self.params.insert(id, params);
+    }
+
+    /// caller has to assure that value is valid w.r.t. schema
+    fn update(&mut self, id: NodeId, field_name: &str, value: Value) -> Result<()> {
+        self.params
+            .get_mut(&id)
+            .ok_or_else(|| anyhow!("no params for node id {id} have been registered"))?
+            .update(field_name, value)
+    }
+
+    fn params(&self, id: NodeId) -> Option<&Parameters> {
+        self.params.get(&id)
+    }
+
+    fn on_node_removal(&mut self, id: NodeId) -> Result<()> {
+        self.params.remove(&id);
+        Ok(())
+    }
+}
+
+pub trait EdgeRepositoryConcept {
+    fn create(&mut self, id: EdgeId, edge: NodeEdge) -> Result<()>;
     fn remove(&mut self, id: EdgeId) -> Result<()>;
+
+    fn update_position(&mut self, id: ChannelId, position: EdgePosition) -> Result<()>;
+    fn position(&self, id: ChannelId) -> Option<&EdgePosition>;
+
+    fn children_of(&self, id: NodeId) -> impl Iterator<Item = NodeId>;
+
+    fn edge(&self, id: EdgeId) -> Option<&NodeEdge>;
     fn edges(&self) -> impl Iterator<Item = EdgeId>;
+
+    fn on_node_removal(&mut self, id: NodeId) -> Result<()>;
 }
 
-pub trait ChannelRepository {
-    fn create(&mut self) -> Result<ChannelId>;
-    fn remove(&mut self, id: ChannelId) -> Result<()>;
-    fn channels(&self) -> impl Iterator<Item = ChannelId>;
+pub struct EdgeRepository {}
+
+pub trait NodeKindRepositoryConcept {
+    fn insert(&mut self, id: NodeId, kind: NodeKind) -> Result<()>;
+    fn remove(&mut self, id: NodeId) -> Result<()>;
+
+    fn kind(&self, id: NodeId) -> Option<NodeKind>;
+
+    fn on_node_removal(&mut self, id: NodeId) -> Result<()>;
 }
 
-pub struct NodeRepositoryImpl {
-    root: Option<NodeId>,
-    actions: HashSet<NodeId>,
-    conditions: HashSet<NodeId>,
-    controls: HashSet<NodeId>,
-    decorators: HashSet<NodeId>,
-    positions: HashMap<NodeId, NodePosition>,
+pub struct NodeKindRepository {
     kinds: HashMap<NodeId, NodeKind>,
 }
 
-impl NodeRepositoryImpl {
-    fn unique_insert(set: &mut HashSet<NodeId>, id: NodeId) -> Result<()> {
-        if set.insert(id) {
-            bail!("attempted to insert node with {id} twice");
-        }
+impl NodeKindRepositoryConcept for NodeKindRepository {
+    fn insert(&mut self, id: NodeId, kind: NodeKind) -> Result<()> {
+        self.kinds.insert(id, kind);
         Ok(())
-    }
-}
-
-impl NodeRepository for NodeRepositoryImpl {
-    fn create_root(&mut self, id: NodeId) -> Result<()> {
-        if self.root.is_some() {
-            bail!("attempted to register root node with id {id} twice");
-        }
-        self.root = Some(id);
-        Ok(())
-    }
-
-    fn create_action(&mut self, id: NodeId) -> Result<()> {
-        Self::unique_insert(&mut self.actions, id)
-    }
-
-    fn create_condition(&mut self, id: NodeId) -> Result<()> {
-        Self::unique_insert(&mut self.conditions, id)
-    }
-
-    fn create_control(&mut self, id: NodeId) -> Result<()> {
-        Self::unique_insert(&mut self.controls, id)
-    }
-
-    fn create_decorator(&mut self, id: NodeId) -> Result<()> {
-        Self::unique_insert(&mut self.decorators, id)
     }
 
     fn remove(&mut self, id: NodeId) -> Result<()> {
-        for set in [
-            &mut self.actions,
-            &mut self.conditions,
-            &mut self.controls,
-            &mut self.decorators,
-        ] {
-            if set.remove(&id) {
-                return Ok(());
-            }
-        }
-        bail!("attempted to remove node {id} which was not stored in any node set");
+        self.kinds.remove(&id);
+        Ok(())
     }
 
     fn kind(&self, id: NodeId) -> Option<NodeKind> {
         self.kinds.get(&id).copied()
     }
 
-    fn nodes(&self) -> impl Iterator<Item = NodeId> {
-        self.root
-            .iter()
-            .copied()
-            .chain(self.actions.iter().copied())
-            .chain(self.conditions.iter().copied())
-            .chain(self.controls.iter().copied())
-            .chain(self.decorators.iter().copied())
+    fn on_node_removal(&mut self, id: NodeId) -> Result<()> {
+        self.kinds.remove(&id);
+        Ok(())
+    }
+}
+
+pub trait ChannelRepositoryConcept {
+    fn create(&mut self, id: ChannelId, spec: ChannelSpec) -> Result<()>;
+    fn remove(&mut self, id: ChannelId) -> Result<()>;
+
+    fn connect_sender(&mut self, from: NodeId, id: ChannelId);
+    fn senders(&self) -> impl Iterator<Item = (NodeId, impl Iterator<Item = ChannelId>)>;
+
+    fn connect_receiver(&mut self, to: NodeId, id: ChannelId);
+    fn receivers(&self) -> impl Iterator<Item = (NodeId, impl Iterator<Item = ChannelId>)>;
+
+    fn insert_external_sender(&mut self, id: NodeId, sender: MessageHash);
+    fn external_senders(&self, id: NodeId) -> Option<&ExternalSenders>;
+
+    fn insert_external_receiver(&mut self, id: NodeId, receiver: MessageHash);
+    fn external_receivers(&self, id: NodeId) -> Option<&ExternalReceivers>;
+
+    fn update_position(&mut self, id: ChannelId, position: ChannelPosition) -> Result<()>;
+    fn position(&self, id: ChannelId) -> Option<&ChannelPosition>;
+
+    fn channels(&self) -> impl Iterator<Item = ChannelId>;
+
+    fn on_node_removal(&mut self, id: NodeId) -> Result<()>;
+}
+
+pub struct ChannelRepository {
+    //@todo can optimize similar to how node specs are cached
+    channels: HashMap<ChannelId, ChannelSpec>,
+    senders: HashMap<NodeId, HashSet<ChannelId>>,
+    receivers: HashMap<NodeId, HashSet<ChannelId>>,
+    external_senders: HashMap<NodeId, HashSet<MessageHash>>,
+    external_receivers: HashMap<NodeId, HashSet<MessageHash>>,
+    positions: HashMap<ChannelId, ChannelPosition>,
+}
+
+impl ChannelRepositoryConcept for ChannelRepository {
+    fn create(&mut self, id: ChannelId, spec: ChannelSpec) -> Result<()> {
+        self.channels.insert(id, spec);
+        Ok(())
     }
 
-    fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
+    fn remove(&mut self, id: ChannelId) -> Result<()> {
+        self.channels.remove(&id);
+        Ok(())
+    }
+
+    fn connect_sender(&mut self, from: NodeId, id: ChannelId) {
+        self.senders
+            .entry(from)
+            .and_modify(|senders| {
+                senders.insert(id);
+            })
+            .or_insert_with(|| {
+                let mut senders = HashSet::new();
+                senders.insert(id);
+                senders
+            });
+    }
+    fn senders(&self) -> impl Iterator<Item = (NodeId, impl Iterator<Item = ChannelId>)> {
+        self.senders
+            .iter()
+            .map(|(id, set)| (*id, set.iter().copied()))
+    }
+
+    fn connect_receiver(&mut self, to: NodeId, id: ChannelId) {
+        self.receivers
+            .entry(to)
+            .and_modify(|receivers| {
+                receivers.insert(id);
+            })
+            .or_insert_with(|| {
+                let mut receivers = HashSet::new();
+                receivers.insert(id);
+                receivers
+            });
+    }
+    fn receivers(&self) -> impl Iterator<Item = (NodeId, impl Iterator<Item = ChannelId>)> {
+        self.receivers
+            .iter()
+            .map(|(id, set)| (*id, set.iter().copied()))
+    }
+
+    fn insert_external_sender(&mut self, id: NodeId, sender: MessageHash) {
+        self.external_senders
+            .entry(id)
+            .and_modify(|senders| {
+                senders.insert(sender);
+            })
+            .or_insert_with(|| {
+                let mut senders = HashSet::new();
+                senders.insert(sender);
+                senders
+            });
+    }
+    fn external_senders(&self, id: NodeId) -> Option<&ExternalSenders> {
+        todo!()
+    }
+
+    fn insert_external_receiver(&mut self, id: NodeId, receiver: MessageHash) {
+        self.external_receivers
+            .entry(id)
+            .and_modify(|receivers| {
+                receivers.insert(receiver);
+            })
+            .or_insert_with(|| {
+                let mut receivers = HashSet::new();
+                receivers.insert(receiver);
+                receivers
+            });
+    }
+    fn external_receivers(&self, id: NodeId) -> Option<&ExternalReceivers> {
+        todo!()
+    }
+
+    fn update_position(&mut self, id: ChannelId, position: ChannelPosition) -> Result<()> {
+        if self.channels.contains_key(&id) {
+            bail!("attempted to update position of channel {id} which has not been registered");
+        }
         self.positions.insert(id, position);
         Ok(())
     }
 
-    fn position(&self, id: NodeId) -> Option<&NodePosition> {
+    fn position(&self, id: ChannelId) -> Option<&ChannelPosition> {
         self.positions.get(&id)
     }
-}
 
-struct SpecWithBoundedNodes<T> {
-    spec: T,
-    nodes: HashSet<NodeId>,
-}
+    fn channels(&self) -> impl Iterator<Item = ChannelId> {
+        self.channels.keys().copied()
+    }
 
-impl<T> SpecWithBoundedNodes<T> {
-    fn new(spec: T) -> Self {
-        Self {
-            spec,
-            nodes: Default::default(),
-        }
+    fn on_node_removal(&mut self, id: NodeId) -> Result<()> {
+        self.receivers.remove(&id);
+        self.senders.remove(&id);
+        self.external_receivers.remove(&id);
+        self.external_senders.remove(&id);
+        Ok(())
     }
 }
-
-pub struct SpecRepositoryImpl {
-    //@todo probably better to split into id maps
-    action_registry: HashMap<NodeName, SpecWithBoundedNodes<ActionSpec>>,
-    condition_registry: HashMap<NodeName, SpecWithBoundedNodes<ConditionSpec>>,
-    control_registry: HashMap<NodeName, SpecWithBoundedNodes<ControlSpec>>,
-    decorator_registry: HashMap<NodeName, SpecWithBoundedNodes<DecoratorSpec>>,
-}
-
-// impl SpecRepositoryImpl {
-//     fn unique_registration<S>(
-//         map: &mut HashMap<NodeName, S>,
-//         name: NodeName,
-//         spec: S,
-//     ) -> Result<()> {
-//         if map.contains_key(&name) {
-//             bail!("attempted to register node {name} twice");
-//         }
-//         map.insert(name, spec);
-//         Ok(())
-//     }
-
-//     fn bind_node_id<S>(
-//         registry: &mut HashMap<NodeName, SpecWithBoundedNodes<S>>,
-//         name: &NodeName,
-//         id: NodeId,
-//     ) -> Result<()> {
-//         registry
-//             .get_mut(&name)
-//             .ok_or_else(|| anyhow!("no node spec {name} registered"))?
-//             .nodes
-//             .insert(id);
-//         Ok(())
-//     }
-// }
-
-// impl SpecRepository for SpecRepositoryImpl {
-//     fn register_action(&mut self, spec: ActionSpec) -> Result<()> {
-//         Self::unique_registration(
-//             &mut self.action_registry,
-//             spec.name.clone(),
-//             SpecWithBoundedNodes::new(spec),
-//         )
-//     }
-//     fn register_condition(&mut self, spec: ConditionSpec) -> Result<()> {
-//         Self::unique_registration(
-//             &mut self.condition_registry,
-//             spec.name.clone(),
-//             SpecWithBoundedNodes::new(spec),
-//         )
-//     }
-//     fn register_control(&mut self, spec: ControlSpec) -> Result<()> {
-//         Self::unique_registration(
-//             &mut self.control_registry,
-//             spec.name.clone(),
-//             SpecWithBoundedNodes::new(spec),
-//         )
-//     }
-//     fn register_decorator(&mut self, spec: DecoratorSpec) -> Result<()> {
-//         Self::unique_registration(
-//             &mut self.decorator_registry,
-//             spec.name.clone(),
-//             SpecWithBoundedNodes::new(spec),
-//         )
-//     }
-
-//     fn bind_action_id(&mut self, name: &NodeName, id: NodeId) -> Result<()> {
-//         Self::bind_node_id(&mut self.action_registry, name, id)
-//     }
-//     fn bind_condition_id(&mut self, name: &NodeName, id: NodeId) -> Result<()> {
-//         Self::bind_node_id(&mut self.condition_registry, name, id)
-//     }
-//     fn bind_control_id(&mut self, name: &NodeName, id: NodeId) -> Result<()> {
-//         Self::bind_node_id(&mut self.control_registry, name, id)
-//     }
-//     fn bind_decorator_id(&mut self, name: &NodeName, id: NodeId) -> Result<()> {
-//         Self::bind_node_id(&mut self.decorator_registry, name, id)
-//     }
-
-//     fn action(&self, id: NodeId) -> Option<&ActionSpec> {
-//         self.action_registry.get(&id).map(|v| &v.spec)
-//     }
-//     fn condition(&self, id: NodeId) -> Option<&ConditionSpec>;
-//     fn control(&self, id: NodeId) -> Option<&ControlSpec>;
-//     fn decorator(&self, id: NodeId) -> Option<&DecoratorSpec>;
-// }

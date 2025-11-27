@@ -1,12 +1,23 @@
 use std::collections::BTreeMap;
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use serde::{Deserialize, Serialize};
 use serde_value::Value;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Parameters {
     field_value_map: BTreeMap<String, Value>,
+}
+
+impl Parameters {
+    pub fn update(&mut self, field: &str, new: Value) -> Result<()> {
+        let old = self
+            .field_value_map
+            .get_mut(field)
+            .ok_or_else(|| anyhow!("no field named: {field} found for given parameters"))?;
+        *old = new;
+        Ok(())
+    }
 }
 
 impl FromIterator<(String, Value)> for Parameters {

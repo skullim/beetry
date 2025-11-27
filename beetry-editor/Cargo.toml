@@ -16,8 +16,10 @@ beetry-serde = { version = "0.1.0", path = "../beetry-serde" }
 beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }
 bon.workspace = true
 delegate = "0.13.5"
+derive-getters.workspace = true
 dioxus = { version = "0.7.0", features = [] }
 dioxus-logger = "0.7.0"
+getset.workspace = true
 indexmap = "2.11.3"
 rfd = { version = "0.15.4", default-features = false, features = [
     "xdg-portal",
