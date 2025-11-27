@@ -19,6 +19,8 @@ pub struct NodePosition {
     origin: Point,
 }
 
+pub type ChannelPosition = NodePosition;
+
 #[derive(Debug, Default, Clone, PartialEq, Props, Serialize, Deserialize)]
 pub struct EdgePosition {
     pub start: Point,

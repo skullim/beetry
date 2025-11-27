@@ -1,0 +1,3 @@
+struct ChannelService;
+
+impl ChannelService {}
