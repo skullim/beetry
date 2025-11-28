@@ -1,46 +1,44 @@
 use crate::domain::{
-    models::ChannelPosition,
     ports::{
         ChannelRepositoryConcept, EdgeRepositoryConcept, EditorRepository,
-        NodeKindRepositoryConcept, ParamRepositoryConcept,
+        NodeRepositoryFacadeConcept, ParamRepositoryConcept,
     },
-    service::node::{NodeService, NodeServiceApi},
+    service::{
+        channel::{ChannelService, ChannelServiceView},
+        node::{NodeService, NodeServiceView},
+    },
 };
-use anyhow::Result;
-use beetry_serde::{de::channel::ChannelId, ser::channel::ChannelSpec};
 
-pub struct EditorService<ER, KR, CR, PR> {
+pub struct EditorService<NRF, ER, CR, PR> {
     node_service: NodeService,
-    repo: EditorRepository<ER, KR, CR, PR>,
+    channel_service: ChannelService,
+    repo: EditorRepository<NRF, ER, CR, PR>,
 }
 
-impl<ER, KR, CR, PR> EditorService<ER, KR, CR, PR>
+impl<NRF, ER, CR, PR> EditorService<NRF, ER, CR, PR>
 where
+    NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
-    KR: NodeKindRepositoryConcept,
     CR: ChannelRepositoryConcept,
     PR: ParamRepositoryConcept,
 {
-    pub fn new(repo: EditorRepository<ER, KR, CR, PR>) -> Self {
+    pub fn new(repo: EditorRepository<NRF, ER, CR, PR>) -> Self {
         Self {
             node_service: NodeService::new(),
+            channel_service: ChannelService::new(),
             repo,
         }
     }
 
-    pub fn node(&mut self) -> NodeServiceApi<'_, '_, ER, KR, CR, PR> {
-        NodeServiceApi::new(&mut self.repo, &mut self.node_service)
+    pub fn node_view(&mut self) -> NodeServiceView<'_, '_, NRF, ER, CR, PR> {
+        NodeServiceView::new(&mut self.repo, &mut self.node_service)
     }
 
-    pub fn create_channel(&mut self, id: ChannelId, spec: ChannelSpec) -> Result<ChannelId> {
-        todo!();
-    }
-
-    pub fn update_channel_position(
-        &mut self,
-        id: ChannelId,
-        position: ChannelPosition,
-    ) -> Result<()> {
-        todo!()
+    pub fn channel_view(&mut self) -> ChannelServiceView<'_, '_, '_, NRF, ER, CR, PR> {
+        ChannelServiceView::new(
+            &mut self.repo,
+            &mut self.channel_service,
+            &self.node_service,
+        )
     }
 }
