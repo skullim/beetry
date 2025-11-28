@@ -4,10 +4,13 @@ mod domain;
 mod editor;
 mod project;
 mod sidebar;
+mod signals;
 mod storage;
 mod toolbar;
 mod ui;
 mod workspace;
+
+pub use domain::service::editor::EditorService;
 
 use beetry_plugin::node::{
     ActionPluginConstructor, ConditionPluginConstructor, ControlPluginConstructor,

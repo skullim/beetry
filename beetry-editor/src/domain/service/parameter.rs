@@ -1,1 +1,3 @@
 struct ParameterService;
+
+impl ParameterService {}

@@ -21,17 +21,26 @@ use serde_value::Value;
 use slotmap::SlotMap;
 
 #[derive(Getters, MutGetters)]
-pub struct EditorRepository<ER, KR, CR, PR> {
+pub struct EditorRepository<NRF, ER, CR, PR> {
     #[getset(get = "pub", get_mut = "pub")]
-    node: NodeRepositoryFacade,
+    node: NRF,
     #[getset(get = "pub", get_mut = "pub")]
     edge: ER,
-    #[getset(get = "pub", get_mut = "pub")]
-    kind: KR,
     #[getset(get = "pub", get_mut = "pub")]
     channel: CR,
     #[getset(get = "pub", get_mut = "pub")]
     parameter: PR,
+}
+
+impl<NRF, ER, CR, PR> EditorRepository<NRF, ER, CR, PR> {
+    pub fn new(node: NRF, edge: ER, channel: CR, parameter: PR) -> Self {
+        Self {
+            node,
+            edge,
+            channel,
+            parameter,
+        }
+    }
 }
 
 pub trait NodeRepositoryConcept {
@@ -39,6 +48,8 @@ pub trait NodeRepositoryConcept {
 
     fn create(&mut self, id: NodeId, spec: &Self::Spec) -> Result<()>;
     fn remove(&mut self, id: NodeId) -> Result<()>;
+
+    fn contains(&self, id: NodeId) -> bool;
 
     fn spec(&self, id: NodeId) -> Option<&Self::Spec>;
 
@@ -88,7 +99,12 @@ impl NodeRepositoryConcept for RootNodeRepository {
 
     fn remove(&mut self, _id: NodeId) -> Result<()> {
         self.node.take();
+        self.position.take();
         Ok(())
+    }
+
+    fn contains(&self, id: NodeId) -> bool {
+        self.node == Some(id)
     }
 
     fn spec(&self, _id: NodeId) -> Option<&Self::Spec> {
@@ -145,6 +161,10 @@ where
         Ok(())
     }
 
+    fn contains_impl(&self, id: NodeId) -> bool {
+        self.nodes.contains_key(&id)
+    }
+
     fn spec_impl(&self, id: NodeId) -> Option<&S> {
         let schema_key = self.nodes.get(&id)?;
         self.specs.get(*schema_key)
@@ -182,6 +202,10 @@ macro_rules! derive_node_repository {
                 self.remove_impl(id)
             }
 
+            fn contains(&self, id: NodeId) -> bool {
+                self.contains_impl(id)
+            }
+
             fn spec(&self, id: NodeId) -> Option<&Self::Spec> {
                 self.spec_impl(id)
             }
@@ -204,28 +228,114 @@ derive_node_repository! {ActionNodeRepository, ActionSpec}
 derive_node_repository! {ControlNodeRepository, ControlSpec}
 derive_node_repository! {DecoratorNodeRepository, DecoratorSpec}
 
-//@todo make it template struct (NodeRepositoryFacade<RR, AR, CR, DR, CR>) and expose this as concrete instance
-// service should take NodeRepositoryFacade<RR, AR, CR, DR, CR> as dependency to allow DI.
+pub trait NodeRepositoryFacadeConcept {
+    fn action(&self) -> &impl NodeRepositoryConcept<Spec = ActionSpec>;
+    fn action_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = ActionSpec>;
+
+    fn condition(&self) -> &impl NodeRepositoryConcept<Spec = ConditionSpec>;
+    fn condition_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = ConditionSpec>;
+
+    fn control(&self) -> &impl NodeRepositoryConcept<Spec = ControlSpec>;
+    fn control_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = ControlSpec>;
+
+    fn decorator(&self) -> &impl NodeRepositoryConcept<Spec = DecoratorSpec>;
+    fn decorator_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = DecoratorSpec>;
+
+    fn root(&self) -> &impl NodeRepositoryConcept<Spec = RootSpec>;
+    fn root_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = RootSpec>;
+
+    fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()>;
+    fn position(&self, id: NodeId) -> Option<&NodePosition>;
+    fn remove_position(&mut self, id: NodeId) -> Result<()>;
+
+    fn insert_kind(&mut self, id: NodeId, kind: NodeKind) -> Result<()>;
+    fn kind(&self, id: NodeId) -> Option<NodeKind>;
+    fn remove_kind(&mut self, id: NodeId) -> Result<()>;
+}
+
 #[derive(Getters, MutGetters)]
 pub struct NodeRepositoryFacade {
-    #[getset(get = "pub", get_mut = "pub")]
     root: RootNodeRepository,
-    #[getset(get = "pub", get_mut = "pub")]
     action: ActionNodeRepository,
-    #[getset(get = "pub", get_mut = "pub")]
     condition: ConditionNodeRepository,
-    #[getset(get = "pub", get_mut = "pub")]
-    decorator: DecoratorNodeRepository,
-    #[getset(get = "pub", get_mut = "pub")]
     control: ControlNodeRepository,
+    decorator: DecoratorNodeRepository,
+
+    kinds: HashMap<NodeId, NodeKind>,
+    positions: HashMap<NodeId, NodePosition>,
+}
+
+impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
+    fn action(&self) -> &impl NodeRepositoryConcept<Spec = ActionSpec> {
+        &self.action
+    }
+    fn action_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = ActionSpec> {
+        &mut self.action
+    }
+
+    fn condition(&self) -> &impl NodeRepositoryConcept<Spec = ConditionSpec> {
+        &self.condition
+    }
+    fn condition_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = ConditionSpec> {
+        &mut self.condition
+    }
+
+    fn control(&self) -> &impl NodeRepositoryConcept<Spec = ControlSpec> {
+        &self.control
+    }
+    fn control_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = ControlSpec> {
+        &mut self.control
+    }
+
+    fn decorator(&self) -> &impl NodeRepositoryConcept<Spec = DecoratorSpec> {
+        &self.decorator
+    }
+    fn decorator_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = DecoratorSpec> {
+        &mut self.decorator
+    }
+
+    fn root(&self) -> &impl NodeRepositoryConcept<Spec = RootSpec> {
+        &self.root
+    }
+    fn root_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = RootSpec> {
+        &mut self.root
+    }
+
+    fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
+        self.positions.insert(id, position);
+        Ok(())
+    }
+
+    fn position(&self, id: NodeId) -> Option<&NodePosition> {
+        self.positions.get(&id)
+    }
+
+    fn remove_position(&mut self, id: NodeId) -> Result<()> {
+        self.positions.remove(&id);
+        Ok(())
+    }
+
+    fn insert_kind(&mut self, id: NodeId, kind: NodeKind) -> Result<()> {
+        self.kinds.insert(id, kind);
+        Ok(())
+    }
+
+    fn kind(&self, id: NodeId) -> Option<NodeKind> {
+        self.kinds.get(&id).copied()
+    }
+
+    fn remove_kind(&mut self, id: NodeId) -> Result<()> {
+        self.kinds.remove(&id);
+        Ok(())
+    }
 }
 
 pub trait ParamRepositoryConcept {
     fn insert(&mut self, id: NodeId, params: Parameters);
+    fn remove(&mut self, id: NodeId) -> Result<()>;
     fn update(&mut self, id: NodeId, field_name: &str, value: Value) -> Result<()>;
-    fn params(&self, id: NodeId) -> Option<&Parameters>;
 
-    fn on_node_removal(&mut self, id: NodeId) -> Result<()>;
+    fn params(&self, id: NodeId) -> Option<&Parameters>;
 }
 
 pub struct ParamRepository {
@@ -238,6 +348,11 @@ impl ParamRepositoryConcept for ParamRepository {
         self.params.insert(id, params);
     }
 
+    fn remove(&mut self, id: NodeId) -> Result<()> {
+        self.params.remove(&id);
+        Ok(())
+    }
+
     /// caller has to assure that value is valid w.r.t. schema
     fn update(&mut self, id: NodeId, field_name: &str, value: Value) -> Result<()> {
         self.params
@@ -248,11 +363,6 @@ impl ParamRepositoryConcept for ParamRepository {
 
     fn params(&self, id: NodeId) -> Option<&Parameters> {
         self.params.get(&id)
-    }
-
-    fn on_node_removal(&mut self, id: NodeId) -> Result<()> {
-        self.params.remove(&id);
-        Ok(())
     }
 }
 
@@ -273,48 +383,43 @@ pub trait EdgeRepositoryConcept {
 
 pub struct EdgeRepository {}
 
-pub trait NodeKindRepositoryConcept {
-    fn insert(&mut self, id: NodeId, kind: NodeKind) -> Result<()>;
-    fn remove(&mut self, id: NodeId) -> Result<()>;
+// pub trait NodeKindRepositoryConcept {
+//     fn insert(&mut self, id: NodeId, kind: NodeKind) -> Result<()>;
+//     fn remove(&mut self, id: NodeId) -> Result<()>;
 
-    fn kind(&self, id: NodeId) -> Option<NodeKind>;
+//     fn kind(&self, id: NodeId) -> Option<NodeKind>;
+// }
 
-    fn on_node_removal(&mut self, id: NodeId) -> Result<()>;
-}
+// pub struct NodeKindRepository {
+//     kinds: HashMap<NodeId, NodeKind>,
+// }
 
-pub struct NodeKindRepository {
-    kinds: HashMap<NodeId, NodeKind>,
-}
+// impl NodeKindRepositoryConcept for NodeKindRepository {
+//     fn insert(&mut self, id: NodeId, kind: NodeKind) -> Result<()> {
+//         self.kinds.insert(id, kind);
+//         Ok(())
+//     }
 
-impl NodeKindRepositoryConcept for NodeKindRepository {
-    fn insert(&mut self, id: NodeId, kind: NodeKind) -> Result<()> {
-        self.kinds.insert(id, kind);
-        Ok(())
-    }
+//     fn remove(&mut self, id: NodeId) -> Result<()> {
+//         self.kinds.remove(&id);
+//         Ok(())
+//     }
 
-    fn remove(&mut self, id: NodeId) -> Result<()> {
-        self.kinds.remove(&id);
-        Ok(())
-    }
-
-    fn kind(&self, id: NodeId) -> Option<NodeKind> {
-        self.kinds.get(&id).copied()
-    }
-
-    fn on_node_removal(&mut self, id: NodeId) -> Result<()> {
-        self.kinds.remove(&id);
-        Ok(())
-    }
-}
+//     fn kind(&self, id: NodeId) -> Option<NodeKind> {
+//         self.kinds.get(&id).copied()
+//     }
+// }
 
 pub trait ChannelRepositoryConcept {
     fn create(&mut self, id: ChannelId, spec: ChannelSpec) -> Result<()>;
     fn remove(&mut self, id: ChannelId) -> Result<()>;
 
-    fn connect_sender(&mut self, from: NodeId, id: ChannelId);
+    fn contains(&self, id: NodeId) -> bool;
+
+    fn insert_sender(&mut self, id: ChannelId, from: NodeId);
     fn senders(&self) -> impl Iterator<Item = (NodeId, impl Iterator<Item = ChannelId>)>;
 
-    fn connect_receiver(&mut self, to: NodeId, id: ChannelId);
+    fn insert_receiver(&mut self, id: ChannelId, to: NodeId);
     fn receivers(&self) -> impl Iterator<Item = (NodeId, impl Iterator<Item = ChannelId>)>;
 
     fn insert_external_sender(&mut self, id: NodeId, sender: MessageHash);
@@ -349,10 +454,15 @@ impl ChannelRepositoryConcept for ChannelRepository {
 
     fn remove(&mut self, id: ChannelId) -> Result<()> {
         self.channels.remove(&id);
+        self.positions.remove(&id);
         Ok(())
     }
 
-    fn connect_sender(&mut self, from: NodeId, id: ChannelId) {
+    fn contains(&self, id: NodeId) -> bool {
+        self.channels.contains_key(&id)
+    }
+
+    fn insert_sender(&mut self, from: NodeId, id: ChannelId) {
         self.senders
             .entry(from)
             .and_modify(|senders| {
@@ -370,7 +480,7 @@ impl ChannelRepositoryConcept for ChannelRepository {
             .map(|(id, set)| (*id, set.iter().copied()))
     }
 
-    fn connect_receiver(&mut self, to: NodeId, id: ChannelId) {
+    fn insert_receiver(&mut self, to: NodeId, id: ChannelId) {
         self.receivers
             .entry(to)
             .and_modify(|receivers| {
