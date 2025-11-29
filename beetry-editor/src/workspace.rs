@@ -251,7 +251,7 @@ pub(crate) fn Workspace(
 }
 
 fn would_create_cycle(tracker: &edge::Tracker, new_edge: &NodeEdge) -> bool {
-    tracker.has_path(new_edge.to, new_edge.from)
+    tracker.are_connected(new_edge.to, new_edge.from)
 }
 
 fn input_port_handlers(
@@ -513,12 +513,12 @@ mod tests {
         tracker.insert(NodeEdge { from: 2, to: 3 });
         tracker.insert(NodeEdge { from: 3, to: 4 });
         // Should find path from 1 to 4
-        assert!(tracker.has_path(1, 4));
+        assert!(tracker.are_connected(1, 4));
         // Should find path from 2 to 4
-        assert!(tracker.has_path(2, 4));
+        assert!(tracker.are_connected(2, 4));
         // Should not find path from 4 to 1
-        assert!(!tracker.has_path(4, 1));
+        assert!(!tracker.are_connected(4, 1));
         // Should not find path to non-existent node
-        assert!(!tracker.has_path(1, 999));
+        assert!(!tracker.are_connected(1, 999));
     }
 }

@@ -71,7 +71,7 @@ impl Tracker {
         self.edges.iter().any(|edge| edge.to == node_id)
     }
 
-    pub(crate) fn has_path(&self, start: NodeId, end: NodeId) -> bool {
+    pub(crate) fn are_connected(&self, start: NodeId, end: NodeId) -> bool {
         let mut visited = HashSet::new();
         let mut stack = vec![start];
 

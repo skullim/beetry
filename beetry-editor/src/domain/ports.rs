@@ -22,24 +22,21 @@ use serde_value::Value;
 use slotmap::SlotMap;
 
 #[derive(Getters, MutGetters)]
-pub struct EditorRepository<NRF, ER, CR, PR> {
+pub struct EditorRepository<NRF, ER, CR> {
     #[getset(get = "pub", get_mut = "pub")]
     node: NRF,
     #[getset(get = "pub", get_mut = "pub")]
     edge: ER,
     #[getset(get = "pub", get_mut = "pub")]
     channel: CR,
-    #[getset(get = "pub", get_mut = "pub")]
-    parameter: PR,
 }
 
-impl<NRF, ER, CR, PR> EditorRepository<NRF, ER, CR, PR> {
-    pub fn new(node: NRF, edge: ER, channel: CR, parameter: PR) -> Self {
+impl<NRF, ER, CR> EditorRepository<NRF, ER, CR> {
+    pub fn new(node: NRF, edge: ER, channel: CR) -> Self {
         Self {
             node,
             edge,
             channel,
-            parameter,
         }
     }
 }
@@ -188,7 +185,7 @@ impl<'a> Iterator for NodeIter<'a> {
         match self {
             Self::Slice(slice) => slice.next().copied(),
             Self::HashMapKeys(keys) => keys.next().copied(),
-            Self::Option(opt) => opt.next().copied(),
+            Self::Option(o) => o.next().copied(),
         }
     }
 }
@@ -226,31 +223,23 @@ derive_node_repository! {ControlNodeRepository, ControlSpec}
 derive_node_repository! {DecoratorNodeRepository, DecoratorSpec}
 
 pub trait NodeRepositoryFacadeConcept {
-    fn view(
-        &self,
-    ) -> NodeRepositoryFacadeView<
-        '_,
-        impl NodeRepositoryConcept<Spec = RootSpec>,
-        impl NodeRepositoryConcept<Spec = ActionSpec>,
-        impl NodeRepositoryConcept<Spec = ConditionSpec>,
-        impl NodeRepositoryConcept<Spec = ControlSpec>,
-        impl NodeRepositoryConcept<Spec = DecoratorSpec>,
-        impl NodeKindRepositoryConcept,
-        impl NodePositionRepositoryConcept,
-    >;
+    type RootRepo: NodeRepositoryConcept<Spec = RootSpec>;
+    type ActionRepo: NodeRepositoryConcept<Spec = ActionSpec>;
+    type ConditionRepo: NodeRepositoryConcept<Spec = ConditionSpec>;
+    type ControlRepo: NodeRepositoryConcept<Spec = ControlSpec>;
+    type DecoratorRepo: NodeRepositoryConcept<Spec = DecoratorSpec>;
 
-    fn view_mut(
-        &mut self,
-    ) -> NodeRepositoryFacadeViewMut<
-        '_,
-        impl NodeRepositoryConcept<Spec = RootSpec>,
-        impl NodeRepositoryConcept<Spec = ActionSpec>,
-        impl NodeRepositoryConcept<Spec = ConditionSpec>,
-        impl NodeRepositoryConcept<Spec = ControlSpec>,
-        impl NodeRepositoryConcept<Spec = DecoratorSpec>,
-        impl NodeKindRepositoryConcept,
-        impl NodePositionRepositoryConcept,
-    >;
+    type KindRepo: NodeKindRepositoryConcept;
+    type PositionRepo: NodePositionRepositoryConcept;
+    type ParamRepo: ParamRepositoryConcept;
+
+    fn view(&self) -> NodeRepositoryFacadeView<'_, Self>
+    where
+        Self: Sized;
+
+    fn view_mut(&mut self) -> NodeRepositoryFacadeViewMut<'_, Self>
+    where
+        Self: Sized;
 }
 
 pub trait NodeKindRepositoryConcept {
@@ -305,26 +294,28 @@ impl NodePositionRepositoryConcept for NodePositionRepository {
     }
 }
 
-pub struct NodeRepositoryFacadeView<'a, R, A, CD, CT, D, K, P> {
-    pub root: &'a R,
-    pub action: &'a A,
-    pub condition: &'a CD,
-    pub control: &'a CT,
-    pub decorator: &'a D,
+pub struct NodeRepositoryFacadeView<'a, F: NodeRepositoryFacadeConcept> {
+    pub root: &'a F::RootRepo,
+    pub action: &'a F::ActionRepo,
+    pub condition: &'a F::ConditionRepo,
+    pub control: &'a F::ControlRepo,
+    pub decorator: &'a F::DecoratorRepo,
 
-    pub kinds: &'a K,
-    pub positions: &'a P,
+    pub kinds: &'a F::KindRepo,
+    pub positions: &'a F::PositionRepo,
+    pub parameters: &'a F::ParamRepo,
 }
 
-pub struct NodeRepositoryFacadeViewMut<'a, R, A, CD, CT, D, K, P> {
-    pub root: &'a mut R,
-    pub action: &'a mut A,
-    pub condition: &'a mut CD,
-    pub control: &'a mut CT,
-    pub decorator: &'a mut D,
+pub struct NodeRepositoryFacadeViewMut<'a, F: NodeRepositoryFacadeConcept> {
+    pub root: &'a mut F::RootRepo,
+    pub action: &'a mut F::ActionRepo,
+    pub condition: &'a mut F::ConditionRepo,
+    pub control: &'a mut F::ControlRepo,
+    pub decorator: &'a mut F::DecoratorRepo,
 
-    pub kinds: &'a mut K,
-    pub positions: &'a mut P,
+    pub kinds: &'a mut F::KindRepo,
+    pub positions: &'a mut F::PositionRepo,
+    pub parameters: &'a mut F::ParamRepo,
 }
 
 #[derive(Getters, MutGetters)]
@@ -337,21 +328,20 @@ pub struct NodeRepositoryFacade {
 
     kinds: NodeKindRepository,
     positions: NodePositionRepository,
+    parameters: ParamRepository,
 }
 
 impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
-    fn view(
-        &self,
-    ) -> NodeRepositoryFacadeView<
-        '_,
-        impl NodeRepositoryConcept<Spec = RootSpec>,
-        impl NodeRepositoryConcept<Spec = ActionSpec>,
-        impl NodeRepositoryConcept<Spec = ConditionSpec>,
-        impl NodeRepositoryConcept<Spec = ControlSpec>,
-        impl NodeRepositoryConcept<Spec = DecoratorSpec>,
-        impl NodeKindRepositoryConcept,
-        impl NodePositionRepositoryConcept,
-    > {
+    type ActionRepo = ActionNodeRepository;
+    type ConditionRepo = ConditionNodeRepository;
+    type ControlRepo = ControlNodeRepository;
+    type DecoratorRepo = DecoratorNodeRepository;
+    type RootRepo = RootNodeRepository;
+    type KindRepo = NodeKindRepository;
+    type PositionRepo = NodePositionRepository;
+    type ParamRepo = ParamRepository;
+
+    fn view(&self) -> NodeRepositoryFacadeView<'_, Self> {
         NodeRepositoryFacadeView {
             root: &self.root,
             action: &self.action,
@@ -360,21 +350,11 @@ impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
             decorator: &self.decorator,
             kinds: &self.kinds,
             positions: &self.positions,
+            parameters: &self.parameters,
         }
     }
 
-    fn view_mut(
-        &mut self,
-    ) -> NodeRepositoryFacadeViewMut<
-        '_,
-        impl NodeRepositoryConcept<Spec = RootSpec>,
-        impl NodeRepositoryConcept<Spec = ActionSpec>,
-        impl NodeRepositoryConcept<Spec = ConditionSpec>,
-        impl NodeRepositoryConcept<Spec = ControlSpec>,
-        impl NodeRepositoryConcept<Spec = DecoratorSpec>,
-        impl NodeKindRepositoryConcept,
-        impl NodePositionRepositoryConcept,
-    > {
+    fn view_mut(&mut self) -> NodeRepositoryFacadeViewMut<'_, Self> {
         NodeRepositoryFacadeViewMut {
             root: &mut self.root,
             action: &mut self.action,
@@ -383,6 +363,7 @@ impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
             decorator: &mut self.decorator,
             kinds: &mut self.kinds,
             positions: &mut self.positions,
+            parameters: &mut self.parameters,
         }
     }
 }
@@ -561,7 +542,7 @@ impl ChannelRepositoryConcept for ChannelRepository {
     }
 
     fn update_position(&mut self, id: ChannelId, position: ChannelPosition) -> Result<()> {
-        if self.channels.contains_key(&id) {
+        if !self.channels.contains_key(&id) {
             bail!("attempted to update position of channel {id} which has not been registered");
         }
         self.positions.insert(id, position);
