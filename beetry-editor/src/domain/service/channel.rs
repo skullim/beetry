@@ -39,16 +39,15 @@ where
     }
 
     pub fn update_position(&mut self, id: ChannelId, position: ChannelPosition) -> Result<()> {
-        self.channel.ensure_exists(self.repo.channel_mut(), id)?;
+        ChannelService::ensure_exists(self.repo.channel_mut(), id)?;
         self.channel
             .update_position(self.repo.channel_mut(), id, position)
     }
 
     pub fn connect_sender(&mut self, id: ChannelId, from: NodeId) -> Result<()> {
-        self.node.ensure_exists(id, self.repo.node())?;
+        NodeService::ensure_exists(self.repo.node(), id)?;
         self.channel
-            .connect_sender(self.repo.channel_mut(), id, from);
-        Ok(())
+            .connect_sender(self.repo.channel_mut(), id, from)
     }
 }
 
@@ -90,14 +89,16 @@ impl ChannelService {
         repo.update_position(id, position)
     }
 
-    fn connect_sender<C>(&mut self, repo: &mut C, id: ChannelId, from: NodeId)
+    fn connect_sender<C>(&mut self, repo: &mut C, id: ChannelId, from: NodeId) -> Result<()>
     where
         C: ChannelRepositoryConcept,
     {
+        Self::ensure_exists(repo, id)?;
         repo.insert_sender(id, from);
+        Ok(())
     }
 
-    pub(crate) fn ensure_exists<C>(&self, repo: &mut C, id: ChannelId) -> Result<()>
+    pub(crate) fn ensure_exists<C>(repo: &mut C, id: ChannelId) -> Result<()>
     where
         C: ChannelRepositoryConcept,
     {

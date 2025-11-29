@@ -16,6 +16,7 @@ use beetry_serde::{
 };
 
 use anyhow::{Result, anyhow, bail};
+use derive_more::From;
 use getset::{Getters, MutGetters};
 use serde_value::Value;
 use slotmap::SlotMap;
@@ -53,10 +54,7 @@ pub trait NodeRepositoryConcept {
 
     fn spec(&self, id: NodeId) -> Option<&Self::Spec>;
 
-    fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()>;
-    fn position(&self, id: NodeId) -> Option<&NodePosition>;
-
-    fn nodes(&self) -> impl Iterator<Item = NodeId>;
+    fn nodes(&self) -> NodeIter<'_>;
 }
 
 pub trait ProvideNodeName {
@@ -111,20 +109,8 @@ impl NodeRepositoryConcept for RootNodeRepository {
         self.spec.as_ref()
     }
 
-    fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
-        if self.node != Some(id) {
-            bail!("attempted to update root position for id: {id} that is not registered as root");
-        }
-        self.position = Some(position);
-        Ok(())
-    }
-
-    fn position(&self, _id: NodeId) -> Option<&NodePosition> {
-        self.position.as_ref()
-    }
-
-    fn nodes(&self) -> impl Iterator<Item = NodeId> {
-        self.node.iter().copied()
+    fn nodes(&self) -> NodeIter<'_> {
+        NodeIter::Option(self.node.iter())
     }
 }
 
@@ -179,8 +165,8 @@ where
         self.positions.get(&id)
     }
 
-    fn nodes_impl(&self) -> impl Iterator<Item = NodeId> {
-        self.nodes.keys().copied()
+    fn nodes_impl(&self) -> NodeIter<'_> {
+        NodeIter::HashMapKeys(self.nodes.keys())
     }
 }
 
@@ -188,6 +174,24 @@ pub type ActionNodeRepository = NodeRepository<ActionSpec>;
 pub type ConditionNodeRepository = NodeRepository<ConditionSpec>;
 pub type ControlNodeRepository = NodeRepository<ControlSpec>;
 pub type DecoratorNodeRepository = NodeRepository<DecoratorSpec>;
+
+#[derive(Debug, From)]
+pub(crate) enum NodeIter<'a> {
+    Slice(std::slice::Iter<'a, NodeId>),
+    HashMapKeys(std::collections::hash_map::Keys<'a, NodeId, NodeSchemaId>),
+    Option(std::option::Iter<'a, NodeId>),
+}
+
+impl<'a> Iterator for NodeIter<'a> {
+    type Item = NodeId;
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Slice(slice) => slice.next().copied(),
+            Self::HashMapKeys(keys) => keys.next().copied(),
+            Self::Option(opt) => opt.next().copied(),
+        }
+    }
+}
 
 //@todo replace by generic trait impl
 macro_rules! derive_node_repository {
@@ -210,14 +214,7 @@ macro_rules! derive_node_repository {
                 self.spec_impl(id)
             }
 
-            fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
-                self.update_position_impl(id, position)
-            }
-            fn position(&self, id: NodeId) -> Option<&NodePosition> {
-                self.position_impl(id)
-            }
-
-            fn nodes(&self) -> impl Iterator<Item = NodeId> {
+            fn nodes(&self) -> NodeIter<'_> {
                 self.nodes_impl()
             }
         }
@@ -229,28 +226,105 @@ derive_node_repository! {ControlNodeRepository, ControlSpec}
 derive_node_repository! {DecoratorNodeRepository, DecoratorSpec}
 
 pub trait NodeRepositoryFacadeConcept {
-    fn action(&self) -> &impl NodeRepositoryConcept<Spec = ActionSpec>;
-    fn action_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = ActionSpec>;
+    fn view(
+        &self,
+    ) -> NodeRepositoryFacadeView<
+        '_,
+        impl NodeRepositoryConcept<Spec = RootSpec>,
+        impl NodeRepositoryConcept<Spec = ActionSpec>,
+        impl NodeRepositoryConcept<Spec = ConditionSpec>,
+        impl NodeRepositoryConcept<Spec = ControlSpec>,
+        impl NodeRepositoryConcept<Spec = DecoratorSpec>,
+        impl NodeKindRepositoryConcept,
+        impl NodePositionRepositoryConcept,
+    >;
 
-    fn condition(&self) -> &impl NodeRepositoryConcept<Spec = ConditionSpec>;
-    fn condition_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = ConditionSpec>;
+    fn view_mut(
+        &mut self,
+    ) -> NodeRepositoryFacadeViewMut<
+        '_,
+        impl NodeRepositoryConcept<Spec = RootSpec>,
+        impl NodeRepositoryConcept<Spec = ActionSpec>,
+        impl NodeRepositoryConcept<Spec = ConditionSpec>,
+        impl NodeRepositoryConcept<Spec = ControlSpec>,
+        impl NodeRepositoryConcept<Spec = DecoratorSpec>,
+        impl NodeKindRepositoryConcept,
+        impl NodePositionRepositoryConcept,
+    >;
+}
 
-    fn control(&self) -> &impl NodeRepositoryConcept<Spec = ControlSpec>;
-    fn control_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = ControlSpec>;
-
-    fn decorator(&self) -> &impl NodeRepositoryConcept<Spec = DecoratorSpec>;
-    fn decorator_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = DecoratorSpec>;
-
-    fn root(&self) -> &impl NodeRepositoryConcept<Spec = RootSpec>;
-    fn root_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = RootSpec>;
-
-    fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()>;
-    fn position(&self, id: NodeId) -> Option<&NodePosition>;
-    fn remove_position(&mut self, id: NodeId) -> Result<()>;
-
-    fn insert_kind(&mut self, id: NodeId, kind: NodeKind) -> Result<()>;
+pub trait NodeKindRepositoryConcept {
+    fn insert(&mut self, id: NodeId, kind: NodeKind) -> Result<()>;
+    fn remove(&mut self, id: NodeId) -> Result<()>;
     fn kind(&self, id: NodeId) -> Option<NodeKind>;
-    fn remove_kind(&mut self, id: NodeId) -> Result<()>;
+}
+
+pub struct NodeKindRepository {
+    kinds: HashMap<NodeId, NodeKind>,
+}
+
+impl NodeKindRepositoryConcept for NodeKindRepository {
+    fn insert(&mut self, id: NodeId, kind: NodeKind) -> Result<()> {
+        self.kinds.insert(id, kind);
+        Ok(())
+    }
+
+    fn remove(&mut self, id: NodeId) -> Result<()> {
+        self.kinds.remove(&id);
+        Ok(())
+    }
+
+    fn kind(&self, id: NodeId) -> Option<NodeKind> {
+        self.kinds.get(&id).copied()
+    }
+}
+
+pub trait NodePositionRepositoryConcept {
+    fn update(&mut self, id: NodeId, position: NodePosition) -> Result<()>;
+    fn position(&self, id: NodeId) -> Option<&NodePosition>;
+    fn remove(&mut self, id: NodeId) -> Result<()>;
+}
+
+pub struct NodePositionRepository {
+    positions: HashMap<NodeId, NodePosition>,
+}
+
+impl NodePositionRepositoryConcept for NodePositionRepository {
+    fn update(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
+        self.positions.insert(id, position);
+        Ok(())
+    }
+
+    fn remove(&mut self, id: NodeId) -> Result<()> {
+        self.positions.remove(&id);
+        Ok(())
+    }
+
+    fn position(&self, id: NodeId) -> Option<&NodePosition> {
+        self.positions.get(&id)
+    }
+}
+
+pub struct NodeRepositoryFacadeView<'a, R, A, CD, CT, D, K, P> {
+    pub root: &'a R,
+    pub action: &'a A,
+    pub condition: &'a CD,
+    pub control: &'a CT,
+    pub decorator: &'a D,
+
+    pub kinds: &'a K,
+    pub positions: &'a P,
+}
+
+pub struct NodeRepositoryFacadeViewMut<'a, R, A, CD, CT, D, K, P> {
+    pub root: &'a mut R,
+    pub action: &'a mut A,
+    pub condition: &'a mut CD,
+    pub control: &'a mut CT,
+    pub decorator: &'a mut D,
+
+    pub kinds: &'a mut K,
+    pub positions: &'a mut P,
 }
 
 #[derive(Getters, MutGetters)]
@@ -261,72 +335,55 @@ pub struct NodeRepositoryFacade {
     control: ControlNodeRepository,
     decorator: DecoratorNodeRepository,
 
-    kinds: HashMap<NodeId, NodeKind>,
-    positions: HashMap<NodeId, NodePosition>,
+    kinds: NodeKindRepository,
+    positions: NodePositionRepository,
 }
 
 impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
-    fn action(&self) -> &impl NodeRepositoryConcept<Spec = ActionSpec> {
-        &self.action
-    }
-    fn action_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = ActionSpec> {
-        &mut self.action
-    }
-
-    fn condition(&self) -> &impl NodeRepositoryConcept<Spec = ConditionSpec> {
-        &self.condition
-    }
-    fn condition_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = ConditionSpec> {
-        &mut self.condition
-    }
-
-    fn control(&self) -> &impl NodeRepositoryConcept<Spec = ControlSpec> {
-        &self.control
-    }
-    fn control_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = ControlSpec> {
-        &mut self.control
-    }
-
-    fn decorator(&self) -> &impl NodeRepositoryConcept<Spec = DecoratorSpec> {
-        &self.decorator
-    }
-    fn decorator_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = DecoratorSpec> {
-        &mut self.decorator
+    fn view(
+        &self,
+    ) -> NodeRepositoryFacadeView<
+        '_,
+        impl NodeRepositoryConcept<Spec = RootSpec>,
+        impl NodeRepositoryConcept<Spec = ActionSpec>,
+        impl NodeRepositoryConcept<Spec = ConditionSpec>,
+        impl NodeRepositoryConcept<Spec = ControlSpec>,
+        impl NodeRepositoryConcept<Spec = DecoratorSpec>,
+        impl NodeKindRepositoryConcept,
+        impl NodePositionRepositoryConcept,
+    > {
+        NodeRepositoryFacadeView {
+            root: &self.root,
+            action: &self.action,
+            condition: &self.condition,
+            control: &self.control,
+            decorator: &self.decorator,
+            kinds: &self.kinds,
+            positions: &self.positions,
+        }
     }
 
-    fn root(&self) -> &impl NodeRepositoryConcept<Spec = RootSpec> {
-        &self.root
-    }
-    fn root_mut(&mut self) -> &mut impl NodeRepositoryConcept<Spec = RootSpec> {
-        &mut self.root
-    }
-
-    fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
-        self.positions.insert(id, position);
-        Ok(())
-    }
-
-    fn position(&self, id: NodeId) -> Option<&NodePosition> {
-        self.positions.get(&id)
-    }
-
-    fn remove_position(&mut self, id: NodeId) -> Result<()> {
-        self.positions.remove(&id);
-        Ok(())
-    }
-
-    fn insert_kind(&mut self, id: NodeId, kind: NodeKind) -> Result<()> {
-        self.kinds.insert(id, kind);
-        Ok(())
-    }
-
-    fn kind(&self, id: NodeId) -> Option<NodeKind> {
-        self.kinds.get(&id).copied()
-    }
-
-    fn remove_kind(&mut self, id: NodeId) -> Result<()> {
-        self.kinds.remove(&id);
-        Ok(())
+    fn view_mut(
+        &mut self,
+    ) -> NodeRepositoryFacadeViewMut<
+        '_,
+        impl NodeRepositoryConcept<Spec = RootSpec>,
+        impl NodeRepositoryConcept<Spec = ActionSpec>,
+        impl NodeRepositoryConcept<Spec = ConditionSpec>,
+        impl NodeRepositoryConcept<Spec = ControlSpec>,
+        impl NodeRepositoryConcept<Spec = DecoratorSpec>,
+        impl NodeKindRepositoryConcept,
+        impl NodePositionRepositoryConcept,
+    > {
+        NodeRepositoryFacadeViewMut {
+            root: &mut self.root,
+            action: &mut self.action,
+            condition: &mut self.condition,
+            control: &mut self.control,
+            decorator: &mut self.decorator,
+            kinds: &mut self.kinds,
+            positions: &mut self.positions,
+        }
     }
 }
 
@@ -382,33 +439,6 @@ pub trait EdgeRepositoryConcept {
 }
 
 pub struct EdgeRepository {}
-
-// pub trait NodeKindRepositoryConcept {
-//     fn insert(&mut self, id: NodeId, kind: NodeKind) -> Result<()>;
-//     fn remove(&mut self, id: NodeId) -> Result<()>;
-
-//     fn kind(&self, id: NodeId) -> Option<NodeKind>;
-// }
-
-// pub struct NodeKindRepository {
-//     kinds: HashMap<NodeId, NodeKind>,
-// }
-
-// impl NodeKindRepositoryConcept for NodeKindRepository {
-//     fn insert(&mut self, id: NodeId, kind: NodeKind) -> Result<()> {
-//         self.kinds.insert(id, kind);
-//         Ok(())
-//     }
-
-//     fn remove(&mut self, id: NodeId) -> Result<()> {
-//         self.kinds.remove(&id);
-//         Ok(())
-//     }
-
-//     fn kind(&self, id: NodeId) -> Option<NodeKind> {
-//         self.kinds.get(&id).copied()
-//     }
-// }
 
 pub trait ChannelRepositoryConcept {
     fn create(&mut self, id: ChannelId, spec: ChannelSpec) -> Result<()>;
