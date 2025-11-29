@@ -2,28 +2,27 @@ use crate::domain::{
     models::{ChannelId, ChannelPosition, NodeId},
     ports::{
         ChannelRepositoryConcept, EdgeRepositoryConcept, EditorRepository,
-        NodeRepositoryFacadeConcept, ParamRepositoryConcept,
+        NodeRepositoryFacadeConcept,
     },
     service::node::NodeService,
 };
 use anyhow::{Result, bail};
 use beetry_serde::ser::channel::ChannelSpec;
 
-pub struct ChannelServiceView<'r, 'c, 'n, NRF, ER, CR, PR> {
-    repo: &'r mut EditorRepository<NRF, ER, CR, PR>,
+pub struct ChannelServiceView<'r, 'c, 'n, NRF, ER, CR> {
+    repo: &'r mut EditorRepository<NRF, ER, CR>,
     channel: &'c mut ChannelService,
     node: &'n NodeService,
 }
 
-impl<'r, 'c, 'n, NRF, ER, CR, PR> ChannelServiceView<'r, 'c, 'n, NRF, ER, CR, PR>
+impl<'r, 'c, 'n, NRF, ER, CR> ChannelServiceView<'r, 'c, 'n, NRF, ER, CR>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
     CR: ChannelRepositoryConcept,
-    PR: ParamRepositoryConcept,
 {
     pub(crate) fn new(
-        repo: &'r mut EditorRepository<NRF, ER, CR, PR>,
+        repo: &'r mut EditorRepository<NRF, ER, CR>,
         channel: &'c mut ChannelService,
         node: &'n NodeService,
     ) -> Self {
@@ -45,7 +44,7 @@ where
     }
 
     pub fn connect_sender(&mut self, id: ChannelId, from: NodeId) -> Result<()> {
-        NodeService::ensure_exists(self.repo.node(), id)?;
+        NodeService::ensure_exists(self.repo.node().view(), id)?;
         self.channel
             .connect_sender(self.repo.channel_mut(), id, from)
     }

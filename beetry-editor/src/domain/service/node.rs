@@ -13,20 +13,19 @@ use beetry_plugin::{ActionSpec, ConditionSpec};
 use beetry_serde::ser::node::{ControlSpec, DecoratorSpec, NodeName, NodeSpec, RootSpec};
 
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
-pub struct NodeServiceView<'r, 's, NRF, ER, CR, PR> {
-    repo: &'r mut EditorRepository<NRF, ER, CR, PR>,
+pub struct NodeServiceView<'r, 's, NRF, ER, CR> {
+    repo: &'r mut EditorRepository<NRF, ER, CR>,
     node_service: &'s mut NodeService,
 }
 
-impl<'r, 's, NRF, ER, CR, PR> NodeServiceView<'r, 's, NRF, ER, CR, PR>
+impl<'r, 's, NRF, ER, CR> NodeServiceView<'r, 's, NRF, ER, CR>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
     CR: ChannelRepositoryConcept,
-    PR: ParamRepositoryConcept,
 {
     pub(crate) fn new(
-        repo: &'r mut EditorRepository<NRF, ER, CR, PR>,
+        repo: &'r mut EditorRepository<NRF, ER, CR>,
         node_service: &'s mut NodeService,
     ) -> Self {
         Self { repo, node_service }
@@ -63,10 +62,9 @@ where
 
     pub fn remove(&mut self, id: NodeId) -> Result<()> {
         let repo = &mut self.repo;
-        self.node_service.on_node_removal(repo.node_mut(), id)?;
+        NodeService::on_node_removal(repo.node_mut(), id)?;
         repo.edge_mut().on_node_removal(id)?;
-        ChannelService::on_node_removal(repo.channel_mut(), id)?;
-        repo.parameter_mut().remove(id)
+        ChannelService::on_node_removal(repo.channel_mut(), id)
     }
 
     pub fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
@@ -90,10 +88,9 @@ impl NodeService {
     }
 
     pub(crate) fn ensure_exists(
-        node_facade: &impl NodeRepositoryFacadeConcept,
+        view: NodeRepositoryFacadeView<'_, impl NodeRepositoryFacadeConcept>,
         id: NodeId,
     ) -> Result<()> {
-        let view = node_facade.view();
         let kind = NodeKindService::kind(view.kinds, id)?;
 
         let contains = match kind {
@@ -138,7 +135,7 @@ impl NodeService {
         kinds_repo: &mut impl NodeKindRepositoryConcept,
         spec: &ConditionSpec,
     ) -> Result<NodeId> {
-        let id = self.creator.create_action(conditions_repo, spec)?;
+        let id = self.creator.create_condition(conditions_repo, spec)?;
         NodeKindService::insert(kinds_repo, id, NodeKind::Condition)?;
         Ok(id)
     }
@@ -170,7 +167,7 @@ impl NodeService {
         id: NodeId,
         position: NodePosition,
     ) -> Result<()> {
-        Self::ensure_exists(repo, id)?;
+        Self::ensure_exists(repo.view(), id)?;
         let NodeRepositoryFacadeViewMut { positions, .. } = repo.view_mut();
         positions.update(id, position)
     }
@@ -190,11 +187,7 @@ impl NodeService {
         nodes.flat_map(|id| view.positions.position(id))
     }
 
-    fn on_node_removal(
-        &mut self,
-        repo: &mut impl NodeRepositoryFacadeConcept,
-        id: NodeId,
-    ) -> Result<()> {
+    fn on_node_removal(repo: &mut impl NodeRepositoryFacadeConcept, id: NodeId) -> Result<()> {
         let view = repo.view_mut();
         let kind = NodeKindService::kind(view.kinds, id)?;
         match kind {
@@ -205,7 +198,8 @@ impl NodeService {
             NodeKind::Root => view.root.remove(id)?,
         };
         view.kinds.remove(id)?;
-        view.positions.remove(id)
+        view.positions.remove(id)?;
+        view.parameters.remove(id)
     }
 
     //@todo check if all accessors are really needed

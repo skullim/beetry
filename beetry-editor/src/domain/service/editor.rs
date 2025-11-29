@@ -9,20 +9,19 @@ use crate::domain::{
     },
 };
 
-pub struct EditorService<NRF, ER, CR, PR> {
+pub struct EditorService<NRF, ER, CR> {
     node_service: NodeService,
     channel_service: ChannelService,
-    repo: EditorRepository<NRF, ER, CR, PR>,
+    repo: EditorRepository<NRF, ER, CR>,
 }
 
-impl<NRF, ER, CR, PR> EditorService<NRF, ER, CR, PR>
+impl<NRF, ER, CR> EditorService<NRF, ER, CR>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
     CR: ChannelRepositoryConcept,
-    PR: ParamRepositoryConcept,
 {
-    pub fn new(repo: EditorRepository<NRF, ER, CR, PR>) -> Self {
+    pub fn new(repo: EditorRepository<NRF, ER, CR>) -> Self {
         Self {
             node_service: NodeService::new(),
             channel_service: ChannelService::new(),
@@ -30,11 +29,11 @@ where
         }
     }
 
-    pub fn node_view(&mut self) -> NodeServiceView<'_, '_, NRF, ER, CR, PR> {
+    pub fn node_view(&mut self) -> NodeServiceView<'_, '_, NRF, ER, CR> {
         NodeServiceView::new(&mut self.repo, &mut self.node_service)
     }
 
-    pub fn channel_view(&mut self) -> ChannelServiceView<'_, '_, '_, NRF, ER, CR, PR> {
+    pub fn channel_view(&mut self) -> ChannelServiceView<'_, '_, '_, NRF, ER, CR> {
         ChannelServiceView::new(
             &mut self.repo,
             &mut self.channel_service,
