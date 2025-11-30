@@ -306,6 +306,14 @@ pub struct NodeRepositoryFacadeView<'a, F: NodeRepositoryFacadeConcept> {
     pub parameters: &'a F::ParamRepo,
 }
 
+impl<'a, F: NodeRepositoryFacadeConcept> Copy for NodeRepositoryFacadeView<'a, F> {}
+
+impl<'a, F: NodeRepositoryFacadeConcept> Clone for NodeRepositoryFacadeView<'a, F> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
 pub struct NodeRepositoryFacadeViewMut<'a, F: NodeRepositoryFacadeConcept> {
     pub root: &'a mut F::RootRepo,
     pub action: &'a mut F::ActionRepo,
@@ -408,18 +416,36 @@ pub trait EdgeRepositoryConcept {
     fn create(&mut self, id: EdgeId, edge: NodeEdge) -> Result<()>;
     fn remove(&mut self, id: EdgeId) -> Result<()>;
 
-    fn update_position(&mut self, id: ChannelId, position: EdgePosition) -> Result<()>;
-    fn position(&self, id: ChannelId) -> Option<&EdgePosition>;
-
-    fn children_of(&self, id: NodeId) -> impl Iterator<Item = NodeId>;
+    //fn children_of(&self, id: NodeId) -> impl Iterator<Item = NodeId>;
 
     fn edge(&self, id: EdgeId) -> Option<&NodeEdge>;
     fn edges(&self) -> impl Iterator<Item = EdgeId>;
-
-    fn on_node_removal(&mut self, id: NodeId) -> Result<()>;
 }
 
-pub struct EdgeRepository {}
+pub struct EdgeRepository {
+    //parent_children_map: HashMap<NodeId, HashSet<NodeId>>,
+    edges: HashMap<EdgeId, NodeEdge>,
+}
+
+impl EdgeRepositoryConcept for EdgeRepository {
+    fn create(&mut self, id: EdgeId, edge: NodeEdge) -> Result<()> {
+        self.edges.insert(id, edge);
+        Ok(())
+    }
+
+    fn remove(&mut self, id: EdgeId) -> Result<()> {
+        self.edges.remove(&id);
+        Ok(())
+    }
+
+    fn edge(&self, id: EdgeId) -> Option<&NodeEdge> {
+        self.edges.get(&id)
+    }
+
+    fn edges(&self) -> impl Iterator<Item = EdgeId> {
+        self.edges.keys().copied()
+    }
+}
 
 pub trait ChannelRepositoryConcept {
     fn create(&mut self, id: ChannelId, spec: ChannelSpec) -> Result<()>;
