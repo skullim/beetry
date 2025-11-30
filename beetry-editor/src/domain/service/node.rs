@@ -63,7 +63,7 @@ where
     pub fn remove(&mut self, id: NodeId) -> Result<()> {
         let repo = &mut self.repo;
         NodeService::on_node_removal(repo.node_mut(), id)?;
-        repo.edge_mut().on_node_removal(id)?;
+        //@todo: remove edges
         ChannelService::on_node_removal(repo.channel_mut(), id)
     }
 
@@ -228,6 +228,9 @@ impl NodeCreator {
         repo: &mut impl NodeRepositoryConcept<Spec = RootSpec>,
         spec: &RootSpec,
     ) -> Result<NodeId> {
+        if repo.nodes().count() > 0 {
+            bail!("attempted to create multiple roots");
+        }
         let id = self.next_id();
         if id != 0 {
             bail!("root should always have id 0 but tried to assign {id}");

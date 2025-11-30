@@ -39,8 +39,7 @@ where
 
     pub fn update_position(&mut self, id: ChannelId, position: ChannelPosition) -> Result<()> {
         ChannelService::ensure_exists(self.repo.channel_mut(), id)?;
-        self.channel
-            .update_position(self.repo.channel_mut(), id, position)
+        ChannelService::update_position(self.repo.channel_mut(), id, position)
     }
 
     pub fn connect_sender(&mut self, id: ChannelId, from: NodeId) -> Result<()> {
@@ -60,47 +59,46 @@ impl ChannelService {
         Self::default()
     }
 
-    pub(crate) fn on_node_removal<C>(repo: &mut C, id: NodeId) -> Result<()>
-    where
-        C: ChannelRepositoryConcept,
-    {
+    pub(crate) fn on_node_removal(
+        repo: &mut impl ChannelRepositoryConcept,
+        id: NodeId,
+    ) -> Result<()> {
         repo.on_node_removal(id)
     }
 
-    fn create<C>(&mut self, repo: &mut C, spec: ChannelSpec) -> Result<ChannelId>
-    where
-        C: ChannelRepositoryConcept,
-    {
+    fn create(
+        &mut self,
+        repo: &mut impl ChannelRepositoryConcept,
+        spec: ChannelSpec,
+    ) -> Result<ChannelId> {
         let id = self.id_assigner.next_id();
         repo.create(id, spec)?;
         Ok(id)
     }
 
-    fn update_position<C>(
-        &mut self,
-        repo: &mut C,
+    fn update_position(
+        repo: &mut impl ChannelRepositoryConcept,
         id: ChannelId,
         position: ChannelPosition,
-    ) -> Result<()>
-    where
-        C: ChannelRepositoryConcept,
-    {
+    ) -> Result<()> {
         repo.update_position(id, position)
     }
 
-    fn connect_sender<C>(&mut self, repo: &mut C, id: ChannelId, from: NodeId) -> Result<()>
-    where
-        C: ChannelRepositoryConcept,
-    {
+    fn connect_sender(
+        &mut self,
+        repo: &mut impl ChannelRepositoryConcept,
+        id: ChannelId,
+        from: NodeId,
+    ) -> Result<()> {
         Self::ensure_exists(repo, id)?;
         repo.insert_sender(id, from);
         Ok(())
     }
 
-    pub(crate) fn ensure_exists<C>(repo: &mut C, id: ChannelId) -> Result<()>
-    where
-        C: ChannelRepositoryConcept,
-    {
+    pub(crate) fn ensure_exists(
+        repo: &mut impl ChannelRepositoryConcept,
+        id: ChannelId,
+    ) -> Result<()> {
         if !repo.contains(id) {
             bail!("channel {id} does not exist")
         }
