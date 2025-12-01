@@ -22,6 +22,7 @@ anyhow = "1.0.100"
 bon = "3.8.1"
 derive-getters = "0.5.0"
 derive_more = { version = "2.0.1", features = ["full"] }
+getset = "0.1.6"
 mitsein = { version = "0.8.0", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde-value = "0.7.0"

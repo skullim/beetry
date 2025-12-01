@@ -6,19 +6,20 @@ use crate::domain::{
         NodeRepositoryFacadeConcept, NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut,
         ParamRepositoryConcept,
     },
-    service::channel::ChannelService,
+    service::{channel::ChannelService, edge::EdgeService},
 };
 use anyhow::{Result, anyhow, bail};
 use beetry_plugin::{ActionSpec, ConditionSpec};
 use beetry_serde::ser::node::{ControlSpec, DecoratorSpec, NodeName, NodeSpec, RootSpec};
 
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
-pub struct NodeServiceView<'r, 's, NRF, ER, CR> {
+pub struct NodeServiceView<'r, 's, 'e, NRF, ER, CR> {
     repo: &'r mut EditorRepository<NRF, ER, CR>,
     node_service: &'s mut NodeService,
+    edge_service: &'e mut EdgeService,
 }
 
-impl<'r, 's, NRF, ER, CR> NodeServiceView<'r, 's, NRF, ER, CR>
+impl<'r, 's, 'e, NRF, ER, CR> NodeServiceView<'r, 's, 'e, NRF, ER, CR>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
@@ -27,8 +28,13 @@ where
     pub(crate) fn new(
         repo: &'r mut EditorRepository<NRF, ER, CR>,
         node_service: &'s mut NodeService,
+        edge_service: &'e mut EdgeService,
     ) -> Self {
-        Self { repo, node_service }
+        Self {
+            repo,
+            node_service,
+            edge_service,
+        }
     }
 
     pub fn create_root(&mut self, spec: &RootSpec) -> Result<NodeId> {
@@ -63,8 +69,12 @@ where
     pub fn remove(&mut self, id: NodeId) -> Result<()> {
         let repo = &mut self.repo;
         NodeService::on_node_removal(repo.node_mut(), id)?;
-        //@todo: remove edges
+        self.edge_service.on_node_removal(repo.edge_mut(), id)?;
         ChannelService::on_node_removal(repo.channel_mut(), id)
+    }
+
+    pub fn nodes(&self, kind: NodeKind) -> impl Iterator<Item = NodeId> {
+        NodeService::nodes(self.repo.node(), kind)
     }
 
     pub fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
@@ -162,6 +172,21 @@ impl NodeService {
         Ok(id)
     }
 
+    fn nodes(
+        repo: &impl NodeRepositoryFacadeConcept,
+        kind: NodeKind,
+    ) -> impl Iterator<Item = NodeId> {
+        let view = repo.view();
+
+        match kind {
+            NodeKind::Root => view.root.nodes(),
+            NodeKind::Action => view.action.nodes(),
+            NodeKind::Condition => view.condition.nodes(),
+            NodeKind::Control => view.control.nodes(),
+            NodeKind::Decorator => view.decorator.nodes(),
+        }
+    }
+
     fn update_position(
         repo: &mut impl NodeRepositoryFacadeConcept,
         id: NodeId,
@@ -187,6 +212,10 @@ impl NodeService {
         nodes.flat_map(|id| view.positions.position(id))
     }
 
+    fn insert_parameter() {
+        todo!()
+    }
+
     fn on_node_removal(repo: &mut impl NodeRepositoryFacadeConcept, id: NodeId) -> Result<()> {
         let view = repo.view_mut();
         let kind = NodeKindService::kind(view.kinds, id)?;
@@ -202,12 +231,13 @@ impl NodeService {
         view.parameters.remove(id)
     }
 
-    //@todo check if all accessors are really needed
-    fn name(&self, id: NodeId) -> Option<&NodeName> {
+    //@todo: probably would have to be collected into an enum or come up with a trait
+    fn spec<T>(repo: &impl NodeRepositoryFacadeConcept, id: NodeId) -> Option<&NodeSpec<T>> {
         todo!()
     }
 
-    fn spec<T>(&self, id: NodeId) -> Option<&NodeSpec<T>> {
+    //@todo check if all accessors are really needed
+    fn name(&self, id: NodeId) -> Option<&NodeName> {
         todo!()
     }
 }
@@ -297,14 +327,14 @@ impl NodeIdAssigner {
     }
 }
 
-struct NodeKindService;
+pub(crate) struct NodeKindService;
 
 impl NodeKindService {
     fn insert(repo: &mut impl NodeKindRepositoryConcept, id: NodeId, kind: NodeKind) -> Result<()> {
         repo.insert(id, kind)
     }
 
-    fn kind(repo: &impl NodeKindRepositoryConcept, id: NodeId) -> Result<NodeKind> {
+    pub(crate) fn kind(repo: &impl NodeKindRepositoryConcept, id: NodeId) -> Result<NodeKind> {
         repo.kind(id)
             .ok_or_else(|| anyhow!("cannot obtain node kind for node {id}"))
     }
