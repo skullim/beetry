@@ -73,6 +73,40 @@ where
         ChannelService::on_node_removal(repo.channel_mut(), id)
     }
 
+    pub fn root_spec(&self, id: NodeId) -> Option<&RootSpec> {
+        let NodeRepositoryFacadeView { root, .. } = self.repo.node().view();
+        NodeService::root_spec(root, id)
+    }
+
+    pub fn action_spec(&self, id: NodeId) -> Option<&ActionSpec> {
+        let NodeRepositoryFacadeView { action, .. } = self.repo.node().view();
+        NodeService::action_spec(action, id)
+    }
+
+    pub fn condition_spec(&self, id: NodeId) -> Option<&ConditionSpec> {
+        let NodeRepositoryFacadeView { condition, .. } = self.repo.node().view();
+        NodeService::condition_spec(condition, id)
+    }
+
+    pub fn control_spec(&self, id: NodeId) -> Option<&ControlSpec> {
+        let NodeRepositoryFacadeView { control, .. } = self.repo.node().view();
+        NodeService::control_spec(control, id)
+    }
+
+    pub fn decorator_spec(&self, id: NodeId) -> Option<&DecoratorSpec> {
+        let NodeRepositoryFacadeView { decorator, .. } = self.repo.node().view();
+        NodeService::decorator_spec(decorator, id)
+    }
+
+    pub fn name(&self, id: NodeId) -> Result<&NodeName> {
+        NodeService::name(self.repo.node(), id)
+    }
+
+    pub fn kind(&self, id: NodeId) -> Result<NodeKind> {
+        let NodeRepositoryFacadeView { kinds, .. } = self.repo.node().view();
+        NodeKindService::kind(kinds, id)
+    }
+
     pub fn nodes(&self, kind: NodeKind) -> impl Iterator<Item = NodeId> {
         NodeService::nodes(self.repo.node(), kind)
     }
@@ -172,6 +206,37 @@ impl NodeService {
         Ok(id)
     }
 
+    fn root_spec(
+        repo: &impl NodeRepositoryConcept<Spec = RootSpec>,
+        id: NodeId,
+    ) -> Option<&RootSpec> {
+        repo.spec(id)
+    }
+    fn action_spec(
+        repo: &impl NodeRepositoryConcept<Spec = ActionSpec>,
+        id: NodeId,
+    ) -> Option<&ActionSpec> {
+        repo.spec(id)
+    }
+    fn condition_spec(
+        repo: &impl NodeRepositoryConcept<Spec = ConditionSpec>,
+        id: NodeId,
+    ) -> Option<&ConditionSpec> {
+        repo.spec(id)
+    }
+    fn control_spec(
+        repo: &impl NodeRepositoryConcept<Spec = ControlSpec>,
+        id: NodeId,
+    ) -> Option<&ControlSpec> {
+        repo.spec(id)
+    }
+    fn decorator_spec(
+        repo: &impl NodeRepositoryConcept<Spec = DecoratorSpec>,
+        id: NodeId,
+    ) -> Option<&DecoratorSpec> {
+        repo.spec(id)
+    }
+
     fn nodes(
         repo: &impl NodeRepositoryFacadeConcept,
         kind: NodeKind,
@@ -231,14 +296,18 @@ impl NodeService {
         view.parameters.remove(id)
     }
 
-    //@todo: probably would have to be collected into an enum or come up with a trait
-    fn spec<T>(repo: &impl NodeRepositoryFacadeConcept, id: NodeId) -> Option<&NodeSpec<T>> {
-        todo!()
-    }
+    fn name(repo: &impl NodeRepositoryFacadeConcept, id: NodeId) -> Result<&NodeName> {
+        let view = repo.view();
+        let kind = NodeKindService::kind(view.kinds, id)?;
+        let on_error = || anyhow!("no name found for node {id}");
 
-    //@todo check if all accessors are really needed
-    fn name(&self, id: NodeId) -> Option<&NodeName> {
-        todo!()
+        Ok(match kind {
+            NodeKind::Action => view.action.spec(id).ok_or_else(on_error)?.name(),
+            NodeKind::Condition => view.condition.spec(id).ok_or_else(on_error)?.name(),
+            NodeKind::Control => view.control.spec(id).ok_or_else(on_error)?.name(),
+            NodeKind::Decorator => view.decorator.spec(id).ok_or_else(on_error)?.name(),
+            NodeKind::Root => view.root.spec(id).ok_or_else(on_error)?.name(),
+        })
     }
 }
 

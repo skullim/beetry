@@ -488,6 +488,7 @@ pub trait ChannelRepositoryConcept {
     fn contains(&self, id: NodeId) -> bool;
 
     fn insert_sender(&mut self, id: ChannelId, from: NodeId);
+    fn sender(&self, id: NodeId) -> impl Iterator<Item = ChannelId>;
     fn senders(&self) -> impl Iterator<Item = (NodeId, impl Iterator<Item = ChannelId>)>;
 
     fn insert_receiver(&mut self, id: ChannelId, to: NodeId);
@@ -533,22 +534,21 @@ impl ChannelRepositoryConcept for ChannelRepository {
         self.channels.get(&id)
     }
 
-    fn contains(&self, id: NodeId) -> bool {
+    fn contains(&self, id: ChannelId) -> bool {
         self.channels.contains_key(&id)
     }
 
     fn insert_sender(&mut self, from: NodeId, id: ChannelId) {
-        self.senders
-            .entry(from)
-            .and_modify(|senders| {
-                senders.insert(id);
-            })
-            .or_insert_with(|| {
-                let mut senders = HashSet::new();
-                senders.insert(id);
-                senders
-            });
+        self.senders.entry(from).or_default().insert(id);
     }
+
+    fn sender(&self, id: NodeId) -> impl Iterator<Item = ChannelId> {
+        self.senders
+            .get(&id)
+            .into_iter()
+            .flat_map(|senders| senders.iter().copied())
+    }
+
     fn senders(&self) -> impl Iterator<Item = (NodeId, impl Iterator<Item = ChannelId>)> {
         self.senders
             .iter()
