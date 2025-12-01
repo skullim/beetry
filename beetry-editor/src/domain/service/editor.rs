@@ -5,12 +5,14 @@ use crate::domain::{
     },
     service::{
         channel::{ChannelService, ChannelServiceView},
+        edge::{EdgeService, EdgeServiceView},
         node::{NodeService, NodeServiceView},
     },
 };
 
 pub struct EditorService<NRF, ER, CR> {
     node_service: NodeService,
+    edge_service: EdgeService,
     channel_service: ChannelService,
     repo: EditorRepository<NRF, ER, CR>,
 }
@@ -24,13 +26,22 @@ where
     pub fn new(repo: EditorRepository<NRF, ER, CR>) -> Self {
         Self {
             node_service: NodeService::new(),
+            edge_service: EdgeService::new(),
             channel_service: ChannelService::new(),
             repo,
         }
     }
 
-    pub fn node_view(&mut self) -> NodeServiceView<'_, '_, NRF, ER, CR> {
-        NodeServiceView::new(&mut self.repo, &mut self.node_service)
+    pub fn node_view(&mut self) -> NodeServiceView<'_, '_, '_, NRF, ER, CR> {
+        NodeServiceView::new(
+            &mut self.repo,
+            &mut self.node_service,
+            &mut self.edge_service,
+        )
+    }
+
+    pub fn edge_view(&mut self) -> EdgeServiceView<'_, '_, NRF, ER, CR> {
+        EdgeServiceView::new(&mut self.repo, &mut self.edge_service)
     }
 
     pub fn channel_view(&mut self) -> ChannelServiceView<'_, '_, '_, NRF, ER, CR> {

@@ -38,14 +38,26 @@ where
     }
 
     pub fn update_position(&mut self, id: ChannelId, position: ChannelPosition) -> Result<()> {
-        ChannelService::ensure_exists(self.repo.channel_mut(), id)?;
+        ChannelService::ensure_exists(self.repo.channel(), id)?;
         ChannelService::update_position(self.repo.channel_mut(), id, position)
+    }
+
+    pub fn positions(&self) -> impl Iterator<Item = ChannelPosition> {
+        ChannelService::positions(self.repo.channel())
+    }
+
+    pub fn channels(&self) -> impl Iterator<Item = ChannelId> {
+        ChannelService::channels(self.repo.channel())
     }
 
     pub fn connect_sender(&mut self, id: ChannelId, from: NodeId) -> Result<()> {
         NodeService::ensure_exists(self.repo.node().view(), id)?;
-        self.channel
-            .connect_sender(self.repo.channel_mut(), id, from)
+        ChannelService::connect_sender(self.repo.channel_mut(), id, from)
+    }
+
+    pub fn connect_receiver(&mut self, id: ChannelId, to: NodeId) -> Result<()> {
+        NodeService::ensure_exists(self.repo.node().view(), id)?;
+        ChannelService::connect_receiver(self.repo.channel_mut(), id, to)
     }
 }
 
@@ -57,13 +69,6 @@ pub(crate) struct ChannelService {
 impl ChannelService {
     pub(crate) fn new() -> Self {
         Self::default()
-    }
-
-    pub(crate) fn on_node_removal(
-        repo: &mut impl ChannelRepositoryConcept,
-        id: NodeId,
-    ) -> Result<()> {
-        repo.on_node_removal(id)
     }
 
     fn create(
@@ -84,21 +89,47 @@ impl ChannelService {
         repo.update_position(id, position)
     }
 
+    fn positions(repo: &impl ChannelRepositoryConcept) -> impl Iterator<Item = ChannelPosition> {
+        let ids = repo.channels();
+        ids.flat_map(|id| repo.position(id).copied())
+    }
+
     fn connect_sender(
-        &mut self,
         repo: &mut impl ChannelRepositoryConcept,
         id: ChannelId,
         from: NodeId,
     ) -> Result<()> {
+        //@todo: check w.r.t. spec and that node exists
         Self::ensure_exists(repo, id)?;
+        //@todo increment sender count for mpsc setting
         repo.insert_sender(id, from);
         Ok(())
     }
 
-    pub(crate) fn ensure_exists(
+    fn connect_receiver(
         repo: &mut impl ChannelRepositoryConcept,
         id: ChannelId,
+        to: NodeId,
     ) -> Result<()> {
+        //@todo: check w.r.t. spec and that node exists
+        Self::ensure_exists(repo, id)?;
+        //@todo increment receiver count for mpsc setting
+        repo.insert_receiver(id, to);
+        Ok(())
+    }
+
+    fn channels(repo: &impl ChannelRepositoryConcept) -> impl Iterator<Item = ChannelId> {
+        repo.channels()
+    }
+
+    pub(crate) fn on_node_removal(
+        repo: &mut impl ChannelRepositoryConcept,
+        id: NodeId,
+    ) -> Result<()> {
+        repo.on_node_removal(id)
+    }
+
+    pub(crate) fn ensure_exists(repo: &impl ChannelRepositoryConcept, id: ChannelId) -> Result<()> {
         if !repo.contains(id) {
             bail!("channel {id} does not exist")
         }

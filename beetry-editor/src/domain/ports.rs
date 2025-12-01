@@ -31,12 +31,40 @@ pub struct EditorRepository<NRF, ER, CR> {
     channel: CR,
 }
 
+pub struct EditorRepositoryView<'a, NRF, ER, CR> {
+    pub node: &'a NRF,
+    pub edge: &'a ER,
+    pub channel: &'a CR,
+}
+
+pub struct EditorRepositoryViewMut<'a, NRF, ER, CR> {
+    pub node: &'a mut NRF,
+    pub edge: &'a mut ER,
+    pub channel: &'a mut CR,
+}
+
 impl<NRF, ER, CR> EditorRepository<NRF, ER, CR> {
     pub fn new(node: NRF, edge: ER, channel: CR) -> Self {
         Self {
             node,
             edge,
             channel,
+        }
+    }
+
+    pub fn view(&self) -> EditorRepositoryView<'_, NRF, ER, CR> {
+        EditorRepositoryView {
+            node: &self.node,
+            edge: &self.edge,
+            channel: &self.channel,
+        }
+    }
+
+    pub fn view_mut(&mut self) -> EditorRepositoryViewMut<'_, NRF, ER, CR> {
+        EditorRepositoryViewMut {
+            node: &mut self.node,
+            edge: &mut self.edge,
+            channel: &mut self.channel,
         }
     }
 }
@@ -414,16 +442,21 @@ impl ParamRepositoryConcept for ParamRepository {
 
 pub trait EdgeRepositoryConcept {
     fn create(&mut self, id: EdgeId, edge: NodeEdge) -> Result<()>;
-    fn remove(&mut self, id: EdgeId) -> Result<()>;
+    fn remove(&mut self, id: EdgeId) -> Option<NodeEdge>;
 
-    //fn children_of(&self, id: NodeId) -> impl Iterator<Item = NodeId>;
+    fn edges(&self) -> impl Iterator<Item = &NodeEdge>;
+    fn ids(&self) -> impl Iterator<Item = EdgeId>;
 
-    fn edge(&self, id: EdgeId) -> Option<&NodeEdge>;
-    fn edges(&self) -> impl Iterator<Item = EdgeId>;
+    // provided methods
+    fn iter(&self) -> impl Iterator<Item = (EdgeId, &NodeEdge)> {
+        self.ids().zip(self.edges())
+    }
 }
 
 pub struct EdgeRepository {
-    //parent_children_map: HashMap<NodeId, HashSet<NodeId>>,
+    /// Vec<NodeEdge> would also be sufficient, but frontend is rendered more efficiently
+    /// if each element has a unique and *stable* id. In that sense frontend is intrusive, but otherwise it would be very costly to
+    /// map the ids on any other layer
     edges: HashMap<EdgeId, NodeEdge>,
 }
 
@@ -433,16 +466,15 @@ impl EdgeRepositoryConcept for EdgeRepository {
         Ok(())
     }
 
-    fn remove(&mut self, id: EdgeId) -> Result<()> {
-        self.edges.remove(&id);
-        Ok(())
+    fn remove(&mut self, id: EdgeId) -> Option<NodeEdge> {
+        self.edges.remove(&id)
     }
 
-    fn edge(&self, id: EdgeId) -> Option<&NodeEdge> {
-        self.edges.get(&id)
+    fn edges(&self) -> impl Iterator<Item = &NodeEdge> {
+        self.edges.values()
     }
 
-    fn edges(&self) -> impl Iterator<Item = EdgeId> {
+    fn ids(&self) -> impl Iterator<Item = EdgeId> {
         self.edges.keys().copied()
     }
 }
@@ -450,6 +482,8 @@ impl EdgeRepositoryConcept for EdgeRepository {
 pub trait ChannelRepositoryConcept {
     fn create(&mut self, id: ChannelId, spec: ChannelSpec) -> Result<()>;
     fn remove(&mut self, id: ChannelId) -> Result<()>;
+
+    fn spec(&self, id: ChannelId) -> Option<&ChannelSpec>;
 
     fn contains(&self, id: NodeId) -> bool;
 
@@ -495,6 +529,10 @@ impl ChannelRepositoryConcept for ChannelRepository {
         Ok(())
     }
 
+    fn spec(&self, id: ChannelId) -> Option<&ChannelSpec> {
+        self.channels.get(&id)
+    }
+
     fn contains(&self, id: NodeId) -> bool {
         self.channels.contains_key(&id)
     }
@@ -518,16 +556,7 @@ impl ChannelRepositoryConcept for ChannelRepository {
     }
 
     fn insert_receiver(&mut self, to: NodeId, id: ChannelId) {
-        self.receivers
-            .entry(to)
-            .and_modify(|receivers| {
-                receivers.insert(id);
-            })
-            .or_insert_with(|| {
-                let mut receivers = HashSet::new();
-                receivers.insert(id);
-                receivers
-            });
+        self.receivers.entry(to).or_default().insert(id);
     }
     fn receivers(&self) -> impl Iterator<Item = (NodeId, impl Iterator<Item = ChannelId>)> {
         self.receivers
@@ -536,16 +565,7 @@ impl ChannelRepositoryConcept for ChannelRepository {
     }
 
     fn insert_external_sender(&mut self, id: NodeId, sender: MessageHash) {
-        self.external_senders
-            .entry(id)
-            .and_modify(|senders| {
-                senders.insert(sender);
-            })
-            .or_insert_with(|| {
-                let mut senders = HashSet::new();
-                senders.insert(sender);
-                senders
-            });
+        self.external_senders.entry(id).or_default().insert(sender);
     }
     fn external_senders(&self, id: NodeId) -> Option<&ExternalSenders> {
         todo!()
@@ -554,14 +574,8 @@ impl ChannelRepositoryConcept for ChannelRepository {
     fn insert_external_receiver(&mut self, id: NodeId, receiver: MessageHash) {
         self.external_receivers
             .entry(id)
-            .and_modify(|receivers| {
-                receivers.insert(receiver);
-            })
-            .or_insert_with(|| {
-                let mut receivers = HashSet::new();
-                receivers.insert(receiver);
-                receivers
-            });
+            .or_default()
+            .insert(receiver);
     }
     fn external_receivers(&self, id: NodeId) -> Option<&ExternalReceivers> {
         todo!()
@@ -583,6 +597,7 @@ impl ChannelRepositoryConcept for ChannelRepository {
         self.channels.keys().copied()
     }
 
+    //@todo move to service
     fn on_node_removal(&mut self, id: NodeId) -> Result<()> {
         self.receivers.remove(&id);
         self.senders.remove(&id);
