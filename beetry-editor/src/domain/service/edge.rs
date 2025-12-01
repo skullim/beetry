@@ -35,6 +35,14 @@ where
         self.edge_service.create(edge, node, node_edge)
     }
 
+    pub fn parent_of(&self, id: NodeId) -> Option<NodeId> {
+        self.edge_service.parent_of(id)
+    }
+
+    pub fn children_of(&self, id: NodeId) -> impl Iterator<Item = NodeId> {
+        self.edge_service.children_of(id)
+    }
+
     pub fn edges(&self) -> impl Iterator<Item = (EdgeId, &NodeEdge)> {
         EdgeService::edges(self.repo.edge())
     }
@@ -141,6 +149,17 @@ impl EdgeService {
         }
         self.child_parent_map.remove(&removed.to);
         Ok(())
+    }
+
+    fn parent_of(&self, child_id: NodeId) -> Option<NodeId> {
+        self.child_parent_map.get(&child_id).copied()
+    }
+
+    fn children_of(&self, parent_id: NodeId) -> impl Iterator<Item = NodeId> {
+        self.parent_children_map
+            .get(&parent_id)
+            .into_iter()
+            .flat_map(|children| children.iter().copied())
     }
 
     fn edges(edge_repo: &impl EdgeRepositoryConcept) -> impl Iterator<Item = (EdgeId, &NodeEdge)> {
