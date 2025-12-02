@@ -6,7 +6,7 @@ use crate::domain::{
     },
     service::node::NodeService,
 };
-use anyhow::{Result, bail};
+use anyhow::{Result, anyhow, bail};
 use beetry_serde::ser::channel::ChannelSpec;
 
 pub struct ChannelServiceView<'r, 'c, 'n, NRF, ER, CR> {
@@ -46,17 +46,29 @@ where
         ChannelService::positions(self.repo.channel())
     }
 
+    pub fn spec(&self, id: ChannelId) -> Result<&ChannelSpec> {
+        ChannelService::spec(self.repo.channel(), id)
+    }
+
     pub fn channels(&self) -> impl Iterator<Item = ChannelId> {
         ChannelService::channels(self.repo.channel())
     }
 
+    pub fn senders(&self, id: NodeId) -> impl Iterator<Item = ChannelId> {
+        ChannelService::senders(self.repo.channel(), id)
+    }
+
+    pub fn receivers(&self, id: NodeId) -> impl Iterator<Item = ChannelId> {
+        ChannelService::receivers(self.repo.channel(), id)
+    }
+
     pub fn connect_sender(&mut self, id: ChannelId, from: NodeId) -> Result<()> {
-        NodeService::ensure_exists(self.repo.node().view(), id)?;
+        NodeService::ensure_exists(self.repo.node().view(), from)?;
         ChannelService::connect_sender(self.repo.channel_mut(), id, from)
     }
 
     pub fn connect_receiver(&mut self, id: ChannelId, to: NodeId) -> Result<()> {
-        NodeService::ensure_exists(self.repo.node().view(), id)?;
+        NodeService::ensure_exists(self.repo.node().view(), to)?;
         ChannelService::connect_receiver(self.repo.channel_mut(), id, to)
     }
 }
@@ -94,6 +106,11 @@ impl ChannelService {
         ids.flat_map(|id| repo.position(id).copied())
     }
 
+    fn spec(repo: &impl ChannelRepositoryConcept, id: ChannelId) -> Result<&ChannelSpec> {
+        repo.spec(id)
+            .ok_or_else(|| anyhow!("no spec exists for channel {id}"))
+    }
+
     fn connect_sender(
         repo: &mut impl ChannelRepositoryConcept,
         id: ChannelId,
@@ -122,6 +139,20 @@ impl ChannelService {
         repo.channels()
     }
 
+    pub fn senders(
+        repo: &impl ChannelRepositoryConcept,
+        id: NodeId,
+    ) -> impl Iterator<Item = ChannelId> {
+        repo.senders(id)
+    }
+
+    pub fn receivers(
+        repo: &impl ChannelRepositoryConcept,
+        id: NodeId,
+    ) -> impl Iterator<Item = ChannelId> {
+        repo.receivers(id)
+    }
+
     pub(crate) fn on_node_removal(
         repo: &mut impl ChannelRepositoryConcept,
         id: NodeId,
@@ -144,8 +175,7 @@ struct ChannelIdAssigner {
 
 impl ChannelIdAssigner {
     fn next_id(&mut self) -> ChannelId {
-        let id = self.id;
-        self.id += 1;
-        id
+        self.id = self.id.next();
+        self.id
     }
 }
