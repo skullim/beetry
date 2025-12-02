@@ -9,9 +9,12 @@ Features:
 - show selected params
 - allow to change params
 
+
 Improvements:
 - split domain and ui related data and implement coordination layer. This will decouple ui element props and make rendering more efficient 
 - Once 0.7 becomes stable use Store instead of Signal<HashMap<T, V>> (https://github.com/DioxusLabs/docsite/pull/538)
+- error context + error types
+- harmonize {Channel, Edge, Node}Id types. They should be distinct types, at least wrap in a newtype
 
 UX:
 - tailwindcss

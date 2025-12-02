@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 pub type NodeId = usize;
 pub type EdgeId = usize;
-pub type ChannelId = usize;
+pub type ChannelId = beetry_serde::de::channel::ChannelId;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Point {

@@ -1,8 +1,10 @@
 use std::collections::HashSet;
 
-use anyhow::{Result, anyhow};
-use beetry_plugin::node;
-use beetry_serde::de::node::{ControlSnapshot, NodeSnapshot, NodeSnapshotData, RootSnapshot};
+use anyhow::{Result, anyhow, bail};
+use beetry_serde::{
+    de::node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotData, RootSnapshot},
+    ser::node::LeafKind,
+};
 
 use crate::{
     EditorService,
@@ -58,31 +60,8 @@ where
                     .data(NodeSnapshotData::Control(ControlSnapshot::new(children)?))
                     .build())
             }
-            NodeKind::Action => {
-                let (expected_receivers, expected_senders): (HashSet<_>, HashSet<_>) = {
-                    let node_view = self.service.node_view();
-                    let spec = node_view
-                        .action_spec(id)
-                        .ok_or_else(|| anyhow!("no spec found for action node {id}"))?;
-
-                    (
-                        spec.schema
-                            .receivers
-                            .iter()
-                            .map(|item| item.hash())
-                            .copied()
-                            .collect(),
-                        spec.schema
-                            .senders
-                            .iter()
-                            .map(|item| item.hash())
-                            .copied()
-                            .collect(),
-                    )
-                };
-
-                todo!()
-            }
+            NodeKind::Action => self.export_leaf(id, LeafKind::Action),
+            NodeKind::Condition => self.export_leaf(id, LeafKind::Condition),
 
             NodeKind::Decorator => {
                 unimplemented!()
@@ -91,5 +70,81 @@ where
                 todo!()
             }
         }
+    }
+
+    fn export_leaf(&mut self, id: NodeId, kind: LeafKind) -> Result<NodeSnapshot> {
+        let (mut expected_receivers, mut expected_senders): (HashSet<_>, HashSet<_>) = {
+            let node_view = self.service.node_view();
+            let spec = node_view
+                .action_spec(id)
+                .ok_or_else(|| anyhow!("no spec found for action node {id}"))?;
+
+            (
+                spec.schema
+                    .receivers
+                    .iter()
+                    .map(|item| item.hash())
+                    .copied()
+                    .collect(),
+                spec.schema
+                    .senders
+                    .iter()
+                    .map(|item| item.hash())
+                    .copied()
+                    .collect(),
+            )
+        };
+
+        let channel_view = self.service.channel_view();
+        let connected_senders: Vec<_> = channel_view
+            .senders(id)
+            .map(|channel_id| channel_view.spec(channel_id))
+            .collect::<Result<Vec<_>>>()?;
+
+        for sender in connected_senders {
+            if !expected_senders.remove(sender.msg_hash()) {
+                bail!(
+                    "found unexpected sender {} for leaf node {id}",
+                    sender.as_str()
+                );
+            }
+        }
+        if !expected_senders.is_empty() {
+            bail!("found unconnected senders: {expected_senders:?} for leaf node {id}");
+        }
+
+        let connected_receivers: Vec<_> = channel_view
+            .receivers(id)
+            .map(|channel_id| channel_view.spec(channel_id))
+            .collect::<Result<Vec<_>>>()?;
+
+        for receiver in connected_receivers {
+            if !expected_receivers.remove(receiver.msg_hash()) {
+                bail!(
+                    "found unexpected receiver {} for leaf node {id}",
+                    receiver.as_str()
+                );
+            }
+        }
+        if !expected_receivers.is_empty() {
+            bail!("found unconnected receivers: {expected_receivers:?} for leaf node {id}");
+        }
+
+        //@todo add external senders/receivers
+        let leaf_snapshot = LeafSnapshot::builder()
+            .kind(kind)
+            .receivers(channel_view.receivers(id))
+            .senders(channel_view.senders(id))
+            .build();
+
+        let node_view = self.service.node_view();
+        let name = node_view.name(id)?;
+        let params = node_view.parameters(id)?;
+
+        Ok(NodeSnapshot::builder()
+            .name(name.clone())
+            .data(leaf_snapshot)
+            .parameters(params.clone())
+            .build())
     }
 }
