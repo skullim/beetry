@@ -1,12 +1,13 @@
 use crate::domain::{
-    models::{ChannelId, ChannelPosition, NodeId},
+    models::{ChannelId, ChannelPosition, NodeChannelPortId, NodeChannelPortKind, NodeId},
     ports::{
-        ChannelRepositoryConcept, EdgeRepositoryConcept, EditorRepository,
-        NodeRepositoryFacadeConcept,
+        ChannelRepositoryConcept, EdgeRepositoryConcept, EditorRepository, EditorRepositoryViewMut,
+        NodeRepositoryFacadeConcept, NodeRepositoryFacadeView,
     },
     service::node::NodeService,
 };
 use anyhow::{Result, anyhow, bail};
+use beetry_core::MessageHash;
 use beetry_serde::ser::channel::ChannelSpec;
 
 pub struct ChannelServiceView<'r, 'c, 'n, NRF, ER, CR> {
@@ -62,17 +63,25 @@ where
         ChannelService::receivers(self.repo.channel(), id)
     }
 
-    pub fn connect_sender(&mut self, id: ChannelId, from: NodeId) -> Result<()> {
-        NodeService::ensure_exists(self.repo.node().view(), from)?;
-        ChannelService::connect_sender(self.repo.channel_mut(), id, from)
+    pub fn connect_sender(
+        &mut self,
+        id: ChannelId,
+        from: NodeId,
+        port_id: NodeChannelPortId,
+    ) -> Result<()> {
+        let EditorRepositoryViewMut { node, channel, .. } = self.repo.view_mut();
+        ChannelService::connect_sender(channel, node, id, from, port_id)
     }
 
-    pub fn connect_receiver(&mut self, id: ChannelId, to: NodeId) -> Result<()> {
-        NodeService::ensure_exists(self.repo.node().view(), to)?;
-        ChannelService::connect_receiver(self.repo.channel_mut(), id, to)
+    pub fn connect_receiver(
+        &mut self,
+        id: ChannelId,
+        to: NodeId,
+        port_id: NodeChannelPortId,
+    ) -> Result<()> {
+        let EditorRepositoryViewMut { node, channel, .. } = self.repo.view_mut();
+        ChannelService::connect_receiver(channel, node, id, to, port_id)
     }
-
-    pub fn mark_as_external(&mut self) {}
 }
 
 #[derive(Default)]
@@ -114,26 +123,53 @@ impl ChannelService {
     }
 
     fn connect_sender(
-        repo: &mut impl ChannelRepositoryConcept,
+        channel_repo: &mut impl ChannelRepositoryConcept,
+        node_repo: &impl NodeRepositoryFacadeConcept,
         id: ChannelId,
         from: NodeId,
+        port_id: NodeChannelPortId,
     ) -> Result<()> {
-        //@todo: check w.r.t. spec and that node exists
-        Self::ensure_exists(repo, id)?;
-        //@todo increment sender count for mpsc setting
-        repo.insert_sender(id, from);
+        let node_view = node_repo.view();
+        NodeService::ensure_exists(node_view, from)?;
+        Self::ensure_exists(channel_repo, id)?;
+        let channel_spec = Self::spec(channel_repo, id)?;
+        Self::validate_channel_connection(node_view, *channel_spec.msg_hash(), id, from, port_id)?;
+        //@todo increment sender count
+        channel_repo.insert_sender(id, from);
         Ok(())
     }
 
     fn connect_receiver(
-        repo: &mut impl ChannelRepositoryConcept,
+        channel_repo: &mut impl ChannelRepositoryConcept,
+        node_repo: &impl NodeRepositoryFacadeConcept,
         id: ChannelId,
         to: NodeId,
+        port_id: NodeChannelPortId,
     ) -> Result<()> {
-        //@todo: check w.r.t. spec and that node exists
-        Self::ensure_exists(repo, id)?;
-        //@todo increment receiver count for mpsc setting
-        repo.insert_receiver(id, to);
+        let node_view = node_repo.view();
+        NodeService::ensure_exists(node_view, to)?;
+        Self::ensure_exists(channel_repo, id)?;
+        let channel_spec = Self::spec(channel_repo, id)?;
+        Self::validate_channel_connection(node_view, *channel_spec.msg_hash(), id, to, port_id)?;
+        //@todo increment receiver count
+        channel_repo.insert_receiver(id, to);
+        Ok(())
+    }
+
+    fn validate_channel_connection(
+        node_view: NodeRepositoryFacadeView<'_, impl NodeRepositoryFacadeConcept>,
+        channel_hash: MessageHash,
+        id: ChannelId,
+        from: NodeId,
+        port_id: NodeChannelPortId,
+    ) -> Result<()> {
+        let port_hash = NodeService::port_hash(node_view.ports, from, port_id)?;
+        let port_kind = NodeService::port_kind(node_view.ports, from, port_id)?;
+        if port_hash != channel_hash || port_kind == NodeChannelPortKind::External {
+            bail!(
+                "attempted to connect mismatching channel {id} and node {from} port {port_id}, {port_kind:?}"
+            );
+        }
         Ok(())
     }
 
