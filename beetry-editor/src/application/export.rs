@@ -2,7 +2,10 @@ use std::collections::HashSet;
 
 use anyhow::{Result, anyhow, bail};
 use beetry_serde::{
-    de::node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotData, RootSnapshot},
+    de::{
+        node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotData, RootSnapshot},
+        tree::TreeSnapshot,
+    },
     ser::node::LeafKind,
 };
 
@@ -25,6 +28,11 @@ where
     ER: EdgeRepositoryConcept,
     CR: ChannelRepositoryConcept,
 {
+    pub fn export(&mut self) -> Result<TreeSnapshot> {
+        let root = self.export_root()?;
+        Ok(TreeSnapshot::builder().root(root).build()?)
+    }
+
     fn export_root(&mut self) -> Result<RootSnapshot> {
         let root_id = self
             .service

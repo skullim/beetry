@@ -1,7 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::domain::models::{
-    ChannelId, ChannelPosition, EdgeId, EdgePosition, ExternalReceivers, ExternalSenders, NodeEdge,
+    ChannelId, ChannelPosition, EdgeId, ExternalReceivers, ExternalSenders, NodeChannelPortId,
+    NodeChannelPortKind, NodeEdge,
 };
 
 use super::models::{NodeId, NodeKind, NodePosition};
@@ -80,6 +81,78 @@ pub trait NodeRepositoryConcept {
     fn spec(&self, id: NodeId) -> Option<&Self::Spec>;
 
     fn nodes(&self) -> NodeIter<'_>;
+}
+
+pub trait NodeChannelPortRepositoryConcept {
+    fn create(
+        &mut self,
+        id: NodeId,
+        senders: impl Iterator<Item = MessageHash>,
+        receivers: impl Iterator<Item = MessageHash>,
+    ) -> Result<()>;
+
+    fn port_hash(&self, node: NodeId, port: NodeChannelPortId) -> Option<MessageHash>;
+    fn port_kind(&self, node: NodeId, port: NodeChannelPortId) -> Option<NodeChannelPortKind>;
+
+    fn set_port_kind(
+        &mut self,
+        node: NodeId,
+        port: NodeChannelPortId,
+        kind: NodeChannelPortKind,
+    ) -> Result<()>;
+
+    fn ports(&self, id: NodeId) -> impl Iterator<Item = NodeChannelPortId>;
+}
+
+pub struct NodeChannelPortRepository {
+    ports: HashMap<NodeId, HashSet<NodeChannelPortId>>,
+    kinds: HashMap<(NodeId, NodeChannelPortId), NodeChannelPortKind>,
+    hashes: HashMap<(NodeId, NodeChannelPortId), MessageHash>,
+}
+
+impl NodeChannelPortRepositoryConcept for NodeChannelPortRepository {
+    fn create(
+        &mut self,
+        id: NodeId,
+        senders: impl Iterator<Item = MessageHash>,
+        receivers: impl Iterator<Item = MessageHash>,
+    ) -> Result<()> {
+        let ports: Vec<_> = senders.chain(receivers).collect();
+
+        let count = ports.len() as NodeChannelPortId;
+        self.ports.insert(id, (0..count).collect());
+
+        for (port_id, hash) in ports.into_iter().enumerate() {
+            self.hashes.insert((id, port_id as NodeChannelPortId), hash);
+        }
+
+        Ok(())
+    }
+
+    fn set_port_kind(
+        &mut self,
+        node: NodeId,
+        port: NodeChannelPortId,
+        kind: NodeChannelPortKind,
+    ) -> Result<()> {
+        self.kinds.insert((node, port), kind);
+        Ok(())
+    }
+
+    fn port_hash(&self, node: NodeId, port: NodeChannelPortId) -> Option<MessageHash> {
+        self.hashes.get(&(node, port)).copied()
+    }
+
+    fn port_kind(&self, node: NodeId, port: NodeChannelPortId) -> Option<NodeChannelPortKind> {
+        self.kinds.get(&(node, port)).copied()
+    }
+
+    fn ports(&self, id: NodeId) -> impl Iterator<Item = NodeChannelPortId> {
+        self.ports
+            .get(&id)
+            .into_iter()
+            .flat_map(|set| set.iter().copied())
+    }
 }
 
 pub trait ProvideNodeName {
@@ -181,15 +254,6 @@ where
         self.specs.get(*schema_key)
     }
 
-    fn update_position_impl(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
-        self.positions.insert(id, position);
-        Ok(())
-    }
-
-    fn position_impl(&self, id: NodeId) -> Option<&NodePosition> {
-        self.positions.get(&id)
-    }
-
     fn nodes_impl(&self) -> NodeIter<'_> {
         NodeIter::HashMapKeys(self.nodes.keys())
     }
@@ -260,6 +324,7 @@ pub trait NodeRepositoryFacadeConcept {
     type KindRepo: NodeKindRepositoryConcept;
     type PositionRepo: NodePositionRepositoryConcept;
     type ParamRepo: ParamRepositoryConcept;
+    type PortsRepo: NodeChannelPortRepositoryConcept;
 
     fn view(&self) -> NodeRepositoryFacadeView<'_, Self>
     where
@@ -332,6 +397,7 @@ pub struct NodeRepositoryFacadeView<'a, F: NodeRepositoryFacadeConcept> {
     pub kinds: &'a F::KindRepo,
     pub positions: &'a F::PositionRepo,
     pub parameters: &'a F::ParamRepo,
+    pub ports: &'a F::PortsRepo,
 }
 
 impl<'a, F: NodeRepositoryFacadeConcept> Copy for NodeRepositoryFacadeView<'a, F> {}
@@ -352,6 +418,7 @@ pub struct NodeRepositoryFacadeViewMut<'a, F: NodeRepositoryFacadeConcept> {
     pub kinds: &'a mut F::KindRepo,
     pub positions: &'a mut F::PositionRepo,
     pub parameters: &'a mut F::ParamRepo,
+    pub ports: &'a mut F::PortsRepo,
 }
 
 #[derive(Getters, MutGetters)]
@@ -365,6 +432,7 @@ pub struct NodeRepositoryFacade {
     kinds: NodeKindRepository,
     positions: NodePositionRepository,
     parameters: ParamRepository,
+    ports: NodeChannelPortRepository,
 }
 
 impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
@@ -376,6 +444,7 @@ impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
     type KindRepo = NodeKindRepository;
     type PositionRepo = NodePositionRepository;
     type ParamRepo = ParamRepository;
+    type PortsRepo = NodeChannelPortRepository;
 
     fn view(&self) -> NodeRepositoryFacadeView<'_, Self> {
         NodeRepositoryFacadeView {
@@ -387,6 +456,7 @@ impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
             kinds: &self.kinds,
             positions: &self.positions,
             parameters: &self.parameters,
+            ports: &self.ports,
         }
     }
 
@@ -400,6 +470,7 @@ impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
             kinds: &mut self.kinds,
             positions: &mut self.positions,
             parameters: &mut self.parameters,
+            ports: &mut self.ports,
         }
     }
 }
