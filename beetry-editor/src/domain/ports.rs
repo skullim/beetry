@@ -91,10 +91,10 @@ pub trait NodeChannelPortRepositoryConcept {
         receivers: impl Iterator<Item = MessageHash>,
     ) -> Result<()>;
 
-    fn port_hash(&self, node: NodeId, port: NodeChannelPortId) -> Option<MessageHash>;
-    fn port_kind(&self, node: NodeId, port: NodeChannelPortId) -> Option<NodeChannelPortKind>;
+    fn hash(&self, node: NodeId, port: NodeChannelPortId) -> Option<MessageHash>;
+    fn kind(&self, node: NodeId, port: NodeChannelPortId) -> Option<NodeChannelPortKind>;
 
-    fn set_port_kind(
+    fn set_kind(
         &mut self,
         node: NodeId,
         port: NodeChannelPortId,
@@ -129,7 +129,7 @@ impl NodeChannelPortRepositoryConcept for NodeChannelPortRepository {
         Ok(())
     }
 
-    fn set_port_kind(
+    fn set_kind(
         &mut self,
         node: NodeId,
         port: NodeChannelPortId,
@@ -139,11 +139,11 @@ impl NodeChannelPortRepositoryConcept for NodeChannelPortRepository {
         Ok(())
     }
 
-    fn port_hash(&self, node: NodeId, port: NodeChannelPortId) -> Option<MessageHash> {
+    fn hash(&self, node: NodeId, port: NodeChannelPortId) -> Option<MessageHash> {
         self.hashes.get(&(node, port)).copied()
     }
 
-    fn port_kind(&self, node: NodeId, port: NodeChannelPortId) -> Option<NodeChannelPortKind> {
+    fn kind(&self, node: NodeId, port: NodeChannelPortId) -> Option<NodeChannelPortKind> {
         self.kinds.get(&(node, port)).copied()
     }
 
