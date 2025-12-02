@@ -10,7 +10,10 @@ use crate::domain::{
 };
 use anyhow::{Result, anyhow, bail};
 use beetry_plugin::{ActionSpec, ConditionSpec};
-use beetry_serde::ser::node::{ControlSpec, DecoratorSpec, NodeName, NodeSpec, RootSpec};
+use beetry_serde::{
+    de::parameter::Parameters,
+    ser::node::{ControlSpec, DecoratorSpec, NodeName, NodeSpec, RootSpec},
+};
 
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
 pub struct NodeServiceView<'r, 's, 'e, NRF, ER, CR> {
@@ -117,6 +120,10 @@ where
 
     pub fn positions(&self, kind: NodeKind) -> impl Iterator<Item = &NodePosition> {
         NodeService::positions(self.repo.node(), kind)
+    }
+
+    pub fn parameters(&self, id: NodeId) -> Result<&Parameters> {
+        NodeService::parameters(self.repo.node(), id)
     }
 }
 
@@ -279,6 +286,13 @@ impl NodeService {
 
     fn insert_parameter() {
         todo!()
+    }
+
+    fn parameters(repo: &impl NodeRepositoryFacadeConcept, id: NodeId) -> Result<&Parameters> {
+        let view = repo.view();
+        view.parameters
+            .params(id)
+            .ok_or_else(|| anyhow!("failed to obtain parameters for node {id}"))
     }
 
     fn on_node_removal(repo: &mut impl NodeRepositoryFacadeConcept, id: NodeId) -> Result<()> {

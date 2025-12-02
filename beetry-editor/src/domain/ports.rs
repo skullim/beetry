@@ -485,14 +485,13 @@ pub trait ChannelRepositoryConcept {
 
     fn spec(&self, id: ChannelId) -> Option<&ChannelSpec>;
 
-    fn contains(&self, id: NodeId) -> bool;
+    fn contains(&self, id: ChannelId) -> bool;
 
     fn insert_sender(&mut self, id: ChannelId, from: NodeId);
-    fn sender(&self, id: NodeId) -> impl Iterator<Item = ChannelId>;
-    fn senders(&self) -> impl Iterator<Item = (NodeId, impl Iterator<Item = ChannelId>)>;
+    fn senders(&self, id: NodeId) -> impl Iterator<Item = ChannelId>;
 
     fn insert_receiver(&mut self, id: ChannelId, to: NodeId);
-    fn receivers(&self) -> impl Iterator<Item = (NodeId, impl Iterator<Item = ChannelId>)>;
+    fn receivers(&self, id: NodeId) -> impl Iterator<Item = ChannelId>;
 
     fn insert_external_sender(&mut self, id: NodeId, sender: MessageHash);
     fn external_senders(&self, id: NodeId) -> Option<&ExternalSenders>;
@@ -538,35 +537,32 @@ impl ChannelRepositoryConcept for ChannelRepository {
         self.channels.contains_key(&id)
     }
 
-    fn insert_sender(&mut self, from: NodeId, id: ChannelId) {
+    fn insert_sender(&mut self, id: ChannelId, from: NodeId) {
         self.senders.entry(from).or_default().insert(id);
     }
 
-    fn sender(&self, id: NodeId) -> impl Iterator<Item = ChannelId> {
+    fn senders(&self, id: NodeId) -> impl Iterator<Item = ChannelId> {
         self.senders
             .get(&id)
             .into_iter()
             .flat_map(|senders| senders.iter().copied())
     }
 
-    fn senders(&self) -> impl Iterator<Item = (NodeId, impl Iterator<Item = ChannelId>)> {
-        self.senders
-            .iter()
-            .map(|(id, set)| (*id, set.iter().copied()))
-    }
-
-    fn insert_receiver(&mut self, to: NodeId, id: ChannelId) {
+    fn insert_receiver(&mut self, id: ChannelId, to: NodeId) {
         self.receivers.entry(to).or_default().insert(id);
     }
-    fn receivers(&self) -> impl Iterator<Item = (NodeId, impl Iterator<Item = ChannelId>)> {
+
+    fn receivers(&self, id: NodeId) -> impl Iterator<Item = ChannelId> {
         self.receivers
-            .iter()
-            .map(|(id, set)| (*id, set.iter().copied()))
+            .get(&id)
+            .into_iter()
+            .flat_map(|receivers| receivers.iter().copied())
     }
 
     fn insert_external_sender(&mut self, id: NodeId, sender: MessageHash) {
         self.external_senders.entry(id).or_default().insert(sender);
     }
+
     fn external_senders(&self, id: NodeId) -> Option<&ExternalSenders> {
         todo!()
     }
