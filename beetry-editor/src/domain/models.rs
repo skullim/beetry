@@ -5,6 +5,7 @@ use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
 pub type NodeId = usize;
+pub type NodeChannelPortId = u8;
 pub type EdgeId = usize;
 pub type ChannelId = beetry_serde::de::channel::ChannelId;
 
@@ -17,6 +18,12 @@ pub struct Point {
 #[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct NodePosition {
     origin: Point,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
+pub enum NodeChannelPortKind {
+    Internal,
+    External,
 }
 
 pub type ChannelPosition = NodePosition;

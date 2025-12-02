@@ -71,6 +71,8 @@ where
         NodeService::ensure_exists(self.repo.node().view(), to)?;
         ChannelService::connect_receiver(self.repo.channel_mut(), id, to)
     }
+
+    pub fn mark_as_external(&mut self) {}
 }
 
 #[derive(Default)]
