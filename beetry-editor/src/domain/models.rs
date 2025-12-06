@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use beetry_core::MessageHash;
+use beetry_serde::ser::channel::MessageSpec;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -20,10 +21,33 @@ pub struct NodePosition {
     origin: Point,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
-pub enum NodeChannelPortKind {
-    Internal,
+//@todo maybe use explicitly unconnected state initially and non empty hash set for internal connection kind
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum NodePortConnection {
+    Internal(HashSet<ChannelId>), // connections
     External,
+}
+
+impl Default for NodePortConnection {
+    fn default() -> Self {
+        Self::Internal(Default::default())
+    }
+}
+
+impl NodePortConnection {
+    pub fn is_external(&self) -> bool {
+        matches!(self, Self::External)
+    }
+}
+
+pub enum NodePortKind {
+    Sender,
+    Receiver,
+}
+
+pub struct NodePortSpec {
+    pub kind: NodePortKind,
+    pub msg_spec: MessageSpec,
 }
 
 pub type ChannelPosition = NodePosition;

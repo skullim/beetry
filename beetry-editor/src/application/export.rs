@@ -1,22 +1,24 @@
-use std::collections::HashSet;
-
 use anyhow::{Result, anyhow, bail};
 use beetry_serde::{
     de::{
+        channel::{ChannelIdToSnapshotMap, ChannelSnapshot2},
         node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotData, RootSnapshot},
         tree::TreeSnapshot,
     },
     ser::node::LeafKind,
 };
+use itertools::izip;
+use std::collections::HashMap;
 
 use crate::{
     EditorService,
     domain::{
-        models::{NodeId, NodeKind},
+        models::{NodeId, NodeKind, NodePortConnection, NodePortKind},
         ports::{ChannelRepositoryConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept},
     },
 };
 
+//@todo move to service layer, there should be no application layer
 pub struct TreeExporter<'a, NRF, ER, CR> {
     //@todo long term split API into mut and shared. Export should be possible using only shared reference
     service: &'a mut EditorService<NRF, ER, CR>,
@@ -30,7 +32,29 @@ where
 {
     pub fn export(&mut self) -> Result<TreeSnapshot> {
         let root = self.export_root()?;
-        Ok(TreeSnapshot::builder().root(root).build()?)
+        Ok(TreeSnapshot::builder()
+            .root(root)
+            .channels(self.export_channels()?)
+            .build()?)
+    }
+
+    fn export_channels(&mut self) -> Result<ChannelIdToSnapshotMap> {
+        let view = self.service.channel_view();
+        let ids: Vec<_> = view.channels().collect();
+        let spec = ids
+            .iter()
+            .map(|id| view.spec(*id))
+            .collect::<Result<Vec<_>>>()?;
+        let metadata = ids
+            .iter()
+            .map(|id| view.metadata(*id))
+            .collect::<Result<Vec<_>>>()?;
+
+        let map = izip!(ids, spec, metadata)
+            .map(|(id, spec, meta)| (id, ChannelSnapshot2::new(spec.clone(), meta.clone())))
+            .collect::<HashMap<_, _>>();
+
+        todo!()
     }
 
     fn export_root(&mut self) -> Result<RootSnapshot> {
@@ -74,75 +98,44 @@ where
             NodeKind::Decorator => {
                 unimplemented!()
             }
-            _ => {
-                todo!()
-            }
         }
     }
 
     fn export_leaf(&mut self, id: NodeId, kind: LeafKind) -> Result<NodeSnapshot> {
-        let (mut expected_receivers, mut expected_senders): (HashSet<_>, HashSet<_>) = {
-            let node_view = self.service.node_view();
-            let spec = node_view
-                .action_spec(id)
-                .ok_or_else(|| anyhow!("no spec found for action node {id}"))?;
+        let node_view = self.service.node_view();
+        let port_ids = node_view.port_ids(id);
 
-            (
-                spec.schema
-                    .receivers
-                    .iter()
-                    .map(|item| item.hash())
-                    .copied()
-                    .collect(),
-                spec.schema
-                    .senders
-                    .iter()
-                    .map(|item| item.hash())
-                    .copied()
-                    .collect(),
-            )
-        };
-
-        let channel_view = self.service.channel_view();
-        let connected_senders: Vec<_> = channel_view
-            .senders(id)
-            .map(|channel_id| channel_view.spec(channel_id))
-            .collect::<Result<Vec<_>>>()?;
-
-        for sender in connected_senders {
-            if !expected_senders.remove(sender.msg_hash()) {
-                bail!(
-                    "found unexpected sender {} for leaf node {id}",
-                    sender.as_str()
-                );
+        for port_id in port_ids {
+            let conn = node_view.port_connection(id, port_id)?;
+            if let NodePortConnection::Internal(connected) = conn
+                && connected.is_empty()
+            {
+                bail!("unconnected internal port ({port_id}) of node {id}");
             }
         }
-        if !expected_senders.is_empty() {
-            bail!("found unconnected senders: {expected_senders:?} for leaf node {id}");
-        }
 
-        let connected_receivers: Vec<_> = channel_view
-            .receivers(id)
-            .map(|channel_id| channel_view.spec(channel_id))
-            .collect::<Result<Vec<_>>>()?;
-
-        for receiver in connected_receivers {
-            if !expected_receivers.remove(receiver.msg_hash()) {
-                bail!(
-                    "found unexpected receiver {} for leaf node {id}",
-                    receiver.as_str()
-                );
+        let mut senders = vec![];
+        let mut receivers = vec![];
+        for port_id in node_view.port_ids(id) {
+            let spec = node_view.port_spec(id, port_id)?;
+            let conn = node_view.port_connection(id, port_id)?;
+            if let NodePortConnection::Internal(channels) = conn {
+                match spec.kind {
+                    NodePortKind::Sender => {
+                        senders.extend(channels);
+                    }
+                    NodePortKind::Receiver => {
+                        receivers.extend(channels);
+                    }
+                }
             }
-        }
-        if !expected_receivers.is_empty() {
-            bail!("found unconnected receivers: {expected_receivers:?} for leaf node {id}");
         }
 
         //@todo add external senders/receivers
         let leaf_snapshot = LeafSnapshot::builder()
             .kind(kind)
-            .receivers(channel_view.receivers(id))
-            .senders(channel_view.senders(id))
+            .receivers(receivers)
+            .senders(senders)
             .build();
 
         let node_view = self.service.node_view();
