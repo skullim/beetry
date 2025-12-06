@@ -3,7 +3,7 @@ use std::num::NonZeroUsize;
 
 use bon::Builder;
 use derive_getters::Getters;
-use derive_more::Display;
+use derive_more::{Display, From};
 use serde::{Deserialize, Serialize};
 
 use crate::de::tree::{ExportResult, ExportValidationError};
@@ -22,6 +22,19 @@ impl ChannelSnapshot {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
+pub struct ChannelSnapshot2 {
+    spec: ChannelSpec,
+    metadata: ChannelParameters,
+}
+
+impl ChannelSnapshot2 {
+    pub fn new(spec: ChannelSpec, metadata: ChannelParameters) -> Self {
+        Self { spec, metadata }
+    }
+}
+
+//@todo remove
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
 pub struct ChannelMetadata {
     #[getter(copy)]
     capacity: usize, // there might be channels with 0 capacity
@@ -36,6 +49,27 @@ impl ChannelMetadata {
             capacity,
             kind,
             impl_kind,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
+pub struct ChannelParameters {
+    #[getter(copy)]
+    capacity: usize, // there might be channels with 0 capacity
+    count: SenderReceiverCount,
+    kind: ChannelImplKind2,
+}
+
+impl ChannelParameters {
+    pub fn new(capacity: usize, kind: ChannelImplKind2) -> Self {
+        Self {
+            capacity,
+            count: SenderReceiverCount {
+                sender: 1,
+                receiver: 1,
+            },
+            kind,
         }
     }
 }
@@ -69,21 +103,36 @@ impl ChannelId {
     }
 }
 
+//@todo remove
 #[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
 pub enum ChannelKind {
     Internal,
     External,
 }
 
+//@todo remove
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ChannelImplKind {
     Tokio(TokioChannelConfig),
 }
 
+//@todo remove
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TokioChannelConfig {
     Mpsc(MpscConfig),
     Broadcast(BroadcastConfig),
+}
+
+//@todo: rename to ChannelKind
+#[derive(Debug, From, Clone, PartialEq, Serialize, Deserialize)]
+pub enum ChannelImplKind2 {
+    Tokio(TokioChannelKind),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TokioChannelKind {
+    Mpsc,
+    Broadcast,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Getters)]
@@ -106,7 +155,8 @@ pub struct BroadcastConfig {
     n_receivers: NonZeroUsize,
 }
 
-#[derive(Debug, Default)]
+//@todo maybe default should be sender = 1, receiver = 1
+#[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct SenderReceiverCount {
     pub sender: usize,
     pub receiver: usize,

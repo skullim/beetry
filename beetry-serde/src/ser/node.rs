@@ -77,6 +77,7 @@ pub struct ControlSchema;
 #[derive(Debug, Clone, Default)]
 pub struct DecoratorSchema;
 
+//@todo use NodePortSpec here
 #[derive(Debug, Clone, PartialEq, Eq, Builder, Getters, Serialize, Deserialize)]
 pub struct LeafSchema {
     pub kind: LeafKind,
@@ -85,6 +86,15 @@ pub struct LeafSchema {
     #[builder(default, with = <_>::from_iter)]
     pub senders: BTreeSet<MessageSpec>,
 }
+
+// #[derive(Debug, Clone, PartialEq, Eq, Builder, Getters, Serialize, Deserialize)]
+// pub struct NodePortSpec {
+//     #[builder(default, with = <_>::from_iter)]
+//     pub receivers: BTreeSet<MessageSpec>,
+//     #[builder(default, with = <_>::from_iter)]
+//     pub senders: BTreeSet<MessageSpec>,
+//     //@todo add optional port description
+// }
 
 pub struct ActionLeafSchema;
 impl ActionLeafSchema {
