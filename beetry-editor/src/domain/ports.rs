@@ -1,15 +1,14 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::domain::models::{
-    ChannelId, ChannelPosition, EdgeId, ExternalReceivers, ExternalSenders, NodeChannelPortId,
-    NodeChannelPortKind, NodeEdge,
+    ChannelId, ChannelPosition, EdgeId, NodeChannelPortId, NodeEdge, NodePortConnection,
+    NodePortSpec,
 };
 
 use super::models::{NodeId, NodeKind, NodePosition};
-use beetry_core::MessageHash;
 use beetry_plugin::{ActionSpec, ConditionSpec};
 use beetry_serde::{
-    de::parameter::Parameters,
+    de::{channel::ChannelParameters, parameter::Parameters},
     ser::{
         channel::ChannelSpec,
         node::{ControlSpec, DecoratorSpec, NodeName, RootSpec},
@@ -83,78 +82,6 @@ pub trait NodeRepositoryConcept {
     fn nodes(&self) -> NodeIter<'_>;
 }
 
-pub trait NodeChannelPortRepositoryConcept {
-    fn create(
-        &mut self,
-        id: NodeId,
-        senders: impl Iterator<Item = MessageHash>,
-        receivers: impl Iterator<Item = MessageHash>,
-    ) -> Result<()>;
-
-    fn hash(&self, node: NodeId, port: NodeChannelPortId) -> Option<MessageHash>;
-    fn kind(&self, node: NodeId, port: NodeChannelPortId) -> Option<NodeChannelPortKind>;
-
-    fn set_kind(
-        &mut self,
-        node: NodeId,
-        port: NodeChannelPortId,
-        kind: NodeChannelPortKind,
-    ) -> Result<()>;
-
-    fn ports(&self, id: NodeId) -> impl Iterator<Item = NodeChannelPortId>;
-}
-
-pub struct NodeChannelPortRepository {
-    ports: HashMap<NodeId, HashSet<NodeChannelPortId>>,
-    kinds: HashMap<(NodeId, NodeChannelPortId), NodeChannelPortKind>,
-    hashes: HashMap<(NodeId, NodeChannelPortId), MessageHash>,
-}
-
-impl NodeChannelPortRepositoryConcept for NodeChannelPortRepository {
-    fn create(
-        &mut self,
-        id: NodeId,
-        senders: impl Iterator<Item = MessageHash>,
-        receivers: impl Iterator<Item = MessageHash>,
-    ) -> Result<()> {
-        let ports: Vec<_> = senders.chain(receivers).collect();
-
-        let count = ports.len() as NodeChannelPortId;
-        self.ports.insert(id, (0..count).collect());
-
-        for (port_id, hash) in ports.into_iter().enumerate() {
-            self.hashes.insert((id, port_id as NodeChannelPortId), hash);
-        }
-
-        Ok(())
-    }
-
-    fn set_kind(
-        &mut self,
-        node: NodeId,
-        port: NodeChannelPortId,
-        kind: NodeChannelPortKind,
-    ) -> Result<()> {
-        self.kinds.insert((node, port), kind);
-        Ok(())
-    }
-
-    fn hash(&self, node: NodeId, port: NodeChannelPortId) -> Option<MessageHash> {
-        self.hashes.get(&(node, port)).copied()
-    }
-
-    fn kind(&self, node: NodeId, port: NodeChannelPortId) -> Option<NodeChannelPortKind> {
-        self.kinds.get(&(node, port)).copied()
-    }
-
-    fn ports(&self, id: NodeId) -> impl Iterator<Item = NodeChannelPortId> {
-        self.ports
-            .get(&id)
-            .into_iter()
-            .flat_map(|set| set.iter().copied())
-    }
-}
-
 pub trait ProvideNodeName {
     fn name(&self) -> &NodeName;
 }
@@ -218,7 +145,6 @@ pub struct NodeRepository<S> {
     nodes: HashMap<NodeId, NodeSchemaId>,
     cached_schema_keys: HashMap<NodeName, NodeSchemaId>,
     specs: SlotMap<NodeSchemaId, S>,
-    positions: HashMap<NodeId, NodePosition>,
 }
 
 impl<S> NodeRepository<S>
@@ -241,7 +167,6 @@ where
 
     fn remove_impl(&mut self, id: NodeId) -> Result<()> {
         self.nodes.remove(&id);
-        self.positions.remove(&id);
         Ok(())
     }
 
@@ -324,7 +249,7 @@ pub trait NodeRepositoryFacadeConcept {
     type KindRepo: NodeKindRepositoryConcept;
     type PositionRepo: NodePositionRepositoryConcept;
     type ParamRepo: ParamRepositoryConcept;
-    type PortsRepo: NodeChannelPortRepositoryConcept;
+    type PortRepo: NodePortRepositoryConcept;
 
     fn view(&self) -> NodeRepositoryFacadeView<'_, Self>
     where
@@ -333,6 +258,82 @@ pub trait NodeRepositoryFacadeConcept {
     fn view_mut(&mut self) -> NodeRepositoryFacadeViewMut<'_, Self>
     where
         Self: Sized;
+}
+
+pub trait NodePortRepositoryConcept {
+    fn create(&mut self, id: NodeId, port_specs: impl Iterator<Item = NodePortSpec>) -> Result<()>;
+
+    fn spec(&self, node: NodeId, port: NodeChannelPortId) -> Option<&NodePortSpec>;
+
+    fn connection(&self, node: NodeId, port: NodeChannelPortId) -> Option<&NodePortConnection>;
+    fn connection_mut(
+        &mut self,
+        node: NodeId,
+        port: NodeChannelPortId,
+    ) -> Option<&mut NodePortConnection>;
+
+    fn set_conn(
+        &mut self,
+        node: NodeId,
+        port: NodeChannelPortId,
+        kind: NodePortConnection,
+    ) -> Result<()>;
+
+    fn ports(&self, id: NodeId) -> impl Iterator<Item = NodeChannelPortId>;
+}
+
+pub struct NodePortRepository {
+    ports: HashMap<NodeId, HashSet<NodeChannelPortId>>,
+    connections: HashMap<(NodeId, NodeChannelPortId), NodePortConnection>,
+    specs: HashMap<(NodeId, NodeChannelPortId), NodePortSpec>,
+}
+
+impl NodePortRepositoryConcept for NodePortRepository {
+    fn create(&mut self, id: NodeId, port_specs: impl Iterator<Item = NodePortSpec>) -> Result<()> {
+        let port_specs: Vec<_> = port_specs.collect();
+
+        let count = port_specs.len() as NodeChannelPortId;
+        self.ports.insert(id, (0..count).collect());
+
+        for (port_id, spec) in port_specs.into_iter().enumerate() {
+            self.specs.insert((id, port_id as NodeChannelPortId), spec);
+        }
+
+        Ok(())
+    }
+
+    fn set_conn(
+        &mut self,
+        node: NodeId,
+        port: NodeChannelPortId,
+        kind: NodePortConnection,
+    ) -> Result<()> {
+        self.connections.insert((node, port), kind);
+        Ok(())
+    }
+
+    fn spec(&self, node: NodeId, port: NodeChannelPortId) -> Option<&NodePortSpec> {
+        self.specs.get(&(node, port))
+    }
+
+    fn connection(&self, node: NodeId, port: NodeChannelPortId) -> Option<&NodePortConnection> {
+        self.connections.get(&(node, port))
+    }
+
+    fn connection_mut(
+        &mut self,
+        node: NodeId,
+        port: NodeChannelPortId,
+    ) -> Option<&mut NodePortConnection> {
+        self.connections.get_mut(&(node, port))
+    }
+
+    fn ports(&self, id: NodeId) -> impl Iterator<Item = NodeChannelPortId> {
+        self.ports
+            .get(&id)
+            .into_iter()
+            .flat_map(|set| set.iter().copied())
+    }
 }
 
 pub trait NodeKindRepositoryConcept {
@@ -397,7 +398,7 @@ pub struct NodeRepositoryFacadeView<'a, F: NodeRepositoryFacadeConcept> {
     pub kinds: &'a F::KindRepo,
     pub positions: &'a F::PositionRepo,
     pub parameters: &'a F::ParamRepo,
-    pub ports: &'a F::PortsRepo,
+    pub ports: &'a F::PortRepo,
 }
 
 impl<'a, F: NodeRepositoryFacadeConcept> Copy for NodeRepositoryFacadeView<'a, F> {}
@@ -418,7 +419,7 @@ pub struct NodeRepositoryFacadeViewMut<'a, F: NodeRepositoryFacadeConcept> {
     pub kinds: &'a mut F::KindRepo,
     pub positions: &'a mut F::PositionRepo,
     pub parameters: &'a mut F::ParamRepo,
-    pub ports: &'a mut F::PortsRepo,
+    pub ports: &'a mut F::PortRepo,
 }
 
 #[derive(Getters, MutGetters)]
@@ -432,7 +433,7 @@ pub struct NodeRepositoryFacade {
     kinds: NodeKindRepository,
     positions: NodePositionRepository,
     parameters: ParamRepository,
-    ports: NodeChannelPortRepository,
+    ports: NodePortRepository,
 }
 
 impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
@@ -444,7 +445,7 @@ impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
     type KindRepo = NodeKindRepository;
     type PositionRepo = NodePositionRepository;
     type ParamRepo = ParamRepository;
-    type PortsRepo = NodeChannelPortRepository;
+    type PortRepo = NodePortRepository;
 
     fn view(&self) -> NodeRepositoryFacadeView<'_, Self> {
         NodeRepositoryFacadeView {
@@ -558,33 +559,26 @@ pub trait ChannelRepositoryConcept {
 
     fn contains(&self, id: ChannelId) -> bool;
 
-    fn insert_sender(&mut self, id: ChannelId, from: NodeId);
-    fn senders(&self, id: NodeId) -> impl Iterator<Item = ChannelId>;
+    fn set_parameters(&mut self, id: ChannelId, params: ChannelParameters) -> Result<()>;
+    fn parameters_mut(&mut self, id: ChannelId) -> Option<&mut ChannelParameters>;
+    fn parameters(&self, id: ChannelId) -> Option<&ChannelParameters>;
 
-    fn insert_receiver(&mut self, id: ChannelId, to: NodeId);
-    fn receivers(&self, id: NodeId) -> impl Iterator<Item = ChannelId>;
+    // fn insert_sender(&mut self, id: ChannelId, from: NodeId);
+    // fn senders(&self, id: NodeId) -> impl Iterator<Item = ChannelId>;
 
-    fn insert_external_sender(&mut self, id: NodeId, sender: MessageHash);
-    fn external_senders(&self, id: NodeId) -> Option<&ExternalSenders>;
-
-    fn insert_external_receiver(&mut self, id: NodeId, receiver: MessageHash);
-    fn external_receivers(&self, id: NodeId) -> Option<&ExternalReceivers>;
+    // fn insert_receiver(&mut self, id: ChannelId, to: NodeId);
+    // fn receivers(&self, id: NodeId) -> impl Iterator<Item = ChannelId>;
 
     fn update_position(&mut self, id: ChannelId, position: ChannelPosition) -> Result<()>;
     fn position(&self, id: ChannelId) -> Option<&ChannelPosition>;
 
     fn channels(&self) -> impl Iterator<Item = ChannelId>;
-
-    fn on_node_removal(&mut self, id: NodeId) -> Result<()>;
 }
 
 pub struct ChannelRepository {
     //@todo can optimize similar to how node specs are cached
     channels: HashMap<ChannelId, ChannelSpec>,
-    senders: HashMap<NodeId, HashSet<ChannelId>>,
-    receivers: HashMap<NodeId, HashSet<ChannelId>>,
-    external_senders: HashMap<NodeId, HashSet<MessageHash>>,
-    external_receivers: HashMap<NodeId, HashSet<MessageHash>>,
+    parameters: HashMap<ChannelId, ChannelParameters>,
     positions: HashMap<ChannelId, ChannelPosition>,
 }
 
@@ -608,45 +602,40 @@ impl ChannelRepositoryConcept for ChannelRepository {
         self.channels.contains_key(&id)
     }
 
-    fn insert_sender(&mut self, id: ChannelId, from: NodeId) {
-        self.senders.entry(from).or_default().insert(id);
+    fn set_parameters(&mut self, id: ChannelId, metadata: ChannelParameters) -> Result<()> {
+        self.parameters.insert(id, metadata);
+        Ok(())
     }
 
-    fn senders(&self, id: NodeId) -> impl Iterator<Item = ChannelId> {
-        self.senders
-            .get(&id)
-            .into_iter()
-            .flat_map(|senders| senders.iter().copied())
+    fn parameters_mut(&mut self, id: ChannelId) -> Option<&mut ChannelParameters> {
+        self.parameters.get_mut(&id)
     }
 
-    fn insert_receiver(&mut self, id: ChannelId, to: NodeId) {
-        self.receivers.entry(to).or_default().insert(id);
+    fn parameters(&self, id: ChannelId) -> Option<&ChannelParameters> {
+        self.parameters.get(&id)
     }
 
-    fn receivers(&self, id: NodeId) -> impl Iterator<Item = ChannelId> {
-        self.receivers
-            .get(&id)
-            .into_iter()
-            .flat_map(|receivers| receivers.iter().copied())
-    }
+    // fn insert_sender(&mut self, id: ChannelId, from: NodeId) {
+    //     self.senders.entry(from).or_default().insert(id);
+    // }
 
-    fn insert_external_sender(&mut self, id: NodeId, sender: MessageHash) {
-        self.external_senders.entry(id).or_default().insert(sender);
-    }
+    // fn senders(&self, id: NodeId) -> impl Iterator<Item = ChannelId> {
+    //     self.senders
+    //         .get(&id)
+    //         .into_iter()
+    //         .flat_map(|senders| senders.iter().copied())
+    // }
 
-    fn external_senders(&self, id: NodeId) -> Option<&ExternalSenders> {
-        todo!()
-    }
+    // fn insert_receiver(&mut self, id: ChannelId, to: NodeId) {
+    //     self.receivers.entry(to).or_default().insert(id);
+    // }
 
-    fn insert_external_receiver(&mut self, id: NodeId, receiver: MessageHash) {
-        self.external_receivers
-            .entry(id)
-            .or_default()
-            .insert(receiver);
-    }
-    fn external_receivers(&self, id: NodeId) -> Option<&ExternalReceivers> {
-        todo!()
-    }
+    // fn receivers(&self, id: NodeId) -> impl Iterator<Item = ChannelId> {
+    //     self.receivers
+    //         .get(&id)
+    //         .into_iter()
+    //         .flat_map(|receivers| receivers.iter().copied())
+    // }
 
     fn update_position(&mut self, id: ChannelId, position: ChannelPosition) -> Result<()> {
         if !self.channels.contains_key(&id) {
@@ -662,14 +651,5 @@ impl ChannelRepositoryConcept for ChannelRepository {
 
     fn channels(&self) -> impl Iterator<Item = ChannelId> {
         self.channels.keys().copied()
-    }
-
-    //@todo move to service
-    fn on_node_removal(&mut self, id: NodeId) -> Result<()> {
-        self.receivers.remove(&id);
-        self.senders.remove(&id);
-        self.external_receivers.remove(&id);
-        self.external_senders.remove(&id);
-        Ok(())
     }
 }

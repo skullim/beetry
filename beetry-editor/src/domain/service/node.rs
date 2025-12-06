@@ -1,15 +1,17 @@
 use crate::domain::{
-    models::{NodeChannelPortId, NodeChannelPortKind, NodeId, NodeKind, NodePosition},
+    models::{
+        NodeChannelPortId, NodeId, NodeKind, NodePortConnection, NodePortKind, NodePortSpec,
+        NodePosition,
+    },
     ports::{
         ChannelRepositoryConcept, EdgeRepositoryConcept, EditorRepository,
-        NodeChannelPortRepositoryConcept, NodeKindRepositoryConcept, NodePositionRepositoryConcept,
+        NodeKindRepositoryConcept, NodePortRepositoryConcept, NodePositionRepositoryConcept,
         NodeRepositoryConcept, NodeRepositoryFacadeConcept, NodeRepositoryFacadeView,
         NodeRepositoryFacadeViewMut, ParamRepositoryConcept,
     },
-    service::{channel::ChannelService, edge::EdgeService},
+    service::edge::EdgeService,
 };
 use anyhow::{Result, anyhow, bail};
-use beetry_core::MessageHash;
 use beetry_plugin::{ActionSpec, ConditionSpec};
 use beetry_serde::{
     de::parameter::Parameters,
@@ -82,8 +84,7 @@ where
     pub fn remove(&mut self, id: NodeId) -> Result<()> {
         let repo = &mut self.repo;
         NodeService::on_node_removal(repo.node_mut(), id)?;
-        self.edge_service.on_node_removal(repo.edge_mut(), id)?;
-        ChannelService::on_node_removal(repo.channel_mut(), id)
+        self.edge_service.on_node_removal(repo.edge_mut(), id)
     }
 
     pub fn root_spec(&self, id: NodeId) -> Option<&RootSpec> {
@@ -141,17 +142,17 @@ where
         NodeService::port_ids(ports, node_id)
     }
 
-    pub fn port_hash(&self, node_id: NodeId, port_id: NodeChannelPortId) -> Result<MessageHash> {
+    pub fn port_spec(&self, node_id: NodeId, port_id: NodeChannelPortId) -> Result<&NodePortSpec> {
         let NodeRepositoryFacadeView { ports, .. } = self.repo.node().view();
-        NodeService::port_hash(ports, node_id, port_id)
+        NodeService::port_spec(ports, node_id, port_id)
     }
-    pub fn port_kind(
+    pub fn port_connection(
         &self,
         node_id: NodeId,
         port_id: NodeChannelPortId,
-    ) -> Result<NodeChannelPortKind> {
+    ) -> Result<&NodePortConnection> {
         let NodeRepositoryFacadeView { ports, .. } = self.repo.node().view();
-        NodeService::port_kind(ports, node_id, port_id)
+        NodeService::port_connection(ports, node_id, port_id)
     }
 }
 
@@ -160,7 +161,7 @@ pub struct NodeService {
 }
 
 impl NodeService {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             creator: NodeCreator::new(),
         }
@@ -201,7 +202,7 @@ impl NodeService {
         &mut self,
         actions_repo: &mut impl NodeRepositoryConcept<Spec = ActionSpec>,
         kinds_repo: &mut impl NodeKindRepositoryConcept,
-        ports_repo: &mut impl NodeChannelPortRepositoryConcept,
+        ports_repo: &mut impl NodePortRepositoryConcept,
         spec: &ActionSpec,
     ) -> Result<NodeId> {
         let id = self.creator.create_action(actions_repo, spec)?;
@@ -214,7 +215,7 @@ impl NodeService {
         &mut self,
         conditions_repo: &mut impl NodeRepositoryConcept<Spec = ConditionSpec>,
         kinds_repo: &mut impl NodeKindRepositoryConcept,
-        ports_repo: &mut impl NodeChannelPortRepositoryConcept,
+        ports_repo: &mut impl NodePortRepositoryConcept,
         spec: &ConditionSpec,
     ) -> Result<NodeId> {
         let id = self.creator.create_condition(conditions_repo, spec)?;
@@ -224,20 +225,29 @@ impl NodeService {
     }
 
     fn initialize_ports(
-        ports_repo: &mut impl NodeChannelPortRepositoryConcept,
+        ports_repo: &mut impl NodePortRepositoryConcept,
         id: NodeId,
         spec: &ActionSpec,
     ) -> Result<()> {
-        Self::create_node_ports(
-            ports_repo,
-            id,
-            spec.schema.senders.iter().map(|spec| *spec.hash()),
-            spec.schema.receivers.iter().map(|spec| *spec.hash()),
-        )?;
+        let mut port_specs = vec![];
+        for msg_spec in &spec.schema.senders {
+            port_specs.push(NodePortSpec {
+                kind: NodePortKind::Sender,
+                msg_spec: msg_spec.clone(),
+            });
+        }
+        for msg_spec in &spec.schema.receivers {
+            port_specs.push(NodePortSpec {
+                kind: NodePortKind::Receiver,
+                msg_spec: msg_spec.clone(),
+            });
+        }
+
+        Self::create_node_ports(ports_repo, id, port_specs.into_iter())?;
         // collect to avoid borrowing mutably in the for loop
         let port_ids: Vec<_> = Self::port_ids(ports_repo, id).collect();
         for port_id in port_ids {
-            Self::set_port_kind(ports_repo, id, port_id, NodeChannelPortKind::Internal)?;
+            Self::connect_port(ports_repo, id, port_id, NodePortConnection::default())?;
         }
         Ok(())
     }
@@ -376,46 +386,46 @@ impl NodeService {
     }
 
     fn create_node_ports(
-        repo: &mut impl NodeChannelPortRepositoryConcept,
+        repo: &mut impl NodePortRepositoryConcept,
         node_id: NodeId,
-        senders: impl Iterator<Item = MessageHash>,
-        receivers: impl Iterator<Item = MessageHash>,
+        port_specs: impl Iterator<Item = NodePortSpec>,
     ) -> Result<()> {
-        repo.create(node_id, senders, receivers)
+        repo.create(node_id, port_specs)
     }
 
-    pub(crate) fn set_port_kind(
-        repo: &mut impl NodeChannelPortRepositoryConcept,
+    pub(crate) fn connect_port(
+        repo: &mut impl NodePortRepositoryConcept,
         node_id: NodeId,
         port_id: NodeChannelPortId,
-        kind: NodeChannelPortKind,
+        kind: NodePortConnection,
     ) -> Result<()> {
-        repo.set_kind(node_id, port_id, kind)
+        repo.set_conn(node_id, port_id, kind)
     }
 
     pub(crate) fn port_ids(
-        repo: &impl NodeChannelPortRepositoryConcept,
+        repo: &impl NodePortRepositoryConcept,
         node_id: NodeId,
     ) -> impl Iterator<Item = NodeChannelPortId> {
         repo.ports(node_id)
     }
 
-    pub(crate) fn port_hash(
-        repo: &impl NodeChannelPortRepositoryConcept,
+    pub(crate) fn port_spec(
+        repo: &impl NodePortRepositoryConcept,
         node_id: NodeId,
         port_id: NodeChannelPortId,
-    ) -> Result<MessageHash> {
-        repo.hash(node_id, port_id)
-            .ok_or_else(|| anyhow!("unable to retrieve port hash"))
+    ) -> Result<&NodePortSpec> {
+        repo.spec(node_id, port_id)
+            .ok_or_else(|| anyhow!("unable to retrieve port spec"))
     }
 
-    pub(crate) fn port_kind(
-        repo: &impl NodeChannelPortRepositoryConcept,
+    pub(crate) fn port_connection(
+        repo: &impl NodePortRepositoryConcept,
         node_id: NodeId,
         port_id: NodeChannelPortId,
-    ) -> Result<NodeChannelPortKind> {
-        repo.kind(node_id, port_id)
-            .ok_or_else(|| anyhow!("unable to retrieve port kind"))
+    ) -> Result<&NodePortConnection> {
+        repo.connection(node_id, port_id).ok_or_else(|| {
+            anyhow!("unable to retrieve node's (id: {node_id}) port (id: {port_id}) connection")
+        })
     }
 }
 

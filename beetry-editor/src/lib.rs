@@ -5,7 +5,6 @@ mod editor;
 mod project;
 mod sidebar;
 mod signals;
-mod storage;
 mod toolbar;
 mod ui;
 mod workspace;
