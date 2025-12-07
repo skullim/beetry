@@ -91,15 +91,6 @@ pub struct LeafSchema {
     pub senders: BTreeSet<MessageSpec>,
 }
 
-// #[derive(Debug, Clone, PartialEq, Eq, Builder, Getters, Serialize, Deserialize)]
-// pub struct NodePortSpec {
-//     #[builder(default, with = <_>::from_iter)]
-//     pub receivers: BTreeSet<MessageSpec>,
-//     #[builder(default, with = <_>::from_iter)]
-//     pub senders: BTreeSet<MessageSpec>,
-//     //@todo add optional port description
-// }
-
 pub struct ActionLeafSchema;
 impl ActionLeafSchema {
     // cannot implement Default here as that would need to return ZST instead of LeafSchema

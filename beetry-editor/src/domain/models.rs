@@ -77,7 +77,7 @@ pub struct ExternalSenders {
     senders: HashSet<MessageHash>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NodeKind {
     Action,
     Condition,
