@@ -26,12 +26,12 @@ impl ChannelSnapshot {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
 pub struct ChannelSnapshot2 {
     spec: ChannelSpec,
-    metadata: ChannelParameters,
+    parameters: ChannelParameters,
 }
 
 impl ChannelSnapshot2 {
-    pub fn new(spec: ChannelSpec, metadata: ChannelParameters) -> Self {
-        Self { spec, metadata }
+    pub fn new(spec: ChannelSpec, parameters: ChannelParameters) -> Self {
+        Self { spec, parameters }
     }
 }
 

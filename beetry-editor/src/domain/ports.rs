@@ -21,7 +21,7 @@ use getset::{Getters, MutGetters};
 use serde_value::Value;
 use slotmap::SlotMap;
 
-#[derive(Getters, MutGetters)]
+#[derive(Debug, Default, Getters, MutGetters)]
 pub struct EditorRepository<NRF, ER, CR> {
     #[getset(get = "pub", get_mut = "pub")]
     node: NRF,
@@ -44,14 +44,6 @@ pub struct EditorRepositoryViewMut<'a, NRF, ER, CR> {
 }
 
 impl<NRF, ER, CR> EditorRepository<NRF, ER, CR> {
-    pub fn new(node: NRF, edge: ER, channel: CR) -> Self {
-        Self {
-            node,
-            edge,
-            channel,
-        }
-    }
-
     pub fn view(&self) -> EditorRepositoryView<'_, NRF, ER, CR> {
         EditorRepositoryView {
             node: &self.node,
@@ -69,7 +61,26 @@ impl<NRF, ER, CR> EditorRepository<NRF, ER, CR> {
     }
 }
 
-pub trait NodeRepositoryConcept {
+impl<NRF, ER, CR> EditorRepository<NRF, ER, CR>
+where
+    NRF: Default,
+    ER: Default,
+    CR: Default,
+{
+    /// Instance should be initialized in default state, the interaction with concrete repositories
+    /// should be managed by service layer.
+    /// This saves ton of validation (to guarantee repositories are in correct state) that would be
+    /// necessary to perform if Self would take the repositories in the constructor.
+    pub fn new() -> Self {
+        Self {
+            node: NRF::default(),
+            edge: ER::default(),
+            channel: CR::default(),
+        }
+    }
+}
+
+pub trait NodeRepositoryConcept: Default {
     type Spec: Clone + ProvideNodeName;
 
     fn create(&mut self, id: NodeId, spec: &Self::Spec) -> Result<()>;
@@ -140,10 +151,23 @@ impl NodeRepositoryConcept for RootNodeRepository {
 
 type NodeSchemaId = slotmap::DefaultKey;
 
+#[derive(Debug)]
 pub struct NodeRepository<S> {
     nodes: HashMap<NodeId, NodeSchemaId>,
+    //@todo caching should probably be implemented by service layer?
     cached_schema_keys: HashMap<NodeName, NodeSchemaId>,
     specs: SlotMap<NodeSchemaId, S>,
+}
+
+// manual implementation needed as otherwise Default would only be implemented when S: Default, which is not needed in this case
+impl<S> Default for NodeRepository<S> {
+    fn default() -> Self {
+        Self {
+            nodes: <_>::default(),
+            cached_schema_keys: <_>::default(),
+            specs: <_>::default(),
+        }
+    }
 }
 
 impl<S> NodeRepository<S>
@@ -238,7 +262,7 @@ derive_node_repository! {ActionNodeRepository, ActionSpec}
 derive_node_repository! {ControlNodeRepository, ControlSpec}
 derive_node_repository! {DecoratorNodeRepository, DecoratorSpec}
 
-pub trait NodeRepositoryFacadeConcept {
+pub trait NodeRepositoryFacadeConcept: Default {
     type RootRepo: NodeRepositoryConcept<Spec = RootSpec>;
     type ActionRepo: NodeRepositoryConcept<Spec = ActionSpec>;
     type ConditionRepo: NodeRepositoryConcept<Spec = ConditionSpec>;
@@ -259,7 +283,7 @@ pub trait NodeRepositoryFacadeConcept {
         Self: Sized;
 }
 
-pub trait NodePortRepositoryConcept {
+pub trait NodePortRepositoryConcept: Default {
     fn create(&mut self, id: NodeId, port_specs: impl Iterator<Item = NodePortSpec>) -> Result<()>;
 
     fn spec(&self, node: NodeId, port: NodeChannelPortId) -> Option<&NodePortSpec>;
@@ -281,6 +305,7 @@ pub trait NodePortRepositoryConcept {
     fn ports(&self, id: NodeId) -> impl Iterator<Item = NodeChannelPortId>;
 }
 
+#[derive(Default)]
 pub struct NodePortRepository {
     ports: HashMap<NodeId, HashSet<NodeChannelPortId>>,
     connections: HashMap<(NodeId, NodeChannelPortId), NodePortConnection>,
@@ -335,12 +360,13 @@ impl NodePortRepositoryConcept for NodePortRepository {
     }
 }
 
-pub trait NodeKindRepositoryConcept {
+pub trait NodeKindRepositoryConcept: Default {
     fn insert(&mut self, id: NodeId, kind: NodeKind) -> Result<()>;
     fn remove(&mut self, id: NodeId) -> Result<()>;
     fn kind(&self, id: NodeId) -> Option<NodeKind>;
 }
 
+#[derive(Default)]
 pub struct NodeKindRepository {
     kinds: HashMap<NodeId, NodeKind>,
 }
@@ -361,12 +387,13 @@ impl NodeKindRepositoryConcept for NodeKindRepository {
     }
 }
 
-pub trait NodePositionRepositoryConcept {
+pub trait NodePositionRepositoryConcept: Default {
     fn update(&mut self, id: NodeId, position: NodePosition) -> Result<()>;
     fn position(&self, id: NodeId) -> Option<&NodePosition>;
     fn remove(&mut self, id: NodeId) -> Result<()>;
 }
 
+#[derive(Default)]
 pub struct NodePositionRepository {
     positions: HashMap<NodeId, NodePosition>,
 }
@@ -421,7 +448,7 @@ pub struct NodeRepositoryFacadeViewMut<'a, F: NodeRepositoryFacadeConcept> {
     pub ports: &'a mut F::PortRepo,
 }
 
-#[derive(Getters, MutGetters)]
+#[derive(Default, Getters, MutGetters)]
 pub struct NodeRepositoryFacade {
     root: RootNodeRepository,
     action: ActionNodeRepository,
@@ -502,7 +529,7 @@ impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
     }
 }
 
-pub trait ParamRepositoryConcept {
+pub trait ParamRepositoryConcept: Default {
     fn insert(&mut self, id: NodeId, params: Parameters);
     fn remove(&mut self, id: NodeId) -> Result<()>;
     fn update(&mut self, id: NodeId, field_name: &str, value: Value) -> Result<()>;
@@ -510,6 +537,7 @@ pub trait ParamRepositoryConcept {
     fn params(&self, id: NodeId) -> Option<&Parameters>;
 }
 
+#[derive(Default)]
 pub struct ParamRepository {
     params: HashMap<NodeId, Parameters>,
 }
@@ -538,7 +566,7 @@ impl ParamRepositoryConcept for ParamRepository {
     }
 }
 
-pub trait EdgeRepositoryConcept {
+pub trait EdgeRepositoryConcept: Default {
     fn create(&mut self, id: EdgeId, edge: NodeEdge) -> Result<()>;
     fn remove(&mut self, id: EdgeId) -> Option<NodeEdge>;
 
@@ -551,6 +579,7 @@ pub trait EdgeRepositoryConcept {
     }
 }
 
+#[derive(Default)]
 pub struct EdgeRepository {
     /// Vec<NodeEdge> would also be sufficient, but frontend is rendered more efficiently
     /// if each element has a unique and *stable* id. In that sense frontend is intrusive, but otherwise it would be very costly to
@@ -577,7 +606,7 @@ impl EdgeRepositoryConcept for EdgeRepository {
     }
 }
 
-pub trait ChannelRepositoryConcept {
+pub trait ChannelRepositoryConcept: Default {
     fn create(&mut self, id: ChannelId, spec: ChannelSpec) -> Result<()>;
     fn remove(&mut self, id: ChannelId) -> Result<()>;
 
@@ -589,18 +618,13 @@ pub trait ChannelRepositoryConcept {
     fn parameters_mut(&mut self, id: ChannelId) -> Option<&mut ChannelParameters>;
     fn parameters(&self, id: ChannelId) -> Option<&ChannelParameters>;
 
-    // fn insert_sender(&mut self, id: ChannelId, from: NodeId);
-    // fn senders(&self, id: NodeId) -> impl Iterator<Item = ChannelId>;
-
-    // fn insert_receiver(&mut self, id: ChannelId, to: NodeId);
-    // fn receivers(&self, id: NodeId) -> impl Iterator<Item = ChannelId>;
-
     fn update_position(&mut self, id: ChannelId, position: ChannelPosition) -> Result<()>;
     fn position(&self, id: ChannelId) -> Option<&ChannelPosition>;
 
     fn channels(&self) -> impl Iterator<Item = ChannelId>;
 }
 
+#[derive(Default)]
 pub struct ChannelRepository {
     //@todo can optimize similar to how node specs are cached
     channels: HashMap<ChannelId, ChannelSpec>,
@@ -640,28 +664,6 @@ impl ChannelRepositoryConcept for ChannelRepository {
     fn parameters(&self, id: ChannelId) -> Option<&ChannelParameters> {
         self.parameters.get(&id)
     }
-
-    // fn insert_sender(&mut self, id: ChannelId, from: NodeId) {
-    //     self.senders.entry(from).or_default().insert(id);
-    // }
-
-    // fn senders(&self, id: NodeId) -> impl Iterator<Item = ChannelId> {
-    //     self.senders
-    //         .get(&id)
-    //         .into_iter()
-    //         .flat_map(|senders| senders.iter().copied())
-    // }
-
-    // fn insert_receiver(&mut self, id: ChannelId, to: NodeId) {
-    //     self.receivers.entry(to).or_default().insert(id);
-    // }
-
-    // fn receivers(&self, id: NodeId) -> impl Iterator<Item = ChannelId> {
-    //     self.receivers
-    //         .get(&id)
-    //         .into_iter()
-    //         .flat_map(|receivers| receivers.iter().copied())
-    // }
 
     fn update_position(&mut self, id: ChannelId, position: ChannelPosition) -> Result<()> {
         if !self.channels.contains_key(&id) {
