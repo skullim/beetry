@@ -19,21 +19,22 @@ use beetry_serde::{
 };
 
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
-pub struct NodeServiceView<'r, 's, 'e, NRF, ER, CR> {
+pub struct NodeServiceView<'r, 's, 'e, NRF, ER, CR, A> {
     repo: &'r mut EditorRepository<NRF, ER, CR>,
-    node_service: &'s mut NodeService,
+    node_service: &'s mut NodeService<A>,
     edge_service: &'e mut EdgeService,
 }
 
-impl<'r, 's, 'e, NRF, ER, CR> NodeServiceView<'r, 's, 'e, NRF, ER, CR>
+impl<'r, 's, 'e, NRF, ER, CR, A> NodeServiceView<'r, 's, 'e, NRF, ER, CR, A>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
     CR: ChannelRepositoryConcept,
+    A: AssignNodeId,
 {
     pub(crate) fn new(
         repo: &'r mut EditorRepository<NRF, ER, CR>,
-        node_service: &'s mut NodeService,
+        node_service: &'s mut NodeService<A>,
         edge_service: &'e mut EdgeService,
     ) -> Self {
         Self {
@@ -83,37 +84,37 @@ where
 
     pub fn remove(&mut self, id: NodeId) -> Result<()> {
         let repo = &mut self.repo;
-        NodeService::on_node_removal(repo.node_mut(), id)?;
+        NodeServiceStateless::on_node_removal(repo.node_mut(), id)?;
         self.edge_service.on_node_removal(repo.edge_mut(), id)
     }
 
     pub fn root_spec(&self, id: NodeId) -> Option<&RootSpec> {
         let NodeRepositoryFacadeView { root, .. } = self.repo.node().view();
-        NodeService::root_spec(root, id)
+        NodeServiceStateless::root_spec(root, id)
     }
 
     pub fn action_spec(&self, id: NodeId) -> Option<&ActionSpec> {
         let NodeRepositoryFacadeView { action, .. } = self.repo.node().view();
-        NodeService::action_spec(action, id)
+        NodeServiceStateless::action_spec(action, id)
     }
 
     pub fn condition_spec(&self, id: NodeId) -> Option<&ConditionSpec> {
         let NodeRepositoryFacadeView { condition, .. } = self.repo.node().view();
-        NodeService::condition_spec(condition, id)
+        NodeServiceStateless::condition_spec(condition, id)
     }
 
     pub fn control_spec(&self, id: NodeId) -> Option<&ControlSpec> {
         let NodeRepositoryFacadeView { control, .. } = self.repo.node().view();
-        NodeService::control_spec(control, id)
+        NodeServiceStateless::control_spec(control, id)
     }
 
     pub fn decorator_spec(&self, id: NodeId) -> Option<&DecoratorSpec> {
         let NodeRepositoryFacadeView { decorator, .. } = self.repo.node().view();
-        NodeService::decorator_spec(decorator, id)
+        NodeServiceStateless::decorator_spec(decorator, id)
     }
 
     pub fn name(&self, id: NodeId) -> Result<&NodeName> {
-        NodeService::name(self.repo.node(), id)
+        NodeServiceStateless::name(self.repo.node(), id)
     }
 
     pub fn kind(&self, id: NodeId) -> Result<NodeKind> {
@@ -122,29 +123,29 @@ where
     }
 
     pub fn nodes(&self, kind: NodeKind) -> impl Iterator<Item = NodeId> {
-        NodeService::nodes(self.repo.node(), kind)
+        NodeServiceStateless::nodes(self.repo.node(), kind)
     }
 
     pub fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
-        NodeService::update_position(self.repo.node_mut(), id, position)
+        NodeServiceStateless::update_position(self.repo.node_mut(), id, position)
     }
 
     pub fn positions(&self, kind: NodeKind) -> impl Iterator<Item = &NodePosition> {
-        NodeService::positions(self.repo.node(), kind)
+        NodeServiceStateless::positions(self.repo.node(), kind)
     }
 
     pub fn parameters(&self, id: NodeId) -> Result<&Parameters> {
-        NodeService::parameters(self.repo.node(), id)
+        NodeServiceStateless::parameters(self.repo.node(), id)
     }
 
     pub fn port_ids(&self, node_id: NodeId) -> impl Iterator<Item = NodeChannelPortId> {
         let NodeRepositoryFacadeView { ports, .. } = self.repo.node().view();
-        NodeService::port_ids(ports, node_id)
+        NodeServiceStateless::port_ids(ports, node_id)
     }
 
     pub fn port_spec(&self, node_id: NodeId, port_id: NodeChannelPortId) -> Result<&NodePortSpec> {
         let NodeRepositoryFacadeView { ports, .. } = self.repo.node().view();
-        NodeService::port_spec(ports, node_id, port_id)
+        NodeServiceStateless::port_spec(ports, node_id, port_id)
     }
     pub fn port_connection(
         &self,
@@ -152,21 +153,13 @@ where
         port_id: NodeChannelPortId,
     ) -> Result<&NodePortConnection> {
         let NodeRepositoryFacadeView { ports, .. } = self.repo.node().view();
-        NodeService::port_connection(ports, node_id, port_id)
+        NodeServiceStateless::port_connection(ports, node_id, port_id)
     }
 }
 
-pub struct NodeService {
-    creator: NodeCreator,
-}
+pub struct NodeServiceStateless;
 
-impl NodeService {
-    pub(crate) fn new() -> Self {
-        Self {
-            creator: NodeCreator::new(),
-        }
-    }
-
+impl NodeServiceStateless {
     pub(crate) fn ensure_exists(
         view: NodeRepositoryFacadeView<'_, impl NodeRepositoryFacadeConcept>,
         id: NodeId,
@@ -185,43 +178,6 @@ impl NodeService {
             bail!("node {id} does not exist");
         }
         Ok(())
-    }
-
-    fn create_root(
-        &mut self,
-        root_repo: &mut impl NodeRepositoryConcept<Spec = RootSpec>,
-        kinds_repo: &mut impl NodeKindRepositoryConcept,
-        spec: &RootSpec,
-    ) -> Result<NodeId> {
-        let id = self.creator.create_root(root_repo, spec)?;
-        NodeKindService::insert(kinds_repo, id, NodeKind::Root)?;
-        Ok(id)
-    }
-
-    fn create_action(
-        &mut self,
-        actions_repo: &mut impl NodeRepositoryConcept<Spec = ActionSpec>,
-        kinds_repo: &mut impl NodeKindRepositoryConcept,
-        ports_repo: &mut impl NodePortRepositoryConcept,
-        spec: &ActionSpec,
-    ) -> Result<NodeId> {
-        let id = self.creator.create_action(actions_repo, spec)?;
-        Self::initialize_ports(ports_repo, id, spec)?;
-        NodeKindService::insert(kinds_repo, id, NodeKind::Action)?;
-        Ok(id)
-    }
-
-    fn create_condition(
-        &mut self,
-        conditions_repo: &mut impl NodeRepositoryConcept<Spec = ConditionSpec>,
-        kinds_repo: &mut impl NodeKindRepositoryConcept,
-        ports_repo: &mut impl NodePortRepositoryConcept,
-        spec: &ConditionSpec,
-    ) -> Result<NodeId> {
-        let id = self.creator.create_condition(conditions_repo, spec)?;
-        Self::initialize_ports(ports_repo, id, spec)?;
-        NodeKindService::insert(kinds_repo, id, NodeKind::Condition)?;
-        Ok(id)
     }
 
     fn initialize_ports(
@@ -250,28 +206,6 @@ impl NodeService {
             Self::connect_port(ports_repo, id, port_id, NodePortConnection::default())?;
         }
         Ok(())
-    }
-
-    fn create_control(
-        &mut self,
-        controls_repo: &mut impl NodeRepositoryConcept<Spec = ControlSpec>,
-        kinds_repo: &mut impl NodeKindRepositoryConcept,
-        spec: &ControlSpec,
-    ) -> Result<NodeId> {
-        let id = self.creator.create_control(controls_repo, spec)?;
-        NodeKindService::insert(kinds_repo, id, NodeKind::Control)?;
-        Ok(id)
-    }
-
-    fn create_decorator(
-        &mut self,
-        decorators_repo: &mut impl NodeRepositoryConcept<Spec = DecoratorSpec>,
-        kinds_repo: &mut impl NodeKindRepositoryConcept,
-        spec: &DecoratorSpec,
-    ) -> Result<NodeId> {
-        let id = self.creator.create_decorator(decorators_repo, spec)?;
-        NodeKindService::insert(kinds_repo, id, NodeKind::Decorator)?;
-        Ok(id)
     }
 
     fn root_spec(
@@ -429,26 +363,117 @@ impl NodeService {
     }
 }
 
-#[derive(Default)]
-struct NodeCreator {
-    id_assigner: NodeIdAssigner,
+pub struct NodeService<A> {
+    id_assigner: A,
 }
 
-impl NodeCreator {
-    fn new() -> Self {
-        Self::default()
+impl NodeService<IncrementalNodeIdAssigner> {
+    pub(crate) fn new() -> Self {
+        Self {
+            id_assigner: IncrementalNodeIdAssigner::default(),
+        }
+    }
+}
+
+impl<A> NodeService<A>
+where
+    A: AssignNodeId,
+{
+    pub(crate) fn with_assigner(id_assigner: A) -> Self {
+        Self { id_assigner }
     }
 
-    // can be called only once, unfortunately implementation via state pattern would be difficult to integrate
     fn create_root(
         &mut self,
+        root_repo: &mut impl NodeRepositoryConcept<Spec = RootSpec>,
+        kinds_repo: &mut impl NodeKindRepositoryConcept,
+        spec: &RootSpec,
+    ) -> Result<NodeId> {
+        let id = NodeCreator::create_root(root_repo, spec, &mut self.id_assigner)?;
+        NodeKindService::insert(kinds_repo, id, NodeKind::Root)?;
+        Ok(id)
+    }
+
+    fn create_action(
+        &mut self,
+        actions_repo: &mut impl NodeRepositoryConcept<Spec = ActionSpec>,
+        kinds_repo: &mut impl NodeKindRepositoryConcept,
+        ports_repo: &mut impl NodePortRepositoryConcept,
+        spec: &ActionSpec,
+    ) -> Result<NodeId> {
+        let id = NodeCreator::create_action(actions_repo, spec, &mut self.id_assigner)?;
+        NodeServiceStateless::initialize_ports(ports_repo, id, spec)?;
+        NodeKindService::insert(kinds_repo, id, NodeKind::Action)?;
+        Ok(id)
+    }
+
+    fn create_condition(
+        &mut self,
+        conditions_repo: &mut impl NodeRepositoryConcept<Spec = ConditionSpec>,
+        kinds_repo: &mut impl NodeKindRepositoryConcept,
+        ports_repo: &mut impl NodePortRepositoryConcept,
+        spec: &ConditionSpec,
+    ) -> Result<NodeId> {
+        let id = NodeCreator::create_condition(conditions_repo, spec, &mut self.id_assigner)?;
+        NodeServiceStateless::initialize_ports(ports_repo, id, spec)?;
+        NodeKindService::insert(kinds_repo, id, NodeKind::Condition)?;
+        Ok(id)
+    }
+
+    fn create_control(
+        &mut self,
+        controls_repo: &mut impl NodeRepositoryConcept<Spec = ControlSpec>,
+        kinds_repo: &mut impl NodeKindRepositoryConcept,
+        spec: &ControlSpec,
+    ) -> Result<NodeId> {
+        let id = NodeCreator::create_control(controls_repo, spec, &mut self.id_assigner)?;
+        NodeKindService::insert(kinds_repo, id, NodeKind::Control)?;
+        Ok(id)
+    }
+
+    fn create_decorator(
+        &mut self,
+        decorators_repo: &mut impl NodeRepositoryConcept<Spec = DecoratorSpec>,
+        kinds_repo: &mut impl NodeKindRepositoryConcept,
+        spec: &DecoratorSpec,
+    ) -> Result<NodeId> {
+        let id = NodeCreator::create_decorator(decorators_repo, spec, &mut self.id_assigner)?;
+        NodeKindService::insert(kinds_repo, id, NodeKind::Decorator)?;
+        Ok(id)
+    }
+}
+
+pub trait AssignNodeId {
+    fn next_id(&mut self) -> NodeId;
+}
+
+#[derive(Default)]
+pub(crate) struct IncrementalNodeIdAssigner {
+    id: NodeId,
+}
+
+impl AssignNodeId for IncrementalNodeIdAssigner {
+    fn next_id(&mut self) -> NodeId {
+        let id = self.id;
+        self.id += 1;
+        id
+    }
+}
+
+#[derive(Default)]
+struct NodeCreator;
+
+impl NodeCreator {
+    // can be called only once, unfortunately implementation via state pattern would be difficult to integrate
+    fn create_root(
         repo: &mut impl NodeRepositoryConcept<Spec = RootSpec>,
         spec: &RootSpec,
+        id_assigner: &mut impl AssignNodeId,
     ) -> Result<NodeId> {
         if repo.nodes().count() > 0 {
             bail!("attempted to create multiple roots");
         }
-        let id = self.next_id();
+        let id = id_assigner.next_id();
         if id != 0 {
             bail!("root should always have id 0 but tried to assign {id}");
         }
@@ -457,60 +482,43 @@ impl NodeCreator {
     }
 
     fn create_action(
-        &mut self,
         repo: &mut impl NodeRepositoryConcept<Spec = ActionSpec>,
         spec: &ActionSpec,
+        id_assigner: &mut impl AssignNodeId,
     ) -> Result<NodeId> {
-        let id = self.next_id();
+        let id = id_assigner.next_id();
         repo.create(id, spec)?;
         Ok(id)
     }
 
     fn create_condition(
-        &mut self,
         repo: &mut impl NodeRepositoryConcept<Spec = ConditionSpec>,
         spec: &ConditionSpec,
+        id_assigner: &mut impl AssignNodeId,
     ) -> Result<NodeId> {
-        let id = self.next_id();
+        let id = id_assigner.next_id();
         repo.create(id, spec)?;
         Ok(id)
     }
 
     fn create_decorator(
-        &mut self,
         repo: &mut impl NodeRepositoryConcept<Spec = DecoratorSpec>,
         spec: &DecoratorSpec,
+        id_assigner: &mut impl AssignNodeId,
     ) -> Result<NodeId> {
-        let id = self.next_id();
+        let id = id_assigner.next_id();
         repo.create(id, spec)?;
         Ok(id)
     }
 
     fn create_control(
-        &mut self,
         repo: &mut impl NodeRepositoryConcept<Spec = ControlSpec>,
         spec: &ControlSpec,
+        id_assigner: &mut impl AssignNodeId,
     ) -> Result<NodeId> {
-        let id = self.next_id();
+        let id = id_assigner.next_id();
         repo.create(id, spec)?;
         Ok(id)
-    }
-
-    fn next_id(&mut self) -> NodeId {
-        self.id_assigner.next_id()
-    }
-}
-
-#[derive(Default)]
-struct NodeIdAssigner {
-    id: NodeId,
-}
-
-impl NodeIdAssigner {
-    fn next_id(&mut self) -> NodeId {
-        let id = self.id;
-        self.id += 1;
-        id
     }
 }
 

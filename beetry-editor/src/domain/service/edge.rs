@@ -6,7 +6,7 @@ use crate::domain::{
         ChannelRepositoryConcept, EdgeRepositoryConcept, EditorRepository, EditorRepositoryViewMut,
         NodeRepositoryFacadeConcept,
     },
-    service::node::{NodeKindService, NodeService},
+    service::node::{NodeKindService, NodeService, NodeServiceStateless},
 };
 use anyhow::{Result, anyhow, bail};
 use tracing::warn;
@@ -82,8 +82,8 @@ impl EdgeService {
         let node_view = node_repo.view();
         let (parent, child) = (edge.from, edge.to);
 
-        NodeService::ensure_exists(node_view, parent)?;
-        NodeService::ensure_exists(node_view, child)?;
+        NodeServiceStateless::ensure_exists(node_view, parent)?;
+        NodeServiceStateless::ensure_exists(node_view, child)?;
 
         // validate parent
         let parent_kind = NodeKindService::kind(node_view.kinds, parent)?;

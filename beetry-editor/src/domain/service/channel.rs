@@ -4,7 +4,7 @@ use crate::domain::{
         ChannelRepositoryConcept, EdgeRepositoryConcept, EditorRepository, EditorRepositoryViewMut,
         NodeRepositoryFacadeConcept, NodeRepositoryFacadeView,
     },
-    service::node::NodeService,
+    service::node::NodeServiceStateless,
 };
 use anyhow::{Result, anyhow, bail};
 use beetry_serde::{
@@ -12,13 +12,12 @@ use beetry_serde::{
     ser::channel::ChannelSpec,
 };
 
-pub struct ChannelServiceView<'r, 'c, 'n, NRF, ER, CR> {
+pub struct ChannelServiceView<'r, 'c, NRF, ER, CR> {
     repo: &'r mut EditorRepository<NRF, ER, CR>,
     channel: &'c mut ChannelService,
-    node: &'n NodeService,
 }
 
-impl<'r, 'c, 'n, NRF, ER, CR> ChannelServiceView<'r, 'c, 'n, NRF, ER, CR>
+impl<'r, 'c, NRF, ER, CR> ChannelServiceView<'r, 'c, NRF, ER, CR>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
@@ -27,13 +26,8 @@ where
     pub(crate) fn new(
         repo: &'r mut EditorRepository<NRF, ER, CR>,
         channel: &'c mut ChannelService,
-        node: &'n NodeService,
     ) -> Self {
-        Self {
-            repo,
-            channel,
-            node,
-        }
+        Self { repo, channel }
     }
 
     pub fn create(&mut self, spec: ChannelSpec) -> Result<ChannelId> {
@@ -123,9 +117,9 @@ impl ChannelService {
     fn set_parameters(
         repo: &mut impl ChannelRepositoryConcept,
         id: ChannelId,
-        metadata: ChannelParameters,
+        params: ChannelParameters,
     ) -> Result<()> {
-        repo.set_parameters(id, metadata)
+        repo.set_parameters(id, params)
     }
 
     fn parameters(
@@ -152,7 +146,7 @@ impl ChannelService {
         port_id: NodeChannelPortId,
     ) -> Result<()> {
         let node_view = node_repo.view();
-        NodeService::ensure_exists(node_view, from)?;
+        NodeServiceStateless::ensure_exists(node_view, from)?;
         Self::ensure_exists(channel_repo, id)?;
         Self::validate_connection(node_view, channel_repo, id, from, port_id)?;
         Self::parameters_mut(channel_repo, id)?
@@ -169,7 +163,7 @@ impl ChannelService {
         port_id: NodeChannelPortId,
     ) -> Result<()> {
         let node_view = node_repo.view();
-        NodeService::ensure_exists(node_view, to)?;
+        NodeServiceStateless::ensure_exists(node_view, to)?;
         Self::ensure_exists(channel_repo, id)?;
         Self::validate_connection(node_view, channel_repo, id, to, port_id)?;
         Self::parameters_mut(channel_repo, id)?
@@ -187,7 +181,7 @@ impl ChannelService {
         from: NodeId,
         port_id: NodeChannelPortId,
     ) -> Result<()> {
-        let port_spec = NodeService::port_spec(node_view.ports, from, port_id)?;
+        let port_spec = NodeServiceStateless::port_spec(node_view.ports, from, port_id)?;
         let channel_spec = Self::spec(channel_repo, id)?;
         if port_spec.msg_spec.hash() != channel_spec.msg_hash() {
             bail!("attempted to connect mismatched channel {id} and node {from} port {port_id}");
@@ -200,7 +194,7 @@ impl ChannelService {
             bail!("attempted to create more than 1 receiver of mpsc channel");
         }
 
-        let port_conn = NodeService::port_connection(node_view.ports, from, port_id)?;
+        let port_conn = NodeServiceStateless::port_connection(node_view.ports, from, port_id)?;
         match port_conn {
             NodePortConnection::External => {
                 bail!("attempted to connect to port {port_id} that is marked as external");
