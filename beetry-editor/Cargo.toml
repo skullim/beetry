@@ -16,7 +16,6 @@ beetry-serde = { version = "0.1.0", path = "../beetry-serde" }
 beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }
 bon.workspace = true
 delegate = "0.13.5"
-derive-getters.workspace = true
 derive_more.workspace = true
 dioxus = { version = "0.7.0", features = [] }
 dioxus-logger = "0.7.0"

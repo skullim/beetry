@@ -2,8 +2,8 @@ use std::cmp::Ordering;
 use std::collections::BTreeSet;
 
 use bon::{Builder, builder};
-use derive_getters::Getters;
 use derive_more::{Display, From};
+use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 
 use crate::ser::node::leaf_schema_builder::SetKind;
@@ -36,6 +36,7 @@ pub type ControlSpec = NodeSpec<ControlSchema>;
 pub type DecoratorSpec = NodeSpec<DecoratorSchema>;
 
 #[derive(Debug, Builder, Clone, Eq, Getters, Serialize, Deserialize)]
+#[get = "pub"]
 pub struct NodeSpec<S> {
     #[builder(into)]
     pub name: NodeName,
@@ -78,11 +79,14 @@ pub struct ControlSchema;
 pub struct DecoratorSchema;
 
 //@todo use NodePortSpec here
-#[derive(Debug, Clone, PartialEq, Eq, Builder, Getters, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Builder, CopyGetters, Getters, Serialize, Deserialize)]
 pub struct LeafSchema {
+    #[get_copy = "pub"]
     pub kind: LeafKind,
+    #[get = "pub"]
     #[builder(default, with = <_>::from_iter)]
     pub receivers: BTreeSet<MessageSpec>,
+    #[get = "pub"]
     #[builder(default, with = <_>::from_iter)]
     pub senders: BTreeSet<MessageSpec>,
 }

@@ -70,7 +70,7 @@ impl TreeReconstructor {
             .map(|(k, v)| {
                 let msg_hash = v.spec().msg_hash();
                 debug!("{factory_map:?}");
-                let factory = factory_map.get(*msg_hash).ok_or_else(|| {
+                let factory = factory_map.get(msg_hash).ok_or_else(|| {
                     anyhow!(
                         "cannot create channel, did not find channel with required hash {msg_hash:?}"
                     )
@@ -234,7 +234,7 @@ impl ChannelHashToFactoryMap {
     fn new(plugins: Vec<BoxChannelPlugin>) -> Self {
         let map = plugins
             .into_iter()
-            .map(|plugin| (*plugin.spec().msg_hash(), plugin.factory()))
+            .map(|plugin| (plugin.spec().msg_hash(), plugin.factory()))
             .collect();
         Self { map }
     }

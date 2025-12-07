@@ -1,7 +1,7 @@
 use crate::domain::{
     ports::{
         ChannelRepositoryConcept, EdgeRepositoryConcept, EditorRepository,
-        NodeRepositoryFacadeConcept, ParamRepositoryConcept,
+        NodeRepositoryFacadeConcept,
     },
     service::{
         channel::{ChannelService, ChannelServiceView},

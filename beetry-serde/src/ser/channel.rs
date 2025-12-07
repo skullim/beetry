@@ -1,11 +1,13 @@
 use beetry_core::MessageHash;
-use derive_getters::Getters;
+use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
-#[derive(Debug, Clone, PartialEq, Eq, Getters, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, CopyGetters, Getters, Serialize, Deserialize)]
 pub struct MessageSpec {
+    #[get = "pub"]
     desc: String,
+    #[get_copy = "pub"]
     hash: MessageHash,
 }
 
@@ -67,10 +69,12 @@ impl<T: Message> MessageTypeProvider for T {
     }
 }
 
-#[derive(Debug, Clone, Getters, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, CopyGetters, Getters, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChannelSpec {
     // labels concrete channel and its factory
+    #[get_copy = "pub"]
     msg_hash: MessageHash,
+    #[get = "pub"]
     msg_type_name: String,
 }
 

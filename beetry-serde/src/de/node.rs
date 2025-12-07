@@ -3,8 +3,8 @@ use std::collections::BTreeSet;
 use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
 use bon::{Builder, builder};
-use derive_getters::Getters;
 use derive_more::From;
+use getset::{CopyGetters, Getters};
 use mitsein::iter1::FromIterator1;
 use mitsein::vec1::Vec1;
 use serde::{Deserialize, Serialize};
@@ -52,6 +52,7 @@ pub enum NodeSnapshotData {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Getters)]
 pub struct ControlSnapshot {
+    #[get = "pub"]
     children: Vec1<NodeSnapshot>,
 }
 
@@ -67,14 +68,17 @@ impl ControlSnapshot {
     }
 }
 
-#[derive(Debug, Clone, Builder, Serialize, Deserialize, Getters)]
+#[derive(Debug, Clone, Builder, Serialize, Deserialize, Getters, CopyGetters)]
 pub struct LeafSnapshot {
-    #[getter(copy)]
+    #[get_copy = "pub"]
     kind: LeafKind,
+    #[get = "pub"]
     #[builder(default, with = <_>::from_iter)]
     receivers: BTreeSet<ChannelId>,
+    #[get = "pub"]
     #[builder(default, with = <_>::from_iter)]
     senders: BTreeSet<ChannelId>,
+    #[get = "pub"]
     #[builder(default)]
     ext_receivers: Vec<MessageHash>,
 }
