@@ -21,8 +21,8 @@ use crate::{
             ChannelPosition, EdgeId, NodeChannelPortId, NodeKind, NodePortConnection, NodePosition,
         },
         ports::{
-            ChannelRepositoryConcept, NodeRepositoryFacade, NodeRepositoryFacadeConcept,
-            RootNodeRepository,
+            ChannelRepositoryConcept, ConditionNodeRepository, NodeRepositoryFacade,
+            NodeRepositoryFacadeConcept, RootNodeRepository,
         },
     },
 };
@@ -53,7 +53,7 @@ pub enum NodeSpec {
 }
 
 impl NodeSpec {
-    fn root(&self) -> Result<&RootSpec> {
+    pub fn root(&self) -> Result<&RootSpec> {
         if let Self::Root(spec) = self {
             return Ok(spec);
         }
@@ -107,24 +107,39 @@ pub struct UiElementPositions {
 use crate::domain::ports::NodeRepositoryConcept;
 
 //@todo make it into iter instead of Vec
-pub trait LoadNodeRepositoryFacade {
-    fn load(data: Vec<NodeData>, meta: Vec<NodeMetadata>) -> Result<i32>; //Result<impl NodeRepositoryFacadeConcept>;
+pub trait NodeRepositoryFacadeStorageConcept {
+    fn serialize(&self) -> Result<(Vec<NodeData>, Vec<NodeMetadata>)>;
+    fn deserialize(data: Vec<NodeData>, meta: Vec<NodeMetadata>) -> Result<i32>; //Result<impl NodeRepositoryFacadeConcept>;
 }
 
 //@todo check if generic impl for all types possible?
-impl LoadNodeRepositoryFacade for NodeRepositoryFacade {
-    fn load(data: Vec<NodeData>, meta: Vec<NodeMetadata>) -> Result<i32> {
-        let root_repo = {
-            let root_meta = meta
-                .iter()
-                .find(|meta| meta.kind == NodeKind::Root)
-                .ok_or_else(|| anyhow!("failed to find root meta"))?;
-            let mut repo = RootNodeRepository::default();
-            repo.create(root_meta.id, root_meta.spec.root()?)?;
-            repo
-        };
+impl NodeRepositoryFacadeStorageConcept for NodeRepositoryFacade {
+    fn deserialize(data: Vec<NodeData>, meta: Vec<NodeMetadata>) -> Result<i32> {
+        let spec_lookup: HashMap<_, _> = meta
+            .into_iter()
+            .map(|m| (m.id, (m.spec, m.kind, m.port_ids)))
+            .collect();
+
+        let mut root_repo = RootNodeRepository::default();
+        let mut condition_repo = ConditionNodeRepository::default();
+
+        // for node in data {
+        //     let meta = spec_lookup
+        //         .get(&node.metadata_id)
+        //         .ok_or_else(|| anyhow!("failed to obtain metadata for node {}", node.id))?;
+        //     let (spec, kind, ports) = meta;
+        //     match kind {
+        //         NodeKind::Root => {
+        //             root_repo.create(node.id, spec.root()?)?;
+        //         }
+        //     }
+        // }
 
         Ok(0)
+    }
+
+    fn serialize(&self) -> Result<(Vec<NodeData>, Vec<NodeMetadata>)> {
+        todo!()
     }
 }
 
