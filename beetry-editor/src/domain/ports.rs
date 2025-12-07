@@ -100,34 +100,33 @@ derive_provide_node_name!(ActionSpec);
 derive_provide_node_name!(ControlSpec);
 derive_provide_node_name!(DecoratorSpec);
 
+#[derive(Debug, Default)]
 pub struct RootNodeRepository {
-    node: Option<NodeId>,
+    root: Option<NodeId>,
     spec: Option<RootSpec>,
-    position: Option<NodePosition>,
 }
 
 impl NodeRepositoryConcept for RootNodeRepository {
     type Spec = RootSpec;
 
     fn create(&mut self, id: NodeId, spec: &Self::Spec) -> Result<()> {
-        match self.node {
+        match self.root {
             Some(_) => bail!("attempted to register root node twice"),
             None => {
                 self.spec = Some(spec.clone());
-                self.node = Some(id);
+                self.root = Some(id);
                 Ok(())
             }
         }
     }
 
     fn remove(&mut self, _id: NodeId) -> Result<()> {
-        self.node.take();
-        self.position.take();
+        self.root.take();
         Ok(())
     }
 
     fn contains(&self, id: NodeId) -> bool {
-        self.node == Some(id)
+        self.root == Some(id)
     }
 
     fn spec(&self, _id: NodeId) -> Option<&Self::Spec> {
@@ -135,7 +134,7 @@ impl NodeRepositoryConcept for RootNodeRepository {
     }
 
     fn nodes(&self) -> NodeIter<'_> {
-        NodeIter::Option(self.node.iter())
+        NodeIter::Option(self.root.iter())
     }
 }
 
@@ -434,6 +433,33 @@ pub struct NodeRepositoryFacade {
     positions: NodePositionRepository,
     parameters: ParamRepository,
     ports: NodePortRepository,
+}
+
+impl NodeRepositoryFacade {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        root: RootNodeRepository,
+        action: ActionNodeRepository,
+        condition: ConditionNodeRepository,
+        control: ControlNodeRepository,
+        decorator: DecoratorNodeRepository,
+        kinds: NodeKindRepository,
+        positions: NodePositionRepository,
+        parameters: ParamRepository,
+        ports: NodePortRepository,
+    ) -> Self {
+        Self {
+            root,
+            action,
+            condition,
+            control,
+            decorator,
+            kinds,
+            positions,
+            parameters,
+            ports,
+        }
+    }
 }
 
 impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
