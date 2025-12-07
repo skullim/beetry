@@ -1,5 +1,5 @@
 use crate::domain::{
-    models::{ChannelId, ChannelPosition, NodeChannelPortId, NodeId},
+    models::{ChannelId, ChannelPosition, NodeChannelPortId, NodeId, NodePortConnection},
     ports::{
         ChannelRepositoryConcept, EdgeRepositoryConcept, EditorRepository, EditorRepositoryViewMut,
         NodeRepositoryFacadeConcept, NodeRepositoryFacadeView,
@@ -7,8 +7,10 @@ use crate::domain::{
     service::node::NodeService,
 };
 use anyhow::{Result, anyhow, bail};
-use beetry_core::MessageHash;
-use beetry_serde::{de::channel::ChannelParameters, ser::channel::ChannelSpec};
+use beetry_serde::{
+    de::channel::{ChannelImplKind2, ChannelParameters, TokioChannelKind},
+    ser::channel::ChannelSpec,
+};
 
 pub struct ChannelServiceView<'r, 'c, 'n, NRF, ER, CR> {
     repo: &'r mut EditorRepository<NRF, ER, CR>,
@@ -152,10 +154,10 @@ impl ChannelService {
         let node_view = node_repo.view();
         NodeService::ensure_exists(node_view, from)?;
         Self::ensure_exists(channel_repo, id)?;
-        let channel_spec = Self::spec(channel_repo, id)?;
-        Self::validate_connection(node_view, channel_spec.msg_hash(), id, from, port_id)?;
-        //@todo increment sender count
-        //channel_repo.insert_sender(id, from);
+        Self::validate_connection(node_view, channel_repo, id, from, port_id)?;
+        Self::parameters_mut(channel_repo, id)?
+            .count_mut()
+            .increase_sender_count();
         Ok(())
     }
 
@@ -169,38 +171,49 @@ impl ChannelService {
         let node_view = node_repo.view();
         NodeService::ensure_exists(node_view, to)?;
         Self::ensure_exists(channel_repo, id)?;
-        let channel_spec = Self::spec(channel_repo, id)?;
-        Self::validate_connection(node_view, channel_spec.msg_hash(), id, to, port_id)?;
-        //@todo increment receiver count
-        //channel_repo.insert_receiver(id, to);
+        Self::validate_connection(node_view, channel_repo, id, to, port_id)?;
+        Self::parameters_mut(channel_repo, id)?
+            .count_mut()
+            .increase_receiver_count();
         Ok(())
     }
 
-    fn on_valid_receiver_connection(
-        repo: &mut impl ChannelRepositoryConcept,
-        id: ChannelId,
-    ) -> Result<()> {
-        let params = Self::parameters_mut(repo, id)?;
-        todo!()
-    }
+    //@todo implement API to remove node port <-> channel connection
 
     fn validate_connection(
         node_view: NodeRepositoryFacadeView<'_, impl NodeRepositoryFacadeConcept>,
-        channel_hash: MessageHash,
+        channel_repo: &impl ChannelRepositoryConcept,
         id: ChannelId,
         from: NodeId,
         port_id: NodeChannelPortId,
     ) -> Result<()> {
-        let port_hash = NodeService::port_spec(node_view.ports, from, port_id)?
-            .msg_spec
-            .hash();
-        if port_hash != channel_hash {
+        let port_spec = NodeService::port_spec(node_view.ports, from, port_id)?;
+        let channel_spec = Self::spec(channel_repo, id)?;
+        if port_spec.msg_spec.hash() != channel_spec.msg_hash() {
             bail!("attempted to connect mismatched channel {id} and node {from} port {port_id}");
         }
-        let port_kind = NodeService::port_connection(node_view.ports, from, port_id)?;
-        if port_kind.is_external() {
-            bail!("attempted to connect to port {port_id} that is marked as external");
+        //@todo this check should be moved somewhere else, rationale: might hide different channels behind a feature gate
+        let channel_params = Self::parameters(channel_repo, id)?;
+        if let ChannelImplKind2::Tokio(TokioChannelKind::Mpsc) = channel_params.kind()
+            && channel_params.count().receiver() == 1
+        {
+            bail!("attempted to create more than 1 receiver of mpsc channel");
         }
+
+        let port_conn = NodeService::port_connection(node_view.ports, from, port_id)?;
+        match port_conn {
+            NodePortConnection::External => {
+                bail!("attempted to connect to port {port_id} that is marked as external");
+            }
+            NodePortConnection::Internal(connected) => {
+                if connected.contains(&id) {
+                    bail!(
+                        "connection between node {from} port {port_id} and channel {id} already exists"
+                    );
+                }
+            }
+        }
+
         Ok(())
     }
 

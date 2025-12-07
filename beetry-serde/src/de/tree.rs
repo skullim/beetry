@@ -51,13 +51,13 @@ impl TreeSnapshot {
             }
             NodeSnapshotData::Leaf(snap) => {
                 for channel_id in snap.senders() {
-                    let count = map.entry(*channel_id).or_default();
-                    count.sender += 1;
+                    map.entry(*channel_id).or_default().increase_sender_count();
                 }
 
                 for channel_id in snap.receivers() {
-                    let count = map.entry(*channel_id).or_default();
-                    count.receiver += 1;
+                    map.entry(*channel_id)
+                        .or_default()
+                        .increase_receiver_count();
                 }
             }
         }

@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
 
+use anyhow::Result;
 use bon::Builder;
 use derive_more::{Display, From};
-use getset::{CopyGetters, Getters};
+use getset::{CopyGetters, Getters, MutGetters};
 use serde::{Deserialize, Serialize};
 
 use crate::de::tree::{ExportResult, ExportValidationError};
@@ -55,11 +56,13 @@ impl ChannelMetadata {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, CopyGetters)]
-#[get_copy = "pub"]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, CopyGetters, MutGetters)]
 pub struct ChannelParameters {
+    #[getset(get_copy = "pub")]
     capacity: usize, // there might be channels with 0 capacity
+    #[getset(get_copy = "pub", get_mut = "pub")]
     count: SenderReceiverCount,
+    #[getset(get_copy = "pub")]
     kind: ChannelImplKind2,
 }
 
@@ -67,12 +70,19 @@ impl ChannelParameters {
     pub fn new(capacity: usize, kind: ChannelImplKind2) -> Self {
         Self {
             capacity,
-            count: SenderReceiverCount {
-                sender: 1,
-                receiver: 1,
-            },
             kind,
+            count: <_>::default(),
         }
+    }
+
+    pub fn set_kind(&mut self, kind: ChannelImplKind2) {
+        todo!()
+    }
+
+    pub fn set_capacity(&mut self, capacity: usize) -> Result<()> {
+        // might return err when setting capacity for oneshot channel (once this channel type is supported)
+        self.capacity = capacity;
+        Ok(())
     }
 }
 
@@ -156,11 +166,31 @@ pub struct BroadcastConfig {
     n_receivers: NonZeroUsize,
 }
 
-//@todo maybe default should be sender = 1, receiver = 1
-#[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
+/// Represents the current state of connected senders and receivers
+/// On channel creation there are no senders and receivers
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, CopyGetters)]
+#[getset(get_copy = "pub")]
 pub struct SenderReceiverCount {
-    pub sender: usize,
-    pub receiver: usize,
+    sender: usize,
+    receiver: usize,
+}
+
+impl SenderReceiverCount {
+    pub fn increase_sender_count(&mut self) {
+        self.sender += 1;
+    }
+
+    pub fn decrease_sender_count(&mut self) {
+        self.sender -= 1;
+    }
+
+    pub fn increase_receiver_count(&mut self) {
+        self.receiver += 1;
+    }
+
+    pub fn decrease_receiver_count(&mut self) {
+        self.receiver -= 1;
+    }
 }
 
 pub type ChannelIdToSnapshotMap = HashMap<ChannelId, ChannelSnapshot>;
