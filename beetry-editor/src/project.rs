@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
 
@@ -137,7 +137,7 @@ impl ProjectData {
                     .map(|senders| senders.iter().copied());
 
                 let leaf_snapshot = LeafSnapshot::builder()
-                    .kind(*schema.kind())
+                    .kind(schema.kind())
                     .maybe_receivers(receivers)
                     .maybe_senders(senders)
                     .ext_receivers(external_receivers.iter().copied().collect())
@@ -186,13 +186,13 @@ impl ProjectData {
         let expected_receivers: HashMap<MessageHash, String> = schema
             .receivers()
             .iter()
-            .map(|recv| (*recv.hash(), recv.desc().clone()))
+            .map(|recv| (recv.hash(), recv.desc().clone()))
             .collect();
 
         let expected_senders: HashMap<MessageHash, String> = schema
             .senders()
             .iter()
-            .map(|send| (*send.hash(), send.desc().clone()))
+            .map(|send| (send.hash(), send.desc().clone()))
             .collect();
 
         debug!("Expected receivers: {expected_receivers:?}");
@@ -209,7 +209,7 @@ impl ProjectData {
                 if let Some(element) = channels.get(channel_id) {
                     let snapshot = element.snapshot.clone();
                     let msg_hash = snapshot.spec().msg_hash();
-                    if unconnected_receivers.remove(msg_hash).is_some() {
+                    if unconnected_receivers.remove(&msg_hash).is_some() {
                         debug!(
                             "✓ Connected receiver for message: {}",
                             snapshot.spec().as_str()
@@ -230,7 +230,7 @@ impl ProjectData {
                 if let Some(element) = channels.get(channel_id) {
                     let snapshot = element.snapshot.clone();
                     let msg_hash = snapshot.spec().msg_hash();
-                    if unconnected_senders.remove(msg_hash).is_some() {
+                    if unconnected_senders.remove(&msg_hash).is_some() {
                         debug!(
                             "✓ Connected sender for message: {}",
                             snapshot.spec().as_str()

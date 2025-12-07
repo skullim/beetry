@@ -37,7 +37,7 @@ pub struct ReceiverProps {
 pub fn Receiver(props: ReceiverProps) -> Element {
     let position = props.position;
     let node_id = props.id;
-    let message_hash = *props.spec.hash();
+    let message_hash = props.spec.hash();
 
     let mut is_hovered = use_signal(|| false);
     let (fill_gradient, shadow_filter) = match (props.is_external, *is_hovered.peek()) {

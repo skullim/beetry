@@ -101,7 +101,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
 
             // Sender port (left side)
             rect {
-                onmouseup: move |_| { handlers.on_sender.call((id, *spec.msg_hash())) },
+                onmouseup: move |_| { handlers.on_sender.call((id, spec.msg_hash())) },
                 onmouseenter: move |_| sender_hovered.set(true),
                 onmouseleave: move |_| sender_hovered.set(false),
                 x: "{position.x}",
@@ -142,7 +142,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
 
             // Receiver port (right side)
             rect {
-                onmouseup: move |_| { handlers.on_receiver.call((id, *props.spec.clone().msg_hash())) },
+                onmouseup: move |_| { handlers.on_receiver.call((id, props.spec.clone().msg_hash())) },
                 onmouseenter: move |_| receiver_hovered.set(true),
                 onmouseleave: move |_| receiver_hovered.set(false),
                 x: "{position.x + 40.0 + body_width}",

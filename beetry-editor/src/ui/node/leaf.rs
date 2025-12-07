@@ -7,7 +7,7 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
 use crate::definitions::{NodeId, Point};
-use crate::editor::{NodeIdToNameStorage, SharedNodeIdToNameStorage};
+use crate::editor::SharedNodeIdToNameStorage;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithContextMenu};
 use crate::ui::node::port::{self, input};
 
@@ -60,7 +60,7 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
                     position,
                     spec: msg_spec.clone(),
                     channel_idx: idx,
-                    is_external: external_receivers.contains(msg_spec.hash()),
+                    is_external: external_receivers.contains(&msg_spec.hash()),
                 }
             }
         }

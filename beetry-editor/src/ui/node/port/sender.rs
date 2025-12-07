@@ -73,7 +73,7 @@ pub fn Sender(props: SenderProps) -> Element {
                                 id: props.id,
                                 offset,
                             },
-                            *props.spec.hash(),
+                            props.spec.hash(),
                         ))
                 },
             }
