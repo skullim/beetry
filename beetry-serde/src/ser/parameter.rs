@@ -1,5 +1,5 @@
 use bon::Builder;
-use derive_getters::Getters;
+use getset::CopyGetters;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -24,11 +24,10 @@ pub struct Definition {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, Builder, PartialEq, Eq, Serialize, Deserialize, Getters)]
+#[derive(Debug, Clone, Builder, PartialEq, Eq, Serialize, Deserialize, CopyGetters)]
+#[get_copy = "pub"]
 pub struct Bounds {
-    #[getter(copy)]
     min: i64,
-    #[getter(copy)]
     max: i64,
 }
 

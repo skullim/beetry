@@ -1,5 +1,5 @@
 use crate::domain::{
-    models::{ChannelId, ChannelPosition, NodeChannelPortId, NodeId, NodePortConnection},
+    models::{ChannelId, ChannelPosition, NodeChannelPortId, NodeId},
     ports::{
         ChannelRepositoryConcept, EdgeRepositoryConcept, EditorRepository, EditorRepositoryViewMut,
         NodeRepositoryFacadeConcept, NodeRepositoryFacadeView,
@@ -8,10 +8,7 @@ use crate::domain::{
 };
 use anyhow::{Result, anyhow, bail};
 use beetry_core::MessageHash;
-use beetry_serde::{
-    de::channel::{ChannelMetadata, ChannelParameters},
-    ser::channel::ChannelSpec,
-};
+use beetry_serde::{de::channel::ChannelParameters, ser::channel::ChannelSpec};
 
 pub struct ChannelServiceView<'r, 'c, 'n, NRF, ER, CR> {
     repo: &'r mut EditorRepository<NRF, ER, CR>,
@@ -54,8 +51,8 @@ where
         ChannelService::spec(self.repo.channel(), id)
     }
 
-    pub fn metadata(&self, id: ChannelId) -> Result<&ChannelParameters> {
-        ChannelService::metadata(self.repo.channel(), id)
+    pub fn parameters(&self, id: ChannelId) -> Result<&ChannelParameters> {
+        ChannelService::parameters(self.repo.channel(), id)
     }
 
     pub fn channels(&self) -> impl Iterator<Item = ChannelId> {
@@ -121,7 +118,7 @@ impl ChannelService {
             .ok_or_else(|| anyhow!("no spec exists for channel {id}"))
     }
 
-    fn set_metadata(
+    fn set_parameters(
         repo: &mut impl ChannelRepositoryConcept,
         id: ChannelId,
         metadata: ChannelParameters,
@@ -129,17 +126,20 @@ impl ChannelService {
         repo.set_parameters(id, metadata)
     }
 
-    fn metadata(repo: &impl ChannelRepositoryConcept, id: ChannelId) -> Result<&ChannelParameters> {
+    fn parameters(
+        repo: &impl ChannelRepositoryConcept,
+        id: ChannelId,
+    ) -> Result<&ChannelParameters> {
         repo.parameters(id)
-            .ok_or_else(|| anyhow!("failed to obtain metadata for channel {id}"))
+            .ok_or_else(|| anyhow!("failed to obtain channel {id} parameters"))
     }
 
-    fn metadata_mut(
+    fn parameters_mut(
         repo: &mut impl ChannelRepositoryConcept,
         id: ChannelId,
     ) -> Result<&mut ChannelParameters> {
         repo.parameters_mut(id)
-            .ok_or_else(|| anyhow!("failed to obtain metadata for channel {id}"))
+            .ok_or_else(|| anyhow!("failed to obtain channel {id} parameters"))
     }
 
     fn connect_sender(
@@ -153,7 +153,7 @@ impl ChannelService {
         NodeService::ensure_exists(node_view, from)?;
         Self::ensure_exists(channel_repo, id)?;
         let channel_spec = Self::spec(channel_repo, id)?;
-        Self::validate_connection(node_view, *channel_spec.msg_hash(), id, from, port_id)?;
+        Self::validate_connection(node_view, channel_spec.msg_hash(), id, from, port_id)?;
         //@todo increment sender count
         //channel_repo.insert_sender(id, from);
         Ok(())
@@ -170,13 +170,17 @@ impl ChannelService {
         NodeService::ensure_exists(node_view, to)?;
         Self::ensure_exists(channel_repo, id)?;
         let channel_spec = Self::spec(channel_repo, id)?;
-        Self::validate_connection(node_view, *channel_spec.msg_hash(), id, to, port_id)?;
+        Self::validate_connection(node_view, channel_spec.msg_hash(), id, to, port_id)?;
         //@todo increment receiver count
         //channel_repo.insert_receiver(id, to);
         Ok(())
     }
 
-    pub(crate) fn validate_receiver_connection() {
+    fn on_valid_receiver_connection(
+        repo: &mut impl ChannelRepositoryConcept,
+        id: ChannelId,
+    ) -> Result<()> {
+        let params = Self::parameters_mut(repo, id)?;
         todo!()
     }
 
@@ -187,7 +191,7 @@ impl ChannelService {
         from: NodeId,
         port_id: NodeChannelPortId,
     ) -> Result<()> {
-        let port_hash = *NodeService::port_spec(node_view.ports, from, port_id)?
+        let port_hash = NodeService::port_spec(node_view.ports, from, port_id)?
             .msg_spec
             .hash();
         if port_hash != channel_hash {

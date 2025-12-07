@@ -2,14 +2,15 @@ use std::collections::HashMap;
 use std::num::NonZeroUsize;
 
 use bon::Builder;
-use derive_getters::Getters;
 use derive_more::{Display, From};
+use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 
 use crate::de::tree::{ExportResult, ExportValidationError};
 use crate::ser::channel::ChannelSpec;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
+#[getset(get = "pub")]
 pub struct ChannelSnapshot {
     spec: ChannelSpec,
     metadata: ChannelMetadata,
@@ -34,12 +35,13 @@ impl ChannelSnapshot2 {
 }
 
 //@todo remove
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, CopyGetters, Getters)]
 pub struct ChannelMetadata {
-    #[getter(copy)]
+    #[get_copy = "pub"]
     capacity: usize, // there might be channels with 0 capacity
-    #[getter(copy)]
+    #[get_copy = "pub"]
     kind: ChannelKind,
+    #[get = "pub"]
     impl_kind: ChannelImplKind,
 }
 
@@ -53,9 +55,9 @@ impl ChannelMetadata {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, CopyGetters)]
+#[get_copy = "pub"]
 pub struct ChannelParameters {
-    #[getter(copy)]
     capacity: usize, // there might be channels with 0 capacity
     count: SenderReceiverCount,
     kind: ChannelImplKind2,
@@ -124,20 +126,20 @@ pub enum TokioChannelConfig {
 }
 
 //@todo: rename to ChannelKind
-#[derive(Debug, From, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, From, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum ChannelImplKind2 {
     Tokio(TokioChannelKind),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TokioChannelKind {
     Mpsc,
     Broadcast,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Getters)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, CopyGetters)]
 pub struct MpscConfig {
-    #[getter(copy)]
+    #[get_copy = "pub"]
     n_senders: NonZeroUsize,
 }
 
@@ -147,11 +149,10 @@ impl MpscConfig {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Builder, Serialize, Deserialize, Getters)]
+#[derive(Debug, Clone, PartialEq, Eq, Builder, Serialize, Deserialize, CopyGetters)]
+#[get_copy = "pub"]
 pub struct BroadcastConfig {
-    #[getter(copy)]
     n_senders: NonZeroUsize,
-    #[getter(copy)]
     n_receivers: NonZeroUsize,
 }
 

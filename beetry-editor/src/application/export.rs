@@ -47,7 +47,7 @@ where
             .collect::<Result<Vec<_>>>()?;
         let metadata = ids
             .iter()
-            .map(|id| view.metadata(*id))
+            .map(|id| view.parameters(*id))
             .collect::<Result<Vec<_>>>()?;
 
         let map = izip!(ids, spec, metadata)
