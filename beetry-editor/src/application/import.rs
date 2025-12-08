@@ -50,13 +50,6 @@ impl ProjectImporter {
                 let (spec, kind, ports) = meta;
 
                 let mut node_view = editor_service.node_view();
-
-                match kind {
-                    NodeKind::Root => {
-                        node_view.create_root(spec.root()?)?;
-                    }
-                    _ => todo!(),
-                }
             }
         }
         todo!()
