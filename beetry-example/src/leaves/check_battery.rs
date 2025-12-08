@@ -59,7 +59,7 @@ plugin! {
     factory_fn = |data: ConditionReconstructionData| {
             Ok(
                 Box::new(
-                    CheckBattery::new(de::parameter::Deserializer::deserialize(data.parameters,)?))
+                    CheckBattery::new(de::parameter::Deserializer::deserialize(data.parameters)?))
                     as BoxConditionBehavior,
             )
     }
