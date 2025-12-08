@@ -19,10 +19,11 @@ use crate::{
     domain::{
         models::{
             ChannelPosition, EdgeId, NodeChannelPortId, NodeKind, NodePortConnection, NodePosition,
+            NodeSpec,
         },
         ports::{
-            ChannelRepositoryConcept, ConditionNodeRepository, NodeRepositoryFacade,
-            NodeRepositoryFacadeConcept, RootNodeRepository,
+            ChannelRepositoryConcept, NodeRepositoryFacade, NodeRepositoryFacadeConcept,
+            RootNodeRepository,
         },
     },
 };
@@ -41,24 +42,6 @@ pub struct TreeData {
     pub edges: Vec<EdgeData>,
     pub channel_metadata: Vec<ChannelMetadata>,
     pub channels: Vec<ChannelData>,
-}
-
-#[derive(Debug)]
-pub enum NodeSpec {
-    Root(RootSpec),
-    Control(ControlSpec),
-    Condition(ConditionSpec),
-    Action(ActionSpec),
-    Decorator(DecoratorSpec),
-}
-
-impl NodeSpec {
-    pub fn root(&self) -> Result<&RootSpec> {
-        if let Self::Root(spec) = self {
-            return Ok(spec);
-        }
-        Err(anyhow!("no root spec found"))
-    }
 }
 
 pub struct NodeMetadata {
@@ -121,7 +104,6 @@ impl NodeRepositoryFacadeStorageConcept for NodeRepositoryFacade {
             .collect();
 
         let mut root_repo = RootNodeRepository::default();
-        let mut condition_repo = ConditionNodeRepository::default();
 
         // for node in data {
         //     let meta = spec_lookup

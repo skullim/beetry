@@ -1,7 +1,8 @@
 use std::collections::HashSet;
 
 use beetry_core::MessageHash;
-use beetry_serde::ser::channel::MessageSpec;
+use beetry_serde::ser::{channel::MessageSpec, node::NodeName, parameter};
+use bon::Builder;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -84,4 +85,20 @@ pub enum NodeKind {
     Control,
     Decorator,
     Root,
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct PortsSpec {
+    senders: Vec<MessageSpec>,
+    receivers: Vec<MessageSpec>,
+}
+
+#[derive(Debug, Builder, PartialEq, Eq)]
+pub struct NodeSpec {
+    pub name: NodeName,
+    pub kind: NodeKind,
+    #[builder(default)]
+    pub param_schema: parameter::Schema,
+    #[builder(default)]
+    pub ports: PortsSpec,
 }
