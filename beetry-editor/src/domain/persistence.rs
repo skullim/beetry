@@ -21,10 +21,7 @@ use crate::{
             ChannelPosition, EdgeId, NodeChannelPortId, NodeKind, NodePortConnection, NodePosition,
             NodeSpec,
         },
-        ports::{
-            ChannelRepositoryConcept, NodeRepositoryFacade, NodeRepositoryFacadeConcept,
-            RootNodeRepository,
-        },
+        ports::{ChannelRepositoryConcept, NodeRepositoryFacade, NodeRepositoryFacadeConcept},
     },
 };
 
@@ -102,8 +99,6 @@ impl NodeRepositoryFacadeStorageConcept for NodeRepositoryFacade {
             .into_iter()
             .map(|m| (m.id, (m.spec, m.kind, m.port_ids)))
             .collect();
-
-        let mut root_repo = RootNodeRepository::default();
 
         // for node in data {
         //     let meta = spec_lookup

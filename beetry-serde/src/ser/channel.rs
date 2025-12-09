@@ -3,7 +3,7 @@ use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
-#[derive(Debug, Clone, PartialEq, Eq, CopyGetters, Getters, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, CopyGetters, Getters, Serialize, Deserialize)]
 pub struct MessageSpec {
     #[get = "pub"]
     desc: String,
