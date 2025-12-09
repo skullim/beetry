@@ -1,7 +1,7 @@
 use crate::domain::{
     ports::{
-        ChannelDataRepositoryConcept, EdgeRepositoryConcept, EditorRepository,
-        NodeRepositoryFacadeConcept,
+        ChannelDataRepositoryConcept, ChannelRepositoryFacadeConcept, EdgeRepositoryConcept,
+        EditorRepository, EditorRepositoryViewMut, NodeRepositoryFacadeConcept,
     },
     service::{
         channel::{ChannelService, ChannelServiceView},
@@ -10,57 +10,54 @@ use crate::domain::{
     },
 };
 
-pub struct EditorService<NRF, ER, CR> {
+pub struct EditorService<NRF, ER, CRF> {
     node_service: NodeService,
     edge_service: EdgeService,
     channel_service: ChannelService,
-    repo: EditorRepository<NRF, ER, CR>,
+    repo: EditorRepository<NRF, ER, CRF>,
 }
 
-impl<NRF, ER, CR> Default for EditorService<NRF, ER, CR>
+impl<NRF, ER, CRF> Default for EditorService<NRF, ER, CRF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
-    CR: ChannelDataRepositoryConcept,
+    CRF: ChannelRepositoryFacadeConcept,
 {
     fn default() -> Self {
         Self {
             node_service: NodeService::new(),
             edge_service: EdgeService::new(),
             channel_service: ChannelService::new(),
-            repo: EditorRepository::<NRF, ER, CR>::new(),
+            repo: EditorRepository::<NRF, ER, CRF>::new(),
         }
     }
 }
 
-impl<NRF, ER, CR> EditorService<NRF, ER, CR>
+impl<NRF, ER, CRF> EditorService<NRF, ER, CRF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
-    CR: ChannelDataRepositoryConcept,
+    CRF: ChannelRepositoryFacadeConcept,
 {
     pub fn with_node_service(node_service: NodeService) -> Self {
         Self {
             node_service,
             edge_service: EdgeService::new(),
             channel_service: ChannelService::new(),
-            repo: EditorRepository::<NRF, ER, CR>::new(),
+            repo: EditorRepository::<NRF, ER, CRF>::new(),
         }
     }
 
-    pub fn node_view(&mut self) -> NodeServiceView<'_, '_, '_, NRF, ER, CR> {
-        NodeServiceView::new(
-            &mut self.repo,
-            &mut self.node_service,
-            &mut self.edge_service,
-        )
+    pub fn node_view(&mut self) -> NodeServiceView<'_, '_, NRF> {
+        NodeServiceView::new(self.repo.node_mut().view_mut(), &mut self.node_service)
     }
 
-    pub fn edge_view(&mut self) -> EdgeServiceView<'_, '_, NRF, ER, CR> {
-        EdgeServiceView::new(&mut self.repo, &mut self.edge_service)
+    pub fn edge_view(&mut self) -> EdgeServiceView<'_, ER, NRF> {
+        let EditorRepositoryViewMut { node, edge, .. } = self.repo.view_mut();
+        EdgeServiceView::new(edge, &mut self.edge_service, node)
     }
 
-    pub fn channel_view(&mut self) -> ChannelServiceView<'_, '_, NRF, ER, CR> {
+    pub fn channel_view(&mut self) -> ChannelServiceView<'_, '_, NRF, ER, CRF> {
         ChannelServiceView::new(&mut self.repo, &mut self.channel_service)
     }
 }
