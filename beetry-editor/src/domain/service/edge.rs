@@ -2,37 +2,39 @@ use std::collections::{HashMap, HashSet};
 
 use crate::domain::{
     models::{EdgeId, NodeEdge, NodeId, NodeKind},
-    ports::{
-        ChannelDataRepositoryConcept, EdgeRepositoryConcept, EditorRepository,
-        EditorRepositoryViewMut, NodeRepositoryFacadeConcept,
-    },
+    ports::{EdgeRepositoryConcept, NodeRepositoryFacadeConcept},
     service::node::{self, NodeService},
 };
 use anyhow::{Result, anyhow, bail};
 use tracing::warn;
 
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
-pub struct EdgeServiceView<'r, 's, NRF, ER, CR> {
-    repo: &'r mut EditorRepository<NRF, ER, CR>,
-    edge_service: &'s mut EdgeService,
+pub struct EdgeServiceView<'a, ER, NRF> {
+    edge_repo: &'a mut ER,
+    node_facade: &'a NRF,
+    edge_service: &'a mut EdgeService,
 }
 
-impl<'r, 's, NRF, ER, CR> EdgeServiceView<'r, 's, NRF, ER, CR>
+impl<'a, ER, NRF> EdgeServiceView<'a, ER, NRF>
 where
-    NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
-    CR: ChannelDataRepositoryConcept,
+    NRF: NodeRepositoryFacadeConcept,
 {
     pub(crate) fn new(
-        repo: &'r mut EditorRepository<NRF, ER, CR>,
-        edge_service: &'s mut EdgeService,
+        repo: &'a mut ER,
+        edge_service: &'a mut EdgeService,
+        node_facade: &'a NRF,
     ) -> Self {
-        Self { repo, edge_service }
+        Self {
+            edge_repo: repo,
+            node_facade,
+            edge_service,
+        }
     }
 
     pub fn create(&mut self, node_edge: NodeEdge) -> Result<()> {
-        let EditorRepositoryViewMut { node, edge, .. } = self.repo.view_mut();
-        self.edge_service.create(edge, node, node_edge)
+        self.edge_service
+            .create(self.edge_repo, self.node_facade, node_edge)
     }
 
     pub fn parent_of(&self, id: NodeId) -> Option<NodeId> {
@@ -44,11 +46,11 @@ where
     }
 
     pub fn edges(&self) -> impl Iterator<Item = (EdgeId, &NodeEdge)> {
-        EdgeService::edges(self.repo.edge())
+        EdgeService::edges(self.edge_repo)
     }
 
     pub fn remove(&mut self, id: EdgeId) -> Result<()> {
-        self.edge_service.remove(self.repo.edge_mut(), id)
+        self.edge_service.remove(self.edge_repo, id)
     }
 }
 
@@ -82,8 +84,8 @@ impl EdgeService {
         let node_view = node_repo.view();
         let (parent, child) = (edge.from, edge.to);
 
-        NodeService::ensure_exists(node_view, parent)?;
-        NodeService::ensure_exists(node_view, child)?;
+        NodeService::ensure_exists(node_view.nodes, parent)?;
+        NodeService::ensure_exists(node_view.nodes, child)?;
 
         // validate parent
         let parent_kind = node::SpecService::kind(node_view.specs, node_view.nodes, parent)?;

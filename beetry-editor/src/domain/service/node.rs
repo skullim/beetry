@@ -6,10 +6,10 @@ use crate::domain::{
         NodeSpec, NodeSpecId, PortsSpec,
     },
     ports::{
-        ChannelDataRepositoryConcept, EdgeRepositoryConcept, EditorRepository,
-        NodePositionRepositoryConcept, NodeRepositoryConcept, NodeRepositoryFacadeConcept,
-        NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut, ParamValuesRepositoryConcept,
-        PortStateRepositoryConcept, SpecRepositoryConcept,
+        ChannelDataRepositoryConcept, ChannelRepositoryFacadeConcept, EdgeRepositoryConcept,
+        EditorRepository, NodePositionRepositoryConcept, NodeRepositoryConcept,
+        NodeRepositoryFacadeConcept, NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut,
+        ParamValuesRepositoryConcept, PortStateRepositoryConcept, SpecRepositoryConcept,
     },
     service::edge::EdgeService,
 };
@@ -18,75 +18,65 @@ use beetry_plugin::ActionSpec;
 use beetry_serde::{de::parameter::Parameters, ser::node::NodeName};
 
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
-pub struct NodeServiceView<'r, 's, 'e, NRF, ER, CR> {
-    repo: &'r mut EditorRepository<NRF, ER, CR>,
-    node_service: &'s mut NodeService,
-    edge_service: &'e mut EdgeService,
-}
-
-impl<'r, 's, 'e, NRF, ER, CR> NodeServiceView<'r, 's, 'e, NRF, ER, CR>
+pub struct NodeServiceView<'f, 's, NRF>
 where
     NRF: NodeRepositoryFacadeConcept,
-    ER: EdgeRepositoryConcept,
-    CR: ChannelDataRepositoryConcept,
+{
+    facade: NodeRepositoryFacadeViewMut<'f, NRF>,
+    service: &'s mut NodeService,
+}
+
+impl<'f, 's, NRF> NodeServiceView<'f, 's, NRF>
+where
+    NRF: NodeRepositoryFacadeConcept,
 {
     pub(crate) fn new(
-        repo: &'r mut EditorRepository<NRF, ER, CR>,
-        node_service: &'s mut NodeService,
-        edge_service: &'e mut EdgeService,
+        facade: NodeRepositoryFacadeViewMut<'f, NRF>,
+        service: &'s mut NodeService,
     ) -> Self {
-        Self {
-            repo,
-            node_service,
-            edge_service,
-        }
+        Self { facade, service }
     }
 
     pub fn create_node(&mut self, spec: NodeSpec) -> Result<NodeId> {
-        let view = self.repo.node_mut().view_mut();
-        self.node_service.create_node(spec, view)
+        self.service.create_node(&mut self.facade, spec)
     }
 
-    pub fn remove(&mut self, id: NodeId) -> Result<()> {
-        let repo = &mut self.repo;
-        self.node_service.on_node_removal(repo.node_mut(), id)?;
-        self.edge_service.on_node_removal(repo.edge_mut(), id)
-    }
+    // pub fn remove(&mut self, id: NodeId) -> Result<()> {
+    //     let repo = &mut self.repo;
+    //     self.node_service.on_node_removal(repo.node_mut(), id)?;
+    //     self.edge_service.on_node_removal(repo.edge_mut(), id)
+    // }
 
     pub fn kind(&self, id: NodeId) -> Result<NodeKind> {
-        let view = self.repo.node().view();
-        SpecService::kind(view.specs, view.nodes, id)
+        SpecService::kind(self.facade.specs, self.facade.nodes, id)
     }
 
     pub fn name(&self, id: NodeId) -> Result<&NodeName> {
-        let view = self.repo.node().view();
-        SpecService::name(view.specs, view.nodes, id)
+        SpecService::name(self.facade.specs, self.facade.nodes, id)
     }
 
     pub fn ports_spec(&self, id: NodeId) -> Result<&PortsSpec> {
-        let NodeRepositoryFacadeView { specs, nodes, .. } = self.repo.node().view();
-        SpecService::ports(specs, nodes, id)
+        SpecService::ports(self.facade.specs, self.facade.nodes, id)
     }
 
     pub fn nodes(&self) -> impl Iterator<Item = &NodeId> {
-        NodeService::nodes(self.repo.node())
+        NodeService::nodes(self.facade.nodes)
     }
 
     pub fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId> {
-        self.node_service.nodes_by_kind(kind)
+        self.service.nodes_by_kind(kind)
     }
 
     pub fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
-        NodeService::update_position(self.repo.node_mut(), id, position)
+        NodeService::update_position(self.facade.nodes, self.facade.positions, id, position)
     }
 
     pub fn positions(&self, kind: NodeKind) -> impl Iterator<Item = &NodePosition> {
-        self.node_service
-            .positions(self.repo.node().view().positions, kind)
+        self.service.positions(self.facade.positions, kind)
     }
 
     pub fn parameters(&self, id: NodeId) -> Result<&Parameters> {
-        NodeService::parameters(self.repo.node(), id)
+        NodeService::parameters(self.facade.parameters, id)
     }
 
     // pub fn port_state(&self, node_id: NodeId, port_id: NodePortId) -> Result<&NodePortConnection> {
@@ -162,8 +152,8 @@ impl NodeService {
 
     pub(crate) fn create_node(
         &mut self,
+        view: &mut NodeRepositoryFacadeViewMut<'_, impl NodeRepositoryFacadeConcept>,
         spec: NodeSpec,
-        view: NodeRepositoryFacadeViewMut<'_, impl NodeRepositoryFacadeConcept>,
     ) -> Result<NodeId> {
         let kind = spec.kind;
         if let NodeKind::Root = spec.kind
@@ -215,11 +205,8 @@ impl NodeService {
         view.parameters.remove(id)
     }
 
-    pub(crate) fn ensure_exists(
-        view: NodeRepositoryFacadeView<'_, impl NodeRepositoryFacadeConcept>,
-        id: NodeId,
-    ) -> Result<()> {
-        if !view.nodes.contains(&id) {
+    pub(crate) fn ensure_exists(repo: &impl NodeRepositoryConcept, id: NodeId) -> Result<()> {
+        if !repo.contains(&id) {
             bail!("node {id} does not exist");
         }
         Ok(())
@@ -253,9 +240,8 @@ impl NodeService {
     //     Ok(())
     // }
 
-    fn nodes(repo: &impl NodeRepositoryFacadeConcept) -> impl Iterator<Item = &NodeId> {
-        let view = repo.view();
-        view.nodes.nodes()
+    fn nodes(repo: &impl NodeRepositoryConcept) -> impl Iterator<Item = &NodeId> {
+        repo.nodes()
     }
 
     pub fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId> {
@@ -266,19 +252,17 @@ impl NodeService {
     }
 
     fn update_position(
-        repo: &mut impl NodeRepositoryFacadeConcept,
+        node_repo: &impl NodeRepositoryConcept,
+        position_repo: &mut impl NodePositionRepositoryConcept,
         id: NodeId,
         position: NodePosition,
     ) -> Result<()> {
-        Self::ensure_exists(repo.view(), id)?;
-        let NodeRepositoryFacadeViewMut { positions, .. } = repo.view_mut();
-        positions.update(id, position)
+        Self::ensure_exists(node_repo, id)?;
+        position_repo.update(id, position)
     }
 
-    fn parameters(repo: &impl NodeRepositoryFacadeConcept, id: NodeId) -> Result<&Parameters> {
-        let view = repo.view();
-        view.parameters
-            .params(id)
+    fn parameters(repo: &impl ParamValuesRepositoryConcept, id: NodeId) -> Result<&Parameters> {
+        repo.params(id)
             .ok_or_else(|| anyhow!("failed to obtain parameters for node {id}"))
     }
 
