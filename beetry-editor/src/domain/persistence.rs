@@ -18,10 +18,10 @@ use crate::{
     definitions::{NodeEdge, NodeId},
     domain::{
         models::{
-            ChannelPosition, EdgeId, NodeChannelPortId, NodeKind, NodePortConnection, NodePosition,
+            ChannelPosition, EdgeId, NodeKind, NodePortConnection, NodePortId, NodePosition,
             NodeSpec,
         },
-        ports::{ChannelRepositoryConcept, NodeRepositoryFacade, NodeRepositoryFacadeConcept},
+        ports::{ChannelDataRepositoryConcept, NodeRepositoryFacade, NodeRepositoryFacadeConcept},
     },
 };
 
@@ -45,13 +45,13 @@ pub struct NodeMetadata {
     pub id: NodeMetadataId,
     pub kind: NodeKind,
     pub spec: NodeSpec,
-    pub port_ids: Vec<NodeChannelPortId>,
+    pub port_ids: Vec<NodePortId>,
 }
 
 pub struct NodeData {
     pub id: NodeId,
     pub metadata_id: NodeMetadataId,
-    pub ports_data: Vec<(NodeChannelPortId, NodeChannelPortData)>,
+    pub ports_data: Vec<(NodePortId, NodeChannelPortData)>,
     pub parameters: Option<parameter::Parameters>,
 }
 
@@ -124,5 +124,5 @@ pub trait LoadChannelRepository {
     fn load(
         data: Vec<ChannelData>,
         meta: Vec<ChannelMetadata>,
-    ) -> Result<impl ChannelRepositoryConcept>;
+    ) -> Result<impl ChannelDataRepositoryConcept>;
 }
