@@ -3,10 +3,10 @@ use std::collections::{HashMap, HashSet};
 use crate::domain::{
     models::{EdgeId, NodeEdge, NodeId, NodeKind},
     ports::{
-        ChannelRepositoryConcept, EdgeRepositoryConcept, EditorRepository, EditorRepositoryViewMut,
-        NodeRepositoryFacadeConcept,
+        ChannelDataRepositoryConcept, EdgeRepositoryConcept, EditorRepository,
+        EditorRepositoryViewMut, NodeRepositoryFacadeConcept,
     },
-    service::node::NodeService,
+    service::node::{self, NodeService},
 };
 use anyhow::{Result, anyhow, bail};
 use tracing::warn;
@@ -21,7 +21,7 @@ impl<'r, 's, NRF, ER, CR> EdgeServiceView<'r, 's, NRF, ER, CR>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
-    CR: ChannelRepositoryConcept,
+    CR: ChannelDataRepositoryConcept,
 {
     pub(crate) fn new(
         repo: &'r mut EditorRepository<NRF, ER, CR>,
@@ -86,12 +86,12 @@ impl EdgeService {
         NodeService::ensure_exists(node_view, child)?;
 
         // validate parent
-        let parent_kind = NodeService::kind(node_view.specs, node_view.nodes, parent)?;
+        let parent_kind = node::SpecService::kind(node_view.specs, node_view.nodes, parent)?;
         if matches!(parent_kind, NodeKind::Action | NodeKind::Condition) {
             bail!("attempted to create invalid edge: leaf nodes must have no children");
         }
 
-        let child_kind = NodeService::kind(node_view.specs, node_view.nodes, child)?;
+        let child_kind = node::SpecService::kind(node_view.specs, node_view.nodes, child)?;
         if let NodeKind::Root = child_kind {
             bail!("attempted to create invalid edge: root node must not have any parent");
         }

@@ -2,14 +2,14 @@ use std::collections::{HashMap, HashSet};
 
 use crate::domain::{
     models::{
-        NodeChannelPortId, NodeId, NodeKind, NodePortConnection, NodePortKind, NodePortSpec,
-        NodePosition, NodeSpec, NodeSpecId,
+        NodeId, NodeKind, NodePortConnection, NodePortId, NodePortKind, NodePortSpec, NodePosition,
+        NodeSpec, NodeSpecId, PortsSpec,
     },
     ports::{
-        ChannelRepositoryConcept, EdgeRepositoryConcept, EditorRepository,
-        NodePortRepositoryConcept, NodePositionRepositoryConcept, NodeRepositoryConcept,
-        NodeRepositoryFacadeConcept, NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut,
-        NodeSpecRepositoryConcept, ParamValuesRepositoryConcept,
+        ChannelDataRepositoryConcept, EdgeRepositoryConcept, EditorRepository,
+        NodePositionRepositoryConcept, NodeRepositoryConcept, NodeRepositoryFacadeConcept,
+        NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut, ParamValuesRepositoryConcept,
+        PortStateRepositoryConcept, SpecRepositoryConcept,
     },
     service::edge::EdgeService,
 };
@@ -28,7 +28,7 @@ impl<'r, 's, 'e, NRF, ER, CR> NodeServiceView<'r, 's, 'e, NRF, ER, CR>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
-    CR: ChannelRepositoryConcept,
+    CR: ChannelDataRepositoryConcept,
 {
     pub(crate) fn new(
         repo: &'r mut EditorRepository<NRF, ER, CR>,
@@ -55,12 +55,17 @@ where
 
     pub fn kind(&self, id: NodeId) -> Result<NodeKind> {
         let view = self.repo.node().view();
-        NodeService::kind(view.specs, view.nodes, id)
+        SpecService::kind(view.specs, view.nodes, id)
     }
 
     pub fn name(&self, id: NodeId) -> Result<&NodeName> {
         let view = self.repo.node().view();
-        NodeService::name(view.specs, view.nodes, id)
+        SpecService::name(view.specs, view.nodes, id)
+    }
+
+    pub fn ports_spec(&self, id: NodeId) -> Result<&PortsSpec> {
+        let NodeRepositoryFacadeView { specs, nodes, .. } = self.repo.node().view();
+        SpecService::ports(specs, nodes, id)
     }
 
     pub fn nodes(&self) -> impl Iterator<Item = &NodeId> {
@@ -76,30 +81,72 @@ where
     }
 
     pub fn positions(&self, kind: NodeKind) -> impl Iterator<Item = &NodePosition> {
-        self.node_service.positions(self.repo.node(), kind)
+        self.node_service
+            .positions(self.repo.node().view().positions, kind)
     }
 
     pub fn parameters(&self, id: NodeId) -> Result<&Parameters> {
         NodeService::parameters(self.repo.node(), id)
     }
 
-    pub fn port_ids(&self, node_id: NodeId) -> impl Iterator<Item = NodeChannelPortId> {
-        let NodeRepositoryFacadeView { ports, .. } = self.repo.node().view();
-        NodeService::port_ids(ports, node_id)
+    // pub fn port_state(&self, node_id: NodeId, port_id: NodePortId) -> Result<&NodePortConnection> {
+    //     let NodeRepositoryFacadeView { ports, .. } = self.repo.node().view();
+    //     NodeService::port_connection(ports, node_id, port_id)
+    // }
+}
+
+pub(crate) struct SpecService;
+
+impl SpecService {
+    pub(crate) fn name<'a>(
+        spec_repo: &'a impl SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
+        node_repo: &impl NodeRepositoryConcept,
+        id: NodeId,
+    ) -> Result<&'a NodeName> {
+        Ok(&Self::spec(spec_repo, node_repo, id)?.name)
     }
 
-    pub fn port_spec(&self, node_id: NodeId, port_id: NodeChannelPortId) -> Result<&NodePortSpec> {
-        let NodeRepositoryFacadeView { ports, .. } = self.repo.node().view();
-        NodeService::port_spec(ports, node_id, port_id)
+    pub(crate) fn kind(
+        spec_repo: &impl SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
+        node_repo: &impl NodeRepositoryConcept,
+        id: NodeId,
+    ) -> Result<NodeKind> {
+        Ok(Self::spec(spec_repo, node_repo, id)?.kind)
     }
-    pub fn port_connection(
-        &self,
-        node_id: NodeId,
-        port_id: NodeChannelPortId,
-    ) -> Result<&NodePortConnection> {
-        let NodeRepositoryFacadeView { ports, .. } = self.repo.node().view();
-        NodeService::port_connection(ports, node_id, port_id)
+
+    pub(crate) fn ports<'a>(
+        spec_repo: &'a impl SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
+        node_repo: &impl NodeRepositoryConcept,
+        id: NodeId,
+    ) -> Result<&'a PortsSpec> {
+        Ok(&Self::spec(spec_repo, node_repo, id)?.ports)
     }
+
+    fn spec<'a>(
+        spec_repo: &'a impl SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
+        node_repo: &impl NodeRepositoryConcept,
+        id: NodeId,
+    ) -> Result<&'a NodeSpec> {
+        let spec_id = *Self::spec_id(node_repo, id)?;
+        spec_repo
+            .spec(spec_id)
+            .ok_or_else(|| anyhow!("failed to obtain spec {spec_id} for node {id}"))
+    }
+
+    fn spec_id(node_repo: &impl NodeRepositoryConcept, id: NodeId) -> Result<&NodeSpecId> {
+        node_repo
+            .spec_id(&id)
+            .ok_or_else(|| anyhow!("no mapping between node id {id} and spec id exists"))
+    }
+}
+
+pub struct ParameterValuesService;
+pub struct PortStateService;
+
+pub struct PositionService;
+
+pub struct LifecycleService {
+    node_cache: HashMap<NodeKind, HashSet<NodeId>>,
 }
 
 #[derive(Debug, Default)]
@@ -142,45 +189,15 @@ impl NodeService {
 
     fn positions<'a>(
         &'a self,
-        repo: &'a impl NodeRepositoryFacadeConcept,
+        repo: &'a impl NodePositionRepositoryConcept,
         kind: NodeKind,
     ) -> impl Iterator<Item = &'a NodePosition> {
-        let view = repo.view();
         let position_ids = self
             .node_cache
             .get(&kind)
             .into_iter()
             .flat_map(|i| i.iter().copied());
-        position_ids.flat_map(|id| view.positions.position(id))
-    }
-
-    pub(crate) fn kind(
-        spec_repo: &impl NodeSpecRepositoryConcept,
-        node_repo: &impl NodeRepositoryConcept,
-        id: NodeId,
-    ) -> Result<NodeKind> {
-        let spec_id = Self::spec_id(node_repo, id)?;
-        Ok(Self::spec(spec_repo, *spec_id)?.kind)
-    }
-
-    pub(crate) fn name<'a>(
-        spec_repo: &'a impl NodeSpecRepositoryConcept,
-        node_repo: &'a impl NodeRepositoryConcept,
-        id: NodeId,
-    ) -> Result<&'a NodeName> {
-        let spec_id = Self::spec_id(node_repo, id)?;
-        Ok(&Self::spec(spec_repo, *spec_id)?.name)
-    }
-
-    fn spec_id(node_repo: &impl NodeRepositoryConcept, id: NodeId) -> Result<&NodeSpecId> {
-        node_repo
-            .spec_id(&id)
-            .ok_or_else(|| anyhow!("no mapping between node id {id} and spec id exists"))
-    }
-
-    fn spec(repo: &impl NodeSpecRepositoryConcept, id: NodeSpecId) -> Result<&NodeSpec> {
-        repo.spec(id)
-            .ok_or_else(|| anyhow!("failed to obtain node {id} spec"))
+        position_ids.flat_map(|id| repo.position(id))
     }
 
     fn on_node_removal(
@@ -189,7 +206,7 @@ impl NodeService {
         id: NodeId,
     ) -> Result<()> {
         let view = repo.view_mut();
-        let spec = Self::spec(view.specs, id)?;
+        let spec = SpecService::spec(view.specs, view.nodes, id)?;
         self.node_cache
             .get_mut(&spec.kind)
             .map(|nodes| nodes.remove(&id));
@@ -208,33 +225,33 @@ impl NodeService {
         Ok(())
     }
 
-    fn initialize_ports(
-        ports_repo: &mut impl NodePortRepositoryConcept,
-        id: NodeId,
-        spec: &ActionSpec,
-    ) -> Result<()> {
-        let mut port_specs = vec![];
-        for msg_spec in &spec.schema.senders {
-            port_specs.push(NodePortSpec {
-                kind: NodePortKind::Sender,
-                msg_spec: msg_spec.clone(),
-            });
-        }
-        for msg_spec in &spec.schema.receivers {
-            port_specs.push(NodePortSpec {
-                kind: NodePortKind::Receiver,
-                msg_spec: msg_spec.clone(),
-            });
-        }
+    // fn initialize_ports(
+    //     ports_repo: &mut impl PortStateRepositoryConcept,
+    //     id: NodeId,
+    //     spec: &ActionSpec,
+    // ) -> Result<()> {
+    //     let mut port_specs = vec![];
+    //     for msg_spec in &spec.schema.senders {
+    //         port_specs.push(NodePortSpec {
+    //             kind: NodePortKind::Sender,
+    //             msg_spec: msg_spec.clone(),
+    //         });
+    //     }
+    //     for msg_spec in &spec.schema.receivers {
+    //         port_specs.push(NodePortSpec {
+    //             kind: NodePortKind::Receiver,
+    //             msg_spec: msg_spec.clone(),
+    //         });
+    //     }
 
-        Self::create_node_ports(ports_repo, id, port_specs.into_iter())?;
-        // collect to avoid borrowing mutably in the for loop
-        let port_ids: Vec<_> = Self::port_ids(ports_repo, id).collect();
-        for port_id in port_ids {
-            Self::connect_port(ports_repo, id, port_id, NodePortConnection::default())?;
-        }
-        Ok(())
-    }
+    //     Self::create_node_ports(ports_repo, id, port_specs.into_iter())?;
+    //     // collect to avoid borrowing mutably in the for loop
+    //     let port_ids: Vec<_> = Self::port_ids(ports_repo, id).collect();
+    //     for port_id in port_ids {
+    //         Self::connect_port(ports_repo, id, port_id, NodePortConnection::default())?;
+    //     }
+    //     Ok(())
+    // }
 
     fn nodes(repo: &impl NodeRepositoryFacadeConcept) -> impl Iterator<Item = &NodeId> {
         let view = repo.view();
@@ -258,10 +275,6 @@ impl NodeService {
         positions.update(id, position)
     }
 
-    fn insert_parameter() {
-        todo!()
-    }
-
     fn parameters(repo: &impl NodeRepositoryFacadeConcept, id: NodeId) -> Result<&Parameters> {
         let view = repo.view();
         view.parameters
@@ -269,46 +282,37 @@ impl NodeService {
             .ok_or_else(|| anyhow!("failed to obtain parameters for node {id}"))
     }
 
-    fn create_node_ports(
-        repo: &mut impl NodePortRepositoryConcept,
-        node_id: NodeId,
-        port_specs: impl Iterator<Item = NodePortSpec>,
-    ) -> Result<()> {
-        repo.create(node_id, port_specs)
-    }
+    // fn create_node_ports(
+    //     repo: &mut impl PortStateRepositoryConcept,
+    //     node_id: NodeId,
+    //     port_specs: impl Iterator<Item = NodePortSpec>,
+    // ) -> Result<()> {
+    //     repo.create(node_id, port_specs)
+    // }
 
-    pub(crate) fn connect_port(
-        repo: &mut impl NodePortRepositoryConcept,
-        node_id: NodeId,
-        port_id: NodeChannelPortId,
-        kind: NodePortConnection,
-    ) -> Result<()> {
-        repo.set_conn(node_id, port_id, kind)
-    }
+    // pub(crate) fn connect_port(
+    //     repo: &mut impl PortStateRepositoryConcept,
+    //     node_id: NodeId,
+    //     port_id: NodePortId,
+    //     kind: NodePortConnection,
+    // ) -> Result<()> {
+    //     repo.set_conn(node_id, port_id, kind)
+    // }
 
-    pub(crate) fn port_ids(
-        repo: &impl NodePortRepositoryConcept,
-        node_id: NodeId,
-    ) -> impl Iterator<Item = NodeChannelPortId> {
-        repo.ports(node_id)
-    }
+    // pub(crate) fn port_ids(
+    //     repo: &impl PortStateRepositoryConcept,
+    //     node_id: NodeId,
+    // ) -> impl Iterator<Item = NodePortId> {
+    //     repo.ports(node_id)
+    // }
 
-    pub(crate) fn port_spec(
-        repo: &impl NodePortRepositoryConcept,
-        node_id: NodeId,
-        port_id: NodeChannelPortId,
-    ) -> Result<&NodePortSpec> {
-        repo.spec(node_id, port_id)
-            .ok_or_else(|| anyhow!("unable to retrieve port spec"))
-    }
-
-    pub(crate) fn port_connection(
-        repo: &impl NodePortRepositoryConcept,
-        node_id: NodeId,
-        port_id: NodeChannelPortId,
-    ) -> Result<&NodePortConnection> {
-        repo.connection(node_id, port_id).ok_or_else(|| {
-            anyhow!("unable to retrieve node's (id: {node_id}) port (id: {port_id}) connection")
-        })
-    }
+    // pub(crate) fn port_connection(
+    //     repo: &impl PortStateRepositoryConcept,
+    //     node_id: NodeId,
+    //     port_id: NodePortId,
+    // ) -> Result<&NodePortConnection> {
+    //     repo.connection(node_id, port_id).ok_or_else(|| {
+    //         anyhow!("unable to retrieve node's (id: {node_id}) port (id: {port_id}) connection")
+    //     })
+    // }
 }
