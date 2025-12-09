@@ -14,7 +14,7 @@ use crate::{
     EditorService,
     domain::{
         models::{NodeId, NodeKind, NodePortConnection, NodePortKind},
-        ports::{ChannelRepositoryConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept},
+        ports::{ChannelDataRepositoryConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept},
     },
 };
 
@@ -28,7 +28,7 @@ impl<'a, NRF, ER, CR> TreeExporter<'a, NRF, ER, CR>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
-    CR: ChannelRepositoryConcept,
+    CR: ChannelDataRepositoryConcept,
 {
     pub fn export(&mut self) -> Result<TreeSnapshot> {
         let root = self.export_root()?;
@@ -107,7 +107,7 @@ where
         let port_ids = node_view.port_ids(id);
 
         for port_id in port_ids {
-            let conn = node_view.port_connection(id, port_id)?;
+            let conn = node_view.port_state(id, port_id)?;
             if let NodePortConnection::Internal(connected) = conn
                 && connected.is_empty()
             {
@@ -118,8 +118,8 @@ where
         let mut senders = vec![];
         let mut receivers = vec![];
         for port_id in node_view.port_ids(id) {
-            let spec = node_view.port_spec(id, port_id)?;
-            let conn = node_view.port_connection(id, port_id)?;
+            let spec = node_view.ports_spec(id, port_id)?;
+            let conn = node_view.port_state(id, port_id)?;
             if let NodePortConnection::Internal(channels) = conn {
                 match spec.kind {
                     NodePortKind::Sender => {

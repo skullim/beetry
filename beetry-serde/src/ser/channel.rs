@@ -69,7 +69,7 @@ impl<T: Message> MessageTypeProvider for T {
     }
 }
 
-#[derive(Debug, Clone, CopyGetters, Getters, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, CopyGetters, Getters)]
 pub struct ChannelSpec {
     // labels concrete channel and its factory
     #[get_copy = "pub"]

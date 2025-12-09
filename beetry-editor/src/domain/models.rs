@@ -1,16 +1,17 @@
 use std::collections::HashSet;
 
+use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
 use beetry_serde::ser::{channel::MessageSpec, node::NodeName, parameter};
 use bon::Builder;
-use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
 pub type NodeId = usize;
 pub type NodeSpecId = usize;
-pub type NodeChannelPortId = u8;
+pub type NodePortId = u8;
 pub type EdgeId = usize;
 pub type ChannelId = beetry_serde::de::channel::ChannelId;
+pub type ChannelSpecId = usize;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Point {
@@ -42,11 +43,13 @@ impl NodePortConnection {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum NodePortKind {
     Sender,
     Receiver,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct NodePortSpec {
     pub kind: NodePortKind,
     pub msg_spec: MessageSpec,
@@ -54,7 +57,7 @@ pub struct NodePortSpec {
 
 pub type ChannelPosition = NodePosition;
 
-#[derive(Debug, Default, Clone, PartialEq, Props, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EdgePosition {
     pub start: Point,
     pub end: Point,
@@ -90,8 +93,43 @@ pub enum NodeKind {
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct PortsSpec {
-    senders: Vec<MessageSpec>,
-    receivers: Vec<MessageSpec>,
+    spec: Vec<NodePortSpec>,
+    ids: Vec<NodePortId>,
+}
+
+impl PortsSpec {
+    pub fn new(
+        senders: impl IntoIterator<Item = MessageSpec>,
+        receivers: impl IntoIterator<Item = MessageSpec>,
+    ) -> Self {
+        let spec: Vec<_> = senders
+            .into_iter()
+            .map(|spec| NodePortSpec {
+                kind: NodePortKind::Sender,
+                msg_spec: spec,
+            })
+            .chain(receivers.into_iter().map(|spec| NodePortSpec {
+                kind: NodePortKind::Receiver,
+                msg_spec: spec,
+            }))
+            .collect();
+        let ids: Vec<_> = (0..spec.len()).map(|v| v as NodePortId).collect();
+        Self { spec, ids }
+    }
+
+    pub fn ids(&self) -> &[NodePortId] {
+        &self.ids
+    }
+
+    pub fn spec(&self, id: NodePortId) -> Result<&NodePortSpec> {
+        self.spec
+            .get(id as usize)
+            .ok_or_else(|| anyhow!("failed to obtain spec for port {id}"))
+    }
+
+    pub fn specs(&self) -> &[NodePortSpec] {
+        &self.spec
+    }
 }
 
 #[derive(Debug, Builder, Clone, PartialEq, Eq, Hash)]

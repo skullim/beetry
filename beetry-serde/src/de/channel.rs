@@ -26,12 +26,12 @@ impl ChannelSnapshot {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
 pub struct ChannelSnapshot2 {
     spec: ChannelSpec,
-    parameters: ChannelParameters,
+    config: ChannelConfig,
 }
 
 impl ChannelSnapshot2 {
-    pub fn new(spec: ChannelSpec, parameters: ChannelParameters) -> Self {
-        Self { spec, parameters }
+    pub fn new(spec: ChannelSpec, config: ChannelConfig) -> Self {
+        Self { spec, config }
     }
 }
 
@@ -57,7 +57,7 @@ impl ChannelMetadata {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, CopyGetters, MutGetters)]
-pub struct ChannelParameters {
+pub struct ChannelConfig {
     #[getset(get_copy = "pub")]
     capacity: usize, // there might be channels with 0 capacity
     #[getset(get_copy = "pub", get_mut = "pub")]
@@ -66,7 +66,7 @@ pub struct ChannelParameters {
     kind: ChannelImplKind2,
 }
 
-impl ChannelParameters {
+impl ChannelConfig {
     pub fn new(capacity: usize, kind: ChannelImplKind2) -> Self {
         Self {
             capacity,

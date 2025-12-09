@@ -5,7 +5,7 @@ use crate::{
     domain::{
         models::NodeId,
         persistence::EditorData,
-        ports::{ChannelRepositoryConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept},
+        ports::{ChannelDataRepositoryConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept},
         service::node::NodeService,
     },
 };
@@ -18,7 +18,7 @@ impl ProjectImporter {
     where
         NRF: NodeRepositoryFacadeConcept,
         ER: EdgeRepositoryConcept,
-        CR: ChannelRepositoryConcept,
+        CR: ChannelDataRepositoryConcept,
     {
         let mut editor_service = EditorService::<NRF, ER, CR>::default();
         // first import nodes

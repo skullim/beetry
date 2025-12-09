@@ -1,6 +1,6 @@
 use crate::domain::{
     ports::{
-        ChannelRepositoryConcept, EdgeRepositoryConcept, EditorRepository,
+        ChannelDataRepositoryConcept, EdgeRepositoryConcept, EditorRepository,
         NodeRepositoryFacadeConcept,
     },
     service::{
@@ -21,7 +21,7 @@ impl<NRF, ER, CR> Default for EditorService<NRF, ER, CR>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
-    CR: ChannelRepositoryConcept,
+    CR: ChannelDataRepositoryConcept,
 {
     fn default() -> Self {
         Self {
@@ -37,7 +37,7 @@ impl<NRF, ER, CR> EditorService<NRF, ER, CR>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
-    CR: ChannelRepositoryConcept,
+    CR: ChannelDataRepositoryConcept,
 {
     pub fn with_node_service(node_service: NodeService) -> Self {
         Self {
