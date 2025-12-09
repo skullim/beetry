@@ -1,5 +1,4 @@
-use core::fmt;
-use std::{collections::HashMap, default, fmt::Display, hash::Hash, ops::AddAssign};
+use std::{collections::HashMap, fmt::Display, hash::Hash, ops::AddAssign};
 
 use crate::{
     domain::models::{
@@ -22,19 +21,19 @@ use num_traits::One;
 use serde_value::Value;
 
 #[derive(Debug, Default, Getters, MutGetters)]
-pub struct EditorRepository<NRF, ER, CR> {
+pub struct EditorRepository<NRF, ER, CRF> {
     #[getset(get = "pub", get_mut = "pub")]
     node: NRF,
     #[getset(get = "pub", get_mut = "pub")]
     edge: ER,
     #[getset(get = "pub", get_mut = "pub")]
-    channel: CR,
+    channel: CRF,
 }
 
-pub struct EditorRepositoryView<'a, NRF, ER, CR> {
+pub struct EditorRepositoryView<'a, NRF, ER, CRF> {
     pub node: &'a NRF,
     pub edge: &'a ER,
-    pub channel: &'a CR,
+    pub channel: &'a CRF,
 }
 
 pub struct EditorRepositoryViewMut<'a, NRF, ER, CR> {
@@ -43,8 +42,8 @@ pub struct EditorRepositoryViewMut<'a, NRF, ER, CR> {
     pub channel: &'a mut CR,
 }
 
-impl<NRF, ER, CR> EditorRepository<NRF, ER, CR> {
-    pub fn view(&self) -> EditorRepositoryView<'_, NRF, ER, CR> {
+impl<NRF, ER, CRF> EditorRepository<NRF, ER, CRF> {
+    pub fn view(&self) -> EditorRepositoryView<'_, NRF, ER, CRF> {
         EditorRepositoryView {
             node: &self.node,
             edge: &self.edge,
@@ -52,7 +51,7 @@ impl<NRF, ER, CR> EditorRepository<NRF, ER, CR> {
         }
     }
 
-    pub fn view_mut(&mut self) -> EditorRepositoryViewMut<'_, NRF, ER, CR> {
+    pub fn view_mut(&mut self) -> EditorRepositoryViewMut<'_, NRF, ER, CRF> {
         EditorRepositoryViewMut {
             node: &mut self.node,
             edge: &mut self.edge,
@@ -61,11 +60,11 @@ impl<NRF, ER, CR> EditorRepository<NRF, ER, CR> {
     }
 }
 
-impl<NRF, ER, CR> EditorRepository<NRF, ER, CR>
+impl<NRF, ER, CRF> EditorRepository<NRF, ER, CRF>
 where
     NRF: Default,
     ER: Default,
-    CR: Default,
+    CRF: Default,
 {
     /// Instance should be initialized in default state, the interaction with concrete repositories
     /// should be managed by service layer.
@@ -75,7 +74,7 @@ where
         Self {
             node: NRF::default(),
             edge: ER::default(),
-            channel: CR::default(),
+            channel: CRF::default(),
         }
     }
 }
