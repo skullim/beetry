@@ -2,6 +2,7 @@ mod application;
 mod definitions;
 mod domain;
 mod editor;
+mod id;
 mod project;
 mod sidebar;
 mod signals;

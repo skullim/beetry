@@ -15,22 +15,20 @@ use crate::{
     domain::{
         models::{NodeId, NodeKind, NodePortConnection, NodePortKind},
         ports::{ChannelRepositoryConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept},
-        service::node::AssignNodeId,
     },
 };
 
 //@todo move to service layer, there should be no application layer
-pub struct TreeExporter<'a, NRF, ER, CR, A> {
+pub struct TreeExporter<'a, NRF, ER, CR> {
     //@todo long term split API into mut and shared. Export should be possible using only shared reference
-    service: &'a mut EditorService<NRF, ER, CR, A>,
+    service: &'a mut EditorService<NRF, ER, CR>,
 }
 
-impl<'a, NRF, ER, CR, A> TreeExporter<'a, NRF, ER, CR, A>
+impl<'a, NRF, ER, CR> TreeExporter<'a, NRF, ER, CR>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
     CR: ChannelRepositoryConcept,
-    A: AssignNodeId,
 {
     pub fn export(&mut self) -> Result<TreeSnapshot> {
         let root = self.export_root()?;
@@ -63,8 +61,9 @@ where
         let root_id = self
             .service
             .node_view()
-            .nodes(NodeKind::Root)
+            .nodes_by_kind(NodeKind::Root)
             .next()
+            .copied()
             .ok_or_else(|| anyhow!("no root found in the tree"))?;
 
         let child_id = self

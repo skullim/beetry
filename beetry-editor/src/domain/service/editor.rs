@@ -6,17 +6,18 @@ use crate::domain::{
     service::{
         channel::{ChannelService, ChannelServiceView},
         edge::{EdgeService, EdgeServiceView},
-        node::{AssignNodeId, IncrementalNodeIdAssigner, NodeService, NodeServiceView},
+        node::{NodeService, NodeServiceView},
     },
 };
 
-pub struct EditorService<NRF, ER, CR, A> {
-    node_service: NodeService<A>,
+pub struct EditorService<NRF, ER, CR> {
+    node_service: NodeService,
     edge_service: EdgeService,
     channel_service: ChannelService,
     repo: EditorRepository<NRF, ER, CR>,
 }
-impl<NRF, ER, CR> Default for EditorService<NRF, ER, CR, IncrementalNodeIdAssigner>
+
+impl<NRF, ER, CR> Default for EditorService<NRF, ER, CR>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
@@ -24,7 +25,7 @@ where
 {
     fn default() -> Self {
         Self {
-            node_service: NodeService::<IncrementalNodeIdAssigner>::new(),
+            node_service: NodeService::new(),
             edge_service: EdgeService::new(),
             channel_service: ChannelService::new(),
             repo: EditorRepository::<NRF, ER, CR>::new(),
@@ -32,14 +33,13 @@ where
     }
 }
 
-impl<NRF, ER, CR, A> EditorService<NRF, ER, CR, A>
+impl<NRF, ER, CR> EditorService<NRF, ER, CR>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
     CR: ChannelRepositoryConcept,
-    A: AssignNodeId,
 {
-    pub fn with_node_service(node_service: NodeService<A>) -> Self {
+    pub fn with_node_service(node_service: NodeService) -> Self {
         Self {
             node_service,
             edge_service: EdgeService::new(),
@@ -48,7 +48,7 @@ where
         }
     }
 
-    pub fn node_view(&mut self) -> NodeServiceView<'_, '_, '_, NRF, ER, CR, A> {
+    pub fn node_view(&mut self) -> NodeServiceView<'_, '_, '_, NRF, ER, CR> {
         NodeServiceView::new(
             &mut self.repo,
             &mut self.node_service,
