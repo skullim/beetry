@@ -6,7 +6,7 @@ use crate::domain::{
         ChannelRepositoryConcept, EdgeRepositoryConcept, EditorRepository, EditorRepositoryViewMut,
         NodeRepositoryFacadeConcept,
     },
-    service::node::{NodeKindService, NodeService, NodeServiceStateless},
+    service::node::NodeService,
 };
 use anyhow::{Result, anyhow, bail};
 use tracing::warn;
@@ -82,16 +82,16 @@ impl EdgeService {
         let node_view = node_repo.view();
         let (parent, child) = (edge.from, edge.to);
 
-        NodeServiceStateless::ensure_exists(node_view, parent)?;
-        NodeServiceStateless::ensure_exists(node_view, child)?;
+        NodeService::ensure_exists(node_view, parent)?;
+        NodeService::ensure_exists(node_view, child)?;
 
         // validate parent
-        let parent_kind = NodeKindService::kind(node_view.kinds, parent)?;
+        let parent_kind = NodeService::kind(node_view.specs, node_view.nodes, parent)?;
         if matches!(parent_kind, NodeKind::Action | NodeKind::Condition) {
             bail!("attempted to create invalid edge: leaf nodes must have no children");
         }
 
-        let child_kind = NodeKindService::kind(node_view.kinds, child)?;
+        let child_kind = NodeService::kind(node_view.specs, node_view.nodes, child)?;
         if let NodeKind::Root = child_kind {
             bail!("attempted to create invalid edge: root node must not have any parent");
         }

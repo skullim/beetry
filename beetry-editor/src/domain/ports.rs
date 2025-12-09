@@ -1,21 +1,23 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::domain::models::{
-    ChannelId, ChannelPosition, EdgeId, NodeChannelPortId, NodeEdge, NodePortConnection,
-    NodePortSpec,
+use crate::{
+    domain::models::{
+        ChannelId, ChannelPosition, EdgeId, NodeChannelPortId, NodeEdge, NodePortConnection,
+        NodePortSpec, NodeSpec, NodeSpecId,
+    },
+    id::IdProvider,
 };
 
-use super::models::{NodeId, NodeKind, NodePosition};
+use super::models::{NodeId, NodePosition};
 use beetry_serde::{
     de::{channel::ChannelParameters, parameter::Parameters},
-    ser::{channel::ChannelSpec, node::NodeName},
+    ser::channel::ChannelSpec,
 };
 
 use anyhow::{Result, anyhow, bail};
 use derive_more::From;
 use getset::{Getters, MutGetters};
 use serde_value::Value;
-use slotmap::SlotMap;
 
 #[derive(Debug, Default, Getters, MutGetters)]
 pub struct EditorRepository<NRF, ER, CR> {
@@ -77,55 +79,28 @@ where
 }
 
 pub trait NodeRepositoryConcept: Default {
-    fn create(&mut self, id: NodeId) -> Result<()>;
+    fn create(&mut self, spec: NodeSpecId) -> Result<NodeId>;
     fn remove(&mut self, id: NodeId) -> Result<()>;
 
-    fn contains(&self, id: NodeId) -> bool;
+    fn contains(&self, id: &NodeId) -> bool;
 
+    fn spec_id(&self, id: &NodeId) -> Option<&NodeSpecId>;
     fn nodes(&self) -> NodeIter<'_>;
 }
 
 #[derive(Debug, Default)]
-pub struct RootNodeRepository {
-    root: Option<NodeId>,
-}
-
-impl NodeRepositoryConcept for RootNodeRepository {
-    fn create(&mut self, id: NodeId) -> Result<()> {
-        match self.root {
-            Some(_) => bail!("attempted to register root node twice"),
-            None => {
-                self.root = Some(id);
-                Ok(())
-            }
-        }
-    }
-
-    fn remove(&mut self, _id: NodeId) -> Result<()> {
-        self.root.take();
-        Ok(())
-    }
-
-    fn contains(&self, id: NodeId) -> bool {
-        self.root == Some(id)
-    }
-
-    fn nodes(&self) -> NodeIter<'_> {
-        NodeIter::Option(self.root.iter())
-    }
-}
-
-type NodeSchemaId = slotmap::DefaultKey;
-
-#[derive(Debug, Default)]
 pub struct NodeRepository {
-    nodes: HashSet<NodeId>,
+    nodes: HashMap<NodeId, NodeSpecId>,
+    id_provider: IdProvider<NodeId>,
 }
 
 impl NodeRepositoryConcept for NodeRepository {
-    fn create(&mut self, id: NodeId) -> Result<()> {
-        self.nodes.insert(id);
-        Ok(())
+    fn create(&mut self, spec: NodeSpecId) -> Result<NodeId> {
+        let id = self
+            .id_provider
+            .next_available_id(|id| !self.nodes.contains_key(id));
+        self.nodes.insert(id, spec);
+        Ok(id)
     }
 
     fn remove(&mut self, id: NodeId) -> Result<()> {
@@ -133,46 +108,88 @@ impl NodeRepositoryConcept for NodeRepository {
         Ok(())
     }
 
-    fn contains(&self, id: NodeId) -> bool {
-        self.nodes.contains(&id)
+    fn contains(&self, id: &NodeId) -> bool {
+        self.nodes.contains_key(id)
+    }
+
+    fn spec_id(&self, id: &NodeId) -> Option<&NodeSpecId> {
+        self.nodes.get(id)
     }
 
     fn nodes(&self) -> NodeIter<'_> {
-        NodeIter::HashSet(self.nodes.iter())
+        NodeIter::HashMap(self.nodes.keys())
     }
 }
 
 #[derive(Debug, From)]
 pub(crate) enum NodeIter<'a> {
     Slice(std::slice::Iter<'a, NodeId>),
-    HashMapKeys(std::collections::hash_map::Keys<'a, NodeId, NodeSchemaId>),
     HashSet(std::collections::hash_set::Iter<'a, NodeId>),
+    HashMap(std::collections::hash_map::Keys<'a, NodeId, NodeSpecId>),
     Option(std::option::Iter<'a, NodeId>),
 }
 
 impl<'a> Iterator for NodeIter<'a> {
-    type Item = NodeId;
+    type Item = &'a NodeId;
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Slice(slice) => slice.next().copied(),
-            Self::HashMapKeys(keys) => keys.next().copied(),
-            Self::HashSet(set) => set.next().copied(),
-            Self::Option(o) => o.next().copied(),
+            Self::Slice(slice) => slice.next(),
+            Self::HashSet(set) => set.next(),
+            Self::HashMap(map) => map.next(),
+            Self::Option(o) => o.next(),
         }
     }
 }
 
-pub trait NodeRepositoryFacadeConcept: Default {
-    type RootRepo: NodeRepositoryConcept;
-    type ActionRepo: NodeRepositoryConcept;
-    type ConditionRepo: NodeRepositoryConcept;
-    type ControlRepo: NodeRepositoryConcept;
-    type DecoratorRepo: NodeRepositoryConcept;
+/// Service layer should guarantee that no sam NodeSpecs are stored in repository
+pub trait NodeSpecRepositoryConcept: Default {
+    fn create(&mut self, spec: NodeSpec) -> Result<NodeSpecId>;
+    /// Return error when id already used
+    fn load(&mut self, id: NodeSpecId, spec: NodeSpec) -> Result<()>;
 
-    type NameRepo: NodeNameRepositoryConcept;
-    type KindRepo: NodeKindRepositoryConcept;
+    fn remove(&mut self, id: NodeSpecId) -> Option<NodeSpec>;
+
+    fn spec(&self, id: NodeSpecId) -> Option<&NodeSpec>;
+}
+
+#[derive(Debug, Default)]
+pub struct NodeSpecRepository {
+    specs: HashMap<NodeSpecId, NodeSpec>,
+    id_provider: IdProvider<NodeSpecId>,
+}
+
+impl NodeSpecRepositoryConcept for NodeSpecRepository {
+    fn create(&mut self, spec: NodeSpec) -> Result<NodeSpecId> {
+        let id = self
+            .id_provider
+            .next_available_id(|id| !self.specs.contains_key(id));
+        self.specs.insert(id, spec);
+        Ok(id)
+    }
+
+    fn load(&mut self, id: NodeSpecId, spec: NodeSpec) -> Result<()> {
+        if self.specs.contains_key(&id) {
+            bail!("cannot load spec {id} as there is already spec stored with the same id");
+        }
+        self.specs.insert(id, spec);
+        Ok(())
+    }
+
+    fn remove(&mut self, id: NodeSpecId) -> Option<NodeSpec> {
+        self.specs.remove(&id)
+    }
+
+    fn spec(&self, id: NodeSpecId) -> Option<&NodeSpec> {
+        self.specs.get(&id)
+    }
+}
+
+pub trait NodeRepositoryFacadeConcept: Default {
+    type NodeRepo: NodeRepositoryConcept;
+    type SpecRepo: NodeSpecRepositoryConcept;
+
     type PositionRepo: NodePositionRepositoryConcept;
-    type ParamRepo: ParamRepositoryConcept;
+    type ParamRepo: ParamValuesRepositoryConcept;
     type PortRepo: NodePortRepositoryConcept;
 
     fn view(&self) -> NodeRepositoryFacadeView<'_, Self>
@@ -261,61 +278,6 @@ impl NodePortRepositoryConcept for NodePortRepository {
     }
 }
 
-pub trait NodeKindRepositoryConcept: Default {
-    fn insert(&mut self, id: NodeId, kind: NodeKind) -> Result<()>;
-    fn remove(&mut self, id: NodeId) -> Result<()>;
-    fn kind(&self, id: NodeId) -> Option<NodeKind>;
-}
-
-#[derive(Default)]
-pub struct NodeKindRepository {
-    kinds: HashMap<NodeId, NodeKind>,
-}
-
-impl NodeKindRepositoryConcept for NodeKindRepository {
-    fn insert(&mut self, id: NodeId, kind: NodeKind) -> Result<()> {
-        self.kinds.insert(id, kind);
-        Ok(())
-    }
-
-    fn remove(&mut self, id: NodeId) -> Result<()> {
-        self.kinds.remove(&id);
-        Ok(())
-    }
-
-    fn kind(&self, id: NodeId) -> Option<NodeKind> {
-        self.kinds.get(&id).copied()
-    }
-}
-
-pub trait NodeNameRepositoryConcept: Default {
-    fn insert(&mut self, id: NodeId, name: NodeName) -> Result<()>;
-    fn remove(&mut self, id: NodeId) -> Result<()>;
-    fn name(&self, id: NodeId) -> Option<&NodeName>;
-}
-
-#[derive(Default)]
-pub struct NodeNameRepository {
-    //@todo caching
-    names: HashMap<NodeId, NodeName>,
-}
-
-impl NodeNameRepositoryConcept for NodeNameRepository {
-    fn insert(&mut self, id: NodeId, name: NodeName) -> Result<()> {
-        self.names.insert(id, name);
-        Ok(())
-    }
-
-    fn remove(&mut self, id: NodeId) -> Result<()> {
-        self.names.remove(&id);
-        Ok(())
-    }
-
-    fn name(&self, id: NodeId) -> Option<&NodeName> {
-        self.names.get(&id)
-    }
-}
-
 pub trait NodePositionRepositoryConcept: Default {
     fn update(&mut self, id: NodeId, position: NodePosition) -> Result<()>;
     fn position(&self, id: NodeId) -> Option<&NodePosition>;
@@ -344,14 +306,9 @@ impl NodePositionRepositoryConcept for NodePositionRepository {
 }
 
 pub struct NodeRepositoryFacadeView<'a, F: NodeRepositoryFacadeConcept> {
-    pub root: &'a F::RootRepo,
-    pub action: &'a F::ActionRepo,
-    pub condition: &'a F::ConditionRepo,
-    pub control: &'a F::ControlRepo,
-    pub decorator: &'a F::DecoratorRepo,
+    pub nodes: &'a F::NodeRepo,
+    pub specs: &'a F::SpecRepo,
 
-    pub names: &'a F::NameRepo,
-    pub kinds: &'a F::KindRepo,
     pub positions: &'a F::PositionRepo,
     pub parameters: &'a F::ParamRepo,
     pub ports: &'a F::PortRepo,
@@ -366,14 +323,9 @@ impl<'a, F: NodeRepositoryFacadeConcept> Clone for NodeRepositoryFacadeView<'a, 
 }
 
 pub struct NodeRepositoryFacadeViewMut<'a, F: NodeRepositoryFacadeConcept> {
-    pub root: &'a mut F::RootRepo,
-    pub action: &'a mut F::ActionRepo,
-    pub condition: &'a mut F::ConditionRepo,
-    pub control: &'a mut F::ControlRepo,
-    pub decorator: &'a mut F::DecoratorRepo,
+    pub nodes: &'a mut F::NodeRepo,
+    pub specs: &'a mut F::SpecRepo,
 
-    pub names: &'a F::NameRepo,
-    pub kinds: &'a mut F::KindRepo,
     pub positions: &'a mut F::PositionRepo,
     pub parameters: &'a mut F::ParamRepo,
     pub ports: &'a mut F::PortRepo,
@@ -381,96 +333,65 @@ pub struct NodeRepositoryFacadeViewMut<'a, F: NodeRepositoryFacadeConcept> {
 
 #[derive(Default, Getters, MutGetters)]
 pub struct NodeRepositoryFacade {
-    root: RootNodeRepository,
-    action: NodeRepository,
-    condition: NodeRepository,
-    control: NodeRepository,
-    decorator: NodeRepository,
+    node: NodeRepository,
+    spec: NodeSpecRepository,
 
-    names: NodeNameRepository,
-    kinds: NodeKindRepository,
-    positions: NodePositionRepository,
-    parameters: ParamRepository,
-    ports: NodePortRepository,
+    position: NodePositionRepository,
+    parameter: ParamValuesRepository,
+    port: NodePortRepository,
 }
 
 impl NodeRepositoryFacade {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
-        root: RootNodeRepository,
-        action: NodeRepository,
-        condition: NodeRepository,
-        control: NodeRepository,
-        decorator: NodeRepository,
+        node: NodeRepository,
+        spec: NodeSpecRepository,
 
-        names: NodeNameRepository,
-        kinds: NodeKindRepository,
-        positions: NodePositionRepository,
-        parameters: ParamRepository,
-        ports: NodePortRepository,
+        position: NodePositionRepository,
+        parameter: ParamValuesRepository,
+        port: NodePortRepository,
     ) -> Self {
         Self {
-            root,
-            action,
-            condition,
-            control,
-            decorator,
-            names,
-            kinds,
-            positions,
-            parameters,
-            ports,
+            node,
+            spec,
+            position,
+            parameter,
+            port,
         }
     }
 }
 
 impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
-    type ActionRepo = NodeRepository;
-    type ConditionRepo = NodeRepository;
-    type ControlRepo = NodeRepository;
-    type DecoratorRepo = NodeRepository;
-    type RootRepo = RootNodeRepository;
+    type NodeRepo = NodeRepository;
+    type SpecRepo = NodeSpecRepository;
 
-    type NameRepo = NodeNameRepository;
-    type KindRepo = NodeKindRepository;
     type PositionRepo = NodePositionRepository;
-    type ParamRepo = ParamRepository;
+    type ParamRepo = ParamValuesRepository;
     type PortRepo = NodePortRepository;
 
     fn view(&self) -> NodeRepositoryFacadeView<'_, Self> {
         NodeRepositoryFacadeView {
-            root: &self.root,
-            action: &self.action,
-            condition: &self.condition,
-            control: &self.control,
-            decorator: &self.decorator,
+            nodes: &self.node,
+            specs: &self.spec,
 
-            names: &self.names,
-            kinds: &self.kinds,
-            positions: &self.positions,
-            parameters: &self.parameters,
-            ports: &self.ports,
+            positions: &self.position,
+            parameters: &self.parameter,
+            ports: &self.port,
         }
     }
 
     fn view_mut(&mut self) -> NodeRepositoryFacadeViewMut<'_, Self> {
         NodeRepositoryFacadeViewMut {
-            root: &mut self.root,
-            action: &mut self.action,
-            condition: &mut self.condition,
-            control: &mut self.control,
-            decorator: &mut self.decorator,
+            nodes: &mut self.node,
+            specs: &mut self.spec,
 
-            names: &mut self.names,
-            kinds: &mut self.kinds,
-            positions: &mut self.positions,
-            parameters: &mut self.parameters,
-            ports: &mut self.ports,
+            positions: &mut self.position,
+            parameters: &mut self.parameter,
+            ports: &mut self.port,
         }
     }
 }
 
-pub trait ParamRepositoryConcept: Default {
+pub trait ParamValuesRepositoryConcept: Default {
     fn insert(&mut self, id: NodeId, params: Parameters);
     fn remove(&mut self, id: NodeId) -> Result<()>;
     fn update(&mut self, id: NodeId, field_name: &str, value: Value) -> Result<()>;
@@ -479,11 +400,11 @@ pub trait ParamRepositoryConcept: Default {
 }
 
 #[derive(Default)]
-pub struct ParamRepository {
+pub struct ParamValuesRepository {
     params: HashMap<NodeId, Parameters>,
 }
 
-impl ParamRepositoryConcept for ParamRepository {
+impl ParamValuesRepositoryConcept for ParamValuesRepository {
     /// caller has to assure that params are valid w.r.t. schema
     fn insert(&mut self, id: NodeId, params: Parameters) {
         self.params.insert(id, params);

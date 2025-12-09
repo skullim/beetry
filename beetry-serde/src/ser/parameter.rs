@@ -2,7 +2,7 @@ use bon::Builder;
 use getset::CopyGetters;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Schema {
     pub defs: Vec<Definition>,
 }
@@ -15,7 +15,7 @@ impl Schema {
     }
 }
 
-#[derive(Debug, Clone, Builder, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Builder, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Definition {
     #[builder(into)]
     pub name: String,
@@ -24,14 +24,14 @@ pub struct Definition {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, Builder, PartialEq, Eq, Serialize, Deserialize, CopyGetters)]
+#[derive(Debug, Clone, Builder, PartialEq, Eq, Hash, Serialize, Deserialize, CopyGetters)]
 #[get_copy = "pub"]
 pub struct Bounds {
     min: i64,
     max: i64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Type {
     Boolean,
     Integer { bounds: Option<Bounds> },

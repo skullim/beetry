@@ -15,6 +15,7 @@ Improvements:
 - Once 0.7 becomes stable use Store instead of Signal<HashMap<T, V>> (https://github.com/DioxusLabs/docsite/pull/538)
 - error context + error types
 - harmonize {Channel, Edge, Node}Id types. They should be distinct types, at least wrap in a newtype
+- monotonically increasing id assignment does not play nice if some elements are removed, or when importing from serialized data
 
 UX:
 - tailwindcss

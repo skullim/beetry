@@ -7,6 +7,7 @@ use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
 pub type NodeId = usize;
+pub type NodeSpecId = usize;
 pub type NodeChannelPortId = u8;
 pub type EdgeId = usize;
 pub type ChannelId = beetry_serde::de::channel::ChannelId;
@@ -78,7 +79,7 @@ pub struct ExternalSenders {
     senders: HashSet<MessageHash>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodeKind {
     Action,
     Condition,
@@ -87,13 +88,13 @@ pub enum NodeKind {
     Root,
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct PortsSpec {
     senders: Vec<MessageSpec>,
     receivers: Vec<MessageSpec>,
 }
 
-#[derive(Debug, Builder, PartialEq, Eq)]
+#[derive(Debug, Builder, Clone, PartialEq, Eq, Hash)]
 pub struct NodeSpec {
     pub name: NodeName,
     pub kind: NodeKind,
