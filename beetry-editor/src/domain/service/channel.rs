@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use crate::domain::{
     models::{ChannelId, ChannelPosition, ChannelSpecId, NodeId, NodePortConnection, NodePortId},
     ports::{
-        ChannelData, ChannelDataRepositoryConcept, EdgeRepositoryConcept, EditorRepository,
-        EditorRepositoryViewMut, NodeRepositoryFacadeConcept, NodeRepositoryFacadeView,
+        ChannelData, ChannelDataInput, ChannelDataRepositoryConcept, ChannelRepositoryFacadeConcept, ChannelRepositoryFacadeViewMut, EditorRepositoryViewMut, NodeRepositoryFacadeConcept, NodeRepositoryFacadeView, SpecRepositoryConcept
     },
     service::node::{self, NodeService},
 };
@@ -14,43 +13,44 @@ use beetry_serde::{
     ser::channel::ChannelSpec,
 };
 
-pub struct ChannelServiceView<'r, 'c, NRF, ER, CR> {
-    repo: &'r mut EditorRepository<NRF, ER, CR>,
-    channel: &'c mut ChannelService,
+pub struct ChannelServiceView<'a, CRF> 
+where
+    CRF: ChannelRepositoryFacadeConcept,
+{
+    facade: ChannelRepositoryFacadeViewMut<'a, CRF>,
+    channel: &'a mut ChannelService,
 }
 
-impl<'r, 'c, NRF, ER, CR> ChannelServiceView<'r, 'c, NRF, ER, CR>
+impl<'a,  CRF> ChannelServiceView<'a, CRF>
 where
-    NRF: NodeRepositoryFacadeConcept,
-    ER: EdgeRepositoryConcept,
-    CR: ChannelDataRepositoryConcept,
+    CRF: ChannelRepositoryFacadeConcept,
 {
     pub(crate) fn new(
-        repo: &'r mut EditorRepository<NRF, ER, CR>,
-        channel: &'c mut ChannelService,
+        facade: ChannelRepositoryFacadeViewMut<'a, CRF>,
+        channel: &'a mut ChannelService,
     ) -> Self {
-        Self { repo, channel }
+        Self { facade, channel }
     }
 
-    pub fn create(&mut self, spec: ChannelSpec, data: ChannelData) -> Result<ChannelId> {
-        self.channel.create(self.repo.channel_mut(), spec, data)
+    pub fn create(&mut self, spec: ChannelSpec, input: ChannelDataInput) -> Result<ChannelId> {
+        self.channel.create(self.facade.spec, self.facade.data, spec, input)
     }
 
     pub fn update_position(&mut self, id: ChannelId, position: ChannelPosition) -> Result<()> {
-        ChannelService::ensure_exists(self.repo.channel(), id)?;
-        ChannelService::update_position(self.repo.channel_mut(), id, position)
+        ChannelService::ensure_exists(self.facade, id)?;
+        ChannelService::update_position(self.facade., id, position)
     }
 
     pub fn positions(&self) -> impl Iterator<Item = ChannelPosition> {
-        ChannelService::positions(self.repo.channel())
+        ChannelService::positions(self.facade.channel())
     }
 
     pub fn parameters(&self, id: ChannelId) -> Result<&ChannelConfig> {
-        ChannelService::config(self.repo.channel(), id)
+        ChannelService::config(self.facade.channel(), id)
     }
 
     pub fn channels(&self) -> impl Iterator<Item = ChannelId> {
-        ChannelService::channels(self.repo.channel())
+        ChannelService::channels(self.facade.channel())
     }
 
     pub fn connect_sender(
@@ -59,7 +59,7 @@ where
         from: NodeId,
         port_id: NodePortId,
     ) -> Result<()> {
-        let EditorRepositoryViewMut { node, channel, .. } = self.repo.view_mut();
+        let EditorRepositoryViewMut { node, channel, .. } = self.facade.view_mut();
         ChannelService::connect_sender(channel, node, id, from, port_id)
     }
 
@@ -69,7 +69,7 @@ where
         to: NodeId,
         port_id: NodePortId,
     ) -> Result<()> {
-        let EditorRepositoryViewMut { node, channel, .. } = self.repo.view_mut();
+        let EditorRepositoryViewMut { node, channel, .. } = self.facade.view_mut();
         ChannelService::connect_receiver(channel, node, id, to, port_id)
     }
 }
@@ -77,7 +77,6 @@ where
 #[derive(Default)]
 pub(crate) struct ChannelService {
     spec_cache: HashMap<ChannelSpec, ChannelSpecId>,
-    id_assigner: ChannelIdAssigner,
 }
 
 impl ChannelService {
@@ -87,14 +86,21 @@ impl ChannelService {
 
     fn create(
         &mut self,
-        repo: &mut impl ChannelDataRepositoryConcept,
+        spec_repo: &mut impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
+        data_repo: &mut impl ChannelDataRepositoryConcept,
         spec: ChannelSpec,
-        data: ChannelData,
+        input: ChannelDataInput,
     ) -> Result<ChannelId> {
-        let id = self.id_assigner.next_id();
+        let spec_id = match self.spec_cache.get(&spec) {
+            Some(id) => *id,
+            None => {
+                let spec_id = spec_repo.create(spec.clone())?;
+                self.spec_cache.insert(spec, spec_id);
+                spec_id
+            }
+        };
 
-        repo.create(id, data)?;
-        Ok(id)
+        Ok(data_repo.create(ChannelData::new(spec_id, input))?)
     }
 
     fn update_position(

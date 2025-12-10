@@ -176,18 +176,18 @@ impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
 }
 
 pub struct ChannelRepositoryFacadeView<'a, F: ChannelRepositoryFacadeConcept> {
-    data: &'a F::DataRepo,
-    spec: &'a F::SpecRepo,
+    pub spec: &'a F::SpecRepo,
+    pub data: &'a F::DataRepo,
 }
 
 pub struct ChannelRepositoryFacadeViewMut<'a, F: ChannelRepositoryFacadeConcept> {
-    data: &'a mut F::DataRepo,
-    spec: &'a mut F::SpecRepo,
+    pub spec: &'a mut F::SpecRepo,
+    pub data: &'a mut F::DataRepo,
 }
 
 pub trait ChannelRepositoryFacadeConcept: Default {
-    type DataRepo: ChannelDataRepositoryConcept;
     type SpecRepo: SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>;
+    type DataRepo: ChannelDataRepositoryConcept;
 
     fn view(&self) -> ChannelRepositoryFacadeView<'_, Self>
     where
@@ -357,6 +357,7 @@ impl NodeRepositoryConcept for NodeRepository {
     }
 }
 
+//@todo: check if now this is still needed
 #[derive(Debug, From)]
 pub(crate) enum NodeIter<'a> {
     Slice(std::slice::Iter<'a, NodeId>),
@@ -512,26 +513,54 @@ impl EdgeRepositoryConcept for EdgeRepository {
 }
 
 pub trait ChannelDataRepositoryConcept: Default {
-    fn create(&mut self, id: ChannelId, data: ChannelData) -> Result<()>;
+    fn create(&mut self, data: ChannelData) -> Result<ChannelId>;
+    fn load(&mut self, node: ChannelId, data: ChannelData) -> Result<()>;
+
     fn remove(&mut self, id: ChannelId) -> Option<ChannelData>;
+
+    fn contains(&self, id: &ChannelId) -> bool;
 
     fn data_mut(&mut self, id: ChannelId) -> Option<&mut ChannelData>;
     fn data(&self, id: ChannelId) -> Option<&ChannelData>;
+
+    fn channels(&self) -> impl Iterator<Item = &ChannelId>;
+}
+
+pub struct ChannelDataInput {
+    pub config: ChannelConfig,
+    pub position: ChannelPosition,
 }
 
 pub struct ChannelData {
     pub spec_id: ChannelSpecId,
-    pub config: ChannelConfig,
-    pub position: ChannelPosition,
+    pub input: ChannelDataInput,
+}
+
+impl ChannelData {
+    pub fn new(spec_id: ChannelSpecId, input: ChannelDataInput) -> Self {
+        Self { spec_id, input }
+    }
 }
 
 #[derive(Default)]
 pub struct ChannelDataRepository {
     channels: HashMap<ChannelId, ChannelData>,
+    id_provider: IdProvider<ChannelId>,
 }
 
 impl ChannelDataRepositoryConcept for ChannelDataRepository {
-    fn create(&mut self, id: ChannelId, data: ChannelData) -> Result<()> {
+    fn create(&mut self, data: ChannelData) -> Result<ChannelId> {
+        let id = self
+            .id_provider
+            .next_available_id(|id| !self.channels.contains_key(id));
+        self.channels.insert(id, data);
+        Ok(id)
+    }
+
+    fn load(&mut self, id: ChannelId, data: ChannelData) -> Result<()> {
+        if self.channels.contains_key(&id) {
+            bail!("cannot load channel {id} as there is already a channel stored with the same id");
+        }
         self.channels.insert(id, data);
         Ok(())
     }
@@ -540,11 +569,19 @@ impl ChannelDataRepositoryConcept for ChannelDataRepository {
         self.channels.remove(&id)
     }
 
+    fn contains(&self, id: &ChannelId) -> bool {
+        self.channels.contains_key(id)
+    }
+
     fn data_mut(&mut self, id: ChannelId) -> Option<&mut ChannelData> {
         self.channels.get_mut(&id)
     }
 
     fn data(&self, id: ChannelId) -> Option<&ChannelData> {
         self.channels.get(&id)
+    }
+
+    fn channels(&self) -> impl Iterator<Item = &ChannelId> {
+        self.channels.keys()
     }
 }
