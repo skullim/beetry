@@ -1,7 +1,7 @@
 use crate::domain::{
     ports::{
-        ChannelDataRepositoryConcept, ChannelRepositoryFacadeConcept, EdgeRepositoryConcept,
-        EditorRepository, EditorRepositoryViewMut, NodeRepositoryFacadeConcept,
+        ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
+        EditorRepositoryViewMut, NodeRepositoryFacadeConcept,
     },
     service::{
         channel::{ChannelService, ChannelServiceView},
@@ -54,10 +54,13 @@ where
 
     pub fn edge_view(&mut self) -> EdgeServiceView<'_, ER, NRF> {
         let EditorRepositoryViewMut { node, edge, .. } = self.repo.view_mut();
-        EdgeServiceView::new(edge, &mut self.edge_service, node)
+        EdgeServiceView::new(edge, &mut self.edge_service, node.view())
     }
 
-    pub fn channel_view(&mut self) -> ChannelServiceView<'_, '_, NRF, ER, CRF> {
-        ChannelServiceView::new(&mut self.repo, &mut self.channel_service)
+    pub fn channel_view(&mut self) -> ChannelServiceView<'_, CRF> {
+        ChannelServiceView::new(
+            self.repo.channel_mut().view_mut(),
+            &mut self.channel_service,
+        )
     }
 }

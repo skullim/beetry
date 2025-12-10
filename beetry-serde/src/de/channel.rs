@@ -3,8 +3,9 @@ use std::num::NonZeroUsize;
 
 use anyhow::Result;
 use bon::Builder;
-use derive_more::{Display, From};
+use derive_more::{AddAssign, Display, From, Mul};
 use getset::{CopyGetters, Getters, MutGetters};
+use num_traits::One;
 use serde::{Deserialize, Serialize};
 
 use crate::de::tree::{ExportResult, ExportValidationError};
@@ -99,6 +100,7 @@ impl ChannelConfig {
     Serialize,
     Deserialize,
     Display,
+    AddAssign,
 )]
 #[serde(transparent)]
 pub struct ChannelId {
@@ -112,6 +114,21 @@ impl ChannelId {
 
     pub fn next(&self) -> Self {
         ChannelId { id: self.id + 1 }
+    }
+}
+
+impl One for ChannelId {
+    fn one() -> Self {
+        Self::new(1)
+    }
+}
+
+impl std::ops::Mul for ChannelId {
+    type Output = ChannelId;
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self {
+            id: self.id * rhs.id,
+        }
     }
 }
 

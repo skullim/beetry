@@ -38,7 +38,7 @@ where
     }
 
     pub fn create_node(&mut self, spec: NodeSpec) -> Result<NodeId> {
-        self.service.create_node(&mut self.facade, spec)
+        self.service.create(&mut self.facade, spec)
     }
 
     // pub fn remove(&mut self, id: NodeId) -> Result<()> {
@@ -78,14 +78,9 @@ where
     pub fn parameters(&self, id: NodeId) -> Result<&Parameters> {
         NodeService::parameters(self.facade.parameters, id)
     }
-
-    // pub fn port_state(&self, node_id: NodeId, port_id: NodePortId) -> Result<&NodePortConnection> {
-    //     let NodeRepositoryFacadeView { ports, .. } = self.repo.node().view();
-    //     NodeService::port_connection(ports, node_id, port_id)
-    // }
 }
 
-pub(crate) struct SpecService;
+pub struct SpecService;
 
 impl SpecService {
     pub(crate) fn name<'a>(
@@ -150,7 +145,7 @@ impl NodeService {
         Self::default()
     }
 
-    pub(crate) fn create_node(
+    pub(crate) fn create(
         &mut self,
         view: &mut NodeRepositoryFacadeViewMut<'_, impl NodeRepositoryFacadeConcept>,
         spec: NodeSpec,
