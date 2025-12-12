@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::domain::service::node::{PortStateServiceApi, SpecServiceApi, TrackerServiceApi};
 use crate::domain::{
     models::{ChannelId, ChannelPosition, ChannelSpecId, NodeId, NodePortConnection, NodePortId},
-    ports::{
+    repository::{
         ChannelData, ChannelDataInput, ChannelDataRepositoryConcept,
         ChannelRepositoryFacadeConcept, ChannelRepositoryFacadeViewMut,
         NodeRepositoryFacadeConcept, SpecRepositoryConcept,
@@ -85,7 +85,7 @@ where
         ChannelService::config(self.facade_view.data, id)
     }
 
-    //@todo user should not specify the connection count, so restrict access
+    //@todo user should not specify the connection count, so restrict access to some subset
     pub fn config_mut(&mut self, id: ChannelId) -> Result<&mut ChannelConfig> {
         ChannelService::config_mut(self.facade_view.data, id)
     }
@@ -132,12 +132,12 @@ where
 }
 
 #[derive(Default)]
-pub(crate) struct ChannelService {
+pub(super) struct ChannelService {
     spec_cache: HashMap<ChannelSpec, ChannelSpecId>,
 }
 
 impl ChannelService {
-    pub(crate) fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self::default()
     }
 
@@ -171,6 +171,16 @@ impl ChannelService {
         channel_repo.create(ChannelData::new(spec_id, input))
     }
 
+    //@todo implement API to remove node port <-> channel connection
+    //@todo also on_node_removal should remove connections to removed node
+
+    fn remove(
+        channel_repo: &mut impl ChannelDataRepositoryConcept,
+        id: ChannelId,
+    ) -> Option<ChannelData> {
+        channel_repo.remove(id)
+    }
+
     fn update_position(
         repo: &mut impl ChannelDataRepositoryConcept,
         id: ChannelId,
@@ -180,14 +190,7 @@ impl ChannelService {
         Ok(())
     }
 
-    fn position(
-        repo: &impl ChannelDataRepositoryConcept,
-        id: ChannelId,
-    ) -> Result<&ChannelPosition> {
-        Ok(&Self::data(repo, id)?.position)
-    }
-
-    pub fn positions(
+    fn positions(
         repo: &impl ChannelDataRepositoryConcept,
     ) -> impl Iterator<Item = &ChannelPosition> {
         repo.data_iter().map(|data| &data.position)
@@ -266,9 +269,6 @@ impl ChannelService {
         Ok(())
     }
 
-    //@todo implement API to remove node port <-> channel connection
-    //@todo also on_node_removal should remove connections to removed node
-
     fn validate_connection<NRF>(
         channel_spec_repo: &impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
         channel_repo: &impl ChannelDataRepositoryConcept,
@@ -313,25 +313,10 @@ impl ChannelService {
         repo.channels()
     }
 
-    pub(crate) fn ensure_exists(
-        repo: &impl ChannelDataRepositoryConcept,
-        id: ChannelId,
-    ) -> Result<()> {
+    fn ensure_exists(repo: &impl ChannelDataRepositoryConcept, id: ChannelId) -> Result<()> {
         if !repo.contains(&id) {
             bail!("channel {id} does not exist")
         }
         Ok(())
-    }
-}
-
-#[derive(Default)]
-struct ChannelIdAssigner {
-    id: ChannelId,
-}
-
-impl ChannelIdAssigner {
-    fn next_id(&mut self) -> ChannelId {
-        self.id = self.id.next();
-        self.id
     }
 }
