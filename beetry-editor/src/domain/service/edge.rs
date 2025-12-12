@@ -24,7 +24,7 @@ where
     ER: EdgeRepositoryConcept,
     NRF: NodeRepositoryFacadeConcept,
 {
-    pub(crate) fn new(
+    pub(super) fn new(
         edge_repo: &'a mut ER,
         edge_service: &'a mut EdgeService,
         node_tracker_api: TrackerServiceApi<'a, NRF::NodeRepo>,
@@ -71,7 +71,6 @@ pub(super) struct EdgeService {
     // not strictly necessary, but good for performance to cache the tree hierarchy
     parent_children_map: HashMap<NodeId, HashSet<NodeId>>,
     child_parent_map: HashMap<NodeId, NodeId>,
-    id_assigner: EdgeIdAssigner,
 }
 
 impl EdgeService {
@@ -138,8 +137,7 @@ impl EdgeService {
             }
         }
 
-        let id = self.id_assigner.next_id();
-        edge_repo.create(id, edge)?;
+        edge_repo.create(edge)?;
         self.child_parent_map.insert(child, parent);
         self.parent_children_map
             .entry(parent)
@@ -223,18 +221,5 @@ impl EdgeService {
         predicate: impl FnMut(&(EdgeId, &NodeEdge)) -> bool,
     ) -> Option<EdgeId> {
         edge_repo.iter().find(predicate).map(|(id, _)| id)
-    }
-}
-
-#[derive(Debug, Default)]
-struct EdgeIdAssigner {
-    id: EdgeId,
-}
-
-impl EdgeIdAssigner {
-    fn next_id(&mut self) -> EdgeId {
-        let id = self.id;
-        self.id += 1;
-        id
     }
 }

@@ -56,7 +56,7 @@ where
     CRF: ChannelRepositoryFacadeConcept,
     NRF: NodeRepositoryFacadeConcept,
 {
-    pub(crate) fn new(
+    pub(super) fn new(
         facade: ChannelRepositoryFacadeViewMut<'a, CRF>,
         channel: &'a mut ChannelService,
         deps: ExternalDeps<'a, NRF>,

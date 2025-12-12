@@ -15,7 +15,6 @@ use beetry_serde::{
 };
 
 use anyhow::{Result, anyhow, bail};
-use derive_more::From;
 use getset::{Getters, MutGetters};
 use num_traits::One;
 use serde_value::Value;
@@ -313,7 +312,7 @@ pub trait NodeRepositoryConcept: Default {
     fn contains(&self, id: &NodeId) -> bool;
 
     fn spec_id(&self, id: &NodeId) -> Option<&NodeSpecId>;
-    fn nodes(&self) -> NodeIter<'_>;
+    fn nodes(&self) -> impl Iterator<Item = &NodeId>;
 }
 
 #[derive(Debug, Default)]
@@ -352,29 +351,8 @@ impl NodeRepositoryConcept for NodeRepository {
         self.nodes.get(id)
     }
 
-    fn nodes(&self) -> NodeIter<'_> {
-        NodeIter::HashMap(self.nodes.keys())
-    }
-}
-
-//@todo: check if now this is still needed
-#[derive(Debug, From)]
-pub(crate) enum NodeIter<'a> {
-    Slice(std::slice::Iter<'a, NodeId>),
-    HashSet(std::collections::hash_set::Iter<'a, NodeId>),
-    HashMap(std::collections::hash_map::Keys<'a, NodeId, NodeSpecId>),
-    Option(std::option::Iter<'a, NodeId>),
-}
-
-impl<'a> Iterator for NodeIter<'a> {
-    type Item = &'a NodeId;
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            Self::Slice(slice) => slice.next(),
-            Self::HashSet(set) => set.next(),
-            Self::HashMap(map) => map.next(),
-            Self::Option(o) => o.next(),
-        }
+    fn nodes(&self) -> impl Iterator<Item = &NodeId> {
+        self.nodes.keys()
     }
 }
 
@@ -473,7 +451,9 @@ impl ParamValuesRepositoryConcept for ParamValuesRepository {
 }
 
 pub trait EdgeRepositoryConcept: Default {
-    fn create(&mut self, id: EdgeId, edge: NodeEdge) -> Result<()>;
+    fn create(&mut self, edge: NodeEdge) -> Result<EdgeId>;
+    fn load(&mut self, id: EdgeId, edge: NodeEdge) -> Result<()>;
+
     fn remove(&mut self, id: EdgeId) -> Option<NodeEdge>;
 
     fn edges(&self) -> impl Iterator<Item = &NodeEdge>;
@@ -487,14 +467,23 @@ pub trait EdgeRepositoryConcept: Default {
 
 #[derive(Default)]
 pub struct EdgeRepository {
-    /// Vec<NodeEdge> would also be sufficient, but frontend is rendered more efficiently
-    /// if each element has a unique and *stable* id. In that sense frontend is intrusive, but otherwise it would be very costly to
-    /// map the ids on any other layer
     edges: HashMap<EdgeId, NodeEdge>,
+    id_provider: IdProvider<EdgeId>,
 }
 
 impl EdgeRepositoryConcept for EdgeRepository {
-    fn create(&mut self, id: EdgeId, edge: NodeEdge) -> Result<()> {
+    fn create(&mut self, edge: NodeEdge) -> Result<EdgeId> {
+        let id = self
+            .id_provider
+            .next_available_id(|id| !self.edges.contains_key(id));
+        self.edges.insert(id, edge);
+        Ok(id)
+    }
+
+    fn load(&mut self, id: EdgeId, edge: NodeEdge) -> Result<()> {
+        if self.edges.contains_key(&id) {
+            bail!("cannot load edge {id} as there is already an edge stored with the same id");
+        }
         self.edges.insert(id, edge);
         Ok(())
     }
