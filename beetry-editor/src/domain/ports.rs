@@ -522,6 +522,7 @@ pub trait ChannelDataRepositoryConcept: Default {
 
     fn data_mut(&mut self, id: ChannelId) -> Option<&mut ChannelData>;
     fn data(&self, id: ChannelId) -> Option<&ChannelData>;
+    fn data_iter(&self) -> impl Iterator<Item = &ChannelData>;
 
     fn channels(&self) -> impl Iterator<Item = &ChannelId>;
 }
@@ -533,12 +534,17 @@ pub struct ChannelDataInput {
 
 pub struct ChannelData {
     pub spec_id: ChannelSpecId,
-    pub input: ChannelDataInput,
+    pub config: ChannelConfig,
+    pub position: ChannelPosition,
 }
 
 impl ChannelData {
     pub fn new(spec_id: ChannelSpecId, input: ChannelDataInput) -> Self {
-        Self { spec_id, input }
+        Self {
+            spec_id,
+            config: input.config,
+            position: input.position,
+        }
     }
 }
 
@@ -579,6 +585,10 @@ impl ChannelDataRepositoryConcept for ChannelDataRepository {
 
     fn data(&self, id: ChannelId) -> Option<&ChannelData> {
         self.channels.get(&id)
+    }
+
+    fn data_iter(&self) -> impl Iterator<Item = &ChannelData> {
+        self.channels.values()
     }
 
     fn channels(&self) -> impl Iterator<Item = &ChannelId> {

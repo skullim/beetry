@@ -1,12 +1,13 @@
 use crate::domain::{
     ports::{
         ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
-        EditorRepositoryViewMut, NodeRepositoryFacadeConcept,
+        EditorRepositoryViewMut, NodeRepositoryFacadeConcept, NodeRepositoryFacadeView,
+        NodeRepositoryFacadeViewMut,
     },
     service::{
-        channel::{ChannelService, ChannelServiceView},
-        edge::{EdgeService, EdgeServiceView},
-        node::{NodeService, NodeServiceView},
+        channel::{self, ChannelService, ChannelServiceApi},
+        edge::{EdgeService, EdgeServiceApi},
+        node::{self, NodeService, NodeServiceApi},
     },
 };
 
@@ -39,28 +40,35 @@ where
     ER: EdgeRepositoryConcept,
     CRF: ChannelRepositoryFacadeConcept,
 {
-    pub fn with_node_service(node_service: NodeService) -> Self {
-        Self {
-            node_service,
-            edge_service: EdgeService::new(),
-            channel_service: ChannelService::new(),
-            repo: EditorRepository::<NRF, ER, CRF>::new(),
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
 
-    pub fn node_view(&mut self) -> NodeServiceView<'_, '_, NRF> {
-        NodeServiceView::new(self.repo.node_mut().view_mut(), &mut self.node_service)
+    pub fn node_api(&mut self) -> NodeServiceApi<'_, '_, NRF> {
+        NodeServiceApi::new(self.repo.node_mut().view_mut(), &mut self.node_service)
     }
 
-    pub fn edge_view(&mut self) -> EdgeServiceView<'_, ER, NRF> {
+    pub fn edge_api(&mut self) -> EdgeServiceApi<'_, ER, NRF> {
         let EditorRepositoryViewMut { node, edge, .. } = self.repo.view_mut();
-        EdgeServiceView::new(edge, &mut self.edge_service, node.view())
+        let NodeRepositoryFacadeView { nodes, specs, .. } = node.view();
+        let tracker_api = node::TrackerServiceApi::new(nodes);
+        let spec_api = node::SpecServiceApi::new(specs, nodes);
+        EdgeServiceApi::new(edge, &mut self.edge_service, tracker_api, spec_api)
     }
 
-    pub fn channel_view(&mut self) -> ChannelServiceView<'_, CRF> {
-        ChannelServiceView::new(
-            self.repo.channel_mut().view_mut(),
-            &mut self.channel_service,
-        )
+    pub fn channel_api(&mut self) -> ChannelServiceApi<'_, CRF, NRF> {
+        let EditorRepositoryViewMut { node, channel, .. } = self.repo.view_mut();
+        let NodeRepositoryFacadeViewMut {
+            nodes,
+            specs,
+            ports,
+            ..
+        } = node.view_mut();
+        let tracker_api = node::TrackerServiceApi::new(nodes);
+        let spec_api = node::SpecServiceApi::new(specs, nodes);
+        let ports_api = node::PortStateServiceApi::new(ports);
+        let external_deps = channel::ExternalDeps::new(tracker_api, spec_api, ports_api);
+
+        ChannelServiceApi::new(channel.view_mut(), &mut self.channel_service, external_deps)
     }
 }
