@@ -5,91 +5,89 @@ use crate::domain::{
         NodeId, NodeKind, NodePortConnection, NodePortId, NodePosition, NodeSpec, NodeSpecId,
         PortsSpec,
     },
-    ports::{
-        NodePositionRepositoryConcept, NodeRepositoryConcept, NodeRepositoryFacadeConcept,
-        NodeRepositoryFacadeViewMut, ParamValuesRepositoryConcept, PortStateRepositoryConcept,
-        SpecRepositoryConcept,
+    repository::{
+        EdgeRepositoryConcept, NodePositionRepositoryConcept, NodeRepositoryConcept,
+        NodeRepositoryFacadeConcept, NodeRepositoryFacadeViewMut, ParamValuesRepositoryConcept,
+        PortStateRepositoryConcept, SpecRepositoryConcept,
     },
+    service::edge::{self, EdgeService, OnNodeRemovalService},
 };
 use anyhow::{Result, anyhow, bail};
 use beetry_serde::{de::parameter::Parameters, ser::node::NodeName};
 
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
-pub struct NodeServiceApi<'a, NRF>
+pub struct NodeServiceApi<'a, NRF, ER>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
-    facade: NodeRepositoryFacadeViewMut<'a, NRF>,
-    service: &'a mut NodeService,
+    facade_view: NodeRepositoryFacadeViewMut<'a, NRF>,
+    node_service: &'a mut NodeService,
+    edge_repo: &'a mut ER,
+    edge_service: &'a mut EdgeService,
 }
 
-impl<'a, NRF> NodeServiceApi<'a, NRF>
+impl<'a, NRF, ER> NodeServiceApi<'a, NRF, ER>
 where
     NRF: NodeRepositoryFacadeConcept,
+    ER: EdgeRepositoryConcept,
 {
     pub(super) fn new(
-        facade: NodeRepositoryFacadeViewMut<'a, NRF>,
-        service: &'a mut NodeService,
+        facade_view: NodeRepositoryFacadeViewMut<'a, NRF>,
+        node_service: &'a mut NodeService,
+        edge_repo: &'a mut ER,
+        edge_service: &'a mut EdgeService,
     ) -> Self {
-        Self { facade, service }
-    }
-
-    pub fn lifecycle(&mut self) -> NodeLifecycleApi<'_, NRF::SpecRepo, NRF::NodeRepo> {
-        NodeLifecycleApi {
-            service: self.service,
-            spec_repo: self.facade.specs,
-            node_repo: self.facade.nodes,
+        Self {
+            facade_view,
+            node_service,
+            edge_repo,
+            edge_service,
         }
     }
-
-    //@todo consider merging with lifecycle
-    pub fn tracker(&self) -> TrackerServiceApi<'_, NRF::NodeRepo> {
-        TrackerServiceApi {
-            repo: self.facade.nodes,
-        }
-    }
-
-    // pub fn create_node(&mut self, spec: NodeSpec) -> Result<NodeId> {
-    //     self.service.create(&mut self.facade, spec)
-    // }
-
-    pub fn port_state(&mut self) -> PortStateServiceApi<'_, NRF::PortStateRepo> {
-        PortStateServiceApi {
-            repo: self.facade.ports,
-        }
-    }
-
-    // pub fn remove(&mut self, id: NodeId) -> Result<()> {
-    //     let repo = &mut self.repo;
-    //     self.node_service.on_node_removal(repo.node_mut(), id)?;
-    //     self.edge_service.on_node_removal(repo.edge_mut(), id)
-    // }
 
     pub fn spec(&self) -> SpecServiceApi<'_, NRF::SpecRepo, NRF::NodeRepo> {
         SpecServiceApi {
-            spec_repo: self.facade.specs,
-            node_repo: self.facade.nodes,
+            spec_repo: self.facade_view.specs,
+            node_repo: self.facade_view.nodes,
         }
     }
 
-    pub fn nodes(&self) -> impl Iterator<Item = &NodeId> {
-        NodeService::nodes(self.facade.nodes)
+    pub fn lifecycle(&'a mut self) -> NodeLifecycleApi<'a, NRF, ER> {
+        NodeLifecycleApi {
+            service: self.node_service,
+            facade_view: &mut self.facade_view,
+            edge_on_node_removal: OnNodeRemovalService::new(self.edge_service, self.edge_repo),
+        }
     }
 
-    pub fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId> {
-        self.service.nodes_by_kind(kind)
+    pub fn tracker(&self) -> TrackerServiceApi<'_, NRF::NodeRepo> {
+        TrackerServiceApi {
+            service: self.node_service,
+            repo: self.facade_view.nodes,
+        }
     }
 
-    pub fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
-        NodeService::update_position(self.facade.nodes, self.facade.positions, id, position)
+    pub fn port_state(&mut self) -> PortStateServiceApi<'_, NRF::PortStateRepo> {
+        PortStateServiceApi {
+            repo: self.facade_view.ports,
+        }
     }
 
-    pub fn positions(&self, kind: NodeKind) -> impl Iterator<Item = &NodePosition> {
-        self.service.positions(self.facade.positions, kind)
+    pub fn position(&mut self) -> PositionServiceApi<'_, NRF::PositionRepo, NRF::NodeRepo> {
+        PositionServiceApi {
+            service: self.node_service,
+            position_repo: self.facade_view.positions,
+            tracker_service: TrackerServiceApi {
+                service: self.node_service,
+                repo: self.facade_view.nodes,
+            },
+        }
     }
 
-    pub fn parameters(&self, id: NodeId) -> Result<&Parameters> {
-        NodeService::parameters(self.facade.parameters, id)
+    pub fn parameters(&mut self) -> ParameterValueServiceApi<'_, NRF::ParamValuesRepo> {
+        ParameterValueServiceApi {
+            repo: self.facade_view.parameters,
+        }
     }
 }
 
@@ -136,7 +134,77 @@ where
     }
 }
 
-pub struct ParameterValuesService;
+pub struct NodeLifecycleApi<'a, NRF, ER>
+where
+    NRF: NodeRepositoryFacadeConcept,
+{
+    service: &'a mut NodeService,
+    facade_view: &'a mut NodeRepositoryFacadeViewMut<'a, NRF>,
+    edge_on_node_removal: edge::OnNodeRemovalService<'a, ER>,
+}
+
+impl<'a, NRF, ER> NodeLifecycleApi<'a, NRF, ER>
+where
+    NRF: NodeRepositoryFacadeConcept,
+    ER: EdgeRepositoryConcept,
+{
+    pub fn create(&mut self, spec: NodeSpec) -> Result<NodeId> {
+        self.service
+            .create(self.facade_view.specs, self.facade_view.nodes, spec)
+    }
+
+    pub fn remove(&mut self, id: NodeId) -> Result<()> {
+        self.service.remove::<NRF>(self.facade_view, id)?;
+        self.edge_on_node_removal.on_removal(id)?;
+        Ok(())
+    }
+}
+
+pub struct TrackerServiceApi<'a, NR> {
+    service: &'a NodeService,
+    repo: &'a NR,
+}
+
+impl<'a, NR> TrackerServiceApi<'a, NR>
+where
+    NR: NodeRepositoryConcept,
+{
+    pub(super) fn new(service: &'a NodeService, repo: &'a NR) -> Self {
+        Self { service, repo }
+    }
+
+    pub fn nodes(&self) -> impl Iterator<Item = &NodeId> {
+        self.repo.nodes()
+    }
+
+    pub fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId> {
+        self.service.nodes_by_kind(kind)
+    }
+
+    pub(super) fn ensure_exists(&self, id: NodeId) -> Result<()> {
+        if !self.repo.contains(&id) {
+            bail!("node {id} does not exist");
+        }
+        Ok(())
+    }
+}
+
+pub struct ParameterValueServiceApi<'a, PVR> {
+    repo: &'a mut PVR,
+}
+
+impl<'a, PVR> ParameterValueServiceApi<'a, PVR>
+where
+    PVR: ParamValuesRepositoryConcept,
+{
+    pub fn parameters(&self, id: NodeId) -> Result<&Parameters> {
+        self.repo
+            .params(id)
+            .ok_or_else(|| anyhow!("failed to obtain parameters for node {id}"))
+    }
+
+    //@todo add API to set parameters, also validate against schema here
+}
 
 pub struct PortStateServiceApi<'a, R> {
     repo: &'a mut R,
@@ -150,17 +218,13 @@ where
         Self { repo }
     }
 
-    pub(crate) fn state(
-        &self,
-        node_id: NodeId,
-        port_id: NodePortId,
-    ) -> Result<&NodePortConnection> {
+    pub fn state(&self, node_id: NodeId, port_id: NodePortId) -> Result<&NodePortConnection> {
         self.repo.state(node_id, port_id).ok_or_else(|| {
             anyhow!("unable to retrieve node's (id: {node_id}) port (id: {port_id}) state")
         })
     }
 
-    pub(crate) fn state_mut(
+    pub fn state_mut(
         &mut self,
         node_id: NodeId,
         port_id: NodePortId,
@@ -169,43 +233,87 @@ where
             anyhow!("unable to retrieve node's (id: {node_id}) port (id: {port_id}) state")
         })
     }
+
+    // fn initialize_ports(
+    //     ports_repo: &mut impl PortStateRepositoryConcept,
+    //     id: NodeId,
+    //     spec: &ActionSpec,
+    // ) -> Result<()> {
+    //     let mut port_specs = vec![];
+    //     for msg_spec in &spec.schema.senders {
+    //         port_specs.push(NodePortSpec {
+    //             kind: NodePortKind::Sender,
+    //             msg_spec: msg_spec.clone(),
+    //         });
+    //     }
+    //     for msg_spec in &spec.schema.receivers {
+    //         port_specs.push(NodePortSpec {
+    //             kind: NodePortKind::Receiver,
+    //             msg_spec: msg_spec.clone(),
+    //         });
+    //     }
+    //     Self::create_node_ports(ports_repo, id, port_specs.into_iter())?;
+    //     // collect to avoid borrowing mutably in the for loop
+    //     let port_ids: Vec<_> = Self::port_ids(ports_repo, id).collect();
+    //     for port_id in port_ids {
+    //         Self::connect_port(ports_repo, id, port_id, NodePortConnection::default())?;
+    //     }
+    //     Ok(())
+    // }
+
+    // fn create_node_ports(
+    //     repo: &mut impl PortStateRepositoryConcept,
+    //     node_id: NodeId,
+    //     port_specs: impl Iterator<Item = NodePortSpec>,
+    // ) -> Result<()> {
+    //     repo.create(node_id, port_specs)
+    // }
+
+    // pub(crate) fn connect_port(
+    //     repo: &mut impl PortStateRepositoryConcept,
+    //     node_id: NodeId,
+    //     port_id: NodePortId,
+    //     kind: NodePortConnection,
+    // ) -> Result<()> {
+    //     repo.set_conn(node_id, port_id, kind)
+    // }
+
+    // pub(crate) fn port_ids(
+    //     repo: &impl PortStateRepositoryConcept,
+    //     node_id: NodeId,
+    // ) -> impl Iterator<Item = NodePortId> {
+    //     repo.ports(node_id)
+    // }
+
+    // pub(crate) fn port_connection(
+    //     repo: &impl PortStateRepositoryConcept,
+    //     node_id: NodeId,
+    //     port_id: NodePortId,
+    // ) -> Result<&NodePortConnection> {
+    //     repo.connection(node_id, port_id).ok_or_else(|| {
+    //         anyhow!("unable to retrieve node's (id: {node_id}) port (id: {port_id}) connection")
+    //     })
+    // }
 }
 
-pub struct PositionService;
-
-pub struct NodeLifecycleApi<'a, SR, NR> {
-    service: &'a mut NodeService,
-    spec_repo: &'a mut SR,
-    node_repo: &'a mut NR,
+pub struct PositionServiceApi<'a, PR, NR> {
+    service: &'a NodeService,
+    tracker_service: TrackerServiceApi<'a, NR>,
+    position_repo: &'a mut PR,
 }
 
-impl<'a, SR, NR> NodeLifecycleApi<'a, SR, NR>
+impl<'a, PR, NR> PositionServiceApi<'a, PR, NR>
 where
-    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
+    PR: NodePositionRepositoryConcept,
     NR: NodeRepositoryConcept,
 {
-    fn create(&mut self, spec: NodeSpec) -> Result<NodeId> {
-        self.service.create(self.spec_repo, self.node_repo, spec)
-    }
-}
-
-pub struct TrackerServiceApi<'a, NR> {
-    repo: &'a NR,
-}
-
-impl<'a, NR> TrackerServiceApi<'a, NR>
-where
-    NR: NodeRepositoryConcept,
-{
-    pub(super) fn new(repo: &'a NR) -> Self {
-        Self { repo }
+    pub fn positions_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodePosition> {
+        self.service.positions_by_kind(self.position_repo, kind)
     }
 
-    pub fn ensure_exists(&self, id: NodeId) -> Result<()> {
-        if !self.repo.contains(&id) {
-            bail!("node {id} does not exist");
-        }
-        Ok(())
+    pub fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
+        self.tracker_service.ensure_exists(id)?;
+        self.position_repo.update(id, position)
     }
 }
 
@@ -248,7 +356,7 @@ impl NodeService {
         Ok(id)
     }
 
-    fn positions<'a>(
+    fn positions_by_kind<'a>(
         &'a self,
         repo: &'a impl NodePositionRepositoryConcept,
         kind: NodeKind,
@@ -261,12 +369,14 @@ impl NodeService {
         position_ids.flat_map(|id| repo.position(id))
     }
 
-    fn on_node_removal(
+    fn remove<NRF>(
         &mut self,
-        repo: &mut impl NodeRepositoryFacadeConcept,
+        view: &mut NodeRepositoryFacadeViewMut<'_, NRF>,
         id: NodeId,
-    ) -> Result<()> {
-        let view = repo.view_mut();
+    ) -> Result<()>
+    where
+        NRF: NodeRepositoryFacadeConcept,
+    {
         let spec = SpecServiceApi::spec(view.specs, view.nodes, id)?;
         self.node_cache
             .get_mut(&spec.kind)
@@ -276,98 +386,10 @@ impl NodeService {
         view.parameters.remove(id)
     }
 
-    fn ensure_exists(repo: &impl NodeRepositoryConcept, id: NodeId) -> Result<()> {
-        if !repo.contains(&id) {
-            bail!("node {id} does not exist");
-        }
-        Ok(())
-    }
-
-    // fn initialize_ports(
-    //     ports_repo: &mut impl PortStateRepositoryConcept,
-    //     id: NodeId,
-    //     spec: &ActionSpec,
-    // ) -> Result<()> {
-    //     let mut port_specs = vec![];
-    //     for msg_spec in &spec.schema.senders {
-    //         port_specs.push(NodePortSpec {
-    //             kind: NodePortKind::Sender,
-    //             msg_spec: msg_spec.clone(),
-    //         });
-    //     }
-    //     for msg_spec in &spec.schema.receivers {
-    //         port_specs.push(NodePortSpec {
-    //             kind: NodePortKind::Receiver,
-    //             msg_spec: msg_spec.clone(),
-    //         });
-    //     }
-
-    //     Self::create_node_ports(ports_repo, id, port_specs.into_iter())?;
-    //     // collect to avoid borrowing mutably in the for loop
-    //     let port_ids: Vec<_> = Self::port_ids(ports_repo, id).collect();
-    //     for port_id in port_ids {
-    //         Self::connect_port(ports_repo, id, port_id, NodePortConnection::default())?;
-    //     }
-    //     Ok(())
-    // }
-
-    fn nodes(repo: &impl NodeRepositoryConcept) -> impl Iterator<Item = &NodeId> {
-        repo.nodes()
-    }
-
-    pub fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId> {
+    fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId> {
         self.node_cache
             .get(&kind)
             .into_iter()
             .flat_map(|nodes| nodes.iter())
     }
-
-    fn update_position(
-        node_repo: &impl NodeRepositoryConcept,
-        position_repo: &mut impl NodePositionRepositoryConcept,
-        id: NodeId,
-        position: NodePosition,
-    ) -> Result<()> {
-        Self::ensure_exists(node_repo, id)?;
-        position_repo.update(id, position)
-    }
-
-    fn parameters(repo: &impl ParamValuesRepositoryConcept, id: NodeId) -> Result<&Parameters> {
-        repo.params(id)
-            .ok_or_else(|| anyhow!("failed to obtain parameters for node {id}"))
-    }
-
-    // fn create_node_ports(
-    //     repo: &mut impl PortStateRepositoryConcept,
-    //     node_id: NodeId,
-    //     port_specs: impl Iterator<Item = NodePortSpec>,
-    // ) -> Result<()> {
-    //     repo.create(node_id, port_specs)
-    // }
-
-    // pub(crate) fn connect_port(
-    //     repo: &mut impl PortStateRepositoryConcept,
-    //     node_id: NodeId,
-    //     port_id: NodePortId,
-    //     kind: NodePortConnection,
-    // ) -> Result<()> {
-    //     repo.set_conn(node_id, port_id, kind)
-    // }
-
-    // pub(crate) fn port_ids(
-    //     repo: &impl PortStateRepositoryConcept,
-    //     node_id: NodeId,
-    // ) -> impl Iterator<Item = NodePortId> {
-    //     repo.ports(node_id)
-    // }
-
-    // pub(crate) fn port_connection(
-    //     repo: &impl PortStateRepositoryConcept,
-    //     node_id: NodeId,
-    //     port_id: NodePortId,
-    // ) -> Result<&NodePortConnection> {
-    //     repo.connection(node_id, port_id).ok_or_else(|| {
-    //         anyhow!("unable to retrieve node's (id: {node_id}) port (id: {port_id}) connection")
-    //     })
-    // }
 }

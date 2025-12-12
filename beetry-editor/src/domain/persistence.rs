@@ -21,7 +21,9 @@ use crate::{
             ChannelPosition, EdgeId, NodeKind, NodePortConnection, NodePortId, NodePosition,
             NodeSpec,
         },
-        ports::{ChannelDataRepositoryConcept, NodeRepositoryFacade, NodeRepositoryFacadeConcept},
+        repository::{
+            ChannelDataRepositoryConcept, NodeRepositoryFacade, NodeRepositoryFacadeConcept,
+        },
     },
 };
 
@@ -84,7 +86,7 @@ pub struct UiElementPositions {
 
 // Repository <-> Storage impl
 
-use crate::domain::ports::NodeRepositoryConcept;
+use crate::domain::repository::NodeRepositoryConcept;
 
 //@todo make it into iter instead of Vec
 pub trait NodeRepositoryFacadeStorageConcept {

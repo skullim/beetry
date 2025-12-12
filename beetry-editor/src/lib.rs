@@ -1,4 +1,3 @@
-mod application;
 mod definitions;
 mod domain;
 mod editor;

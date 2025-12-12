@@ -1,5 +1,5 @@
 use crate::domain::{
-    ports::{
+    repository::{
         ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
         EditorRepositoryViewMut, NodeRepositoryFacadeConcept, NodeRepositoryFacadeView,
         NodeRepositoryFacadeViewMut,
@@ -44,14 +44,21 @@ where
         Self::default()
     }
 
-    pub fn node_api(&mut self) -> NodeServiceApi<'_, NRF> {
-        NodeServiceApi::new(self.repo.node_mut().view_mut(), &mut self.node_service)
+    pub fn node_api(&mut self) -> NodeServiceApi<'_, NRF, ER> {
+        let EditorRepositoryViewMut { node, edge, .. } = self.repo.view_mut();
+
+        NodeServiceApi::new(
+            node.view_mut(),
+            &mut self.node_service,
+            edge,
+            &mut self.edge_service,
+        )
     }
 
     pub fn edge_api(&mut self) -> EdgeServiceApi<'_, ER, NRF> {
         let EditorRepositoryViewMut { node, edge, .. } = self.repo.view_mut();
         let NodeRepositoryFacadeView { nodes, specs, .. } = node.view();
-        let tracker_api = node::TrackerServiceApi::new(nodes);
+        let tracker_api = node::TrackerServiceApi::new(&self.node_service, nodes);
         let spec_api = node::SpecServiceApi::new(specs, nodes);
         EdgeServiceApi::new(edge, &mut self.edge_service, tracker_api, spec_api)
     }
@@ -64,7 +71,7 @@ where
             ports,
             ..
         } = node.view_mut();
-        let tracker_api = node::TrackerServiceApi::new(nodes);
+        let tracker_api = node::TrackerServiceApi::new(&self.node_service, nodes);
         let spec_api = node::SpecServiceApi::new(specs, nodes);
         let ports_api = node::PortStateServiceApi::new(ports);
         let external_deps = channel::ExternalDeps::new(tracker_api, spec_api, ports_api);

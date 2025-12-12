@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::domain::service::node::{SpecServiceApi, TrackerServiceApi};
 use crate::domain::{
     models::{EdgeId, NodeEdge, NodeId, NodeKind},
-    ports::{EdgeRepositoryConcept, NodeRepositoryFacadeConcept},
+    repository::{EdgeRepositoryConcept, NodeRepositoryFacadeConcept},
 };
 use anyhow::{Result, anyhow, bail};
 use tracing::warn;
@@ -64,11 +64,43 @@ where
     }
 }
 
-pub struct EdgeLifecycleApi;
+pub(super) struct OnNodeRemovalService<'a, ER> {
+    service: &'a mut EdgeService,
+    repo: &'a mut ER,
+}
+
+impl<'a, ER> OnNodeRemovalService<'a, ER>
+where
+    ER: EdgeRepositoryConcept,
+{
+    pub(super) fn new(service: &'a mut EdgeService, repo: &'a mut ER) -> Self {
+        Self { service, repo }
+    }
+
+    pub(super) fn on_removal(&mut self, id: NodeId) -> Result<()> {
+        let filtered: Vec<_> = self
+            .repo
+            .iter()
+            .filter_map(|(edge_id, e)| {
+                if e.to == id || e.from == id {
+                    Some(edge_id)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for id in filtered {
+            self.service.remove(self.repo, id)?;
+        }
+        Ok(())
+    }
+}
 
 #[derive(Debug, Default)]
 pub(super) struct EdgeService {
-    // not strictly necessary, but good for performance to cache the tree hierarchy
+    // not strictly necessary, but good for performance to cache the tree hierarchy\
+    // @todo replace value type to https://docs.rs/mitsein/latest/mitsein/btree_set1/type.BTreeSet1.html.
+    // Rationale: entry should exist only if there is any present child otherwise the entry should be removed
     parent_children_map: HashMap<NodeId, HashSet<NodeId>>,
     child_parent_map: HashMap<NodeId, NodeId>,
 }
@@ -178,27 +210,6 @@ impl EdgeService {
 
     fn edges(edge_repo: &impl EdgeRepositoryConcept) -> impl Iterator<Item = (EdgeId, &NodeEdge)> {
         edge_repo.iter()
-    }
-
-    pub(crate) fn on_node_removal(
-        &mut self,
-        edge_repo: &mut impl EdgeRepositoryConcept,
-        id: NodeId,
-    ) -> Result<()> {
-        let filtered: Vec<_> = edge_repo
-            .iter()
-            .filter_map(|(edge_id, e)| {
-                if e.to == id || e.from == id {
-                    Some(edge_id)
-                } else {
-                    None
-                }
-            })
-            .collect();
-        for id in filtered {
-            self.remove(edge_repo, id)?;
-        }
-        Ok(())
     }
 
     fn would_create_cycle(&self, edge: &NodeEdge) -> bool {
