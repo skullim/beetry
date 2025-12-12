@@ -12,23 +12,24 @@ use std::collections::HashMap;
 
 use crate::domain::{
     models::{NodeId, NodeKind, NodePortConnection, NodePortKind},
-    ports::{ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept},
+    repository::{
+        ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept,
+    },
     service::{channel::ChannelServiceApi, edge::EdgeServiceApi, node::NodeServiceApi},
 };
 
-//@todo move to service layer, there should be no application layer
-pub struct TreeExporter<'a, NRF, ER, CRF>
+pub struct TreeExportServiceApi<'a, NRF, ER, CRF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
     CRF: ChannelRepositoryFacadeConcept,
 {
     channel_api: ChannelServiceApi<'a, CRF, NRF>,
-    node_api: NodeServiceApi<'a, NRF>,
+    node_api: NodeServiceApi<'a, NRF, ER>,
     edge_api: EdgeServiceApi<'a, ER, NRF>,
 }
 
-impl<'a, NRF, ER, CRF> TreeExporter<'a, NRF, ER, CRF>
+impl<'a, NRF, ER, CRF> TreeExportServiceApi<'a, NRF, ER, CRF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
@@ -63,6 +64,7 @@ where
     fn export_root(&mut self) -> Result<RootSnapshot> {
         let root_id = self
             .node_api
+            .tracker()
             .nodes_by_kind(NodeKind::Root)
             .next()
             .copied()
@@ -139,7 +141,7 @@ where
             .build();
 
         let name = self.node_api.spec().name(id)?.clone();
-        let params = self.node_api.parameters(id)?.clone();
+        let params = self.node_api.parameters().parameters(id)?.clone();
         Ok(NodeSnapshot::builder()
             .name(name)
             .data(leaf_snapshot)

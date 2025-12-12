@@ -1,21 +1,18 @@
-use std::collections::{HashMap, VecDeque};
-
 use crate::{
     EditorService,
     domain::{
-        models::NodeId,
         persistence::EditorData,
-        ports::{
-            ChannelDataRepositoryConcept, ChannelRepositoryFacadeConcept, EdgeRepositoryConcept,
-            NodeRepositoryFacadeConcept,
+        repository::{
+            ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept,
         },
     },
 };
 use anyhow::{Result, anyhow};
+use std::collections::HashMap;
 
-pub struct ProjectImporter;
+pub struct ProjectImportServiceApi;
 
-impl ProjectImporter {
+impl ProjectImportServiceApi {
     pub fn import<NRF, ER, CRF>(data: EditorData) -> Result<EditorService<NRF, ER, CRF>>
     where
         NRF: NodeRepositoryFacadeConcept,
