@@ -44,7 +44,7 @@ where
         Self::default()
     }
 
-    pub fn node_api(&mut self) -> NodeServiceApi<'_, '_, NRF> {
+    pub fn node_api(&mut self) -> NodeServiceApi<'_, NRF> {
         NodeServiceApi::new(self.repo.node_mut().view_mut(), &mut self.node_service)
     }
 

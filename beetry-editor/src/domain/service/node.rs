@@ -15,26 +15,26 @@ use anyhow::{Result, anyhow, bail};
 use beetry_serde::{de::parameter::Parameters, ser::node::NodeName};
 
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
-pub struct NodeServiceApi<'f, 's, NRF>
+pub struct NodeServiceApi<'a, NRF>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
-    facade: NodeRepositoryFacadeViewMut<'f, NRF>,
-    service: &'s mut NodeService,
+    facade: NodeRepositoryFacadeViewMut<'a, NRF>,
+    service: &'a mut NodeService,
 }
 
-impl<'f, 's, NRF> NodeServiceApi<'f, 's, NRF>
+impl<'a, NRF> NodeServiceApi<'a, NRF>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
     pub(super) fn new(
-        facade: NodeRepositoryFacadeViewMut<'f, NRF>,
-        service: &'s mut NodeService,
+        facade: NodeRepositoryFacadeViewMut<'a, NRF>,
+        service: &'a mut NodeService,
     ) -> Self {
         Self { facade, service }
     }
 
-    pub fn lifecycle_service(&mut self) -> NodeLifecycleApi<'_, NRF::SpecRepo, NRF::NodeRepo> {
+    pub fn lifecycle(&mut self) -> NodeLifecycleApi<'_, NRF::SpecRepo, NRF::NodeRepo> {
         NodeLifecycleApi {
             service: self.service,
             spec_repo: self.facade.specs,
@@ -43,7 +43,7 @@ where
     }
 
     //@todo consider merging with lifecycle
-    pub fn tracker_service(&self) -> TrackerServiceApi<'_, NRF::NodeRepo> {
+    pub fn tracker(&self) -> TrackerServiceApi<'_, NRF::NodeRepo> {
         TrackerServiceApi {
             repo: self.facade.nodes,
         }
@@ -53,7 +53,7 @@ where
     //     self.service.create(&mut self.facade, spec)
     // }
 
-    pub fn port_state_service(&mut self) -> PortStateServiceApi<'_, NRF::PortStateRepo> {
+    pub fn port_state(&mut self) -> PortStateServiceApi<'_, NRF::PortStateRepo> {
         PortStateServiceApi {
             repo: self.facade.ports,
         }
@@ -65,24 +65,12 @@ where
     //     self.edge_service.on_node_removal(repo.edge_mut(), id)
     // }
 
-    pub fn spec_service(&self) -> SpecServiceApi<'_, NRF::SpecRepo, NRF::NodeRepo> {
+    pub fn spec(&self) -> SpecServiceApi<'_, NRF::SpecRepo, NRF::NodeRepo> {
         SpecServiceApi {
             spec_repo: self.facade.specs,
             node_repo: self.facade.nodes,
         }
     }
-
-    // pub fn kind(&self, id: NodeId) -> Result<NodeKind> {
-    //     SpecService::kind(self.facade.specs, self.facade.nodes, id)
-    // }
-
-    // pub fn name(&self, id: NodeId) -> Result<&NodeName> {
-    //     SpecService::name(self.facade.specs, self.facade.nodes, id)
-    // }
-
-    // pub fn ports_spec(&self, id: NodeId) -> Result<&PortsSpec> {
-    //     SpecService::ports(self.facade.specs, self.facade.nodes, id)
-    // }
 
     pub fn nodes(&self) -> impl Iterator<Item = &NodeId> {
         NodeService::nodes(self.facade.nodes)
