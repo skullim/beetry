@@ -1,49 +1,48 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::domain::ports::NodeRepositoryFacadeView;
+use crate::domain::service::node::{SpecServiceApi, TrackerServiceApi};
 use crate::domain::{
-    models::{EdgeId, NodeEdge, NodeId, NodeKind, NodeSpec, NodeSpecId},
-    ports::{
-        EdgeRepositoryConcept, NodeRepositoryConcept, NodeRepositoryFacadeConcept,
-        SpecRepositoryConcept,
-    },
-    service::node::{self, NodeService},
+    models::{EdgeId, NodeEdge, NodeId, NodeKind},
+    ports::{EdgeRepositoryConcept, NodeRepositoryFacadeConcept},
 };
 use anyhow::{Result, anyhow, bail};
 use tracing::warn;
 
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
-pub struct EdgeServiceView<'a, ER, NRF>
+pub struct EdgeServiceApi<'a, ER, NRF>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
     edge_repo: &'a mut ER,
     edge_service: &'a mut EdgeService,
-    node_view: NodeRepositoryFacadeView<'a, NRF>,
+    node_tracker_api: TrackerServiceApi<'a, NRF::NodeRepo>,
+    node_spec_api: SpecServiceApi<'a, NRF::SpecRepo, NRF::NodeRepo>,
 }
 
-impl<'a, ER, NRF> EdgeServiceView<'a, ER, NRF>
+impl<'a, ER, NRF> EdgeServiceApi<'a, ER, NRF>
 where
     ER: EdgeRepositoryConcept,
     NRF: NodeRepositoryFacadeConcept,
 {
     pub(crate) fn new(
-        repo: &'a mut ER,
+        edge_repo: &'a mut ER,
         edge_service: &'a mut EdgeService,
-        node_view: NodeRepositoryFacadeView<'a, NRF>,
+        node_tracker_api: TrackerServiceApi<'a, NRF::NodeRepo>,
+        node_spec_api: SpecServiceApi<'a, NRF::SpecRepo, NRF::NodeRepo>,
     ) -> Self {
         Self {
-            edge_repo: repo,
+            edge_repo,
             edge_service,
-            node_view,
+            node_tracker_api,
+            node_spec_api,
         }
     }
 
     pub fn create(&mut self, edge: NodeEdge) -> Result<()> {
-        self.edge_service.create(
+        self.edge_service.create::<NRF>(
             self.edge_repo,
-            self.node_view.specs,
-            self.node_view.nodes,
+            &self.node_tracker_api,
+            &self.node_spec_api,
             edge,
         )
     }
@@ -65,8 +64,10 @@ where
     }
 }
 
-#[derive(Default)]
-pub(crate) struct EdgeService {
+pub struct EdgeLifecycleApi;
+
+#[derive(Debug, Default)]
+pub(super) struct EdgeService {
     // not strictly necessary, but good for performance to cache the tree hierarchy
     parent_children_map: HashMap<NodeId, HashSet<NodeId>>,
     child_parent_map: HashMap<NodeId, NodeId>,
@@ -74,17 +75,20 @@ pub(crate) struct EdgeService {
 }
 
 impl EdgeService {
-    pub(crate) fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self::default()
     }
 
-    fn create(
+    fn create<NRF>(
         &mut self,
         edge_repo: &mut impl EdgeRepositoryConcept,
-        spec_repo: &impl SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
-        node_repo: &impl NodeRepositoryConcept,
+        node_tracker_api: &TrackerServiceApi<'_, NRF::NodeRepo>,
+        node_spec_api: &SpecServiceApi<'_, NRF::SpecRepo, NRF::NodeRepo>,
         edge: NodeEdge,
-    ) -> Result<()> {
+    ) -> Result<()>
+    where
+        NRF: NodeRepositoryFacadeConcept,
+    {
         // 1. Check node types
         // 2. Based on type implement valid connection business logic as all nodes have different rules
         // - each node can only have 1 parent except root that has no parents
@@ -94,16 +98,16 @@ impl EdgeService {
         // - action/condition nodes have no children
 
         let (parent, child) = (edge.from, edge.to);
-        NodeService::ensure_exists(node_repo, parent)?;
-        NodeService::ensure_exists(node_repo, child)?;
+        node_tracker_api.ensure_exists(parent)?;
+        node_tracker_api.ensure_exists(child)?;
 
         // validate parent
-        let parent_kind = node::SpecService::kind(spec_repo, node_repo, parent)?;
+        let parent_kind = node_spec_api.kind(parent)?;
         if matches!(parent_kind, NodeKind::Action | NodeKind::Condition) {
             bail!("attempted to create invalid edge: leaf nodes must have no children");
         }
 
-        let child_kind = node::SpecService::kind(spec_repo, node_repo, child)?;
+        let child_kind = node_spec_api.kind(child)?;
         if let NodeKind::Root = child_kind {
             bail!("attempted to create invalid edge: root node must not have any parent");
         }
@@ -222,7 +226,7 @@ impl EdgeService {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct EdgeIdAssigner {
     id: EdgeId,
 }
