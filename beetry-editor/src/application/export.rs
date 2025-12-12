@@ -10,20 +10,22 @@ use beetry_serde::{
 use itertools::izip;
 use std::collections::HashMap;
 
-use crate::{
-    EditorService,
-    domain::{
-        models::{NodeId, NodeKind, NodePortConnection, NodePortKind},
-        ports::{
-            ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept,
-        },
-    },
+use crate::domain::{
+    models::{NodeId, NodeKind, NodePortConnection, NodePortKind},
+    ports::{ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept},
+    service::{channel::ChannelServiceApi, edge::EdgeServiceApi, node::NodeServiceApi},
 };
 
 //@todo move to service layer, there should be no application layer
-pub struct TreeExporter<'a, NRF, ER, CRF> {
-    //@todo long term split API into mut and shared. Export should be possible using only shared reference
-    service: &'a mut EditorService<NRF, ER, CRF>,
+pub struct TreeExporter<'a, NRF, ER, CRF>
+where
+    NRF: NodeRepositoryFacadeConcept,
+    ER: EdgeRepositoryConcept,
+    CRF: ChannelRepositoryFacadeConcept,
+{
+    channel_api: ChannelServiceApi<'a, CRF, NRF>,
+    node_api: NodeServiceApi<'a, NRF>,
+    edge_api: EdgeServiceApi<'a, ER, NRF>,
 }
 
 impl<'a, NRF, ER, CRF> TreeExporter<'a, NRF, ER, CRF>
@@ -41,15 +43,14 @@ where
     }
 
     fn export_channels(&mut self) -> Result<ChannelIdToSnapshotMap> {
-        let channel_api = self.service.channel_api();
-        let ids: Vec<_> = channel_api.channels().collect();
+        let ids: Vec<_> = self.channel_api.channels().copied().collect();
         let spec = ids
             .iter()
-            .map(|id| channel_api.spec(**id))
+            .map(|id| self.channel_api.spec(*id))
             .collect::<Result<Vec<_>>>()?;
         let config = ids
             .iter()
-            .map(|id| channel_api.config(**id))
+            .map(|id| self.channel_api.config(*id))
             .collect::<Result<Vec<_>>>()?;
 
         let map = izip!(ids, spec, config)
@@ -61,16 +62,14 @@ where
 
     fn export_root(&mut self) -> Result<RootSnapshot> {
         let root_id = self
-            .service
-            .node_api()
+            .node_api
             .nodes_by_kind(NodeKind::Root)
             .next()
             .copied()
             .ok_or_else(|| anyhow!("no root found in the tree"))?;
 
         let child_id = self
-            .service
-            .edge_api()
+            .edge_api
             .children_of(root_id)
             .next()
             .ok_or_else(|| anyhow!("root has no child"))?;
@@ -79,11 +78,11 @@ where
     }
 
     fn export_node(&mut self, id: NodeId) -> Result<NodeSnapshot> {
-        let kind: NodeKind = self.service.node_api().spec_service().kind(id)?;
+        let kind: NodeKind = self.node_api.spec().kind(id)?;
         match kind {
             NodeKind::Root => unreachable!(),
             NodeKind::Control => {
-                let child_ids: Vec<_> = self.service.edge_api().children_of(id).collect();
+                let child_ids: Vec<_> = self.edge_api.children_of(id).collect();
                 //@todo: child_ids have to be sorted based on the x coordinate (increasing) to determine the proper children order
                 let mut children = Vec::with_capacity(child_ids.len());
                 for child_id in child_ids {
@@ -91,7 +90,7 @@ where
                 }
 
                 Ok(NodeSnapshot::builder()
-                    .name(self.service.node_api().spec_service().name(id)?.clone())
+                    .name(self.node_api.spec().name(id)?.clone())
                     .data(NodeSnapshotData::Control(ControlSnapshot::new(children)?))
                     .build())
             }
@@ -108,12 +107,11 @@ where
         let mut senders = vec![];
         let mut receivers = vec![];
 
-        let mut node_api = self.service.node_api();
         let ports_spec = {
-            let spec_api = node_api.spec_service();
+            let spec_api = self.node_api.spec();
             spec_api.ports(id)?.clone()
         };
-        let port_state_api = node_api.port_state_service();
+        let port_state_api = self.node_api.port_state();
 
         for port_id in ports_spec.ids() {
             let spec = ports_spec.spec(*port_id)?;
@@ -140,9 +138,8 @@ where
             .senders(senders)
             .build();
 
-        let name = node_api.spec_service().name(id)?.clone();
-        let params = node_api.parameters(id)?.clone();
-
+        let name = self.node_api.spec().name(id)?.clone();
+        let params = self.node_api.parameters(id)?.clone();
         Ok(NodeSnapshot::builder()
             .name(name)
             .data(leaf_snapshot)
