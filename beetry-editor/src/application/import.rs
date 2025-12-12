@@ -5,8 +5,10 @@ use crate::{
     domain::{
         models::NodeId,
         persistence::EditorData,
-        ports::{ChannelDataRepositoryConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept},
-        service::node::NodeService,
+        ports::{
+            ChannelDataRepositoryConcept, ChannelRepositoryFacadeConcept, EdgeRepositoryConcept,
+            NodeRepositoryFacadeConcept,
+        },
     },
 };
 use anyhow::{Result, anyhow};
@@ -14,13 +16,13 @@ use anyhow::{Result, anyhow};
 pub struct ProjectImporter;
 
 impl ProjectImporter {
-    pub fn import<NRF, ER, CR>(data: EditorData) -> Result<EditorService<NRF, ER, CR>>
+    pub fn import<NRF, ER, CRF>(data: EditorData) -> Result<EditorService<NRF, ER, CRF>>
     where
         NRF: NodeRepositoryFacadeConcept,
         ER: EdgeRepositoryConcept,
-        CR: ChannelDataRepositoryConcept,
+        CRF: ChannelRepositoryFacadeConcept,
     {
-        let mut editor_service = EditorService::<NRF, ER, CR>::default();
+        let mut editor_service = EditorService::<NRF, ER, CRF>::default();
         // first import nodes
         {
             let spec_lookup: HashMap<_, _> = data
@@ -35,8 +37,6 @@ impl ProjectImporter {
                     .get(&node.metadata_id)
                     .ok_or_else(|| anyhow!("failed to obtain metadata for node {}", node.id))?;
                 let (spec, kind, ports) = meta;
-
-                let mut node_view = editor_service.node_view();
             }
         }
         todo!()
