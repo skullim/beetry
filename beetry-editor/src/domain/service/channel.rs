@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 
-use crate::domain::service::node::{PortStateServiceApi, SpecServiceApi, TrackerServiceApi};
+use crate::domain::models::{NodePortKind, NodePortSpec};
 use crate::domain::{
-    models::{ChannelId, ChannelPosition, ChannelSpecId, NodeId, NodePortConnection, NodePortId},
+    models::{ChannelId, ChannelPosition, ChannelSpecId, NodeId},
     repository::{
         ChannelData, ChannelDataInput, ChannelDataRepositoryConcept,
-        ChannelRepositoryFacadeConcept, ChannelRepositoryFacadeViewMut,
-        NodeRepositoryFacadeConcept, SpecRepositoryConcept,
+        ChannelRepositoryFacadeConcept, ChannelRepositoryFacadeViewMut, SpecRepositoryConcept,
     },
 };
 use anyhow::{Result, anyhow, bail};
@@ -15,62 +14,41 @@ use beetry_serde::{
     ser::channel::ChannelSpec,
 };
 
-pub(super) struct ExternalDeps<'a, NRF>
-where
-    NRF: NodeRepositoryFacadeConcept,
-{
-    tracker: TrackerServiceApi<'a, NRF::NodeRepo>,
-    spec: SpecServiceApi<'a, NRF::SpecRepo, NRF::NodeRepo>,
-    port_state: PortStateServiceApi<'a, NRF::PortStateRepo>,
+pub struct ConnectionContext<'a> {
+    pub spec: &'a NodePortSpec,
+    pub node: NodeId,
+    pub channel: ChannelId,
 }
 
-impl<'a, NRF> ExternalDeps<'a, NRF>
-where
-    NRF: NodeRepositoryFacadeConcept,
-{
-    pub(super) fn new(
-        tracker: TrackerServiceApi<'a, NRF::NodeRepo>,
-        spec: SpecServiceApi<'a, NRF::SpecRepo, NRF::NodeRepo>,
-        port_state: PortStateServiceApi<'a, NRF::PortStateRepo>,
-    ) -> Self {
-        Self {
-            tracker,
-            spec,
-            port_state,
-        }
-    }
-}
-
-pub struct ChannelServiceApi<'a, CRF, NRF>
+pub struct ChannelServiceApi<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
-    NRF: NodeRepositoryFacadeConcept,
 {
     facade_view: ChannelRepositoryFacadeViewMut<'a, CRF>,
     channel: &'a mut ChannelService,
-    deps: ExternalDeps<'a, NRF>,
 }
 
-impl<'a, CRF, NRF> ChannelServiceApi<'a, CRF, NRF>
+impl<'a, CRF> ChannelServiceApi<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
-    NRF: NodeRepositoryFacadeConcept,
 {
     pub(super) fn new(
         facade: ChannelRepositoryFacadeViewMut<'a, CRF>,
         channel: &'a mut ChannelService,
-        deps: ExternalDeps<'a, NRF>,
     ) -> Self {
         Self {
             facade_view: facade,
             channel,
-            deps,
         }
     }
 
     pub fn create(&mut self, spec: ChannelSpec, input: ChannelDataInput) -> Result<ChannelId> {
         self.channel
             .create(self.facade_view.spec, self.facade_view.data, spec, input)
+    }
+
+    pub fn remove(&mut self, id: ChannelId) -> Result<()> {
+        ChannelService::remove(self.facade_view.data, id)
     }
 
     pub fn update_position(&mut self, id: ChannelId, position: ChannelPosition) -> Result<()> {
@@ -94,40 +72,16 @@ where
         ChannelService::channels(self.facade_view.data)
     }
 
-    pub fn connect_sender(
-        &mut self,
-        id: ChannelId,
-        from: NodeId,
-        port_id: NodePortId,
-    ) -> Result<()> {
-        ChannelService::connect_sender::<NRF>(
-            self.facade_view.spec,
-            self.facade_view.data,
-            &self.deps,
-            id,
-            from,
-            port_id,
-        )
-    }
-
-    pub fn connect_receiver(
-        &mut self,
-        id: ChannelId,
-        to: NodeId,
-        port_id: NodePortId,
-    ) -> Result<()> {
-        ChannelService::connect_receiver::<NRF>(
-            self.facade_view.spec,
-            self.facade_view.data,
-            &self.deps,
-            id,
-            to,
-            port_id,
-        )
-    }
-
     pub fn spec(&self, id: ChannelId) -> Result<&ChannelSpec> {
         ChannelService::spec(self.facade_view.spec, self.facade_view.data, id)
+    }
+
+    pub(super) fn connect(&mut self, context: ConnectionContext) -> Result<()> {
+        ChannelService::connect(self.facade_view.spec, self.facade_view.data, context)
+    }
+
+    pub(super) fn disconnect(&mut self, id: ChannelId, kind: NodePortKind) -> Result<()> {
+        ChannelService::disconnect(self.facade_view.data, id, kind)
     }
 }
 
@@ -171,14 +125,10 @@ impl ChannelService {
         channel_repo.create(ChannelData::new(spec_id, input))
     }
 
-    //@todo implement API to remove node port <-> channel connection
     //@todo also on_node_removal should remove connections to removed node
-
-    fn remove(
-        channel_repo: &mut impl ChannelDataRepositoryConcept,
-        id: ChannelId,
-    ) -> Option<ChannelData> {
-        channel_repo.remove(id)
+    fn remove(channel_repo: &mut impl ChannelDataRepositoryConcept, id: ChannelId) -> Result<()> {
+        channel_repo.remove(id);
+        Ok(())
     }
 
     fn update_position(
@@ -229,61 +179,56 @@ impl ChannelService {
         Ok(&mut Self::data_mut(repo, id)?.config)
     }
 
-    fn connect_sender<NRF>(
+    fn connect(
         channel_spec_repo: &impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
         channel_repo: &mut impl ChannelDataRepositoryConcept,
-        deps: &ExternalDeps<'_, NRF>,
-        id: ChannelId,
-        from: NodeId,
-        port_id: NodePortId,
-    ) -> Result<()>
-    where
-        NRF: NodeRepositoryFacadeConcept,
-    {
-        deps.tracker.ensure_exists(from)?;
-        Self::ensure_exists(channel_repo, id)?;
-        Self::validate_connection::<NRF>(channel_spec_repo, channel_repo, deps, id, from, port_id)?;
-        Self::config_mut(channel_repo, id)?
-            .count_mut()
-            .increase_sender_count();
+        context: ConnectionContext,
+    ) -> Result<()> {
+        Self::ensure_exists(channel_repo, context.channel)?;
+        Self::validate_connection(
+            channel_spec_repo,
+            channel_repo,
+            context.channel,
+            context.node,
+            context.spec,
+        )?;
+        let count_mut = Self::config_mut(channel_repo, context.channel)?.count_mut();
+        match context.spec.kind {
+            NodePortKind::Receiver => {
+                count_mut.increase_receiver_count();
+            }
+            NodePortKind::Sender => {
+                count_mut.increase_sender_count();
+            }
+        }
         Ok(())
     }
 
-    fn connect_receiver<NRF>(
-        channel_spec_repo: &impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
+    fn disconnect(
         channel_repo: &mut impl ChannelDataRepositoryConcept,
-        deps: &ExternalDeps<'_, NRF>,
         id: ChannelId,
-        to: NodeId,
-        port_id: NodePortId,
-    ) -> Result<()>
-    where
-        NRF: NodeRepositoryFacadeConcept,
-    {
-        deps.tracker.ensure_exists(to)?;
-        Self::ensure_exists(channel_repo, id)?;
-        Self::validate_connection::<NRF>(channel_spec_repo, channel_repo, deps, id, to, port_id)?;
-        Self::config_mut(channel_repo, id)?
-            .count_mut()
-            .increase_receiver_count();
-        Ok(())
+        kind: NodePortKind,
+    ) -> Result<()> {
+        let count_mut = Self::config_mut(channel_repo, id)?.count_mut();
+        match kind {
+            NodePortKind::Receiver => count_mut.decrease_receiver_count(),
+            NodePortKind::Sender => count_mut.decrease_sender_count(),
+        }
     }
 
-    fn validate_connection<NRF>(
+    fn validate_connection(
         channel_spec_repo: &impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
         channel_repo: &impl ChannelDataRepositoryConcept,
-        deps: &ExternalDeps<'_, NRF>,
         id: ChannelId,
         from: NodeId,
-        port_id: NodePortId,
-    ) -> Result<()>
-    where
-        NRF: NodeRepositoryFacadeConcept,
-    {
+        port_spec: &NodePortSpec,
+    ) -> Result<()> {
         let channel_spec = Self::spec(channel_spec_repo, channel_repo, id)?;
-        let port_spec = deps.spec.ports(from)?.spec(port_id)?;
         if port_spec.msg_spec.hash() != channel_spec.msg_hash() {
-            bail!("attempted to connect mismatched channel {id} and node {from} port {port_id}");
+            bail!(
+                "attempted to connect mismatched channel {id} and node {from} of port name {}",
+                port_spec.msg_spec.desc()
+            );
         }
         //@todo this check should be moved somewhere else, rationale: might want to hide different channels behind a feature gate at some point
         let channel_params = Self::config(channel_repo, id)?;
@@ -292,20 +237,6 @@ impl ChannelService {
         {
             bail!("attempted to create more than 1 receiver of mpsc channel");
         }
-        let port_conn = deps.port_state.state(from, port_id)?;
-        match port_conn {
-            NodePortConnection::External => {
-                bail!("attempted to connect to port {port_id} that is marked as external");
-            }
-            NodePortConnection::Internal(connected) => {
-                if connected.contains(&id) {
-                    bail!(
-                        "connection between node {from} port {port_id} and channel {id} already exists"
-                    );
-                }
-            }
-        }
-
         Ok(())
     }
 

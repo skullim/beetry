@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use anyhow::{Result, anyhow};
+use anyhow::{Result, anyhow, bail};
 use beetry_core::MessageHash;
 use beetry_serde::ser::{channel::MessageSpec, node::NodeName, parameter};
 use bon::Builder;
@@ -24,26 +24,56 @@ pub struct NodePosition {
     origin: Point,
 }
 
-//@todo maybe use explicitly unconnected state initially and non empty hash set for internal connection kind
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NodePortConnection {
+    #[default]
+    Unconnected,
+    //@todo check if BTreeSet1 offers more convenient semantics
     Internal(HashSet<ChannelId>), // connections
     External,
-}
-
-impl Default for NodePortConnection {
-    fn default() -> Self {
-        Self::Internal(Default::default())
-    }
 }
 
 impl NodePortConnection {
     pub fn is_external(&self) -> bool {
         matches!(self, Self::External)
     }
+
+    pub fn is_valid(&self) -> bool {
+        !matches!(self, Self::Unconnected)
+    }
+
+    pub fn connect(&mut self, id: ChannelId) -> Result<()> {
+        match self {
+            Self::Unconnected => *self = Self::Internal(<_>::from_iter(std::iter::once(id))),
+            Self::Internal(connected) => {
+                connected.insert(id);
+            }
+            Self::External => {
+                bail!("attempted to connect {id} to external port")
+            }
+        }
+        Ok(())
+    }
+
+    pub fn disconnect(&mut self, id: ChannelId) -> Result<()> {
+        match self {
+            invalid @ (Self::Unconnected | Self::External) => {
+                bail!("attempted to remove connection from {invalid:?}")
+            }
+            Self::Internal(connected) => {
+                if !connected.remove(&id) {
+                    bail!("attempted to remove connection to {id} which does not exist");
+                }
+                if connected.is_empty() {
+                    *self = Self::Unconnected;
+                }
+                Ok(())
+            }
+        }
+    }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodePortKind {
     Sender,
     Receiver,

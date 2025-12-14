@@ -2,21 +2,24 @@ use std::collections::{HashMap, HashSet};
 
 use crate::domain::{
     models::{
-        NodeId, NodeKind, NodePortConnection, NodePortId, NodePosition, NodeSpec, NodeSpecId,
-        PortsSpec,
+        ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePosition, NodeSpec,
+        NodeSpecId, PortsSpec,
     },
     repository::{
-        EdgeRepositoryConcept, NodePositionRepositoryConcept, NodeRepositoryConcept,
-        NodeRepositoryFacadeConcept, NodeRepositoryFacadeViewMut, ParamValuesRepositoryConcept,
-        PortStateRepositoryConcept, SpecRepositoryConcept,
+        ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodePositionRepositoryConcept,
+        NodeRepositoryConcept, NodeRepositoryFacadeConcept, NodeRepositoryFacadeViewMut,
+        ParamValuesRepositoryConcept, PortStateRepositoryConcept, SpecRepositoryConcept,
     },
-    service::edge::{self, EdgeService, OnNodeRemovalService},
+    service::{
+        channel::{ChannelService, ChannelServiceApi, ConnectionContext},
+        edge::{self, EdgeService, OnNodeRemovalService},
+    },
 };
 use anyhow::{Result, anyhow, bail};
 use beetry_serde::{de::parameter::Parameters, ser::node::NodeName};
 
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
-pub struct NodeServiceApi<'a, NRF, ER>
+pub struct NodeServiceApi<'a, NRF, ER, CRF>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
@@ -24,24 +27,31 @@ where
     node_service: &'a mut NodeService,
     edge_repo: &'a mut ER,
     edge_service: &'a mut EdgeService,
+    channel_facade: &'a mut CRF,
+    channel_service: &'a mut ChannelService,
 }
 
-impl<'a, NRF, ER> NodeServiceApi<'a, NRF, ER>
+impl<'a, NRF, ER, CRF> NodeServiceApi<'a, NRF, ER, CRF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
+    CRF: ChannelRepositoryFacadeConcept,
 {
     pub(super) fn new(
         facade_view: NodeRepositoryFacadeViewMut<'a, NRF>,
         node_service: &'a mut NodeService,
         edge_repo: &'a mut ER,
         edge_service: &'a mut EdgeService,
+        channel_facade: &'a mut CRF,
+        channel_service: &'a mut ChannelService,
     ) -> Self {
         Self {
             facade_view,
             node_service,
             edge_repo,
             edge_service,
+            channel_facade,
+            channel_service,
         }
     }
 
@@ -67,9 +77,19 @@ where
         }
     }
 
-    pub fn port_state(&mut self) -> PortStateServiceApi<'_, NRF::PortStateRepo> {
-        PortStateServiceApi {
+    pub fn port_state(
+        &mut self,
+    ) -> PortConnectionServiceApi<'_, NRF::PortStateRepo, NRF::SpecRepo, NRF::NodeRepo, CRF> {
+        PortConnectionServiceApi {
             repo: self.facade_view.ports,
+            spec_service: SpecServiceApi {
+                spec_repo: self.facade_view.specs,
+                node_repo: self.facade_view.nodes,
+            },
+            channel_service: ChannelServiceApi::new(
+                self.channel_facade.view_mut(),
+                self.channel_service,
+            ),
         }
     }
 
@@ -149,13 +169,38 @@ where
     ER: EdgeRepositoryConcept,
 {
     pub fn create(&mut self, spec: NodeSpec) -> Result<NodeId> {
-        self.service
-            .create(self.facade_view.specs, self.facade_view.nodes, spec)
+        let ports_spec = spec.ports.clone();
+        let id = self
+            .service
+            .create(self.facade_view.specs, self.facade_view.nodes, spec)?;
+        Self::initialize_ports(self.facade_view.ports, id, &ports_spec)?;
+        Ok(id)
     }
 
     pub fn remove(&mut self, id: NodeId) -> Result<()> {
         self.service.remove::<NRF>(self.facade_view, id)?;
         self.edge_on_node_removal.on_removal(id)?;
+        self.remove_ports(id)?;
+        Ok(())
+    }
+
+    fn initialize_ports(
+        repo: &mut impl PortStateRepositoryConcept,
+        id: NodeId,
+        ports_spec: &PortsSpec,
+    ) -> Result<()> {
+        for port_id in ports_spec.ids() {
+            repo.create(id, *port_id)?;
+        }
+        Ok(())
+    }
+
+    fn remove_ports(&mut self, id: NodeId) -> Result<()> {
+        let ports_spec =
+            &SpecServiceApi::spec(self.facade_view.specs, self.facade_view.nodes, id)?.ports;
+        for port_id in ports_spec.ids() {
+            self.facade_view.ports.remove(id, *port_id);
+        }
         Ok(())
     }
 }
@@ -206,16 +251,38 @@ where
     //@todo add API to set parameters, also validate against schema here
 }
 
-pub struct PortStateServiceApi<'a, R> {
-    repo: &'a mut R,
+pub struct PortConnectionInput {
+    node: NodeId,
+    port: NodePortId,
+    channel: ChannelId,
 }
 
-impl<'a, R> PortStateServiceApi<'a, R>
+pub struct PortConnectionServiceApi<'a, PR, SR, NR, CRF>
 where
-    R: PortStateRepositoryConcept,
+    CRF: ChannelRepositoryFacadeConcept,
 {
-    pub(super) fn new(repo: &'a mut R) -> Self {
-        Self { repo }
+    repo: &'a mut PR,
+    spec_service: SpecServiceApi<'a, SR, NR>,
+    channel_service: ChannelServiceApi<'a, CRF>,
+}
+
+impl<'a, PR, SR, NR, CRF> PortConnectionServiceApi<'a, PR, SR, NR, CRF>
+where
+    PR: PortStateRepositoryConcept,
+    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
+    NR: NodeRepositoryConcept,
+    CRF: ChannelRepositoryFacadeConcept,
+{
+    pub(super) fn new(
+        repo: &'a mut PR,
+        spec_service: SpecServiceApi<'a, SR, NR>,
+        channel_service: ChannelServiceApi<'a, CRF>,
+    ) -> Self {
+        Self {
+            repo,
+            spec_service,
+            channel_service,
+        }
     }
 
     pub fn state(&self, node_id: NodeId, port_id: NodePortId) -> Result<&NodePortConnection> {
@@ -224,7 +291,26 @@ where
         })
     }
 
-    pub fn state_mut(
+    pub fn connect(&mut self, input: PortConnectionInput) -> Result<()> {
+        let spec = self.spec_service.ports(input.node)?.spec(input.port)?;
+        let ctx = ConnectionContext {
+            channel: input.channel,
+            node: input.node,
+            spec,
+        };
+        self.channel_service.connect(ctx)?;
+        self.state_mut(input.node, input.port)?
+            .connect(input.channel)
+    }
+
+    pub fn disconnect(&mut self, input: PortConnectionInput) -> Result<()> {
+        let spec = self.spec_service.ports(input.node)?.spec(input.port)?;
+        self.channel_service.disconnect(input.channel, spec.kind)?;
+        self.state_mut(input.node, input.port)?
+            .disconnect(input.channel)
+    }
+
+    fn state_mut(
         &mut self,
         node_id: NodeId,
         port_id: NodePortId,
@@ -233,67 +319,6 @@ where
             anyhow!("unable to retrieve node's (id: {node_id}) port (id: {port_id}) state")
         })
     }
-
-    // fn initialize_ports(
-    //     ports_repo: &mut impl PortStateRepositoryConcept,
-    //     id: NodeId,
-    //     spec: &ActionSpec,
-    // ) -> Result<()> {
-    //     let mut port_specs = vec![];
-    //     for msg_spec in &spec.schema.senders {
-    //         port_specs.push(NodePortSpec {
-    //             kind: NodePortKind::Sender,
-    //             msg_spec: msg_spec.clone(),
-    //         });
-    //     }
-    //     for msg_spec in &spec.schema.receivers {
-    //         port_specs.push(NodePortSpec {
-    //             kind: NodePortKind::Receiver,
-    //             msg_spec: msg_spec.clone(),
-    //         });
-    //     }
-    //     Self::create_node_ports(ports_repo, id, port_specs.into_iter())?;
-    //     // collect to avoid borrowing mutably in the for loop
-    //     let port_ids: Vec<_> = Self::port_ids(ports_repo, id).collect();
-    //     for port_id in port_ids {
-    //         Self::connect_port(ports_repo, id, port_id, NodePortConnection::default())?;
-    //     }
-    //     Ok(())
-    // }
-
-    // fn create_node_ports(
-    //     repo: &mut impl PortStateRepositoryConcept,
-    //     node_id: NodeId,
-    //     port_specs: impl Iterator<Item = NodePortSpec>,
-    // ) -> Result<()> {
-    //     repo.create(node_id, port_specs)
-    // }
-
-    // pub(crate) fn connect_port(
-    //     repo: &mut impl PortStateRepositoryConcept,
-    //     node_id: NodeId,
-    //     port_id: NodePortId,
-    //     kind: NodePortConnection,
-    // ) -> Result<()> {
-    //     repo.set_conn(node_id, port_id, kind)
-    // }
-
-    // pub(crate) fn port_ids(
-    //     repo: &impl PortStateRepositoryConcept,
-    //     node_id: NodeId,
-    // ) -> impl Iterator<Item = NodePortId> {
-    //     repo.ports(node_id)
-    // }
-
-    // pub(crate) fn port_connection(
-    //     repo: &impl PortStateRepositoryConcept,
-    //     node_id: NodeId,
-    //     port_id: NodePortId,
-    // ) -> Result<&NodePortConnection> {
-    //     repo.connection(node_id, port_id).ok_or_else(|| {
-    //         anyhow!("unable to retrieve node's (id: {node_id}) port (id: {port_id}) connection")
-    //     })
-    // }
 }
 
 pub struct PositionServiceApi<'a, PR, NR> {
