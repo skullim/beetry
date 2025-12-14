@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
 
-use anyhow::Result;
+use anyhow::{Result, bail};
 use bon::Builder;
-use derive_more::{AddAssign, Display, From, Mul};
+use derive_more::{AddAssign, Display, From};
 use getset::{CopyGetters, Getters, MutGetters};
 use num_traits::One;
 use serde::{Deserialize, Serialize};
@@ -197,16 +197,28 @@ impl SenderReceiverCount {
         self.sender += 1;
     }
 
-    pub fn decrease_sender_count(&mut self) {
-        self.sender -= 1;
+    pub fn decrease_sender_count(&mut self) -> Result<()> {
+        match self.sender.checked_sub(1) {
+            Some(count) => self.sender = count,
+            None => {
+                bail!("cannot decrease sender count below 0");
+            }
+        }
+        Ok(())
     }
 
     pub fn increase_receiver_count(&mut self) {
         self.receiver += 1;
     }
 
-    pub fn decrease_receiver_count(&mut self) {
-        self.receiver -= 1;
+    pub fn decrease_receiver_count(&mut self) -> Result<()> {
+        match self.receiver.checked_sub(1) {
+            Some(count) => self.receiver = count,
+            None => {
+                bail!("cannot decrease receiver count below 0");
+            }
+        }
+        Ok(())
     }
 }
 

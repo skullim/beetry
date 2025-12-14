@@ -24,8 +24,8 @@ where
     ER: EdgeRepositoryConcept,
     CRF: ChannelRepositoryFacadeConcept,
 {
-    channel_api: ChannelServiceApi<'a, CRF, NRF>,
-    node_api: NodeServiceApi<'a, NRF, ER>,
+    channel_api: ChannelServiceApi<'a, CRF>,
+    node_api: NodeServiceApi<'a, NRF, ER, CRF>,
     edge_api: EdgeServiceApi<'a, ER, NRF>,
 }
 
