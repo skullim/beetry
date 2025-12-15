@@ -55,6 +55,18 @@ impl NodePortConnection {
         Ok(())
     }
 
+    pub fn disconnect_all(&mut self) -> impl IntoIterator<Item = ChannelId> + use<> {
+        if let Self::Internal(connected) = self {
+            let connected = std::mem::take(connected);
+            *self = Self::Unconnected;
+            Some(connected)
+        } else {
+            None
+        }
+        .into_iter()
+        .flatten()
+    }
+
     pub fn disconnect(&mut self, id: ChannelId) -> Result<()> {
         match self {
             invalid @ (Self::Unconnected | Self::External) => {

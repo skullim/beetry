@@ -64,12 +64,12 @@ where
     }
 }
 
-pub(super) struct OnNodeRemovalService<'a, ER> {
+pub(super) struct OnNodeRemovalServiceApi<'a, ER> {
     service: &'a mut EdgeService,
     repo: &'a mut ER,
 }
 
-impl<'a, ER> OnNodeRemovalService<'a, ER>
+impl<'a, ER> OnNodeRemovalServiceApi<'a, ER>
 where
     ER: EdgeRepositoryConcept,
 {
