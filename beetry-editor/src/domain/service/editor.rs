@@ -2,7 +2,6 @@ use crate::domain::{
     repository::{
         ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
         EditorRepositoryViewMut, NodeRepositoryFacadeConcept, NodeRepositoryFacadeView,
-        NodeRepositoryFacadeViewMut,
     },
     service::{
         channel::{ChannelService, ChannelServiceApi},
