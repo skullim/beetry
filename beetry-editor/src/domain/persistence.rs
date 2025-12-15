@@ -1,34 +1,24 @@
-use anyhow::{Result, anyhow};
-use derive_more::From;
+use anyhow::Result;
 use std::collections::HashMap;
 
-use beetry_plugin::{ActionSpec, ConditionSpec};
 use beetry_serde::{
     de::{
         channel::{ChannelId, ChannelImplKind, SenderReceiverCount},
         parameter,
     },
-    ser::{
-        channel::ChannelSpec,
-        node::{ControlSpec, DecoratorSpec, RootSpec},
-    },
+    ser::channel::ChannelSpec,
 };
 
 use crate::{
     definitions::{NodeEdge, NodeId},
     domain::{
         models::{
-            ChannelPosition, EdgeId, NodeKind, NodePortConnection, NodePortId, NodePosition,
-            NodeSpec,
+            ChannelPosition, ChannelSpecId, EdgeId, NodePortConnection, NodePortId, NodePosition,
+            NodeSpec, NodeSpecId,
         },
-        repository::{
-            ChannelDataRepositoryConcept, NodeRepositoryFacade, NodeRepositoryFacadeConcept,
-        },
+        repository::{ChannelDataRepositoryConcept, NodeRepositoryFacadeConcept},
     },
 };
-
-type NodeMetadataId = usize;
-type ChannelMetadataId = usize;
 
 pub struct EditorData {
     pub tree: TreeData,
@@ -36,23 +26,21 @@ pub struct EditorData {
 }
 
 pub struct TreeData {
-    pub node_metadata: Vec<NodeMetadata>,
+    pub node_specs: Vec<NodeSpec>,
     pub nodes: Vec<NodeData>,
     pub edges: Vec<EdgeData>,
-    pub channel_metadata: Vec<ChannelMetadata>,
-    pub channels: Vec<ChannelData>,
+    pub channel_metadata: Vec<ChannelSpecEntry>,
+    pub channels: Vec<ChannelDataEntry>,
 }
 
-pub struct NodeMetadata {
-    pub id: NodeMetadataId,
-    pub kind: NodeKind,
+pub struct NodeSpecEntry {
+    pub id: NodeSpecId,
     pub spec: NodeSpec,
-    pub port_ids: Vec<NodePortId>,
 }
 
 pub struct NodeData {
     pub id: NodeId,
-    pub metadata_id: NodeMetadataId,
+    pub spec_id: NodeSpecId,
     pub ports_data: Vec<(NodePortId, NodeChannelPortData)>,
     pub parameters: Option<parameter::Parameters>,
 }
@@ -66,14 +54,14 @@ pub struct EdgeData {
     pub node_edge: NodeEdge,
 }
 
-pub struct ChannelMetadata {
-    pub metadata_id: ChannelMetadataId,
+pub struct ChannelSpecEntry {
+    pub id: ChannelSpecId,
     pub spec: ChannelSpec,
 }
 
-pub struct ChannelData {
+pub struct ChannelDataEntry {
     pub id: ChannelId,
-    pub metadata_id: ChannelMetadataId,
+    pub spec_id: ChannelSpecId,
     pub count: SenderReceiverCount,
     pub capacity: usize,
     pub kind: ChannelImplKind,
@@ -88,43 +76,14 @@ pub struct UiElementPositions {
 
 use crate::domain::repository::NodeRepositoryConcept;
 
-//@todo make it into iter instead of Vec
-pub trait NodeRepositoryFacadeStorageConcept {
-    fn serialize(&self) -> Result<(Vec<NodeData>, Vec<NodeMetadata>)>;
-    fn deserialize(data: Vec<NodeData>, meta: Vec<NodeMetadata>) -> Result<i32>; //Result<impl NodeRepositoryFacadeConcept>;
-}
+pub struct NodeRepositoryFacadeStorage;
 
-//@todo check if generic impl for all types possible?
-impl NodeRepositoryFacadeStorageConcept for NodeRepositoryFacade {
-    fn deserialize(data: Vec<NodeData>, meta: Vec<NodeMetadata>) -> Result<i32> {
-        let spec_lookup: HashMap<_, _> = meta
-            .into_iter()
-            .map(|m| (m.id, (m.spec, m.kind, m.port_ids)))
-            .collect();
-
-        // for node in data {
-        //     let meta = spec_lookup
-        //         .get(&node.metadata_id)
-        //         .ok_or_else(|| anyhow!("failed to obtain metadata for node {}", node.id))?;
-        //     let (spec, kind, ports) = meta;
-        //     match kind {
-        //         NodeKind::Root => {
-        //             root_repo.create(node.id, spec.root()?)?;
-        //         }
-        //     }
-        // }
-
-        Ok(0)
-    }
-
-    fn serialize(&self) -> Result<(Vec<NodeData>, Vec<NodeMetadata>)> {
+impl NodeRepositoryFacadeStorage {
+    fn serialize(
+        facade: &impl NodeRepositoryFacadeConcept,
+    ) -> Result<(Vec<NodeData>, Vec<NodeSpecEntry>)> {
+        let view = facade.view();
+        let node_ids = view.nodes.nodes();
         todo!()
     }
-}
-
-pub trait LoadChannelRepository {
-    fn load(
-        data: Vec<ChannelData>,
-        meta: Vec<ChannelMetadata>,
-    ) -> Result<impl ChannelDataRepositoryConcept>;
 }
