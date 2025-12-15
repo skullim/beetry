@@ -12,7 +12,7 @@ use crate::domain::{
     },
     service::{
         channel::{ChannelService, ChannelServiceApi, ConnectionContext},
-        edge::{self, EdgeService, OnNodeRemovalService},
+        edge::{self, EdgeService, OnNodeRemovalServiceApi},
     },
 };
 use anyhow::{Result, anyhow, bail};
@@ -62,11 +62,16 @@ where
         }
     }
 
-    pub fn lifecycle(&'a mut self) -> NodeLifecycleApi<'a, NRF, ER> {
+    pub fn lifecycle(&'a mut self) -> NodeLifecycleApi<'a, NRF, CRF, ER> {
         NodeLifecycleApi {
-            service: self.node_service,
+            node_service: self.node_service,
+            channel_facade: self.channel_facade,
+            channel_service: self.channel_service,
             facade_view: &mut self.facade_view,
-            edge_on_node_removal: OnNodeRemovalService::new(self.edge_service, self.edge_repo),
+            edge_removal_service_api: OnNodeRemovalServiceApi::new(
+                self.edge_service,
+                self.edge_repo,
+            ),
         }
     }
 
@@ -154,33 +159,36 @@ where
     }
 }
 
-pub struct NodeLifecycleApi<'a, NRF, ER>
+pub struct NodeLifecycleApi<'a, NRF, CRF, ER>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
-    service: &'a mut NodeService,
+    node_service: &'a mut NodeService,
+    channel_service: &'a mut ChannelService,
+    channel_facade: &'a mut CRF,
     facade_view: &'a mut NodeRepositoryFacadeViewMut<'a, NRF>,
-    edge_on_node_removal: edge::OnNodeRemovalService<'a, ER>,
+    edge_removal_service_api: edge::OnNodeRemovalServiceApi<'a, ER>,
 }
 
-impl<'a, NRF, ER> NodeLifecycleApi<'a, NRF, ER>
+impl<'a, NRF, CRF, ER> NodeLifecycleApi<'a, NRF, CRF, ER>
 where
     NRF: NodeRepositoryFacadeConcept,
+    CRF: ChannelRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
 {
     pub fn create(&mut self, spec: NodeSpec) -> Result<NodeId> {
         let ports_spec = spec.ports.clone();
         let id = self
-            .service
+            .node_service
             .create(self.facade_view.specs, self.facade_view.nodes, spec)?;
         Self::initialize_ports(self.facade_view.ports, id, &ports_spec)?;
         Ok(id)
     }
 
     pub fn remove(&mut self, id: NodeId) -> Result<()> {
-        self.service.remove::<NRF>(self.facade_view, id)?;
-        self.edge_on_node_removal.on_removal(id)?;
-        self.remove_ports(id)?;
+        self.node_service.remove::<NRF>(self.facade_view, id)?;
+        self.edge_removal_service_api.on_removal(id)?;
+        self.disconnect_ports(id)?;
         Ok(())
     }
 
@@ -195,13 +203,17 @@ where
         Ok(())
     }
 
-    fn remove_ports(&mut self, id: NodeId) -> Result<()> {
-        let ports_spec =
-            &SpecServiceApi::spec(self.facade_view.specs, self.facade_view.nodes, id)?.ports;
-        for port_id in ports_spec.ids() {
-            self.facade_view.ports.remove(id, *port_id);
-        }
-        Ok(())
+    fn disconnect_ports(&mut self, id: NodeId) -> Result<()> {
+        let spec_service_api = SpecServiceApi::new(self.facade_view.specs, self.facade_view.nodes);
+        let channel_service_api =
+            ChannelServiceApi::new(self.channel_facade.view_mut(), self.channel_service);
+        let mut port_connection_service_api = PortConnectionServiceApi::new(
+            self.facade_view.ports,
+            spec_service_api,
+            channel_service_api,
+        );
+
+        port_connection_service_api.disconnect_all(id)
     }
 }
 
@@ -308,6 +320,18 @@ where
         self.channel_service.disconnect(input.channel, spec.kind)?;
         self.state_mut(input.node, input.port)?
             .disconnect(input.channel)
+    }
+
+    pub fn disconnect_all(&mut self, id: NodeId) -> Result<()> {
+        let ports_spec = self.spec_service.ports(id)?.clone();
+        for port_id in ports_spec.ids() {
+            let channels = self.state_mut(id, *port_id)?.disconnect_all();
+            for channel in channels {
+                self.channel_service
+                    .disconnect(channel, ports_spec.spec(*port_id)?.kind)?;
+            }
+        }
+        Ok(())
     }
 
     fn state_mut(
