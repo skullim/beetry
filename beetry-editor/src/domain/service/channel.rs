@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::domain::models::{NodePortKind, NodePortSpec};
+use crate::domain::persistence::{ChannelRecord, ChannelSpecRecord};
 use crate::domain::{
     models::{ChannelId, ChannelPosition, ChannelSpecId, NodeId},
     repository::{
@@ -11,6 +12,7 @@ use crate::domain::{
 use anyhow::{Result, anyhow, bail};
 use beetry_plugin_types::channel::ChannelSpec;
 use beetry_reconstruction_types::channel::{ChannelConfig, ChannelImplKind2, TokioChannelKind};
+use tracing::warn;
 
 pub struct ConnectionContext<'a> {
     pub spec: &'a NodePortSpec,
@@ -83,6 +85,28 @@ where
     }
 }
 
+pub(super) struct LoadChannelApi<'a, CRF>
+where
+    CRF: ChannelRepositoryFacadeConcept,
+{
+    facade_view: ChannelRepositoryFacadeViewMut<'a, CRF>,
+    channel: &'a mut ChannelService,
+}
+
+impl<'a, CRF> LoadChannelApi<'a, CRF>
+where
+    CRF: ChannelRepositoryFacadeConcept,
+{
+    pub(super) fn load_spec(&mut self, record: ChannelSpecRecord) -> Result<()> {
+        self.channel.load_spec(self.facade_view.spec, record)
+    }
+
+    pub(super) fn load_node(&mut self, record: ChannelRecord) -> Result<()> {
+        //self.facade_view.data.load(record.id, record.)
+        todo!()
+    }
+}
+
 #[derive(Default)]
 pub(super) struct ChannelService {
     spec_cache: HashMap<ChannelSpec, ChannelSpecId>,
@@ -101,7 +125,7 @@ impl ChannelService {
         let spec_id = Self::data(channel_repo, id)?.spec_id;
         spec_repo
             .spec(spec_id)
-            .ok_or_else(|| anyhow!("no spec with id"))
+            .ok_or_else(|| anyhow!("no spec with id {spec_id}"))
     }
 
     fn create(
@@ -121,6 +145,24 @@ impl ChannelService {
         };
 
         channel_repo.create(ChannelData::new(spec_id, input))
+    }
+
+    fn load_spec(
+        &mut self,
+        spec_repo: &mut impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
+        record: ChannelSpecRecord,
+    ) -> Result<()> {
+        match self.spec_cache.get(&record.spec) {
+            Some(id) => {
+                warn!("spec {id} was already loaded");
+            }
+            None => {
+                let ChannelSpecRecord { id, spec } = record;
+                spec_repo.load(id, spec.clone())?;
+                self.spec_cache.insert(spec, id);
+            }
+        }
+        Ok(())
     }
 
     //@todo also on_node_removal should remove connections to removed node

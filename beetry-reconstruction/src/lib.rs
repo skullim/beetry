@@ -9,7 +9,7 @@ use beetry_plugin::node::{
 use beetry_plugin::{BoxPlugin, Named};
 use beetry_plugin_types::node::{LeafKind, NodeName};
 use beetry_reconstruction_types::{
-    channel::{ChannelId, ChannelIdToSnapshotMap},
+    channel::{ChannelId, ChannelSnapshotMap},
     node::{NodeSnapshot, NodeSnapshotData},
     tree::TreeSnapshot,
 };
@@ -64,7 +64,7 @@ impl TreeReconstructor {
     }
 
     fn try_reconstruct_channels(
-        snapshot_map: ChannelIdToSnapshotMap,
+        snapshot_map: ChannelSnapshotMap,
         factory_map: &ChannelHashToFactoryMap,
     ) -> Result<ChannelIdToChannelMap> {
         snapshot_map

@@ -315,7 +315,6 @@ where
 }
 
 pub type NodeSpecRepository = SpecRepository<NodeSpecId, NodeSpec>;
-pub type ChannelSpecRepository = SpecRepository<ChannelSpecId, ChannelSpec>;
 
 pub trait NodeRepositoryConcept: Default {
     fn create(&mut self, spec_id: NodeSpecId) -> Result<NodeId>;
@@ -459,7 +458,7 @@ impl NodePositionRepositoryConcept for NodePositionRepository {
 
 /// caller (service layer) has to assure that params are valid w.r.t. schema
 pub trait ParamValuesRepositoryConcept: Default {
-    fn insert(&mut self, id: NodeId, params: Parameters);
+    fn insert(&mut self, id: NodeId, params: Parameters) -> Result<()>;
     fn remove(&mut self, id: NodeId) -> Result<()>;
     fn update(&mut self, id: NodeId, field_name: &str, value: Value) -> Result<()>;
     fn params(&self, id: NodeId) -> Option<&Parameters>;
@@ -471,8 +470,9 @@ pub struct ParamValuesRepository {
 }
 
 impl ParamValuesRepositoryConcept for ParamValuesRepository {
-    fn insert(&mut self, id: NodeId, params: Parameters) {
+    fn insert(&mut self, id: NodeId, params: Parameters) -> Result<()> {
         self.params.insert(id, params);
+        Ok(())
     }
 
     fn remove(&mut self, id: NodeId) -> Result<()> {
@@ -545,7 +545,7 @@ impl EdgeRepositoryConcept for EdgeRepository {
 
 pub trait ChannelDataRepositoryConcept: Default {
     fn create(&mut self, data: ChannelData) -> Result<ChannelId>;
-    fn load(&mut self, node: ChannelId, data: ChannelData) -> Result<()>;
+    fn load(&mut self, id: ChannelId, data: ChannelData) -> Result<()>;
 
     fn remove(&mut self, id: ChannelId) -> Option<ChannelData>;
 
@@ -578,6 +578,8 @@ impl ChannelData {
         }
     }
 }
+
+pub type ChannelSpecRepository = SpecRepository<ChannelSpecId, ChannelSpec>;
 
 #[derive(Default)]
 pub struct ChannelDataRepository {

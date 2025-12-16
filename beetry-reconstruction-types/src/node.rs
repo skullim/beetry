@@ -81,6 +81,9 @@ pub struct LeafSnapshot {
     #[get = "pub"]
     #[builder(default)]
     ext_receivers: Vec<MessageHash>,
+    #[get = "pub"]
+    #[builder(default)]
+    ext_senders: Vec<MessageHash>,
 }
 
 impl LeafSnapshot {

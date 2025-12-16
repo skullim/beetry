@@ -1,47 +1,48 @@
-use crate::{
-    EditorService,
-    domain::{
-        persistence::{EditorStorage, TreeStorage},
-        repository::{
-            ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept,
-        },
+use crate::domain::{
+    persistence::{EditorStorage, TreeStorage},
+    repository::{
+        ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
+        EditorRepositoryViewMut, NodeRepositoryFacadeConcept,
+    },
+    service::{
+        channel::ChannelService,
+        edge::EdgeService,
+        node::{LoadNodeApi, NodeService},
     },
 };
-use anyhow::{Result, anyhow};
-use beetry_reconstruction_types::tree::TreeSnapshot;
-use std::collections::HashMap;
+use anyhow::Result;
 
-pub struct ImportServiceApi;
+pub struct ImportServiceApi<'a, NRF, ER, CRF> {
+    node_service: &'a mut NodeService,
+    edge_service: &'a mut EdgeService,
+    channel_service: &'a mut ChannelService,
+    repo: &'a mut EditorRepository<NRF, ER, CRF>,
+}
 
-impl ImportServiceApi {
-    pub fn import_project<NRF, ER, CRF>(data: EditorStorage) -> Result<EditorService<NRF, ER, CRF>>
-    where
-        NRF: NodeRepositoryFacadeConcept,
-        ER: EdgeRepositoryConcept,
-        CRF: ChannelRepositoryFacadeConcept,
-    {
-        let mut editor_service = EditorService::<NRF, ER, CRF>::default();
-        // first import nodes
-        {
-            // let spec_lookup: HashMap<_, _> = data
-            //     .tree
-            //     .node_specs
-            //     .into_iter()
-            //     .map(|m| (m.id, (m.spec, m.kind, m.port_ids)))
-            //     .collect();
-            // let subsequent_node_ids = data.tree.nodes.iter().map(|node| node.id);
-            // for node in data.tree.nodes {
-            //     let meta = spec_lookup
-            //         .get(&node.spec_id)
-            //         .ok_or_else(|| anyhow!("failed to obtain metadata for node {}", node.id))?;
-            //     let (spec, kind, ports) = meta;
-            // }
-        }
-        todo!()
+impl<'a, NRF, ER, CRF> ImportServiceApi<'a, NRF, ER, CRF>
+where
+    NRF: NodeRepositoryFacadeConcept,
+    ER: EdgeRepositoryConcept,
+    CRF: ChannelRepositoryFacadeConcept,
+{
+    pub fn import_project(&mut self, data: EditorStorage) -> Result<()> {
+        self.import_tree(data.tree)
     }
 
-    pub fn import_tree_snapshot(tree: TreeStorage) -> Result<TreeSnapshot> {
-        todo!()
+    pub fn import_tree(&mut self, tree: TreeStorage) -> Result<()> {
+        let EditorRepositoryViewMut { node, channel, .. } = self.repo.view_mut();
+        let node_view = node.view_mut();
+        let mut load_api =
+            LoadNodeApi::new(self.node_service, self.channel_service, node_view, channel);
+        for spec_record in tree.node.specs {
+            load_api.load_spec(spec_record)?;
+        }
+
+        for node_record in tree.node.nodes {
+            load_api.load_node(node_record)?;
+        }
+
+        todo!("load edges and channels")
     }
 }
 

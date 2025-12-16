@@ -12,19 +12,6 @@ use crate::tree::{ExportResult, ExportValidationError};
 use beetry_plugin_types::channel::ChannelSpec;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
-#[getset(get = "pub")]
-pub struct ChannelSnapshot {
-    spec: ChannelSpec,
-    metadata: ChannelMetadata,
-}
-
-impl ChannelSnapshot {
-    pub fn new(spec: ChannelSpec, metadata: ChannelMetadata) -> Self {
-        Self { spec, metadata }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
 pub struct ChannelSnapshot2 {
     spec: ChannelSpec,
     config: ChannelConfig,
@@ -36,30 +23,9 @@ impl ChannelSnapshot2 {
     }
 }
 
-//@todo remove
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, CopyGetters, Getters)]
-pub struct ChannelMetadata {
-    #[get_copy = "pub"]
-    capacity: usize, // there might be channels with 0 capacity
-    #[get_copy = "pub"]
-    kind: ChannelKind,
-    #[get = "pub"]
-    impl_kind: ChannelImplKind,
-}
-
-impl ChannelMetadata {
-    pub fn new(capacity: usize, kind: ChannelKind, impl_kind: ChannelImplKind) -> Self {
-        Self {
-            capacity,
-            kind,
-            impl_kind,
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, CopyGetters, MutGetters)]
 pub struct ChannelConfig {
-    #[getset(get_copy = "pub")]
+    #[getset(get_copy = "pub", set = "pub")]
     capacity: usize, // there might be channels with 0 capacity
     #[getset(get_copy = "pub", get_mut = "pub")]
     count: SenderReceiverCount,
@@ -78,12 +44,6 @@ impl ChannelConfig {
 
     pub fn set_kind(&mut self, kind: ChannelImplKind2) {
         todo!()
-    }
-
-    pub fn set_capacity(&mut self, capacity: usize) -> Result<()> {
-        // might return err when setting capacity for oneshot channel (once this channel type is supported)
-        self.capacity = capacity;
-        Ok(())
     }
 }
 
@@ -132,26 +92,6 @@ impl std::ops::Mul for ChannelId {
     }
 }
 
-//@todo remove
-#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
-pub enum ChannelKind {
-    Internal,
-    External,
-}
-
-//@todo remove
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum ChannelImplKind {
-    Tokio(TokioChannelConfig),
-}
-
-//@todo remove
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TokioChannelConfig {
-    Mpsc(MpscConfig),
-    Broadcast(BroadcastConfig),
-}
-
 //@todo: rename to ChannelKind
 #[derive(Debug, From, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum ChannelImplKind2 {
@@ -162,25 +102,6 @@ pub enum ChannelImplKind2 {
 pub enum TokioChannelKind {
     Mpsc,
     Broadcast,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, CopyGetters)]
-pub struct MpscConfig {
-    #[get_copy = "pub"]
-    n_senders: NonZeroUsize,
-}
-
-impl MpscConfig {
-    pub fn new(n_senders: NonZeroUsize) -> Self {
-        Self { n_senders }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Builder, Serialize, Deserialize, CopyGetters)]
-#[get_copy = "pub"]
-pub struct BroadcastConfig {
-    n_senders: NonZeroUsize,
-    n_receivers: NonZeroUsize,
 }
 
 /// Represents the current state of connected senders and receivers
@@ -222,13 +143,85 @@ impl SenderReceiverCount {
     }
 }
 
-pub type ChannelIdToSnapshotMap = HashMap<ChannelId, ChannelSnapshot>;
+//@todo remove
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
+#[getset(get = "pub")]
+pub struct ChannelSnapshot {
+    spec: ChannelSpec,
+    metadata: ChannelMetadata,
+}
+
+impl ChannelSnapshot {
+    pub fn new(spec: ChannelSpec, metadata: ChannelMetadata) -> Self {
+        Self { spec, metadata }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, CopyGetters, Getters)]
+pub struct ChannelMetadata {
+    #[get_copy = "pub"]
+    capacity: usize, // there might be channels with 0 capacity
+    #[get_copy = "pub"]
+    kind: ChannelKind,
+    #[get = "pub"]
+    impl_kind: ChannelImplKind,
+}
+
+impl ChannelMetadata {
+    pub fn new(capacity: usize, kind: ChannelKind, impl_kind: ChannelImplKind) -> Self {
+        Self {
+            capacity,
+            kind,
+            impl_kind,
+        }
+    }
+}
+
+//@todo remove from here to below, validation should not be needed anymore
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
+pub enum ChannelKind {
+    Internal,
+    External,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum ChannelImplKind {
+    Tokio(TokioChannelConfig),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TokioChannelConfig {
+    Mpsc(MpscConfig),
+    Broadcast(BroadcastConfig),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, CopyGetters)]
+pub struct MpscConfig {
+    #[get_copy = "pub"]
+    n_senders: NonZeroUsize,
+}
+
+impl MpscConfig {
+    pub fn new(n_senders: NonZeroUsize) -> Self {
+        Self { n_senders }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Builder, Serialize, Deserialize, CopyGetters)]
+#[get_copy = "pub"]
+pub struct BroadcastConfig {
+    n_senders: NonZeroUsize,
+    n_receivers: NonZeroUsize,
+}
+
+pub type ChannelSnapshotMap = HashMap<ChannelId, ChannelSnapshot>;
 pub(super) struct ChannelValidator;
 pub(super) type ChannelIdEndpointCountMap = HashMap<ChannelId, SenderReceiverCount>;
 
 impl ChannelValidator {
     pub(super) fn validate(
-        snapshot_map: &ChannelIdToSnapshotMap,
+        snapshot_map: &ChannelSnapshotMap,
         count_map: &ChannelIdEndpointCountMap,
     ) -> ExportResult<()> {
         for (id, count) in count_map {
@@ -239,7 +232,7 @@ impl ChannelValidator {
     }
 
     fn validate_channel_presence(
-        snapshot_map: &ChannelIdToSnapshotMap,
+        snapshot_map: &ChannelSnapshotMap,
         id: ChannelId,
     ) -> ExportResult<&ChannelSnapshot> {
         snapshot_map
