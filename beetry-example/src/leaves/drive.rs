@@ -7,7 +7,7 @@ use beetry_core::{ActionBehavior, BoxActionBehavior, NodeTask, Receiver, Task, T
 use beetry_macros::receivers;
 use beetry_plugin::node::ActionReconstructionData;
 use beetry_plugin::plugin;
-use beetry_serde::spec;
+use beetry_plugin_types::spec;
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
 

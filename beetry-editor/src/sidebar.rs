@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use beetry_serde::ser::node::{ControlSpec, LeafKind, LeafSpec};
+use beetry_plugin_types::node::{ControlSpec, LeafKind, LeafSpec};
 use dioxus::logger::tracing::info;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;

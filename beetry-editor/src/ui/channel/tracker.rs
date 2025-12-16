@@ -2,7 +2,7 @@ use std::collections::{BTreeSet, HashMap};
 
 use crate::definitions::{NodeId, Point};
 use crate::ui::channel::ChannelElement;
-use beetry_serde::de::channel::{ChannelId, ChannelSnapshot};
+use beetry_reconstruction_types::channel::{ChannelId, ChannelSnapshot};
 use bon::Builder;
 use dioxus_logger::tracing::debug;
 use serde::{Deserialize, Serialize};

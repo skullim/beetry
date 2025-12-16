@@ -1,12 +1,11 @@
 use anyhow::{Result, anyhow, bail};
-use beetry_serde::{
-    de::{
-        channel::{ChannelIdToSnapshotMap, ChannelSnapshot2},
-        node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotData, RootSnapshot},
-        tree::TreeSnapshot,
-    },
-    ser::node::LeafKind,
+use beetry_plugin_types::node::LeafKind;
+use beetry_reconstruction_types::{
+    channel::{ChannelIdToSnapshotMap, ChannelSnapshot2},
+    node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotData, RootSnapshot},
+    tree::TreeSnapshot,
 };
+
 use itertools::izip;
 use std::collections::HashMap;
 

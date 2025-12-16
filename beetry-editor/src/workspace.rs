@@ -1,5 +1,5 @@
 use beetry_core::MessageHash;
-use beetry_serde::de::channel::ChannelId;
+use beetry_reconstruction_types::channel::ChannelId;
 use bon::Builder;
 use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;

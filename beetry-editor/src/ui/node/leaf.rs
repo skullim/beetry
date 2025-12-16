@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::rc::Rc;
 
 use beetry_core::MessageHash;
-use beetry_serde::ser::node::{LeafKind, LeafSchema};
+use beetry_plugin_types::node::{LeafKind, LeafSchema};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 

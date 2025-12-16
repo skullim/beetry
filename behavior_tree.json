@@ -1,1 +1,288 @@
-{"version":1,"tree":{"root":{"child":{"Control":{"kind":"Sequence","children":[{"Leaf":{"name":"Localize","kind":"Action","hash":{"hash":13756154811463293164},"receivers":[],"senders":[0],"external_receivers_export":[],"parameters":{"params":null}}},{"Leaf":{"name":"Drive","kind":"Action","hash":{"hash":10100699488973140611},"receivers":[0],"senders":[],"external_receivers_export":[],"parameters":{"params":null}}}]}}},"channels":{"0":{"spec":{"msg_hash":{"hash":13315934175031694117},"msg_type_name":"Pose"},"metadata":{"capacity":1,"kind":"Internal","impl_kind":{"Tokio":{"Mpsc":{"n_senders":1}}}}}}},"editor":{"nodes":{"2":{"kind":{"Leaf":{"desc":{"name":"Localize","hash":{"hash":13756154811463293164},"kind":"Action","receivers":[],"senders":[{"desc":"Localized pose","hash":{"hash":13315934175031694117}}],"params":{"params":[]}},"params":{"params":null},"external_receivers":[]}},"pos":{"x":171.0,"y":406.0}},"1":{"kind":{"Control":"Sequence"},"pos":{"x":304.0,"y":248.0}},"3":{"kind":{"Leaf":{"desc":{"name":"Drive","hash":{"hash":10100699488973140611},"kind":"Action","receivers":[{"desc":"Drive pose","hash":{"hash":13315934175031694117}}],"senders":[],"params":{"params":[]}},"params":{"params":null},"external_receivers":[]}},"pos":{"x":511.0,"y":403.0}},"0":{"kind":"Root","pos":{"x":270.0,"y":62.0}}},"edges":[{"from":0,"to":1},{"from":1,"to":2},{"from":1,"to":3}],"last_id":4,"channel_tracker":{"channel_id":1,"channels":{"0":{"pos":{"x":349.0,"y":452.0},"export":{"spec":{"msg_hash":{"hash":13315934175031694117},"msg_type_name":"Pose"},"metadata":{"capacity":1,"kind":"Internal","impl_kind":{"Tokio":{"Mpsc":{"n_senders":1}}}}}}},"senders":{"2":[0]},"receivers":{"3":[0]}}}}
+{
+    "version": 1,
+    "tree": {
+        "root": {
+            "child": {
+                "name": "Sequence",
+                "data": {
+                    "Control": {
+                        "children": [
+                            {
+                                "name": "CheckBattery",
+                                "data": {
+                                    "Leaf": {
+                                        "kind": "Condition",
+                                        "receivers": [],
+                                        "senders": [],
+                                        "ext_receivers": []
+                                    }
+                                },
+                                "parameters": {
+                                    "value": {
+                                        "level": 10.0
+                                    }
+                                }
+                            },
+                            {
+                                "name": "Sequence",
+                                "data": {
+                                    "Control": {
+                                        "children": [
+                                            {
+                                                "name": "Localize",
+                                                "data": {
+                                                    "Leaf": {
+                                                        "kind": "Action",
+                                                        "receivers": [],
+                                                        "senders": [
+                                                            0
+                                                        ],
+                                                        "ext_receivers": []
+                                                    }
+                                                },
+                                                "parameters": {
+                                                    "value": null
+                                                }
+                                            },
+                                            {
+                                                "name": "Drive",
+                                                "data": {
+                                                    "Leaf": {
+                                                        "kind": "Action",
+                                                        "receivers": [
+                                                            0
+                                                        ],
+                                                        "senders": [],
+                                                        "ext_receivers": []
+                                                    }
+                                                },
+                                                "parameters": {
+                                                    "value": null
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                                "parameters": {
+                                    "value": null
+                                }
+                            }
+                        ]
+                    }
+                },
+                "parameters": {
+                    "value": null
+                }
+            }
+        },
+        "channels": {
+            "0": {
+                "spec": {
+                    "msg_hash": {
+                        "hash": 13315934175031694117
+                    },
+                    "msg_type_name": "Pose"
+                },
+                "metadata": {
+                    "capacity": 1,
+                    "kind": "Internal",
+                    "impl_kind": {
+                        "Tokio": {
+                            "Mpsc": {
+                                "n_senders": 1
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "editor": {
+        "nodes": {
+            "5": {
+                "name": "Localize",
+                "kind": {
+                    "Leaf": {
+                        "schema": {
+                            "kind": "Action",
+                            "receivers": [],
+                            "senders": [
+                                {
+                                    "desc": "Localized pose",
+                                    "hash": {
+                                        "hash": 13315934175031694117
+                                    }
+                                }
+                            ]
+                        },
+                        "external_receivers": []
+                    }
+                },
+                "selected_params": {
+                    "value": null
+                },
+                "pos": {
+                    "x": 223.0,
+                    "y": 570.0
+                }
+            },
+            "2": {
+                "name": "Sequence",
+                "kind": {
+                    "Control": {
+                        "params_schema": {
+                            "defs": []
+                        }
+                    }
+                },
+                "selected_params": {
+                    "value": null
+                },
+                "pos": {
+                    "x": 317.0,
+                    "y": 226.0
+                }
+            },
+            "6": {
+                "name": "Drive",
+                "kind": {
+                    "Leaf": {
+                        "schema": {
+                            "kind": "Action",
+                            "receivers": [
+                                {
+                                    "desc": "Drive pose",
+                                    "hash": {
+                                        "hash": 13315934175031694117
+                                    }
+                                }
+                            ],
+                            "senders": []
+                        },
+                        "external_receivers": []
+                    }
+                },
+                "selected_params": {
+                    "value": null
+                },
+                "pos": {
+                    "x": 648.0,
+                    "y": 578.0
+                }
+            },
+            "1": {
+                "name": "CheckBattery",
+                "kind": {
+                    "Leaf": {
+                        "schema": {
+                            "kind": "Condition",
+                            "receivers": [],
+                            "senders": []
+                        },
+                        "external_receivers": []
+                    }
+                },
+                "selected_params": {
+                    "value": {
+                        "level": 10.0
+                    }
+                },
+                "pos": {
+                    "x": 172.0,
+                    "y": 364.0
+                }
+            },
+            "0": {
+                "name": "Root",
+                "kind": "Root",
+                "selected_params": {
+                    "value": null
+                },
+                "pos": {
+                    "x": 346.0,
+                    "y": 38.0
+                }
+            },
+            "3": {
+                "name": "Sequence",
+                "kind": {
+                    "Control": {
+                        "params_schema": {
+                            "defs": []
+                        }
+                    }
+                },
+                "selected_params": {
+                    "value": null
+                },
+                "pos": {
+                    "x": 384.0,
+                    "y": 391.0
+                }
+            }
+        },
+        "edges": [
+            {
+                "from": 0,
+                "to": 2
+            },
+            {
+                "from": 2,
+                "to": 1
+            },
+            {
+                "from": 2,
+                "to": 3
+            },
+            {
+                "from": 3,
+                "to": 5
+            },
+            {
+                "from": 3,
+                "to": 6
+            }
+        ],
+        "last_id": 7,
+        "channel_tracker": {
+            "id": 1,
+            "channels": {
+                "0": {
+                    "pos": {
+                        "x": 444.0,
+                        "y": 628.0
+                    },
+                    "snapshot": {
+                        "spec": {
+                            "msg_hash": {
+                                "hash": 13315934175031694117
+                            },
+                            "msg_type_name": "Pose"
+                        },
+                        "metadata": {
+                            "capacity": 1,
+                            "kind": "Internal",
+                            "impl_kind": {
+                                "Tokio": {
+                                    "Mpsc": {
+                                        "n_senders": 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "senders": {
+                "5": [
+                    0
+                ]
+            },
+            "receivers": {
+                "6": [
+                    0
+                ]
+            }
+        }
+    }
+}

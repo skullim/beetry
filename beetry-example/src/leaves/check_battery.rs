@@ -1,10 +1,11 @@
 use beetry_core::{BoxConditionBehavior, ConditionBehavior};
 use beetry_macros::ProvideSchema;
-use beetry_plugin::node::ConditionReconstructionData;
-use beetry_plugin::plugin;
-use beetry_serde::de::{self};
-use beetry_serde::ser::parameter::{self, Bounds, ProvideSchema, Schema};
-use beetry_serde::spec;
+use beetry_plugin::{node::ConditionReconstructionData, plugin};
+
+use beetry_plugin_types::{
+    parameter::{self, Bounds, ProvideSchema, Schema},
+    spec,
+};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 use type_hash::TypeHash;
@@ -59,7 +60,7 @@ plugin! {
     factory_fn = |data: ConditionReconstructionData| {
             Ok(
                 Box::new(
-                    CheckBattery::new(de::parameter::Deserializer::deserialize(data.parameters)?))
+                    CheckBattery::new(beetry_reconstruction_types::parameter::Deserializer::deserialize(data.parameters)?))
                     as BoxConditionBehavior,
             )
     }

@@ -7,10 +7,12 @@ use beetry_plugin::node::{
     self, ControlMetadata, ControlReconstructionData, LeafMetadata, LeafReconstructionData,
 };
 use beetry_plugin::{BoxPlugin, Named};
-use beetry_serde::de::channel::{ChannelId, ChannelIdToSnapshotMap};
-use beetry_serde::de::node::{NodeSnapshot, NodeSnapshotData};
-use beetry_serde::de::tree::TreeSnapshot;
-use beetry_serde::ser::node::{LeafKind, NodeName};
+use beetry_plugin_types::node::{LeafKind, NodeName};
+use beetry_reconstruction_types::{
+    channel::{ChannelId, ChannelIdToSnapshotMap},
+    node::{NodeSnapshot, NodeSnapshotData},
+    tree::TreeSnapshot,
+};
 use std::collections::HashMap;
 use tracing::debug;
 

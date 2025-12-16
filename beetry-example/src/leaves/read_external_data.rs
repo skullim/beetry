@@ -6,7 +6,7 @@ use beetry_core::BoxActionBehavior;
 use beetry_core::{self, ActionBehavior, NodeTask, Task, TickStatus};
 use beetry_macros::receivers;
 use beetry_plugin::{node::ActionReconstructionData, plugin};
-use beetry_serde::spec;
+use beetry_plugin_types::spec;
 use bon::bon;
 use type_hash::TypeHash;
 

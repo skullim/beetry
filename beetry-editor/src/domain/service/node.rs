@@ -1,5 +1,3 @@
-use std::collections::{HashMap, HashSet};
-
 use crate::domain::{
     models::{
         ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePosition, NodeSpec,
@@ -17,7 +15,9 @@ use crate::domain::{
     },
 };
 use anyhow::{Context, Result, anyhow, bail};
-use beetry_serde::{de::parameter::Parameters, ser::node::NodeName};
+use beetry_plugin_types::node::NodeName;
+use beetry_reconstruction_types::parameter::Parameters;
+use std::collections::{HashMap, HashSet};
 use tracing::warn;
 
 /// User-facing API, internally this layer maps the concrete repository to corresponding service

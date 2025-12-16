@@ -4,11 +4,12 @@ use std::path::Path;
 
 use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
-use beetry_serde::de::node::{
-    ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotData, RootSnapshot,
+use beetry_plugin_types::node::LeafSchema;
+use beetry_reconstruction_types::{
+    node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotData, RootSnapshot},
+    tree::TreeSnapshot,
 };
-use beetry_serde::de::tree::TreeSnapshot;
-use beetry_serde::ser::node::LeafSchema;
+
 use beetry_serialization::{Deserializer, JsonDeserializer};
 use dioxus_logger::tracing::debug;
 use serde::{Deserialize, Serialize};

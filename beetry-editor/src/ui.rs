@@ -8,9 +8,11 @@ pub mod transfer;
 pub mod viewport;
 
 use beetry_core::MessageHash;
-use beetry_serde::de::parameter::Parameters;
-use beetry_serde::ser::node::{LeafSchema, NodeName};
-use beetry_serde::ser::parameter;
+use beetry_plugin_types::{
+    node::{LeafSchema, NodeName},
+    parameter,
+};
+use beetry_reconstruction_types::parameter::Parameters;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
