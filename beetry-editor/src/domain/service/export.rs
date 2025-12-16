@@ -1,7 +1,7 @@
 use anyhow::{Result, anyhow, bail};
 use beetry_plugin_types::node::LeafKind;
 use beetry_reconstruction_types::{
-    channel::{ChannelIdToSnapshotMap, ChannelSnapshot2},
+    channel::{ChannelSnapshot2, ChannelSnapshotMap},
     node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotData, RootSnapshot},
     tree::TreeSnapshot,
 };
@@ -42,7 +42,7 @@ where
             .build()?)
     }
 
-    fn export_channels(&mut self) -> Result<ChannelIdToSnapshotMap> {
+    fn export_channels(&mut self) -> Result<ChannelSnapshotMap> {
         let ids: Vec<_> = self.channel_api.channels().copied().collect();
         let spec = ids
             .iter()

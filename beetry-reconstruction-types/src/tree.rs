@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 
 use crate::channel::{
-    ChannelId, ChannelIdEndpointCountMap, ChannelIdToSnapshotMap, ChannelValidator,
+    ChannelId, ChannelIdEndpointCountMap, ChannelSnapshotMap, ChannelValidator,
 };
 use crate::node::{NodeSnapshot, NodeSnapshotData, RootSnapshot};
 
@@ -24,13 +24,13 @@ pub type ExportResult<T> = std::result::Result<T, ExportValidationError>;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TreeSnapshot {
     pub root: RootSnapshot,
-    pub channels: ChannelIdToSnapshotMap,
+    pub channels: ChannelSnapshotMap,
 }
 
 #[bon]
 impl TreeSnapshot {
     #[builder]
-    pub fn new(root: RootSnapshot, channels: Option<ChannelIdToSnapshotMap>) -> ExportResult<Self> {
+    pub fn new(root: RootSnapshot, channels: Option<ChannelSnapshotMap>) -> ExportResult<Self> {
         let snapshot_map = channels.unwrap_or_default();
         let mut count_map = HashMap::new();
         Self::collect_channel_references(&root.child, &mut count_map);

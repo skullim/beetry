@@ -29,6 +29,7 @@ impl FromIterator<(String, Value)> for Parameters {
     }
 }
 
+//@todo this should be moved somewhere else
 pub struct Deserializer;
 
 impl Deserializer {

@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use anyhow::{Result, anyhow, bail};
 use beetry_core::MessageHash;
 use beetry_plugin_types::{channel::MessageSpec, node::NodeName, parameter};
+use beetry_reconstruction_types::channel::ChannelConfig;
 use bon::Builder;
 use serde::{Deserialize, Serialize};
 
@@ -183,4 +184,15 @@ pub struct NodeSpec {
     pub param_schema: parameter::Schema,
     #[builder(default)]
     pub ports: PortsSpec,
+}
+
+pub struct ChannelDataInput {
+    pub config: ChannelConfig,
+    pub position: ChannelPosition,
+}
+
+pub struct ChannelData {
+    pub spec_id: ChannelSpecId,
+    pub config: ChannelConfig,
+    pub position: ChannelPosition,
 }

@@ -69,7 +69,7 @@ where
             node_service: self.node_service,
             channel_facade: self.channel_facade,
             channel_service: self.channel_service,
-            facade_view: &mut self.facade_view,
+            node_facade_view: &mut self.facade_view,
             edge_removal_service_api: OnNodeRemovalServiceApi::new(
                 self.edge_service,
                 self.edge_repo,
@@ -170,15 +170,77 @@ where
     }
 }
 
-//@todo consider moving loading logic into new NodeLoaderService
+pub(super) struct LoadNodeApi<'a, NRF, CRF>
+where
+    NRF: NodeRepositoryFacadeConcept,
+{
+    node_service: &'a mut NodeService,
+    channel_service: &'a mut ChannelService,
+    node_facade_view: NodeRepositoryFacadeViewMut<'a, NRF>,
+    channel_facade: &'a mut CRF,
+}
+
+impl<'a, NRF, CRF> LoadNodeApi<'a, NRF, CRF>
+where
+    NRF: NodeRepositoryFacadeConcept,
+    CRF: ChannelRepositoryFacadeConcept,
+{
+    pub(super) fn new(
+        node_service: &'a mut NodeService,
+        channel_service: &'a mut ChannelService,
+        node_facade_view: NodeRepositoryFacadeViewMut<'a, NRF>,
+        channel_facade: &'a mut CRF,
+    ) -> Self {
+        Self {
+            node_service,
+            channel_service,
+            node_facade_view,
+            channel_facade,
+        }
+    }
+
+    pub(super) fn load_node(&mut self, record: NodeRecord) -> Result<()> {
+        self.node_service.load_node(
+            self.node_facade_view.specs,
+            self.node_facade_view.nodes,
+            record.id,
+            record.spec_id,
+        )?;
+        let spec_service_api = SpecServiceApi {
+            spec_repo: self.node_facade_view.specs,
+            node_repo: self.node_facade_view.nodes,
+        };
+        let channel_service_api =
+            ChannelServiceApi::new(self.channel_facade.view_mut(), self.channel_service);
+        let mut port_service_api = PortConnectionServiceApi::new(
+            self.node_facade_view.ports,
+            spec_service_api,
+            channel_service_api,
+        );
+        port_service_api.load(record.id, record.port_records)?;
+        if let Some(params) = record.parameters {
+            let mut params_service_api = ParameterValueServiceApi {
+                repo: self.node_facade_view.parameters,
+            };
+            params_service_api.load(record.id, params)?;
+        }
+        Ok(())
+    }
+
+    pub(super) fn load_spec(&mut self, record: NodeSpecRecord) -> Result<()> {
+        self.node_service
+            .load_spec(self.node_facade_view.specs, record)
+    }
+}
+
 pub struct NodeLifecycleApi<'a, NRF, CRF, ER>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
     node_service: &'a mut NodeService,
     channel_service: &'a mut ChannelService,
+    node_facade_view: &'a mut NodeRepositoryFacadeViewMut<'a, NRF>,
     channel_facade: &'a mut CRF,
-    facade_view: &'a mut NodeRepositoryFacadeViewMut<'a, NRF>,
     edge_removal_service_api: edge::OnNodeRemovalServiceApi<'a, ER>,
 }
 
@@ -190,45 +252,21 @@ where
 {
     pub fn create(&mut self, spec: NodeSpec) -> Result<NodeId> {
         let ports_spec = spec.ports.clone();
-        let id = self
-            .node_service
-            .create(self.facade_view.specs, self.facade_view.nodes, spec)?;
-        Self::initialize_ports(self.facade_view.ports, id, &ports_spec)?;
+        let id = self.node_service.create(
+            self.node_facade_view.specs,
+            self.node_facade_view.nodes,
+            spec,
+        )?;
+        Self::initialize_ports(self.node_facade_view.ports, id, &ports_spec)?;
+        //@todo should parameters also be initialized? Better if user provides already checked value
         Ok(id)
     }
 
     pub fn remove(&mut self, id: NodeId) -> Result<()> {
-        self.node_service.remove::<NRF>(self.facade_view, id)?;
+        self.node_service.remove::<NRF>(self.node_facade_view, id)?;
         self.edge_removal_service_api.on_removal(id)?;
         self.disconnect_ports(id)?;
         Ok(())
-    }
-
-    pub(super) fn load_node(&mut self, record: NodeRecord) -> Result<()> {
-        self.node_service.load_node(
-            self.facade_view.specs,
-            self.facade_view.nodes,
-            record.id,
-            record.spec_id,
-        )?;
-        let spec_service_api = SpecServiceApi {
-            spec_repo: self.facade_view.specs,
-            node_repo: self.facade_view.nodes,
-        };
-        let channel_service_api =
-            ChannelServiceApi::new(self.channel_facade.view_mut(), self.channel_service);
-        let mut port_service_api = PortConnectionServiceApi::new(
-            self.facade_view.ports,
-            spec_service_api,
-            channel_service_api,
-        );
-        port_service_api.load(record.id, record.port_records)?;
-
-        todo!()
-    }
-
-    pub(super) fn load_spec() {
-        todo!()
     }
 
     fn initialize_ports(
@@ -243,11 +281,12 @@ where
     }
 
     fn disconnect_ports(&mut self, id: NodeId) -> Result<()> {
-        let spec_service_api = SpecServiceApi::new(self.facade_view.specs, self.facade_view.nodes);
+        let spec_service_api =
+            SpecServiceApi::new(self.node_facade_view.specs, self.node_facade_view.nodes);
         let channel_service_api =
             ChannelServiceApi::new(self.channel_facade.view_mut(), self.channel_service);
         let mut port_connection_service_api = PortConnectionServiceApi::new(
-            self.facade_view.ports,
+            self.node_facade_view.ports,
             spec_service_api,
             channel_service_api,
         );
@@ -297,6 +336,12 @@ where
         self.repo
             .params(id)
             .ok_or_else(|| anyhow!("failed to obtain parameters for node {id}"))
+    }
+
+    //@todo move to NodeLoadApi
+    pub fn load(&mut self, id: NodeId, params: Parameters) -> Result<()> {
+        //@todo validate against schema
+        self.repo.insert(id, params)
     }
 
     //@todo add API to set parameters, also validate against schema here
@@ -374,12 +419,14 @@ where
         Ok(())
     }
 
+    //@todo move to NodeLoadApi
     fn load(
         &mut self,
         id: NodeId,
         records: impl IntoIterator<Item = NodePortRecord>,
     ) -> Result<()> {
         for record in records {
+            //@todo validate that conn is valid
             self.repo.load(id, record.id, record.conn)?;
         }
         Ok(())
