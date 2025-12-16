@@ -55,11 +55,11 @@ where
         self.edge_service.children_of(id)
     }
 
-    pub fn edges(&self) -> impl Iterator<Item = (EdgeId, &NodeEdge)> {
+    pub fn edges(&self) -> impl Iterator<Item = (&EdgeId, &NodeEdge)> {
         EdgeService::edges(self.edge_repo)
     }
 
-    pub fn remove(&mut self, id: EdgeId) -> Result<()> {
+    pub fn remove(&mut self, id: &EdgeId) -> Result<()> {
         self.edge_service.remove(self.edge_repo, id)
     }
 }
@@ -83,14 +83,14 @@ where
             .iter()
             .filter_map(|(edge_id, e)| {
                 if e.to == id || e.from == id {
-                    Some(edge_id)
+                    Some(*edge_id)
                 } else {
                     None
                 }
             })
             .collect();
         for id in filtered {
-            self.service.remove(self.repo, id)?;
+            self.service.remove(self.repo, &id)?;
         }
         Ok(())
     }
@@ -153,7 +153,7 @@ impl EdgeService {
                 Self::find_edge_id_from(edge_repo, |(_, e)| e.from == old_parent_id)
         {
             warn!("re-parenting node {child} from {old_parent_id} to {parent}");
-            self.remove(edge_repo, edge_id)?;
+            self.remove(edge_repo, &edge_id)?;
         }
 
         //implicit re-childing (more convenient to use for client)
@@ -165,7 +165,7 @@ impl EdgeService {
                 .map(|children| children.iter().next().copied())
                 && let Some(edge_id) = Self::find_edge_id_from(edge_repo, |(_, e)| e.to == child_id)
             {
-                self.remove(edge_repo, edge_id)?;
+                self.remove(edge_repo, &edge_id)?;
             }
         }
 
@@ -179,7 +179,7 @@ impl EdgeService {
     }
 
     // All edges are *always* removed by Id
-    fn remove(&mut self, edge_repo: &mut impl EdgeRepositoryConcept, id: EdgeId) -> Result<()> {
+    fn remove(&mut self, edge_repo: &mut impl EdgeRepositoryConcept, id: &EdgeId) -> Result<()> {
         let removed = edge_repo
             .remove(id)
             .ok_or_else(|| anyhow!("attempted to remove edge {id} that does not exist"))?;
@@ -208,7 +208,7 @@ impl EdgeService {
             .flat_map(|children| children.iter().copied())
     }
 
-    fn edges(edge_repo: &impl EdgeRepositoryConcept) -> impl Iterator<Item = (EdgeId, &NodeEdge)> {
+    fn edges(edge_repo: &impl EdgeRepositoryConcept) -> impl Iterator<Item = (&EdgeId, &NodeEdge)> {
         edge_repo.iter()
     }
 
@@ -229,8 +229,8 @@ impl EdgeService {
 
     fn find_edge_id_from(
         edge_repo: &impl EdgeRepositoryConcept,
-        predicate: impl FnMut(&(EdgeId, &NodeEdge)) -> bool,
+        predicate: impl FnMut(&(&EdgeId, &NodeEdge)) -> bool,
     ) -> Option<EdgeId> {
-        edge_repo.iter().find(predicate).map(|(id, _)| id)
+        edge_repo.iter().find(predicate).map(|(id, _)| *id)
     }
 }

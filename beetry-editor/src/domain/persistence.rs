@@ -3,87 +3,135 @@ use std::collections::HashMap;
 
 use beetry_serde::{
     de::{
-        channel::{ChannelId, ChannelImplKind, SenderReceiverCount},
+        channel::{ChannelConfig, ChannelId},
         parameter,
     },
     ser::channel::ChannelSpec,
 };
 
-use crate::{
-    definitions::{NodeEdge, NodeId},
-    domain::{
-        models::{
-            ChannelPosition, ChannelSpecId, EdgeId, NodePortConnection, NodePortId, NodePosition,
-            NodeSpec, NodeSpecId,
-        },
-        repository::{ChannelDataRepositoryConcept, NodeRepositoryFacadeConcept},
+use crate::domain::{
+    models::{
+        ChannelPosition, ChannelSpecId, EdgeId, NodeEdge, NodeId, NodePortConnection, NodePortId,
+        NodePosition, NodeSpec, NodeSpecId,
+    },
+    repository::{
+        EdgeRepositoryConcept, NodeRepositoryConcept, NodeRepositoryFacadeConcept,
+        NodeRepositoryFacadeView, ParamValuesRepositoryConcept, PortStateRepositoryConcept,
+        SpecRepositoryConcept,
     },
 };
 
-pub struct EditorData {
-    pub tree: TreeData,
+pub struct EditorStorage {
+    pub tree: TreeStorage,
     pub positions: UiElementPositions,
 }
 
-pub struct TreeData {
-    pub node_specs: Vec<NodeSpec>,
-    pub nodes: Vec<NodeData>,
-    pub edges: Vec<EdgeData>,
-    pub channel_metadata: Vec<ChannelSpecEntry>,
-    pub channels: Vec<ChannelDataEntry>,
+pub struct TreeStorage {
+    pub node: NodeStorage,
+    pub edges: EdgeStorage,
+    pub channels: ChannelStorage,
 }
 
-pub struct NodeSpecEntry {
+pub struct NodeStorage {
+    specs: Vec<NodeSpecRecord>,
+    nodes: Vec<NodeRecord>,
+}
+
+impl NodeStorage {
+    pub fn load(facade: &impl NodeRepositoryFacadeConcept) -> Result<Self> {
+        let NodeRepositoryFacadeView {
+            nodes,
+            specs,
+            parameters,
+            ports,
+            ..
+        } = facade.view();
+        let specs: Vec<_> = specs
+            .iter()
+            .map(|(id, spec)| NodeSpecRecord {
+                id: *id,
+                spec: spec.clone(),
+            })
+            .collect();
+
+        let node_ids = nodes.ids().copied();
+        let nodes = node_ids
+            .map(|id| NodeRecord {
+                id,
+                spec_id: *nodes
+                    .spec_id(&id)
+                    .ok_or_else(|| format!("expected spec id for node {id}"))
+                    .unwrap(),
+                parameters: parameters.params(id).cloned(),
+                port_records: ports
+                    .port_iter(id)
+                    .map(|(port_id, conn)| NodePortRecord {
+                        id: *port_id,
+                        conn: conn.clone(),
+                    })
+                    .collect(),
+            })
+            .collect();
+        Ok(Self { specs, nodes })
+    }
+}
+
+pub struct NodeSpecRecord {
     pub id: NodeSpecId,
     pub spec: NodeSpec,
 }
 
-pub struct NodeData {
+pub struct NodeRecord {
     pub id: NodeId,
     pub spec_id: NodeSpecId,
-    pub ports_data: Vec<(NodePortId, NodeChannelPortData)>,
+    pub port_records: Vec<NodePortRecord>,
     pub parameters: Option<parameter::Parameters>,
 }
 
-pub struct NodeChannelPortData {
-    pub kind: NodePortConnection,
+pub struct NodePortRecord {
+    pub id: NodePortId,
+    pub conn: NodePortConnection,
 }
 
-pub struct EdgeData {
+pub struct EdgeStorage {
+    edges: Vec<EdgeRecord>,
+}
+
+impl EdgeStorage {
+    pub fn load(repo: &impl EdgeRepositoryConcept) -> Result<Self> {
+        let edges = repo
+            .iter()
+            .map(|(id, edge)| EdgeRecord {
+                id: *id,
+                node_edge: edge.clone(),
+            })
+            .collect();
+        Ok(Self { edges })
+    }
+}
+
+pub struct EdgeRecord {
     pub id: EdgeId,
     pub node_edge: NodeEdge,
 }
 
-pub struct ChannelSpecEntry {
+pub struct ChannelStorage {
+    specs: Vec<ChannelSpecRecord>,
+    channels: Vec<ChannelRecord>,
+}
+
+pub struct ChannelSpecRecord {
     pub id: ChannelSpecId,
     pub spec: ChannelSpec,
 }
 
-pub struct ChannelDataEntry {
+pub struct ChannelRecord {
     pub id: ChannelId,
     pub spec_id: ChannelSpecId,
-    pub count: SenderReceiverCount,
-    pub capacity: usize,
-    pub kind: ChannelImplKind,
+    pub config: ChannelConfig,
 }
 
 pub struct UiElementPositions {
     pub nodes: HashMap<NodeId, NodePosition>,
     pub channels: HashMap<ChannelId, ChannelPosition>,
-}
-
-// Repository <-> Storage impl
-
-use crate::domain::repository::NodeRepositoryConcept;
-
-pub struct NodeRepositoryFacadeStorage;
-
-impl NodeRepositoryFacadeStorage {
-    fn serialize(
-        facade: &impl NodeRepositoryFacadeConcept,
-    ) -> Result<(Vec<NodeData>, Vec<NodeSpecEntry>)> {
-        let view = facade.view();
-        let node_ids = view.nodes.nodes();
-        todo!()
-    }
 }

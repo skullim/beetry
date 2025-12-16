@@ -246,6 +246,15 @@ pub trait SpecRepositoryConcept: Default {
     fn remove(&mut self, id: Self::SpecId) -> Option<Self::Spec>;
 
     fn spec(&self, id: Self::SpecId) -> Option<&Self::Spec>;
+
+    fn specs(&self) -> impl Iterator<Item = &Self::Spec>;
+
+    fn ids(&self) -> impl Iterator<Item = &Self::SpecId>;
+
+    // provided methods
+    fn iter(&self) -> impl Iterator<Item = (&Self::SpecId, &Self::Spec)> {
+        self.ids().zip(self.specs())
+    }
 }
 
 #[derive(Debug)]
@@ -297,22 +306,38 @@ where
     fn spec(&self, id: I) -> Option<&S> {
         self.specs.get(&id)
     }
+
+    fn ids(&self) -> impl Iterator<Item = &Self::SpecId> {
+        self.specs.keys()
+    }
+
+    fn specs(&self) -> impl Iterator<Item = &Self::Spec> {
+        self.specs.values()
+    }
 }
 
 pub type NodeSpecRepository = SpecRepository<NodeSpecId, NodeSpec>;
 pub type ChannelSpecRepository = SpecRepository<ChannelSpecId, ChannelSpec>;
 
 pub trait NodeRepositoryConcept: Default {
-    fn create(&mut self, spec: NodeSpecId) -> Result<NodeId>;
+    fn create(&mut self, spec_id: NodeSpecId) -> Result<NodeId>;
     /// Return error when id already used
-    fn load(&mut self, node: NodeId, spec: NodeSpecId) -> Result<()>;
+    fn load(&mut self, id: NodeId, spec_id: NodeSpecId) -> Result<()>;
 
     fn remove(&mut self, id: NodeId) -> Result<()>;
 
     fn contains(&self, id: &NodeId) -> bool;
 
     fn spec_id(&self, id: &NodeId) -> Option<&NodeSpecId>;
-    fn nodes(&self) -> impl Iterator<Item = &NodeId>;
+
+    fn spec_ids(&self) -> impl Iterator<Item = &NodeSpecId>;
+
+    fn ids(&self) -> impl Iterator<Item = &NodeId>;
+
+    // provided methods
+    fn iter(&self) -> impl Iterator<Item = (&NodeId, &NodeSpecId)> {
+        self.ids().zip(self.spec_ids())
+    }
 }
 
 #[derive(Debug, Default)]
@@ -351,7 +376,11 @@ impl NodeRepositoryConcept for NodeRepository {
         self.nodes.get(id)
     }
 
-    fn nodes(&self) -> impl Iterator<Item = &NodeId> {
+    fn spec_ids(&self) -> impl Iterator<Item = &NodeSpecId> {
+        self.nodes.values()
+    }
+
+    fn ids(&self) -> impl Iterator<Item = &NodeId> {
         self.nodes.keys()
     }
 }
@@ -364,6 +393,8 @@ pub trait PortStateRepositoryConcept: Default {
 
     fn state(&self, node: NodeId, port: NodePortId) -> Option<&NodePortConnection>;
     fn state_mut(&mut self, node: NodeId, port: NodePortId) -> Option<&mut NodePortConnection>;
+
+    fn port_iter(&self, node: NodeId) -> impl Iterator<Item = (&NodePortId, &NodePortConnection)>;
 }
 
 #[derive(Default)]
@@ -391,6 +422,13 @@ impl PortStateRepositoryConcept for PortStateRepository {
 
     fn state_mut(&mut self, node: NodeId, port: NodePortId) -> Option<&mut NodePortConnection> {
         self.connections.get_mut(&(node, port))
+    }
+
+    fn port_iter(&self, node: NodeId) -> impl Iterator<Item = (&NodePortId, &NodePortConnection)> {
+        self.connections
+            .iter()
+            .filter(move |((node_id, _), _)| *node_id == node)
+            .map(|((_, port_id), v)| (port_id, v))
     }
 }
 
@@ -460,13 +498,13 @@ pub trait EdgeRepositoryConcept: Default {
     fn create(&mut self, edge: NodeEdge) -> Result<EdgeId>;
     fn load(&mut self, id: EdgeId, edge: NodeEdge) -> Result<()>;
 
-    fn remove(&mut self, id: EdgeId) -> Option<NodeEdge>;
+    fn remove(&mut self, id: &EdgeId) -> Option<NodeEdge>;
 
     fn edges(&self) -> impl Iterator<Item = &NodeEdge>;
-    fn ids(&self) -> impl Iterator<Item = EdgeId>;
+    fn ids(&self) -> impl Iterator<Item = &EdgeId>;
 
     // provided methods
-    fn iter(&self) -> impl Iterator<Item = (EdgeId, &NodeEdge)> {
+    fn iter(&self) -> impl Iterator<Item = (&EdgeId, &NodeEdge)> {
         self.ids().zip(self.edges())
     }
 }
@@ -494,16 +532,16 @@ impl EdgeRepositoryConcept for EdgeRepository {
         Ok(())
     }
 
-    fn remove(&mut self, id: EdgeId) -> Option<NodeEdge> {
-        self.edges.remove(&id)
+    fn remove(&mut self, id: &EdgeId) -> Option<NodeEdge> {
+        self.edges.remove(id)
     }
 
     fn edges(&self) -> impl Iterator<Item = &NodeEdge> {
         self.edges.values()
     }
 
-    fn ids(&self) -> impl Iterator<Item = EdgeId> {
-        self.edges.keys().copied()
+    fn ids(&self) -> impl Iterator<Item = &EdgeId> {
+        self.edges.keys()
     }
 }
 
@@ -517,8 +555,8 @@ pub trait ChannelDataRepositoryConcept: Default {
 
     fn data_mut(&mut self, id: ChannelId) -> Option<&mut ChannelData>;
     fn data(&self, id: ChannelId) -> Option<&ChannelData>;
-    fn data_iter(&self) -> impl Iterator<Item = &ChannelData>;
 
+    fn data_iter(&self) -> impl Iterator<Item = &ChannelData>;
     fn channels(&self) -> impl Iterator<Item = &ChannelId>;
 }
 

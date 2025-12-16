@@ -10,6 +10,7 @@ pub struct Parameters {
 }
 
 impl Parameters {
+    /// caller has to assure that new value is valid w.r.t. schema and validation logic
     pub fn update(&mut self, field: &str, new: Value) -> Result<()> {
         let old = self
             .field_value_map

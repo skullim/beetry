@@ -1,19 +1,20 @@
 use crate::{
     EditorService,
     domain::{
-        persistence::EditorData,
+        persistence::EditorStorage,
         repository::{
             ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept,
         },
     },
 };
 use anyhow::{Result, anyhow};
+use beetry_serde::de::tree::TreeSnapshot;
 use std::collections::HashMap;
 
-pub struct ProjectImportServiceApi;
+pub struct ImportServiceApi;
 
-impl ProjectImportServiceApi {
-    pub fn import<NRF, ER, CRF>(data: EditorData) -> Result<EditorService<NRF, ER, CRF>>
+impl ImportServiceApi {
+    pub fn import_project<NRF, ER, CRF>(data: EditorStorage) -> Result<EditorService<NRF, ER, CRF>>
     where
         NRF: NodeRepositoryFacadeConcept,
         ER: EdgeRepositoryConcept,
@@ -36,6 +37,10 @@ impl ProjectImportServiceApi {
             //     let (spec, kind, ports) = meta;
             // }
         }
+        todo!()
+    }
+
+    pub fn import_tree() -> Result<TreeSnapshot> {
         todo!()
     }
 }

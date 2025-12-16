@@ -20,7 +20,8 @@ pub trait Named {
     fn name(&self) -> &str;
 }
 
-pub trait ConstructPlugin {
+/// Internal helper trait to define unique plugins filtering
+trait ConstructPlugin {
     type Spec: Named;
     type Factory;
     fn construct(&self) -> BoxPlugin<Self::Spec, Self::Factory>;
