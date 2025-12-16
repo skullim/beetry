@@ -1,27 +1,22 @@
-use anyhow::Result;
-use std::collections::HashMap;
+use anyhow::{Result, anyhow};
 
 use beetry_plugin_types::channel::ChannelSpec;
-use beetry_reconstruction_types::{
-    channel::{ChannelConfig, ChannelId},
-    parameter,
-};
+use beetry_reconstruction_types::{channel::ChannelId, parameter};
 
 use crate::domain::{
     models::{
-        ChannelPosition, ChannelSpecId, EdgeId, NodeEdge, NodeId, NodePortConnection, NodePortId,
+        ChannelData, ChannelSpecId, EdgeId, NodeEdge, NodeId, NodePortConnection, NodePortId,
         NodePosition, NodeSpec, NodeSpecId,
     },
     repository::{
-        EdgeRepositoryConcept, NodeRepositoryConcept, NodeRepositoryFacadeConcept,
-        NodeRepositoryFacadeView, ParamValuesRepositoryConcept, PortStateRepositoryConcept,
-        SpecRepositoryConcept,
+        EdgeRepositoryConcept, NodePositionRepositoryConcept, NodeRepositoryConcept,
+        NodeRepositoryFacadeConcept, NodeRepositoryFacadeView, ParamValuesRepositoryConcept,
+        PortStateRepositoryConcept, SpecRepositoryConcept,
     },
 };
 
 pub struct EditorStorage {
     pub tree: TreeStorage,
-    pub positions: UiElementPositions,
 }
 
 pub struct TreeStorage {
@@ -31,8 +26,8 @@ pub struct TreeStorage {
 }
 
 pub struct NodeStorage {
-    specs: Vec<NodeSpecRecord>,
-    nodes: Vec<NodeRecord>,
+    pub specs: Vec<NodeSpecRecord>,
+    pub nodes: Vec<NodeRecord>,
 }
 
 impl NodeStorage {
@@ -41,8 +36,8 @@ impl NodeStorage {
             nodes,
             specs,
             parameters,
+            positions,
             ports,
-            ..
         } = facade.view();
         let specs: Vec<_> = specs
             .iter()
@@ -54,22 +49,28 @@ impl NodeStorage {
 
         let node_ids = nodes.ids().copied();
         let nodes = node_ids
-            .map(|id| NodeRecord {
-                id,
-                spec_id: *nodes
-                    .spec_id(&id)
-                    .ok_or_else(|| format!("expected spec id for node {id}"))
-                    .unwrap(),
-                parameters: parameters.params(id).cloned(),
-                port_records: ports
-                    .port_iter(id)
-                    .map(|(port_id, conn)| NodePortRecord {
-                        id: *port_id,
-                        conn: conn.clone(),
-                    })
-                    .collect(),
+            .map(|id| {
+                Ok(NodeRecord {
+                    id,
+                    spec_id: *nodes
+                        .spec_id(&id)
+                        .ok_or_else(|| anyhow!("expected spec id for node {id}"))?,
+                    parameters: parameters.params(id).cloned(),
+                    position: *positions
+                        .position(id)
+                        .ok_or_else(|| anyhow!("expected set position for node {id}"))?,
+                    port_records: ports
+                        .port_iter(id)
+                        .map(|(port_id, conn)| {
+                            Ok(NodePortRecord {
+                                id: *port_id,
+                                conn: conn.clone(),
+                            })
+                        })
+                        .collect::<Result<Vec<NodePortRecord>>>()?,
+                })
             })
-            .collect();
+            .collect::<Result<Vec<NodeRecord>>>()?;
         Ok(Self { specs, nodes })
     }
 }
@@ -79,11 +80,17 @@ pub struct NodeSpecRecord {
     pub spec: NodeSpec,
 }
 
+//@todo still to consider, but it might be more beneficial here to have children indexset https://docs.rs/indexmap/latest/indexmap/set/struct.IndexSet.html
+// Then it would be possible to decouple the UiPosition from the node data.
+// This in turn would allow to split the project into strictly tree data and UI elements data.
+// Only tree data would be needed for backend to execute the tree, whereas the project would be sum of tree and UI elements data.
+// This also mean that channel position data should probably be split into another repository, or merged together with node position.
 pub struct NodeRecord {
     pub id: NodeId,
     pub spec_id: NodeSpecId,
     pub port_records: Vec<NodePortRecord>,
     pub parameters: Option<parameter::Parameters>,
+    pub position: NodePosition,
 }
 
 pub struct NodePortRecord {
@@ -125,11 +132,5 @@ pub struct ChannelSpecRecord {
 
 pub struct ChannelRecord {
     pub id: ChannelId,
-    pub spec_id: ChannelSpecId,
-    pub config: ChannelConfig,
-}
-
-pub struct UiElementPositions {
-    pub nodes: HashMap<NodeId, NodePosition>,
-    pub channels: HashMap<ChannelId, ChannelPosition>,
+    pub data: ChannelData,
 }
