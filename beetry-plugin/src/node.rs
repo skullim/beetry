@@ -4,7 +4,7 @@ use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
 use beetry_core::{BoxActionBehavior, BoxConditionBehavior, BoxNode, NonEmptyNodes};
 use beetry_serde::de::parameter::Parameters;
 use beetry_serde::ser::node::{ActionSpec, ConditionSpec, ControlSpec, NodeSpec};
-use bon::{Builder, builder};
+use bon::Builder;
 use std::collections::HashSet;
 use std::marker::PhantomData;
 
@@ -14,6 +14,7 @@ impl<P> ActionPlugin for P where P: Plugin<Spec = ActionSpec, Factory = ActionFa
 pub trait ConditionPlugin: Plugin<Spec = ConditionSpec, Factory = ConditionFactory> {}
 impl<P> ConditionPlugin for P where P: Plugin<Spec = ConditionSpec, Factory = ConditionFactory> {}
 
+//@todo move those types to beetry-reconstruction-interface crate
 pub type LeafReconstructionData = NodeReconstructionData<LeafMetadata>;
 pub type ActionReconstructionData = LeafReconstructionData;
 pub type ConditionReconstructionData = LeafReconstructionData;
