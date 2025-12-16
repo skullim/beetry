@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
-use bon::{Builder, builder};
+use bon::Builder;
 use derive_more::From;
 use getset::{CopyGetters, Getters};
 use mitsein::iter1::FromIterator1;

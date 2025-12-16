@@ -5,6 +5,7 @@ use crate::domain::{
         ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePosition, NodeSpec,
         NodeSpecId, PortsSpec,
     },
+    persistence::{NodePortRecord, NodeRecord, NodeSpecRecord},
     repository::{
         ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodePositionRepositoryConcept,
         NodeRepositoryConcept, NodeRepositoryFacadeConcept, NodeRepositoryFacadeViewMut,
@@ -15,8 +16,9 @@ use crate::domain::{
         edge::{self, EdgeService, OnNodeRemovalServiceApi},
     },
 };
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow, bail};
 use beetry_serde::{de::parameter::Parameters, ser::node::NodeName};
+use tracing::warn;
 
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
 pub struct NodeServiceApi<'a, NRF, ER, CRF>
@@ -87,11 +89,11 @@ where
     ) -> PortConnectionServiceApi<'_, NRF::PortStateRepo, NRF::SpecRepo, NRF::NodeRepo, CRF> {
         PortConnectionServiceApi {
             repo: self.facade_view.ports,
-            spec_service: SpecServiceApi {
+            spec_service_api: SpecServiceApi {
                 spec_repo: self.facade_view.specs,
                 node_repo: self.facade_view.nodes,
             },
-            channel_service: ChannelServiceApi::new(
+            channel_service_api: ChannelServiceApi::new(
                 self.channel_facade.view_mut(),
                 self.channel_service,
             ),
@@ -134,22 +136,31 @@ where
     }
 
     pub fn name(&self, id: NodeId) -> Result<&NodeName> {
-        Ok(&Self::spec(self.spec_repo, self.node_repo, id)?.name)
+        Ok(&Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.name)
     }
 
     pub fn kind(&self, id: NodeId) -> Result<NodeKind> {
-        Ok(Self::spec(self.spec_repo, self.node_repo, id)?.kind)
+        Ok(Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.kind)
     }
 
     pub fn ports(&self, id: NodeId) -> Result<&PortsSpec> {
-        Ok(&Self::spec(self.spec_repo, self.node_repo, id)?.ports)
+        Ok(&Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.ports)
     }
 
-    fn spec<'s>(spec_repo: &'s SR, node_repo: &NR, id: NodeId) -> Result<&'s NodeSpec> {
+    fn kind_by_spec_id(&self, spec_id: NodeSpecId) -> Result<NodeKind> {
+        Ok(Self::spec_by_spec_id(self.spec_repo, spec_id)?.kind)
+    }
+
+    fn spec_by_node_id<'s>(spec_repo: &'s SR, node_repo: &NR, id: NodeId) -> Result<&'s NodeSpec> {
         let spec_id = *Self::spec_id(node_repo, id)?;
+        Self::spec_by_spec_id(spec_repo, spec_id)
+            .with_context(|| format!("spec for node id {id} not found"))
+    }
+
+    fn spec_by_spec_id(spec_repo: &SR, spec_id: NodeSpecId) -> Result<&NodeSpec> {
         spec_repo
             .spec(spec_id)
-            .ok_or_else(|| anyhow!("failed to obtain spec {spec_id} for node {id}"))
+            .ok_or_else(|| anyhow!("failed to obtain spec {spec_id}"))
     }
 
     fn spec_id(node_repo: &NR, id: NodeId) -> Result<&NodeSpecId> {
@@ -159,6 +170,7 @@ where
     }
 }
 
+//@todo consider moving loading logic into new NodeLoaderService
 pub struct NodeLifecycleApi<'a, NRF, CRF, ER>
 where
     NRF: NodeRepositoryFacadeConcept,
@@ -190,6 +202,33 @@ where
         self.edge_removal_service_api.on_removal(id)?;
         self.disconnect_ports(id)?;
         Ok(())
+    }
+
+    pub(super) fn load_node(&mut self, record: NodeRecord) -> Result<()> {
+        self.node_service.load_node(
+            self.facade_view.specs,
+            self.facade_view.nodes,
+            record.id,
+            record.spec_id,
+        )?;
+        let spec_service_api = SpecServiceApi {
+            spec_repo: self.facade_view.specs,
+            node_repo: self.facade_view.nodes,
+        };
+        let channel_service_api =
+            ChannelServiceApi::new(self.channel_facade.view_mut(), self.channel_service);
+        let mut port_service_api = PortConnectionServiceApi::new(
+            self.facade_view.ports,
+            spec_service_api,
+            channel_service_api,
+        );
+        port_service_api.load(record.id, record.port_records)?;
+
+        todo!()
+    }
+
+    pub(super) fn load_spec() {
+        todo!()
     }
 
     fn initialize_ports(
@@ -231,7 +270,7 @@ where
     }
 
     pub fn nodes(&self) -> impl Iterator<Item = &NodeId> {
-        self.repo.nodes()
+        self.repo.ids()
     }
 
     pub fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId> {
@@ -274,8 +313,8 @@ where
     CRF: ChannelRepositoryFacadeConcept,
 {
     repo: &'a mut PR,
-    spec_service: SpecServiceApi<'a, SR, NR>,
-    channel_service: ChannelServiceApi<'a, CRF>,
+    spec_service_api: SpecServiceApi<'a, SR, NR>,
+    channel_service_api: ChannelServiceApi<'a, CRF>,
 }
 
 impl<'a, PR, SR, NR, CRF> PortConnectionServiceApi<'a, PR, SR, NR, CRF>
@@ -287,13 +326,13 @@ where
 {
     pub(super) fn new(
         repo: &'a mut PR,
-        spec_service: SpecServiceApi<'a, SR, NR>,
-        channel_service: ChannelServiceApi<'a, CRF>,
+        spec_service_api: SpecServiceApi<'a, SR, NR>,
+        channel_service_api: ChannelServiceApi<'a, CRF>,
     ) -> Self {
         Self {
             repo,
-            spec_service,
-            channel_service,
+            spec_service_api,
+            channel_service_api,
         }
     }
 
@@ -304,32 +343,44 @@ where
     }
 
     pub fn connect(&mut self, input: PortConnectionInput) -> Result<()> {
-        let spec = self.spec_service.ports(input.node)?.spec(input.port)?;
+        let spec = self.spec_service_api.ports(input.node)?.spec(input.port)?;
         let ctx = ConnectionContext {
             channel: input.channel,
             node: input.node,
             spec,
         };
-        self.channel_service.connect(ctx)?;
+        self.channel_service_api.connect(ctx)?;
         self.state_mut(input.node, input.port)?
             .connect(input.channel)
     }
 
     pub fn disconnect(&mut self, input: PortConnectionInput) -> Result<()> {
-        let spec = self.spec_service.ports(input.node)?.spec(input.port)?;
-        self.channel_service.disconnect(input.channel, spec.kind)?;
+        let spec = self.spec_service_api.ports(input.node)?.spec(input.port)?;
+        self.channel_service_api
+            .disconnect(input.channel, spec.kind)?;
         self.state_mut(input.node, input.port)?
             .disconnect(input.channel)
     }
 
     pub fn disconnect_all(&mut self, id: NodeId) -> Result<()> {
-        let ports_spec = self.spec_service.ports(id)?.clone();
+        let ports_spec = self.spec_service_api.ports(id)?.clone();
         for port_id in ports_spec.ids() {
             let channels = self.state_mut(id, *port_id)?.disconnect_all();
             for channel in channels {
-                self.channel_service
+                self.channel_service_api
                     .disconnect(channel, ports_spec.spec(*port_id)?.kind)?;
             }
+        }
+        Ok(())
+    }
+
+    fn load(
+        &mut self,
+        id: NodeId,
+        records: impl IntoIterator<Item = NodePortRecord>,
+    ) -> Result<()> {
+        for record in records {
+            self.repo.load(id, record.id, record.conn)?;
         }
         Ok(())
     }
@@ -384,13 +435,7 @@ impl NodeService {
         spec: NodeSpec,
     ) -> Result<NodeId> {
         let kind = spec.kind;
-        if let NodeKind::Root = spec.kind
-            && let Some(root) = self.node_cache.get(&kind)
-            && !root.is_empty()
-        {
-            bail!("attempted to create multiple roots");
-        }
-
+        self.validate_creation(kind)?;
         let spec_id = match self.spec_cache.get(&spec) {
             Some(id) => *id,
             None => {
@@ -399,10 +444,55 @@ impl NodeService {
                 spec_id
             }
         };
-
         let id = node_repo.create(spec_id)?;
         self.node_cache.entry(kind).or_default().insert(id);
         Ok(id)
+    }
+
+    fn validate_creation(&self, kind: NodeKind) -> Result<()> {
+        if let NodeKind::Root = kind
+            && let Some(root) = self.node_cache.get(&kind)
+            && !root.is_empty()
+        {
+            bail!("attempted to create multiple roots");
+        }
+        Ok(())
+    }
+
+    fn load_node(
+        &mut self,
+        spec_repo: &impl SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
+        node_repo: &mut impl NodeRepositoryConcept,
+        id: NodeId,
+        spec_id: NodeSpecId,
+    ) -> Result<()> {
+        let spec_api = SpecServiceApi {
+            spec_repo,
+            node_repo,
+        };
+        let kind = spec_api.kind_by_spec_id(spec_id)?;
+        self.validate_creation(kind)?;
+        node_repo.load(id, spec_id)?;
+        self.node_cache.entry(kind).or_default().insert(id);
+        Ok(())
+    }
+
+    fn load_spec(
+        &mut self,
+        spec_repo: &mut impl SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
+        record: NodeSpecRecord,
+    ) -> Result<()> {
+        match self.spec_cache.get(&record.spec) {
+            Some(id) => {
+                warn!("spec {id} was already loaded");
+            }
+            None => {
+                let NodeSpecRecord { id, spec } = record;
+                spec_repo.load(id, spec.clone())?;
+                self.spec_cache.insert(spec, id);
+            }
+        }
+        Ok(())
     }
 
     fn positions_by_kind<'a>(
@@ -426,7 +516,7 @@ impl NodeService {
     where
         NRF: NodeRepositoryFacadeConcept,
     {
-        let spec = SpecServiceApi::spec(view.specs, view.nodes, id)?;
+        let spec = SpecServiceApi::spec_by_node_id(view.specs, view.nodes, id)?;
         self.node_cache
             .get_mut(&spec.kind)
             .map(|nodes| nodes.remove(&id));
