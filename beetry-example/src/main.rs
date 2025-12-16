@@ -1,7 +1,7 @@
 use beetry_channel::AnyBoxReceiver;
 use beetry_channel::external::ReceiverRegistry;
 use beetry_editor::ProjectData;
-use beetry_serde::ser::channel::MessageHashProvider;
+use beetry_plugin_types::channel::MessageHashProvider;
 use beetry_serialization::{Deserializer, JsonDeserializer};
 use rfd::FileHandle;
 use std::io::Read;

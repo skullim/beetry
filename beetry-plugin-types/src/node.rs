@@ -1,32 +1,15 @@
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
 
-use bon::{Builder, builder};
+use bon::Builder;
 use derive_more::{Display, From};
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 
-use crate::ser::node::leaf_schema_builder::SetKind;
+use crate::node::leaf_schema_builder::SetKind;
 
 use super::channel::MessageSpec;
 use super::parameter;
-
-#[derive(
-    Debug, Display, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, From,
-)]
-pub struct NodeName(pub String);
-
-impl NodeName {
-    pub fn new(name: impl Into<String>) -> Self {
-        Self(name.into())
-    }
-}
-
-impl From<&'static str> for NodeName {
-    fn from(value: &str) -> Self {
-        Self::new(value)
-    }
-}
 
 pub type RootSpec = NodeSpec<RootSchema>;
 pub type LeafSpec = NodeSpec<LeafSchema>;
@@ -66,6 +49,23 @@ where
 {
     fn cmp(&self, other: &Self) -> Ordering {
         self.name.cmp(&other.name)
+    }
+}
+
+#[derive(
+    Debug, Display, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, From,
+)]
+pub struct NodeName(pub String);
+
+impl NodeName {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self(name.into())
+    }
+}
+
+impl From<&'static str> for NodeName {
+    fn from(value: &str) -> Self {
+        Self::new(value)
     }
 }
 
@@ -133,7 +133,7 @@ macro_rules! spec {
     ) =>
     {
         spec! {
-            spec_builder: $crate::ser::node::ActionSpec::builder(),
+            spec_builder: $crate::node::ActionSpec::builder(),
             schema_kind = action,
             name = $name
             $(, params = $params_schema)?
@@ -151,7 +151,7 @@ macro_rules! spec {
     ) =>
     {
         spec! {
-            spec_builder: $crate::ser::node::ConditionSpec::builder(),
+            spec_builder: $crate::node::ConditionSpec::builder(),
             schema_kind = condition,
             name = $name
             $(, params = $params_schema)?
@@ -190,7 +190,7 @@ macro_rules! schema {
         $(, receivers = [$($rcv_ty:ty, desc = $rcv_desc:literal),*])?
     ) =>
     {
-        $crate::schema! { schema_builder = $crate::ser::node::ActionLeafSchema::builder()
+        $crate::schema! { schema_builder = $crate::node::ActionLeafSchema::builder()
                           $(, senders = [$($snd_ty, desc = $snd_desc),*])?
                           $(, receivers = [$($rcv_ty, desc = $rcv_desc),*])?
         }
@@ -202,7 +202,7 @@ macro_rules! schema {
         $(, receivers = [$($rcv_ty:ty, desc = $rcv_desc:literal),*])?
     ) =>
     {
-        $crate::schema! { schema_builder = $crate::ser::node::ConditionLeafSchema::builder()
+        $crate::schema! { schema_builder = $crate::node::ConditionLeafSchema::builder()
                           $(, senders = [$($snd_ty, desc = $snd_desc),*])?
                           $(, receivers = [$($rcv_ty, desc = $rcv_desc),*])?
         }
@@ -218,14 +218,14 @@ macro_rules! schema {
             $(
                 let builder = builder.senders([
                     $(
-                        $crate::ser::channel::MessageSpec::new::<$snd_ty>($snd_desc),
+                        $crate::channel::MessageSpec::new::<$snd_ty>($snd_desc),
                     )*
                 ]);
             )?
             $(
                 let builder = builder.receivers([
                     $(
-                        $crate::ser::channel::MessageSpec::new::<$rcv_ty>($rcv_desc),
+                        $crate::channel::MessageSpec::new::<$rcv_ty>($rcv_desc),
                     )*
                 ]);
             )?

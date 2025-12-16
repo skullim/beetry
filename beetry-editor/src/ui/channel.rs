@@ -4,8 +4,8 @@ pub mod temporary;
 mod tracker;
 
 use beetry_core::MessageHash;
-use beetry_serde::de::channel::{ChannelId, ChannelSnapshot};
-use beetry_serde::ser::channel::ChannelSpec;
+use beetry_plugin_types::channel::ChannelSpec;
+use beetry_reconstruction_types::channel::{ChannelId, ChannelSnapshot};
 pub use config_dialog::Dialog as ConfigDialog;
 pub use renderer::Renderer;
 use serde::{Deserialize, Serialize};

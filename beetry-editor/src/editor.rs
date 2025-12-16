@@ -2,9 +2,11 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use beetry_serde::de::channel::{ChannelMetadata, ChannelSnapshot};
-use beetry_serde::de::parameter::Parameters;
-use beetry_serde::ser::node::{LeafSpec, NodeName};
+use beetry_plugin_types::node::{LeafSpec, NodeName};
+use beetry_reconstruction_types::{
+    channel::{ChannelMetadata, ChannelSnapshot},
+    parameter::Parameters,
+};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 

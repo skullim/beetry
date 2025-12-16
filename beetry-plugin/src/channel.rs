@@ -1,6 +1,6 @@
 use anyhow::{Result, anyhow};
-use beetry_serde::de::channel::{ChannelImplKind, ChannelMetadata, TokioChannelConfig};
-use beetry_serde::ser::channel::ChannelSpec;
+use beetry_plugin_types::channel::ChannelSpec;
+use beetry_reconstruction_types::channel::{ChannelImplKind, ChannelMetadata, TokioChannelConfig};
 use bon::Builder;
 
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};

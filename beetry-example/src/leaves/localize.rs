@@ -5,7 +5,7 @@ use beetry_channel::downcast;
 use beetry_core::{self, ActionBehavior, BoxActionBehavior, NodeTask, Task, TickStatus};
 use beetry_plugin::node::ActionReconstructionData;
 use beetry_plugin::plugin;
-use beetry_serde::spec;
+use beetry_plugin_types::spec;
 use tokio::sync::mpsc::{Receiver, Sender, channel as mpsc_channel};
 use tracing::{debug, instrument};
 use type_hash::TypeHash;

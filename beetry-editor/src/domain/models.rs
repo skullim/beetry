@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use anyhow::{Result, anyhow, bail};
 use beetry_core::MessageHash;
-use beetry_serde::ser::{channel::MessageSpec, node::NodeName, parameter};
+use beetry_plugin_types::{channel::MessageSpec, node::NodeName, parameter};
 use bon::Builder;
 use serde::{Deserialize, Serialize};
 
@@ -10,7 +10,8 @@ pub type NodeId = usize;
 pub type NodeSpecId = usize;
 pub type NodePortId = u8;
 pub type EdgeId = usize;
-pub type ChannelId = beetry_serde::de::channel::ChannelId;
+//@todo All Ids should be defined on the editor side, since that's the producing side
+pub type ChannelId = beetry_reconstruction_types::channel::ChannelId;
 pub type ChannelSpecId = usize;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]

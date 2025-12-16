@@ -12,8 +12,9 @@ members = [
     "beetry-macros",
     "beetry-node",
     "beetry-plugin",
+    "beetry-plugin-types",
     "beetry-reconstruction",
-    "beetry-serde",
+    "beetry-reconstruction-types",
     "beetry-serialization",
 ]
 

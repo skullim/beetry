@@ -12,7 +12,8 @@ desktop = ["dioxus/desktop"]
 anyhow.workspace = true
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
 beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
-beetry-serde = { version = "0.1.0", path = "../beetry-serde" }
+beetry-plugin-types = { version = "0.1.0", path = "../beetry-plugin-types" }
+beetry-reconstruction-types = { version = "0.1.0", path = "../beetry-reconstruction-types" }
 beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }
 bon.workspace = true
 delegate = "0.13.5"

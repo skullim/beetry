@@ -1,5 +1,5 @@
 use beetry_core::MessageHash;
-use beetry_serde::ser::channel::MessageSpec;
+use beetry_plugin_types::channel::MessageSpec;
 use dioxus::prelude::*;
 
 use crate::definitions::{IndexedDragOffset, NodeId, Point};

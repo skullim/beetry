@@ -9,7 +9,7 @@ use beetry_macros::{Message, submit_as_channel_plugin};
 use beetry_plugin::Plugin;
 use beetry_plugin::channel::{ChannelPluginConstructor, Factory};
 use beetry_plugin::node::{ActionPluginConstructor, ConditionPluginConstructor};
-use beetry_serde::ser::channel::{ChannelSpec, Message};
+use beetry_plugin_types::channel::{ChannelSpec, Message};
 
 use type_hash::TypeHash;
 

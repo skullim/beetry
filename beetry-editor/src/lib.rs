@@ -14,8 +14,10 @@ pub use domain::service::editor::EditorService;
 use beetry_plugin::node::{
     ActionPluginConstructor, ConditionPluginConstructor, ControlPluginConstructor,
 };
-use beetry_serde::ser::channel::ChannelSpec;
-use beetry_serde::ser::node::{ControlSpec, LeafSpec};
+use beetry_plugin_types::{
+    channel::ChannelSpec,
+    node::{ControlSpec, LeafSpec},
+};
 use dioxus::logger::tracing::Level;
 use dioxus::prelude::*;
 

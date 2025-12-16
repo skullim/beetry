@@ -1,9 +1,11 @@
 use std::collections::BTreeMap;
 
 use anyhow::bail;
-use beetry_serde::de::parameter::Parameters;
-use beetry_serde::ser::node::LeafSpec;
-use beetry_serde::ser::parameter::{Definition, Type};
+use beetry_plugin_types::{
+    node::LeafSpec,
+    parameter::{Definition, Type},
+};
+use beetry_reconstruction_types::parameter::Parameters;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 use serde_value::Value;
