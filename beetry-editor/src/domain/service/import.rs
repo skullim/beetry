@@ -1,14 +1,14 @@
 use crate::{
     EditorService,
     domain::{
-        persistence::EditorStorage,
+        persistence::{EditorStorage, TreeStorage},
         repository::{
             ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept,
         },
     },
 };
 use anyhow::{Result, anyhow};
-use beetry_serde::de::tree::TreeSnapshot;
+use beetry_reconstruction_types::tree::TreeSnapshot;
 use std::collections::HashMap;
 
 pub struct ImportServiceApi;
@@ -40,7 +40,7 @@ impl ImportServiceApi {
         todo!()
     }
 
-    pub fn import_tree() -> Result<TreeSnapshot> {
+    pub fn import_tree_snapshot(tree: TreeStorage) -> Result<TreeSnapshot> {
         todo!()
     }
 }

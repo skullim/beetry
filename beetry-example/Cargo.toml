@@ -12,8 +12,9 @@ beetry-editor = { version = "0.1.0", path = "../beetry-editor" }
 beetry-exec = { version = "0.1.0", path = "../beetry-exec" }
 beetry-macros = { version = "0.1.0", path = "../beetry-macros" }
 beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
+beetry-plugin-types = { version = "0.1.0", path = "../beetry-plugin-types" }
 beetry-reconstruction = { version = "0.1.0", path = "../beetry-reconstruction" }
-beetry-serde = { version = "0.1.0", path = "../beetry-serde" }
+beetry-reconstruction-types = { version = "0.1.0", path = "../beetry-reconstruction-types" }
 beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }
 bon.workspace = true
 rfd = { version = "0.15.4", default-features = false, features = [

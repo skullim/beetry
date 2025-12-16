@@ -8,8 +8,8 @@ use getset::{CopyGetters, Getters, MutGetters};
 use num_traits::One;
 use serde::{Deserialize, Serialize};
 
-use crate::de::tree::{ExportResult, ExportValidationError};
-use crate::ser::channel::ChannelSpec;
+use crate::tree::{ExportResult, ExportValidationError};
+use beetry_plugin_types::channel::ChannelSpec;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
 #[getset(get = "pub")]

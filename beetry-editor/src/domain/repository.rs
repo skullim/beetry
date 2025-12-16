@@ -9,10 +9,8 @@ use crate::{
 };
 
 use super::models::{NodeId, NodePosition};
-use beetry_serde::{
-    de::{channel::ChannelConfig, parameter::Parameters},
-    ser::channel::ChannelSpec,
-};
+use beetry_plugin_types::channel::ChannelSpec;
+use beetry_reconstruction_types::{channel::ChannelConfig, parameter::Parameters};
 
 use anyhow::{Result, anyhow, bail};
 use getset::{Getters, MutGetters};

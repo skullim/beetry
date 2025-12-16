@@ -1,12 +1,10 @@
 use anyhow::Result;
 use std::collections::HashMap;
 
-use beetry_serde::{
-    de::{
-        channel::{ChannelConfig, ChannelId},
-        parameter,
-    },
-    ser::channel::ChannelSpec,
+use beetry_plugin_types::channel::ChannelSpec;
+use beetry_reconstruction_types::{
+    channel::{ChannelConfig, ChannelId},
+    parameter,
 };
 
 use crate::domain::{

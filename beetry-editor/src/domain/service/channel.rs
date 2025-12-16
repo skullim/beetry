@@ -9,10 +9,8 @@ use crate::domain::{
     },
 };
 use anyhow::{Result, anyhow, bail};
-use beetry_serde::{
-    de::channel::{ChannelConfig, ChannelImplKind2, TokioChannelKind},
-    ser::channel::ChannelSpec,
-};
+use beetry_plugin_types::channel::ChannelSpec;
+use beetry_reconstruction_types::channel::{ChannelConfig, ChannelImplKind2, TokioChannelKind};
 
 pub struct ConnectionContext<'a> {
     pub spec: &'a NodePortSpec,
