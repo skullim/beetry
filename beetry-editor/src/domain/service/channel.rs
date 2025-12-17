@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use crate::domain::models::{NodePortKind, NodePortSpec};
+use crate::domain::models::{ChannelData, NodePortKind, NodePortSpec};
 use crate::domain::persistence::{ChannelRecord, ChannelSpecRecord};
 use crate::domain::{
-    models::{ChannelId, ChannelPosition, ChannelSpecId, NodeId},
+    models::{ChannelId, ChannelSpecId, NodeId},
     repository::{
-        ChannelData, ChannelDataInput, ChannelDataRepositoryConcept,
-        ChannelRepositoryFacadeConcept, ChannelRepositoryFacadeViewMut, SpecRepositoryConcept,
+        ChannelRepositoryConcept, ChannelRepositoryFacadeConcept, ChannelRepositoryFacadeViewMut,
+        SpecRepositoryConcept,
     },
 };
 use anyhow::{Result, anyhow, bail};
@@ -42,46 +42,41 @@ where
         }
     }
 
-    pub fn create(&mut self, spec: ChannelSpec, input: ChannelDataInput) -> Result<ChannelId> {
-        self.channel
-            .create(self.facade_view.spec, self.facade_view.data, spec, input)
+    pub fn create(&mut self, spec: ChannelSpec, config: ChannelConfig) -> Result<ChannelId> {
+        self.channel.create(
+            self.facade_view.spec,
+            self.facade_view.channel,
+            spec,
+            config,
+        )
     }
 
     pub fn remove(&mut self, id: ChannelId) -> Result<()> {
-        ChannelService::remove(self.facade_view.data, id)
-    }
-
-    pub fn update_position(&mut self, id: ChannelId, position: ChannelPosition) -> Result<()> {
-        ChannelService::update_position(self.facade_view.data, id, position)
-    }
-
-    pub fn positions(&self) -> impl Iterator<Item = &ChannelPosition> {
-        ChannelService::positions(self.facade_view.data)
+        ChannelService::remove(self.facade_view.channel, id)
     }
 
     pub fn config(&self, id: ChannelId) -> Result<&ChannelConfig> {
-        ChannelService::config(self.facade_view.data, id)
+        ChannelService::config(self.facade_view.channel, id)
     }
 
-    //@todo user should not specify the connection count, so restrict access to some subset
-    pub fn config_mut(&mut self, id: ChannelId) -> Result<&mut ChannelConfig> {
-        ChannelService::config_mut(self.facade_view.data, id)
+    pub fn set_capacity(&mut self, id: ChannelId, capacity: usize) -> Result<()> {
+        ChannelService::set_capacity(self.facade_view.channel, id, capacity)
     }
 
     pub fn channels(&self) -> impl Iterator<Item = &ChannelId> {
-        ChannelService::channels(self.facade_view.data)
+        ChannelService::channels(self.facade_view.channel)
     }
 
     pub fn spec(&self, id: ChannelId) -> Result<&ChannelSpec> {
-        ChannelService::spec(self.facade_view.spec, self.facade_view.data, id)
+        ChannelService::spec(self.facade_view.spec, self.facade_view.channel, id)
     }
 
     pub(super) fn connect(&mut self, context: ConnectionContext) -> Result<()> {
-        ChannelService::connect(self.facade_view.spec, self.facade_view.data, context)
+        ChannelService::connect(self.facade_view.spec, self.facade_view.channel, context)
     }
 
     pub(super) fn disconnect(&mut self, id: ChannelId, kind: NodePortKind) -> Result<()> {
-        ChannelService::disconnect(self.facade_view.data, id, kind)
+        ChannelService::disconnect(self.facade_view.channel, id, kind)
     }
 }
 
@@ -101,9 +96,8 @@ where
         self.channel.load_spec(self.facade_view.spec, record)
     }
 
-    pub(super) fn load_node(&mut self, record: ChannelRecord) -> Result<()> {
-        //self.facade_view.data.load(record.id, record.)
-        todo!()
+    pub(super) fn load_channel(&mut self, record: ChannelRecord) -> Result<()> {
+        self.facade_view.channel.load(record.id, record.data)
     }
 }
 
@@ -119,7 +113,7 @@ impl ChannelService {
 
     fn spec<'a>(
         spec_repo: &'a impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
-        channel_repo: &impl ChannelDataRepositoryConcept,
+        channel_repo: &impl ChannelRepositoryConcept,
         id: ChannelId,
     ) -> Result<&'a ChannelSpec> {
         let spec_id = Self::data(channel_repo, id)?.spec_id;
@@ -131,9 +125,9 @@ impl ChannelService {
     fn create(
         &mut self,
         spec_repo: &mut impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
-        channel_repo: &mut impl ChannelDataRepositoryConcept,
+        channel_repo: &mut impl ChannelRepositoryConcept,
         spec: ChannelSpec,
-        input: ChannelDataInput,
+        config: ChannelConfig,
     ) -> Result<ChannelId> {
         let spec_id = match self.spec_cache.get(&spec) {
             Some(id) => *id,
@@ -144,7 +138,7 @@ impl ChannelService {
             }
         };
 
-        channel_repo.create(ChannelData::new(spec_id, input))
+        channel_repo.create(ChannelData::new(spec_id, config))
     }
 
     fn load_spec(
@@ -166,62 +160,47 @@ impl ChannelService {
     }
 
     //@todo also on_node_removal should remove connections to removed node
-    fn remove(channel_repo: &mut impl ChannelDataRepositoryConcept, id: ChannelId) -> Result<()> {
+    fn remove(channel_repo: &mut impl ChannelRepositoryConcept, id: ChannelId) -> Result<()> {
         channel_repo.remove(id);
         Ok(())
     }
 
-    fn update_position(
-        repo: &mut impl ChannelDataRepositoryConcept,
+    fn config(repo: &impl ChannelRepositoryConcept, id: ChannelId) -> Result<&ChannelConfig> {
+        Ok(&Self::data(repo, id)?.config)
+    }
+
+    fn set_capacity(
+        repo: &mut impl ChannelRepositoryConcept,
         id: ChannelId,
-        position: ChannelPosition,
+        capacity: usize,
     ) -> Result<()> {
-        Self::data_mut(repo, id)?.position = position;
+        Self::config_mut(repo, id)?.set_capacity(capacity);
         Ok(())
     }
 
-    fn positions(
-        repo: &impl ChannelDataRepositoryConcept,
-    ) -> impl Iterator<Item = &ChannelPosition> {
-        repo.data_iter().map(|data| &data.position)
+    fn config_mut(
+        repo: &mut impl ChannelRepositoryConcept,
+        id: ChannelId,
+    ) -> Result<&mut ChannelConfig> {
+        Ok(&mut Self::data_mut(repo, id)?.config)
     }
 
-    fn data(repo: &impl ChannelDataRepositoryConcept, id: ChannelId) -> Result<&ChannelData> {
+    fn data(repo: &impl ChannelRepositoryConcept, id: ChannelId) -> Result<&ChannelData> {
         repo.data(id)
             .ok_or_else(|| anyhow!("failed to obtain data for channel {id}"))
     }
 
     fn data_mut(
-        repo: &mut impl ChannelDataRepositoryConcept,
+        repo: &mut impl ChannelRepositoryConcept,
         id: ChannelId,
     ) -> Result<&mut ChannelData> {
         repo.data_mut(id)
             .ok_or_else(|| anyhow!("failed to obtain data for channel {id}"))
     }
 
-    fn insert_config(
-        repo: &mut impl ChannelDataRepositoryConcept,
-        id: ChannelId,
-        config: ChannelConfig,
-    ) -> Result<()> {
-        Self::data_mut(repo, id)?.config = config;
-        Ok(())
-    }
-
-    fn config(repo: &impl ChannelDataRepositoryConcept, id: ChannelId) -> Result<&ChannelConfig> {
-        Ok(&Self::data(repo, id)?.config)
-    }
-
-    fn config_mut(
-        repo: &mut impl ChannelDataRepositoryConcept,
-        id: ChannelId,
-    ) -> Result<&mut ChannelConfig> {
-        Ok(&mut Self::data_mut(repo, id)?.config)
-    }
-
     fn connect(
         channel_spec_repo: &impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
-        channel_repo: &mut impl ChannelDataRepositoryConcept,
+        channel_repo: &mut impl ChannelRepositoryConcept,
         context: ConnectionContext,
     ) -> Result<()> {
         Self::ensure_exists(channel_repo, context.channel)?;
@@ -245,7 +224,7 @@ impl ChannelService {
     }
 
     fn disconnect(
-        channel_repo: &mut impl ChannelDataRepositoryConcept,
+        channel_repo: &mut impl ChannelRepositoryConcept,
         id: ChannelId,
         kind: NodePortKind,
     ) -> Result<()> {
@@ -258,7 +237,7 @@ impl ChannelService {
 
     fn validate_connection(
         channel_spec_repo: &impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
-        channel_repo: &impl ChannelDataRepositoryConcept,
+        channel_repo: &impl ChannelRepositoryConcept,
         id: ChannelId,
         from: NodeId,
         port_spec: &NodePortSpec,
@@ -280,11 +259,11 @@ impl ChannelService {
         Ok(())
     }
 
-    fn channels(repo: &impl ChannelDataRepositoryConcept) -> impl Iterator<Item = &ChannelId> {
+    fn channels(repo: &impl ChannelRepositoryConcept) -> impl Iterator<Item = &ChannelId> {
         repo.channels()
     }
 
-    fn ensure_exists(repo: &impl ChannelDataRepositoryConcept, id: ChannelId) -> Result<()> {
+    fn ensure_exists(repo: &impl ChannelRepositoryConcept, id: ChannelId) -> Result<()> {
         if !repo.contains(&id) {
             bail!("channel {id} does not exist")
         }

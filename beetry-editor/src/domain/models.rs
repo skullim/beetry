@@ -12,6 +12,7 @@ pub type NodeSpecId = usize;
 pub type NodePortId = u8;
 pub type EdgeId = usize;
 //@todo All Ids should be defined on the editor side, since that's the producing side
+// Interface types should be defined in beetry-editor-types crate
 pub type ChannelId = beetry_reconstruction_types::channel::ChannelId;
 pub type ChannelSpecId = usize;
 
@@ -186,13 +187,15 @@ pub struct NodeSpec {
     pub ports: PortsSpec,
 }
 
-pub struct ChannelDataInput {
-    pub config: ChannelConfig,
-    pub position: ChannelPosition,
-}
-
 pub struct ChannelData {
     pub spec_id: ChannelSpecId,
     pub config: ChannelConfig,
+}
+
+pub struct NodeUiData {
+    pub position: NodePosition,
+}
+
+pub struct ChannelUiData {
     pub position: ChannelPosition,
 }

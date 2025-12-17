@@ -2,20 +2,19 @@ use std::{collections::HashMap, fmt::Display, hash::Hash, ops::AddAssign};
 
 use crate::{
     domain::models::{
-        ChannelId, ChannelPosition, ChannelSpecId, EdgeId, NodeEdge, NodePortConnection,
-        NodePortId, NodeSpec, NodeSpecId,
+        ChannelData, ChannelId, ChannelSpecId, ChannelUiData, EdgeId, NodeEdge, NodePortConnection,
+        NodePortId, NodeSpec, NodeSpecId, NodeUiData,
     },
     id::IdProvider,
 };
 
-use super::models::{NodeId, NodePosition};
+use super::models::NodeId;
 use beetry_plugin_types::channel::ChannelSpec;
 use beetry_reconstruction_types::{channel::ChannelConfig, parameter::Parameters};
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Result, bail};
 use getset::{Getters, MutGetters};
 use num_traits::One;
-use serde_value::Value;
 
 #[derive(Debug, Default, Getters, MutGetters)]
 pub struct EditorRepository<NRF, ER, CRF> {
@@ -80,8 +79,7 @@ pub trait NodeRepositoryFacadeConcept: Default {
     type NodeRepo: NodeRepositoryConcept;
     type SpecRepo: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>;
 
-    type PositionRepo: NodePositionRepositoryConcept;
-    type ParamValuesRepo: ParamValuesRepositoryConcept;
+    type ParamValuesRepo: ParamValueRepositoryConcept;
     type PortStateRepo: PortStateRepositoryConcept;
 
     fn view(&self) -> NodeRepositoryFacadeView<'_, Self>
@@ -96,7 +94,6 @@ pub trait NodeRepositoryFacadeConcept: Default {
 pub struct NodeRepositoryFacadeView<'a, F: NodeRepositoryFacadeConcept> {
     pub nodes: &'a F::NodeRepo,
     pub specs: &'a F::SpecRepo,
-    pub positions: &'a F::PositionRepo,
     pub parameters: &'a F::ParamValuesRepo,
     pub ports: &'a F::PortStateRepo,
 }
@@ -112,7 +109,6 @@ impl<'a, F: NodeRepositoryFacadeConcept> Clone for NodeRepositoryFacadeView<'a, 
 pub struct NodeRepositoryFacadeViewMut<'a, F: NodeRepositoryFacadeConcept> {
     pub nodes: &'a mut F::NodeRepo,
     pub specs: &'a mut F::SpecRepo,
-    pub positions: &'a mut F::PositionRepo,
     pub parameters: &'a mut F::ParamValuesRepo,
     pub ports: &'a mut F::PortStateRepo,
 }
@@ -121,7 +117,6 @@ pub struct NodeRepositoryFacadeViewMut<'a, F: NodeRepositoryFacadeConcept> {
 pub struct NodeRepositoryFacade {
     node: NodeRepository,
     spec: NodeSpecRepository,
-    position: NodePositionRepository,
     parameter: ParamValuesRepository,
     port: PortStateRepository,
 }
@@ -130,14 +125,12 @@ impl NodeRepositoryFacade {
     pub fn new(
         node: NodeRepository,
         spec: NodeSpecRepository,
-        position: NodePositionRepository,
         parameter: ParamValuesRepository,
         port: PortStateRepository,
     ) -> Self {
         Self {
             node,
             spec,
-            position,
             parameter,
             port,
         }
@@ -147,7 +140,6 @@ impl NodeRepositoryFacade {
 impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
     type NodeRepo = NodeRepository;
     type SpecRepo = NodeSpecRepository;
-    type PositionRepo = NodePositionRepository;
     type ParamValuesRepo = ParamValuesRepository;
     type PortStateRepo = PortStateRepository;
 
@@ -155,7 +147,6 @@ impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
         NodeRepositoryFacadeView {
             nodes: &self.node,
             specs: &self.spec,
-            positions: &self.position,
             parameters: &self.parameter,
             ports: &self.port,
         }
@@ -165,7 +156,6 @@ impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
         NodeRepositoryFacadeViewMut {
             nodes: &mut self.node,
             specs: &mut self.spec,
-            positions: &mut self.position,
             parameters: &mut self.parameter,
             ports: &mut self.port,
         }
@@ -174,17 +164,17 @@ impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
 
 pub struct ChannelRepositoryFacadeView<'a, F: ChannelRepositoryFacadeConcept> {
     pub spec: &'a F::SpecRepo,
-    pub data: &'a F::DataRepo,
+    pub channel: &'a F::DataRepo,
 }
 
 pub struct ChannelRepositoryFacadeViewMut<'a, F: ChannelRepositoryFacadeConcept> {
     pub spec: &'a mut F::SpecRepo,
-    pub data: &'a mut F::DataRepo,
+    pub channel: &'a mut F::DataRepo,
 }
 
 pub trait ChannelRepositoryFacadeConcept: Default {
     type SpecRepo: SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>;
-    type DataRepo: ChannelDataRepositoryConcept;
+    type DataRepo: ChannelRepositoryConcept;
 
     fn view(&self) -> ChannelRepositoryFacadeView<'_, Self>
     where
@@ -197,18 +187,18 @@ pub trait ChannelRepositoryFacadeConcept: Default {
 
 #[derive(Default)]
 pub struct ChannelRepositoryFacade {
-    data: ChannelDataRepository,
+    data: ChannelRepository,
     spec: ChannelSpecRepository,
 }
 
 impl ChannelRepositoryFacade {
-    pub fn new(data: ChannelDataRepository, spec: ChannelSpecRepository) -> Self {
+    pub fn new(data: ChannelRepository, spec: ChannelSpecRepository) -> Self {
         Self { data, spec }
     }
 }
 
 impl ChannelRepositoryFacadeConcept for ChannelRepositoryFacade {
-    type DataRepo = ChannelDataRepository;
+    type DataRepo = ChannelRepository;
     type SpecRepo = ChannelSpecRepository;
 
     fn view(&self) -> ChannelRepositoryFacadeView<'_, Self>
@@ -216,7 +206,7 @@ impl ChannelRepositoryFacadeConcept for ChannelRepositoryFacade {
         Self: Sized,
     {
         ChannelRepositoryFacadeView {
-            data: &self.data,
+            channel: &self.data,
             spec: &self.spec,
         }
     }
@@ -226,7 +216,7 @@ impl ChannelRepositoryFacadeConcept for ChannelRepositoryFacade {
         Self: Sized,
     {
         ChannelRepositoryFacadeViewMut {
-            data: &mut self.data,
+            channel: &mut self.data,
             spec: &mut self.spec,
         }
     }
@@ -238,17 +228,14 @@ pub trait SpecRepositoryConcept: Default {
     type SpecId;
 
     fn create(&mut self, spec: Self::Spec) -> Result<Self::SpecId>;
-    /// Return error when id already used
     fn load(&mut self, id: Self::SpecId, spec: Self::Spec) -> Result<()>;
 
     fn remove(&mut self, id: Self::SpecId) -> Option<Self::Spec>;
 
     fn spec(&self, id: Self::SpecId) -> Option<&Self::Spec>;
-
     fn specs(&self) -> impl Iterator<Item = &Self::Spec>;
 
     fn ids(&self) -> impl Iterator<Item = &Self::SpecId>;
-
     // provided methods
     fn iter(&self) -> impl Iterator<Item = (&Self::SpecId, &Self::Spec)> {
         self.ids().zip(self.specs())
@@ -318,7 +305,6 @@ pub type NodeSpecRepository = SpecRepository<NodeSpecId, NodeSpec>;
 
 pub trait NodeRepositoryConcept: Default {
     fn create(&mut self, spec_id: NodeSpecId) -> Result<NodeId>;
-    /// Return error when id already used
     fn load(&mut self, id: NodeId, spec_id: NodeSpecId) -> Result<()>;
 
     fn remove(&mut self, id: NodeId) -> Result<()>;
@@ -326,11 +312,9 @@ pub trait NodeRepositoryConcept: Default {
     fn contains(&self, id: &NodeId) -> bool;
 
     fn spec_id(&self, id: &NodeId) -> Option<&NodeSpecId>;
-
     fn spec_ids(&self) -> impl Iterator<Item = &NodeSpecId>;
 
     fn ids(&self) -> impl Iterator<Item = &NodeId>;
-
     // provided methods
     fn iter(&self) -> impl Iterator<Item = (&NodeId, &NodeSpecId)> {
         self.ids().zip(self.spec_ids())
@@ -383,8 +367,7 @@ impl NodeRepositoryConcept for NodeRepository {
 }
 
 pub trait PortStateRepositoryConcept: Default {
-    fn create(&mut self, node: NodeId, port: NodePortId) -> Result<()>;
-    fn load(&mut self, node: NodeId, port: NodePortId, conn: NodePortConnection) -> Result<()>;
+    fn create(&mut self, node: NodeId, port: NodePortId, conn: NodePortConnection) -> Result<()>;
 
     fn remove(&mut self, node: NodeId, port: NodePortId) -> Option<NodePortConnection>;
 
@@ -400,11 +383,7 @@ pub struct PortStateRepository {
 }
 
 impl PortStateRepositoryConcept for PortStateRepository {
-    fn create(&mut self, node: NodeId, port: NodePortId) -> Result<()> {
-        self.load(node, port, NodePortConnection::default())
-    }
-
-    fn load(&mut self, node: NodeId, port: NodePortId, conn: NodePortConnection) -> Result<()> {
+    fn create(&mut self, node: NodeId, port: NodePortId, conn: NodePortConnection) -> Result<()> {
         self.connections.insert((node, port), conn);
         Ok(())
     }
@@ -429,39 +408,13 @@ impl PortStateRepositoryConcept for PortStateRepository {
     }
 }
 
-pub trait NodePositionRepositoryConcept: Default {
-    fn update(&mut self, id: NodeId, position: NodePosition) -> Result<()>;
-    fn position(&self, id: NodeId) -> Option<&NodePosition>;
-    fn remove(&mut self, id: NodeId) -> Result<()>;
-}
-
-#[derive(Default)]
-pub struct NodePositionRepository {
-    positions: HashMap<NodeId, NodePosition>,
-}
-
-impl NodePositionRepositoryConcept for NodePositionRepository {
-    fn update(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
-        self.positions.insert(id, position);
-        Ok(())
-    }
-
-    fn remove(&mut self, id: NodeId) -> Result<()> {
-        self.positions.remove(&id);
-        Ok(())
-    }
-
-    fn position(&self, id: NodeId) -> Option<&NodePosition> {
-        self.positions.get(&id)
-    }
-}
-
 /// caller (service layer) has to assure that params are valid w.r.t. schema
-pub trait ParamValuesRepositoryConcept: Default {
-    fn insert(&mut self, id: NodeId, params: Parameters) -> Result<()>;
+pub trait ParamValueRepositoryConcept: Default {
+    fn create(&mut self, id: NodeId, params: Parameters) -> Result<()>;
     fn remove(&mut self, id: NodeId) -> Result<()>;
-    fn update(&mut self, id: NodeId, field_name: &str, value: Value) -> Result<()>;
-    fn params(&self, id: NodeId) -> Option<&Parameters>;
+
+    fn value(&self, id: NodeId) -> Option<&Parameters>;
+    fn value_mut(&mut self, id: NodeId) -> Option<&mut Parameters>;
 }
 
 #[derive(Default)]
@@ -469,8 +422,8 @@ pub struct ParamValuesRepository {
     params: HashMap<NodeId, Parameters>,
 }
 
-impl ParamValuesRepositoryConcept for ParamValuesRepository {
-    fn insert(&mut self, id: NodeId, params: Parameters) -> Result<()> {
+impl ParamValueRepositoryConcept for ParamValuesRepository {
+    fn create(&mut self, id: NodeId, params: Parameters) -> Result<()> {
         self.params.insert(id, params);
         Ok(())
     }
@@ -480,15 +433,12 @@ impl ParamValuesRepositoryConcept for ParamValuesRepository {
         Ok(())
     }
 
-    fn update(&mut self, id: NodeId, field_name: &str, value: Value) -> Result<()> {
-        self.params
-            .get_mut(&id)
-            .ok_or_else(|| anyhow!("no params for node id {id} have been registered"))?
-            .update(field_name, value)
+    fn value(&self, id: NodeId) -> Option<&Parameters> {
+        self.params.get(&id)
     }
 
-    fn params(&self, id: NodeId) -> Option<&Parameters> {
-        self.params.get(&id)
+    fn value_mut(&mut self, id: NodeId) -> Option<&mut Parameters> {
+        self.params.get_mut(&id)
     }
 }
 
@@ -543,7 +493,7 @@ impl EdgeRepositoryConcept for EdgeRepository {
     }
 }
 
-pub trait ChannelDataRepositoryConcept: Default {
+pub trait ChannelRepositoryConcept: Default {
     fn create(&mut self, data: ChannelData) -> Result<ChannelId>;
     fn load(&mut self, id: ChannelId, data: ChannelData) -> Result<()>;
 
@@ -551,43 +501,28 @@ pub trait ChannelDataRepositoryConcept: Default {
 
     fn contains(&self, id: &ChannelId) -> bool;
 
-    fn data_mut(&mut self, id: ChannelId) -> Option<&mut ChannelData>;
     fn data(&self, id: ChannelId) -> Option<&ChannelData>;
+    fn data_mut(&mut self, id: ChannelId) -> Option<&mut ChannelData>;
 
     fn data_iter(&self) -> impl Iterator<Item = &ChannelData>;
     fn channels(&self) -> impl Iterator<Item = &ChannelId>;
 }
 
-pub struct ChannelDataInput {
-    pub config: ChannelConfig,
-    pub position: ChannelPosition,
-}
-
-pub struct ChannelData {
-    pub spec_id: ChannelSpecId,
-    pub config: ChannelConfig,
-    pub position: ChannelPosition,
-}
-
 impl ChannelData {
-    pub fn new(spec_id: ChannelSpecId, input: ChannelDataInput) -> Self {
-        Self {
-            spec_id,
-            config: input.config,
-            position: input.position,
-        }
+    pub fn new(spec_id: ChannelSpecId, config: ChannelConfig) -> Self {
+        Self { spec_id, config }
     }
 }
 
 pub type ChannelSpecRepository = SpecRepository<ChannelSpecId, ChannelSpec>;
 
 #[derive(Default)]
-pub struct ChannelDataRepository {
+pub struct ChannelRepository {
     channels: HashMap<ChannelId, ChannelData>,
     id_provider: IdProvider<ChannelId>,
 }
 
-impl ChannelDataRepositoryConcept for ChannelDataRepository {
+impl ChannelRepositoryConcept for ChannelRepository {
     fn create(&mut self, data: ChannelData) -> Result<ChannelId> {
         let id = self
             .id_provider
@@ -628,3 +563,55 @@ impl ChannelDataRepositoryConcept for ChannelDataRepository {
         self.channels.keys()
     }
 }
+
+pub trait UiRepositoryConcept: Default {
+    type Id;
+    type Data;
+
+    fn create(&mut self, id: Self::Id, data: Self::Data) -> Result<()>;
+    fn remove(&mut self, id: Self::Id) -> Result<()>;
+
+    fn data(&self, id: Self::Id) -> Option<&Self::Data>;
+    fn data_mut(&mut self, id: Self::Id) -> Option<&mut Self::Data>;
+}
+
+pub struct UiRepository<I, D> {
+    data: HashMap<I, D>,
+}
+
+impl<I, D> Default for UiRepository<I, D> {
+    fn default() -> Self {
+        Self {
+            data: <_>::default(),
+        }
+    }
+}
+
+impl<I, D> UiRepositoryConcept for UiRepository<I, D>
+where
+    I: Eq + Hash,
+{
+    type Id = I;
+    type Data = D;
+
+    fn create(&mut self, id: Self::Id, data: Self::Data) -> Result<()> {
+        self.data.insert(id, data);
+        Ok(())
+    }
+
+    fn remove(&mut self, id: Self::Id) -> Result<()> {
+        self.data.remove(&id);
+        Ok(())
+    }
+
+    fn data(&self, id: Self::Id) -> Option<&Self::Data> {
+        self.data.get(&id)
+    }
+
+    fn data_mut(&mut self, id: Self::Id) -> Option<&mut Self::Data> {
+        self.data.get_mut(&id)
+    }
+}
+
+pub type NodeUiRepository = UiRepository<NodeId, NodeUiData>;
+pub type ChannelUiRepository = UiRepository<ChannelId, ChannelUiData>;
