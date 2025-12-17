@@ -1,13 +1,13 @@
 use crate::domain::{
     models::{
         ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePosition, NodeSpec,
-        NodeSpecId, PortsSpec,
+        NodeSpecId, NodeUiData, PortsSpec,
     },
     persistence::{NodePortRecord, NodeRecord, NodeSpecRecord},
     repository::{
-        ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodePositionRepositoryConcept,
-        NodeRepositoryConcept, NodeRepositoryFacadeConcept, NodeRepositoryFacadeViewMut,
-        ParamValuesRepositoryConcept, PortStateRepositoryConcept, SpecRepositoryConcept,
+        ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryConcept,
+        NodeRepositoryFacadeConcept, NodeRepositoryFacadeViewMut, ParamValueRepositoryConcept,
+        PortStateRepositoryConcept, SpecRepositoryConcept, UiRepositoryConcept,
     },
     service::{
         channel::{ChannelService, ChannelServiceApi, ConnectionContext},
@@ -97,17 +97,6 @@ where
                 self.channel_facade.view_mut(),
                 self.channel_service,
             ),
-        }
-    }
-
-    pub fn position(&mut self) -> PositionServiceApi<'_, NRF::PositionRepo, NRF::NodeRepo> {
-        PositionServiceApi {
-            service: self.node_service,
-            position_repo: self.facade_view.positions,
-            tracker_service: TrackerServiceApi {
-                service: self.node_service,
-                repo: self.facade_view.nodes,
-            },
         }
     }
 
@@ -275,7 +264,7 @@ where
         ports_spec: &PortsSpec,
     ) -> Result<()> {
         for port_id in ports_spec.ids() {
-            repo.create(id, *port_id)?;
+            repo.create(id, *port_id, NodePortConnection::default())?;
         }
         Ok(())
     }
@@ -330,18 +319,18 @@ pub struct ParameterValueServiceApi<'a, PVR> {
 
 impl<'a, PVR> ParameterValueServiceApi<'a, PVR>
 where
-    PVR: ParamValuesRepositoryConcept,
+    PVR: ParamValueRepositoryConcept,
 {
     pub fn parameters(&self, id: NodeId) -> Result<&Parameters> {
         self.repo
-            .params(id)
+            .value(id)
             .ok_or_else(|| anyhow!("failed to obtain parameters for node {id}"))
     }
 
     //@todo move to NodeLoadApi
     pub fn load(&mut self, id: NodeId, params: Parameters) -> Result<()> {
         //@todo validate against schema
-        self.repo.insert(id, params)
+        self.repo.create(id, params)
     }
 
     //@todo add API to set parameters, also validate against schema here
@@ -427,7 +416,7 @@ where
     ) -> Result<()> {
         for record in records {
             //@todo validate that conn is valid
-            self.repo.load(id, record.id, record.conn)?;
+            self.repo.create(id, record.id, record.conn)?;
         }
         Ok(())
     }
@@ -440,27 +429,6 @@ where
         self.repo.state_mut(node_id, port_id).ok_or_else(|| {
             anyhow!("unable to retrieve node's (id: {node_id}) port (id: {port_id}) state")
         })
-    }
-}
-
-pub struct PositionServiceApi<'a, PR, NR> {
-    service: &'a NodeService,
-    tracker_service: TrackerServiceApi<'a, NR>,
-    position_repo: &'a mut PR,
-}
-
-impl<'a, PR, NR> PositionServiceApi<'a, PR, NR>
-where
-    PR: NodePositionRepositoryConcept,
-    NR: NodeRepositoryConcept,
-{
-    pub fn positions_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodePosition> {
-        self.service.positions_by_kind(self.position_repo, kind)
-    }
-
-    pub fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
-        self.tracker_service.ensure_exists(id)?;
-        self.position_repo.update(id, position)
     }
 }
 
@@ -542,9 +510,9 @@ impl NodeService {
         Ok(())
     }
 
-    fn positions_by_kind<'a>(
-        &'a self,
-        repo: &'a impl NodePositionRepositoryConcept,
+    pub(super) fn positions_by_kind<'a>(
+        &self,
+        repo: &'a impl UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
         kind: NodeKind,
     ) -> impl Iterator<Item = &'a NodePosition> {
         let position_ids = self
@@ -552,7 +520,9 @@ impl NodeService {
             .get(&kind)
             .into_iter()
             .flat_map(|i| i.iter().copied());
-        position_ids.flat_map(|id| repo.position(id))
+        position_ids
+            .flat_map(|id| repo.data(id))
+            .map(|data| &data.position)
     }
 
     fn remove<NRF>(
@@ -568,11 +538,10 @@ impl NodeService {
             .get_mut(&spec.kind)
             .map(|nodes| nodes.remove(&id));
 
-        view.positions.remove(id)?;
         view.parameters.remove(id)
     }
 
-    fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId> {
+    pub(super) fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId> {
         self.node_cache
             .get(&kind)
             .into_iter()

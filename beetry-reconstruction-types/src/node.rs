@@ -11,7 +11,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::channel::ChannelId;
 use crate::parameter::Parameters;
-use beetry_plugin_types::node::{LeafKind, NodeName};
+use beetry_plugin_types::{
+    channel::MessageSpec,
+    node::{LeafKind, NodeName},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RootSnapshot {
@@ -98,4 +101,23 @@ impl LeafSnapshot {
     pub fn take_senders(&mut self) -> impl IntoIterator<Item = ChannelId> {
         std::mem::take(&mut self.senders)
     }
+}
+
+//@todo harmonize with beetry-editor backend type
+pub type NodeId = usize;
+
+/// Provides basic information regarding external communication endpoints.
+/// User should utilize it to provide missing endpoints such that the tree can be reconstructed.
+#[derive(Default, Builder)]
+pub struct ExternalContextInfo {
+    pub receivers: Vec<ExternalEndpointInfo>,
+    pub senders: Vec<ExternalEndpointInfo>,
+}
+
+pub struct ExternalEndpointInfo {
+    // not ideal as the client has to lookup the node in editor,
+    // but otherwise nodes with the same name would be undistinguishable
+    pub id: NodeId,
+    pub name: NodeName,
+    pub message: MessageSpec,
 }

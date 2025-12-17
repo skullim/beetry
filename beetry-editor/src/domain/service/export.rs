@@ -73,6 +73,7 @@ where
             .edge_api
             .children_of(root_id)
             .next()
+            .copied()
             .ok_or_else(|| anyhow!("root has no child"))?;
         let child = self.export_node(child_id)?;
         Ok(RootSnapshot::new(child))
@@ -83,7 +84,7 @@ where
         match kind {
             NodeKind::Root => unreachable!(),
             NodeKind::Control => {
-                let child_ids: Vec<_> = self.edge_api.children_of(id).collect();
+                let child_ids: Vec<_> = self.edge_api.children_of(id).copied().collect();
                 //@todo: child_ids have to be sorted based on the x coordinate (increasing) to determine the proper children order
                 let mut children = Vec::with_capacity(child_ids.len());
                 for child_id in child_ids {
