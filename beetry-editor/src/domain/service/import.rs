@@ -1,5 +1,5 @@
 use crate::domain::{
-    persistence::{EditorStorage, TreeStorage},
+    persistence::{EditorStore, TreeStore, UiElementStore},
     repository::{
         ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
         EditorRepositoryViewMut, NodeRepositoryFacadeConcept,
@@ -25,24 +25,29 @@ where
     ER: EdgeRepositoryConcept,
     CRF: ChannelRepositoryFacadeConcept,
 {
-    pub fn import_project(&mut self, data: EditorStorage) -> Result<()> {
-        self.import_tree(data.tree)
+    pub fn import_project(&mut self, store: EditorStore) -> Result<()> {
+        self.import_tree(store.tree)?;
+        self.import_ui(store.ui_elements)
     }
 
-    pub fn import_tree(&mut self, tree: TreeStorage) -> Result<()> {
+    pub fn import_tree(&mut self, tree: TreeStore) -> Result<()> {
         let EditorRepositoryViewMut { node, channel, .. } = self.repo.view_mut();
         let node_view = node.view_mut();
         let mut load_api =
             LoadNodeApi::new(self.node_service, self.channel_service, node_view, channel);
-        for spec_record in tree.node.specs {
+        for spec_record in tree.graph.specs {
             load_api.load_spec(spec_record)?;
         }
 
-        for node_record in tree.node.nodes {
+        for node_record in tree.graph.nodes {
             load_api.load_node(node_record)?;
         }
 
         todo!("load edges and channels")
+    }
+
+    pub fn import_ui(&mut self, ui: UiElementStore) -> Result<()> {
+        todo!()
     }
 }
 

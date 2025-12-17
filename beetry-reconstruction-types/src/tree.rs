@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 
 use crate::channel::{
-    ChannelId, ChannelIdEndpointCountMap, ChannelSnapshotMap, ChannelValidator,
+    ChannelId, ChannelIdSenderReceiverCountMap, ChannelSnapshotMap, ChannelValidator,
 };
 use crate::node::{NodeSnapshot, NodeSnapshotData, RootSnapshot};
 
@@ -42,7 +42,7 @@ impl TreeSnapshot {
         })
     }
 
-    fn collect_channel_references(node: &NodeSnapshot, map: &mut ChannelIdEndpointCountMap) {
+    fn collect_channel_references(node: &NodeSnapshot, map: &mut ChannelIdSenderReceiverCountMap) {
         match &node.data {
             NodeSnapshotData::Control(control) => {
                 for child in control.children() {

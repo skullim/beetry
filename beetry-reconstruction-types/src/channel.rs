@@ -4,7 +4,7 @@ use std::num::NonZeroUsize;
 use anyhow::{Result, bail};
 use bon::Builder;
 use derive_more::{AddAssign, Display, From};
-use getset::{CopyGetters, Getters, MutGetters};
+use getset::{CopyGetters, Getters, MutGetters, Setters};
 use num_traits::One;
 use serde::{Deserialize, Serialize};
 
@@ -23,7 +23,7 @@ impl ChannelSnapshot2 {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, CopyGetters, MutGetters)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, CopyGetters, Setters, MutGetters)]
 pub struct ChannelConfig {
     #[getset(get_copy = "pub", set = "pub")]
     capacity: usize, // there might be channels with 0 capacity
@@ -42,7 +42,8 @@ impl ChannelConfig {
         }
     }
 
-    pub fn set_kind(&mut self, kind: ChannelImplKind2) {
+    pub fn set_kind(&mut self, kind: ChannelImplKind2) -> Result<()> {
+        // validate if kind is valid, e.g. if there are multiple receivers and one tries to change to mpsc
         todo!()
     }
 }
@@ -217,12 +218,12 @@ pub struct BroadcastConfig {
 
 pub type ChannelSnapshotMap = HashMap<ChannelId, ChannelSnapshot>;
 pub(super) struct ChannelValidator;
-pub(super) type ChannelIdEndpointCountMap = HashMap<ChannelId, SenderReceiverCount>;
+pub(super) type ChannelIdSenderReceiverCountMap = HashMap<ChannelId, SenderReceiverCount>;
 
 impl ChannelValidator {
     pub(super) fn validate(
         snapshot_map: &ChannelSnapshotMap,
-        count_map: &ChannelIdEndpointCountMap,
+        count_map: &ChannelIdSenderReceiverCountMap,
     ) -> ExportResult<()> {
         for (id, count) in count_map {
             let snapshot = Self::validate_channel_presence(snapshot_map, *id)?;
