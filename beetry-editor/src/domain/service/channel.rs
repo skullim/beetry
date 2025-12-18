@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::domain::models::{ChannelData, NodePortKind, NodePortSpec};
+use crate::domain::models::{ChannelData, NodePortKind, NodePortSpec, NodeSpecId};
 use crate::domain::persistence::{ChannelRecord, ChannelSpecRecord};
 use crate::domain::{
     models::{ChannelId, ChannelSpecId, NodeId},
@@ -55,6 +55,10 @@ where
         ChannelService::remove(self.facade_view.channel, id)
     }
 
+    pub fn data(&self, id: ChannelId) -> Result<&ChannelData> {
+        ChannelService::data(self.facade_view.channel, id)
+    }
+
     pub fn config(&self, id: ChannelId) -> Result<&ChannelConfig> {
         ChannelService::config(self.facade_view.channel, id)
     }
@@ -65,6 +69,10 @@ where
 
     pub fn channels(&self) -> impl Iterator<Item = &ChannelId> {
         ChannelService::channels(self.facade_view.channel)
+    }
+
+    pub fn spec_id(&self, id: ChannelId) -> Result<ChannelSpecId> {
+        ChannelService::spec_id(self.facade_view.channel, id)
     }
 
     pub fn spec(&self, id: ChannelId) -> Result<&ChannelSpec> {
@@ -183,6 +191,10 @@ impl ChannelService {
         id: ChannelId,
     ) -> Result<&mut ChannelConfig> {
         Ok(&mut Self::data_mut(repo, id)?.config)
+    }
+
+    fn spec_id(repo: &impl ChannelRepositoryConcept, id: ChannelId) -> Result<NodeSpecId> {
+        Ok(Self::data(repo, id)?.spec_id)
     }
 
     fn data(repo: &impl ChannelRepositoryConcept, id: ChannelId) -> Result<&ChannelData> {

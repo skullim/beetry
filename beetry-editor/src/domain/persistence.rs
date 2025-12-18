@@ -1,16 +1,9 @@
 use std::collections::HashMap;
 
-use crate::domain::{
-    models::{
-        ChannelData, ChannelSpecId, ChannelUiData, NodeId, NodePortConnection, NodePortId,
-        NodeSpecId, NodeSpecKey, NodeUiData,
-    },
-    repository::{
-        NodeRepositoryConcept, NodeRepositoryFacadeConcept, NodeRepositoryFacadeView,
-        ParamValueRepositoryConcept, PortStateRepositoryConcept, SpecRepositoryConcept,
-    },
+use crate::domain::models::{
+    ChannelData, ChannelSpecId, ChannelUiData, NodeId, NodePortConnection, NodePortId, NodeSpecId,
+    NodeSpecKey, NodeUiData,
 };
-use anyhow::{Result, anyhow};
 use beetry_plugin_types::channel::ChannelSpec;
 use beetry_reconstruction_types::{channel::ChannelId, parameter};
 use indexmap::IndexSet;
@@ -25,9 +18,13 @@ pub struct MaybeValidTree(pub TreeStore);
 
 // Proxy object to store valid tree
 // @todo: hide constructor and let service layer validate and construct the instance
-pub struct ValidTree(pub TreeStore);
+pub struct ValidTree(TreeStore);
 
 impl ValidTree {
+    pub(crate) fn new(tree: TreeStore) -> Self {
+        Self(tree)
+    }
+
     pub fn into_inner(self) -> TreeStore {
         self.0
     }
@@ -40,53 +37,25 @@ pub struct TreeStore {
     pub channel: ChannelStore,
 }
 
+impl TreeStore {
+    pub fn new(
+        node: NodeStore,
+        ports: NodePortStore,
+        parameter: ParameterValueStore,
+        channel: ChannelStore,
+    ) -> Self {
+        Self {
+            node,
+            ports,
+            parameter,
+            channel,
+        }
+    }
+}
+
 pub struct NodeStore {
     pub specs: Vec<NodeSpecRecord>,
     pub nodes: Vec<NodeRecord>,
-}
-
-impl NodeStore {
-    pub fn export(facade: &impl NodeRepositoryFacadeConcept) -> Result<Self> {
-        let NodeRepositoryFacadeView {
-            nodes,
-            specs,
-            parameters,
-            ports,
-        } = facade.view();
-        let specs: Vec<_> = specs
-            .iter()
-            .map(|(id, spec)| NodeSpecRecord {
-                id: *id,
-                key: NodeSpecKey::new(spec.name().clone(), spec.kind()),
-            })
-            .collect();
-
-        let node_ids = nodes.ids().copied();
-        let nodes = node_ids
-            .map(|id| {
-                Ok(NodeRecord {
-                    id,
-                    spec_id: *nodes
-                        .spec_id(&id)
-                        .ok_or_else(|| anyhow!("expected spec id for node {id}"))?,
-                    // parameters: parameters.value(id).cloned(),
-                    // port_records: ports
-                    //     .port_iter(id)
-                    //     .map(|(port_id, conn)| {
-                    //         Ok(NodePortRecord {
-                    //             id: *port_id,
-                    //             conn: conn.clone(),
-                    //         })
-                    //     })
-                    //     .collect::<Result<Vec<NodePortRecord>>>()?,
-
-                    //@todo this has to be obtained from edge service
-                    children: <_>::default(),
-                })
-            })
-            .collect::<Result<Vec<NodeRecord>>>()?;
-        Ok(Self { specs, nodes })
-    }
 }
 
 //The remaining parts of spec are to be loaded by the appropriate plugin
@@ -101,11 +70,27 @@ pub struct NodeRecord {
     pub children: IndexSet<NodeId>,
 }
 
+impl NodeRecord {
+    pub fn new(id: NodeId, spec_id: NodeSpecId, children: impl Iterator<Item = NodeId>) -> Self {
+        Self {
+            id,
+            spec_id,
+            children: children.into_iter().collect(),
+        }
+    }
+}
+
 pub struct ParameterValueStore {
     parameters: HashMap<NodeId, ParameterValue>,
 }
 
 impl ParameterValueStore {
+    pub fn new(parameters: impl IntoIterator<Item = (NodeId, ParameterValue)>) -> Self {
+        Self {
+            parameters: parameters.into_iter().collect(),
+        }
+    }
+
     pub fn take(&mut self, id: &NodeId) -> Option<ParameterValue> {
         self.parameters.remove(id)
     }
@@ -120,6 +105,12 @@ pub struct NodePortStore {
 }
 
 impl NodePortStore {
+    pub fn new(iter: impl IntoIterator<Item = (NodeId, NodePortState)>) -> Self {
+        Self {
+            ports: iter.into_iter().collect(),
+        }
+    }
+
     pub fn take(&mut self, id: &NodeId) -> Option<NodePortState> {
         self.ports.remove(id)
     }
@@ -129,9 +120,17 @@ pub struct NodePortState {
     pub conns: Vec<(NodePortId, NodePortConnection)>,
 }
 
+impl NodePortState {
+    pub fn new(conns: impl IntoIterator<Item = (NodePortId, NodePortConnection)>) -> Self {
+        Self {
+            conns: conns.into_iter().collect(),
+        }
+    }
+}
+
 pub struct ChannelStore {
-    specs: Vec<ChannelSpecRecord>,
-    channels: Vec<ChannelRecord>,
+    pub specs: Vec<ChannelSpecRecord>,
+    pub channels: Vec<ChannelRecord>,
 }
 
 pub struct ChannelSpecRecord {
@@ -144,16 +143,31 @@ pub struct ChannelRecord {
     pub data: ChannelData,
 }
 
+#[derive(Debug, Default, Clone)]
 pub struct UiElementStore {
     pub nodes: Vec<NodeUiRecord>,
     pub channels: Vec<ChannelUiRecord>,
 }
 
+impl UiElementStore {
+    pub fn new(
+        nodes: impl IntoIterator<Item = NodeUiRecord>,
+        channels: impl IntoIterator<Item = ChannelUiRecord>,
+    ) -> Self {
+        Self {
+            nodes: nodes.into_iter().collect(),
+            channels: channels.into_iter().collect(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct NodeUiRecord {
     pub id: NodeId,
     pub data: NodeUiData,
 }
 
+#[derive(Debug, Clone)]
 pub struct ChannelUiRecord {
     pub id: ChannelId,
     pub data: ChannelUiData,

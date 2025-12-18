@@ -17,50 +17,57 @@ use getset::{Getters, MutGetters};
 use num_traits::One;
 
 #[derive(Debug, Default, Getters, MutGetters)]
-pub struct EditorRepository<NRF, ER, CRF> {
+pub struct EditorRepository<NRF, ER, CRF, UR> {
     #[getset(get = "pub", get_mut = "pub")]
     node: NRF,
     #[getset(get = "pub", get_mut = "pub")]
     edge: ER,
     #[getset(get = "pub", get_mut = "pub")]
     channel: CRF,
+    #[getset(get = "pub", get_mut = "pub")]
+    ui: UR,
 }
 
-pub struct EditorRepositoryView<'a, NRF, ER, CRF> {
+pub struct EditorRepositoryView<'a, NRF, ER, CRF, UR> {
     pub node: &'a NRF,
     pub edge: &'a ER,
     pub channel: &'a CRF,
+    pub ui: &'a UR,
 }
 
-pub struct EditorRepositoryViewMut<'a, NRF, ER, CR> {
+pub struct EditorRepositoryViewMut<'a, NRF, ER, CR, UR> {
     pub node: &'a mut NRF,
     pub edge: &'a mut ER,
     pub channel: &'a mut CR,
+    pub ui: &'a mut UR,
 }
 
-impl<NRF, ER, CRF> EditorRepository<NRF, ER, CRF> {
-    pub fn view(&self) -> EditorRepositoryView<'_, NRF, ER, CRF> {
+impl<NRF, ER, CRF, UR> EditorRepository<NRF, ER, CRF, UR> {
+    pub fn view(&self) -> EditorRepositoryView<'_, NRF, ER, CRF, UR> {
         EditorRepositoryView {
             node: &self.node,
             edge: &self.edge,
             channel: &self.channel,
+            ui: &self.ui,
         }
     }
 
-    pub fn view_mut(&mut self) -> EditorRepositoryViewMut<'_, NRF, ER, CRF> {
+    pub fn view_mut(&mut self) -> EditorRepositoryViewMut<'_, NRF, ER, CRF, UR> {
         EditorRepositoryViewMut {
             node: &mut self.node,
             edge: &mut self.edge,
             channel: &mut self.channel,
+            ui: &mut self.ui,
         }
     }
 }
 
-impl<NRF, ER, CRF> EditorRepository<NRF, ER, CRF>
+impl<NRF, ER, CRF, UR> EditorRepository<NRF, ER, CRF, UR>
 where
     NRF: Default,
     ER: Default,
     CRF: Default,
+    UR: Default,
 {
     /// Instance should be initialized in default state, the interaction with concrete repositories
     /// should be managed by service layer.
@@ -71,6 +78,7 @@ where
             node: NRF::default(),
             edge: ER::default(),
             channel: CRF::default(),
+            ui: UR::default(),
         }
     }
 }
@@ -162,16 +170,6 @@ impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
     }
 }
 
-pub struct ChannelRepositoryFacadeView<'a, F: ChannelRepositoryFacadeConcept> {
-    pub spec: &'a F::SpecRepo,
-    pub channel: &'a F::DataRepo,
-}
-
-pub struct ChannelRepositoryFacadeViewMut<'a, F: ChannelRepositoryFacadeConcept> {
-    pub spec: &'a mut F::SpecRepo,
-    pub channel: &'a mut F::DataRepo,
-}
-
 pub trait ChannelRepositoryFacadeConcept: Default {
     type SpecRepo: SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>;
     type DataRepo: ChannelRepositoryConcept;
@@ -185,6 +183,15 @@ pub trait ChannelRepositoryFacadeConcept: Default {
         Self: Sized;
 }
 
+pub struct ChannelRepositoryFacadeView<'a, F: ChannelRepositoryFacadeConcept> {
+    pub spec: &'a F::SpecRepo,
+    pub channel: &'a F::DataRepo,
+}
+
+pub struct ChannelRepositoryFacadeViewMut<'a, F: ChannelRepositoryFacadeConcept> {
+    pub spec: &'a mut F::SpecRepo,
+    pub channel: &'a mut F::DataRepo,
+}
 #[derive(Default)]
 pub struct ChannelRepositoryFacade {
     data: ChannelRepository,
@@ -218,6 +225,70 @@ impl ChannelRepositoryFacadeConcept for ChannelRepositoryFacade {
         ChannelRepositoryFacadeViewMut {
             channel: &mut self.data,
             spec: &mut self.spec,
+        }
+    }
+}
+
+// ui
+
+pub trait UiRepositoryFacadeConcept: Default {
+    type UiNodeRepo: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>;
+    type UiChannelRepo: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>;
+
+    fn view(&self) -> UiRepositoryFacadeView<'_, Self>
+    where
+        Self: Sized;
+
+    fn view_mut(&mut self) -> UiRepositoryFacadeViewMut<'_, Self>
+    where
+        Self: Sized;
+}
+
+pub struct UiRepositoryFacadeView<'a, F: UiRepositoryFacadeConcept> {
+    pub node: &'a F::UiNodeRepo,
+    pub channel: &'a F::UiChannelRepo,
+}
+
+pub struct UiRepositoryFacadeViewMut<'a, F: UiRepositoryFacadeConcept> {
+    pub node: &'a mut F::UiNodeRepo,
+    pub channel: &'a mut F::UiChannelRepo,
+}
+#[derive(Default)]
+pub struct UiRepositoryFacade {
+    node: UiRepository<NodeId, NodeUiData>,
+    channel: UiRepository<ChannelId, ChannelUiData>,
+}
+
+impl UiRepositoryFacade {
+    pub fn new(
+        node: UiRepository<NodeId, NodeUiData>,
+        channel: UiRepository<ChannelId, ChannelUiData>,
+    ) -> Self {
+        Self { node, channel }
+    }
+}
+
+impl UiRepositoryFacadeConcept for UiRepositoryFacade {
+    type UiNodeRepo = UiRepository<NodeId, NodeUiData>;
+    type UiChannelRepo = UiRepository<ChannelId, ChannelUiData>;
+
+    fn view(&self) -> UiRepositoryFacadeView<'_, Self>
+    where
+        Self: Sized,
+    {
+        UiRepositoryFacadeView {
+            node: &self.node,
+            channel: &self.channel,
+        }
+    }
+
+    fn view_mut(&mut self) -> UiRepositoryFacadeViewMut<'_, Self>
+    where
+        Self: Sized,
+    {
+        UiRepositoryFacadeViewMut {
+            node: &mut self.node,
+            channel: &mut self.channel,
         }
     }
 }
@@ -565,6 +636,14 @@ pub trait UiRepositoryConcept: Default {
 
     fn data(&self, id: Self::Id) -> Option<&Self::Data>;
     fn data_mut(&mut self, id: Self::Id) -> Option<&mut Self::Data>;
+
+    fn id_iter(&self) -> impl Iterator<Item = &Self::Id>;
+    fn data_iter(&self) -> impl Iterator<Item = &Self::Data>;
+
+    // provided methods
+    fn iter(&self) -> impl Iterator<Item = (&Self::Id, &Self::Data)> {
+        self.id_iter().zip(self.data_iter())
+    }
 }
 
 pub struct UiRepository<I, D> {
@@ -602,6 +681,14 @@ where
 
     fn data_mut(&mut self, id: Self::Id) -> Option<&mut Self::Data> {
         self.data.get_mut(&id)
+    }
+
+    fn id_iter(&self) -> impl Iterator<Item = &Self::Id> {
+        self.data.keys()
+    }
+
+    fn data_iter(&self) -> impl Iterator<Item = &Self::Data> {
+        self.data.values()
     }
 }
 
