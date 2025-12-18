@@ -1,24 +1,43 @@
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow, bail};
 use beetry_plugin_types::node::LeafKind;
 use beetry_reconstruction_types::{
     channel::{ChannelSnapshot2, ChannelSnapshotMap},
     node::{ControlSnapshot, LeafSnapshot, NodeSnapshot, NodeSnapshotData, RootSnapshot},
     tree::TreeSnapshot,
 };
+use bon::Builder;
 
-use itertools::izip;
-use std::collections::HashMap;
+use itertools::{Itertools, izip};
+use std::collections::{BTreeSet, HashMap, HashSet};
+use tracing::warn;
 
 use crate::domain::{
-    models::{NodeId, NodeKind, NodePortConnection, NodePortKind},
-    persistence::{EditorStateStore, ValidTree},
+    models::{ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePortKind},
+    persistence::{EditorStateStore, NodeStore, TreeStore, ValidTree},
     repository::{
         ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept,
     },
     service::{channel::ChannelServiceApi, edge::EdgeServiceApi, node::NodeServiceApi},
 };
 
-pub struct TreeExportServiceApi<'a, NRF, ER, CRF>
+#[derive(Debug, Builder)]
+pub struct TreeValidationResult {
+    pub child_free_non_leaf_node: Option<NodeId>,
+    pub unconnected_port: Option<(NodeId, NodePortId)>,
+    // nodes that are not connected to root
+    #[builder(default)]
+    pub unconnected_nodes: HashSet<NodeId>,
+    #[builder(default)]
+    pub unconnected_channels: HashSet<ChannelId>,
+}
+
+impl TreeValidationResult {
+    pub fn is_tree_valid(&self) -> bool {
+        self.child_free_non_leaf_node.is_none() && self.unconnected_port.is_none()
+    }
+}
+
+pub struct ExportServiceApi<'a, NRF, ER, CRF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
@@ -29,7 +48,7 @@ where
     edge_api: EdgeServiceApi<'a, ER, NRF>,
 }
 
-impl<'a, NRF, ER, CRF> TreeExportServiceApi<'a, NRF, ER, CRF>
+impl<'a, NRF, ER, CRF> ExportServiceApi<'a, NRF, ER, CRF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
@@ -40,17 +59,104 @@ where
         todo!()
     }
 
-    pub fn export_tree2(&mut self) -> Result<ValidTree> {
+    /// Tree can be exported only if tree is valid and fully connected
+    pub fn export_valid_tree(&mut self) -> Result<ValidTree> {
+        let validation = self.validate_tree();
+        if !validation.is_tree_valid() {
+            bail!("attempted to export invalid tree, details: {validation:?}");
+        }
+
+        let tracker = self.node_api.tracker();
+        let nodes_to_export = {
+            if !validation.unconnected_nodes.is_empty() {
+                warn!(
+                    "removing detected unconnected nodes {:?} from the export",
+                    validation.unconnected_nodes
+                );
+            }
+            tracker
+                .nodes()
+                .filter(|id| validation.unconnected_nodes.contains(*id))
+        };
+
+        let node_store = self.export_nodes(nodes_to_export)?;
+
         todo!()
     }
 
-    /// Tree can be exported only if tree is valid and fully connected
-    pub fn export_tree(&mut self) -> Result<TreeSnapshot> {
+    fn export_nodes(&'a self, nodes: impl Iterator<Item = &'a NodeId>) -> Result<NodeStore> {
+        todo!()
+    }
+
+    //@todo move to reconstruction crate
+    pub fn snapshot_from(&mut self, tree: ValidTree) -> Result<TreeSnapshot> {
+        let tree = tree.into_inner();
         let root = self.export_root()?;
         Ok(TreeSnapshot::builder()
             .root(root)
             .channels(self.export_channels()?)
             .build()?)
+    }
+    /// Preconditions:
+    /// 1. There is one and only root node
+    ///
+    /// Validation rules:
+    /// 1. Each node is connected to root
+    /// 2. All except leaf nodes have at least (or most for decorator) 1 child. Decorator having maximum one child is guaranteed at node connection API.
+    /// 3. Each node port is not in Unconnected state
+    /// 4. Optional: Gather list of unconnected channels (if any)
+    //@todo long term should be shared reference, but PortConnectionServiceApi requires exclusive reference
+    fn validate_tree(&mut self) -> TreeValidationResult {
+        let (root_id, leaf_nodes): (_, HashSet<_>) = {
+            let tracker = self.node_api.tracker();
+            (
+                tracker
+                    .root_id()
+                    .context("precondition that root exists not met")
+                    .unwrap(),
+                tracker.leaf_nodes().copied().collect(),
+            )
+        };
+
+        let mut valid_nodes = HashSet::new();
+        let mut to_visit = BTreeSet::from_iter(std::iter::once(root_id));
+
+        while let Some(parent) = to_visit.pop_first() {
+            let children: Vec<_> = self.edge_api.children_of(parent).collect();
+            if children.is_empty() {
+                return TreeValidationResult::builder()
+                    .child_free_non_leaf_node(parent)
+                    .build();
+            }
+            for child in children {
+                if leaf_nodes.contains(child) {
+                    if let Some(unconnected) = self
+                        .node_api
+                        .port_state()
+                        .port_iter(*child)
+                        .find(|(_, conn)| !conn.is_valid())
+                    {
+                        return TreeValidationResult::builder()
+                            .unconnected_port((*child, *unconnected.0))
+                            .build();
+                    }
+                    continue;
+                } else {
+                    to_visit.insert(*child);
+                }
+            }
+            valid_nodes.insert(parent);
+        }
+        let unconnected_nodes = self
+            .node_api
+            .tracker()
+            .nodes()
+            .filter(|id| !valid_nodes.contains(*id))
+            .copied()
+            .collect();
+        TreeValidationResult::builder()
+            .unconnected_nodes(unconnected_nodes)
+            .build()
     }
 
     fn export_channels(&mut self) -> Result<ChannelSnapshotMap> {
@@ -72,13 +178,7 @@ where
     }
 
     fn export_root(&mut self) -> Result<RootSnapshot> {
-        let root_id = self
-            .node_api
-            .tracker()
-            .nodes_by_kind(NodeKind::Root)
-            .next()
-            .copied()
-            .ok_or_else(|| anyhow!("no root found in the tree"))?;
+        let root_id = self.node_api.tracker().root_id()?;
 
         let child_id = self
             .edge_api
