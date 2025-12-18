@@ -7,17 +7,27 @@ use beetry_reconstruction_types::{
 };
 use bon::Builder;
 
-use itertools::{Itertools, izip};
+use itertools::izip;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use tracing::warn;
 
 use crate::domain::{
-    models::{ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePortKind},
-    persistence::{EditorStateStore, NodeStore, TreeStore, ValidTree},
+    models::{
+        ChannelId, ChannelUiData, NodeId, NodeKind, NodePortConnection, NodePortId, NodePortKind,
+        NodeSpecKey,
+    },
+    persistence::{
+        ChannelRecord, ChannelSpecRecord, ChannelStore, ChannelUiRecord, EditorStateStore,
+        MaybeValidTree, NodePortState, NodePortStore, NodeRecord, NodeSpecRecord, NodeStore,
+        NodeUiRecord, ParameterValue, ParameterValueStore, TreeStore, UiElementStore, ValidTree,
+    },
     repository::{
         ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept,
+        UiRepositoryFacadeConcept,
     },
-    service::{channel::ChannelServiceApi, edge::EdgeServiceApi, node::NodeServiceApi},
+    service::{
+        channel::ChannelServiceApi, edge::EdgeServiceApi, node::NodeServiceApi, ui::UiServiceApi,
+    },
 };
 
 #[derive(Debug, Builder)]
@@ -37,26 +47,49 @@ impl TreeValidationResult {
     }
 }
 
-pub struct ExportServiceApi<'a, NRF, ER, CRF>
+pub struct ExportServiceApi<'a, NRF, ER, CRF, URF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
     CRF: ChannelRepositoryFacadeConcept,
+    URF: UiRepositoryFacadeConcept,
 {
     channel_api: ChannelServiceApi<'a, CRF>,
     node_api: NodeServiceApi<'a, NRF, ER, CRF>,
     edge_api: EdgeServiceApi<'a, ER, NRF>,
+    ui_api: UiServiceApi<'a, URF>,
 }
 
-impl<'a, NRF, ER, CRF> ExportServiceApi<'a, NRF, ER, CRF>
+impl<'a, NRF, ER, CRF, URF> ExportServiceApi<'a, NRF, ER, CRF, URF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
     CRF: ChannelRepositoryFacadeConcept,
+    URF: UiRepositoryFacadeConcept,
 {
     /// Project can be exported at any time, even if some parts of the tree are not yet connected
-    pub fn export_project() -> Result<EditorStateStore> {
-        todo!()
+    pub fn export_project(&mut self) -> Result<EditorStateStore> {
+        let tracker = self.node_api.tracker();
+
+        let nodes: Vec<_> = tracker.nodes().copied().collect();
+        let node_store = self.export_node_store(&nodes)?;
+        let port_store = self.export_port_store(&nodes)?;
+        let param_store = self.export_parameter_store(&nodes)?;
+
+        let channels: Vec<_> = self.channel_api.channels().copied().collect();
+        let channel_store = self.export_channel_store(&channels)?;
+
+        let tree_store = MaybeValidTree(TreeStore::new(
+            node_store,
+            port_store,
+            param_store,
+            channel_store,
+        ));
+
+        Ok(EditorStateStore {
+            tree: tree_store,
+            ui_elements: self.export_ui_elements(),
+        })
     }
 
     /// Tree can be exported only if tree is valid and fully connected
@@ -66,37 +99,168 @@ where
             bail!("attempted to export invalid tree, details: {validation:?}");
         }
 
-        let tracker = self.node_api.tracker();
-        let nodes_to_export = {
+        let nodes_to_export: Vec<_> = {
             if !validation.unconnected_nodes.is_empty() {
                 warn!(
                     "removing detected unconnected nodes {:?} from the export",
                     validation.unconnected_nodes
                 );
             }
+            let tracker = self.node_api.tracker();
             tracker
                 .nodes()
                 .filter(|id| validation.unconnected_nodes.contains(*id))
+                .copied()
+                .collect()
         };
 
-        let node_store = self.export_nodes(nodes_to_export)?;
+        let node_store = self.export_node_store(&nodes_to_export)?;
+        let param_store = self.export_parameter_store(&nodes_to_export)?;
+        let port_store = self.export_port_store(&nodes_to_export)?;
 
-        todo!()
+        let channels_to_export: Vec<_> = {
+            if !validation.unconnected_channels.is_empty() {
+                warn!(
+                    "removing detected unconnected channels {:?} from the export",
+                    validation.unconnected_channels
+                );
+            }
+            let channel_id_iter = self.channel_api.channels();
+            channel_id_iter
+                .filter(|id| validation.unconnected_channels.contains(*id))
+                .copied()
+                .collect()
+        };
+        let channel_store = self.export_channel_store(&channels_to_export)?;
+
+        let tree = TreeStore::new(node_store, port_store, param_store, channel_store);
+        Ok(ValidTree::new(tree))
     }
 
-    fn export_nodes(&'a self, nodes: impl Iterator<Item = &'a NodeId>) -> Result<NodeStore> {
-        todo!()
+    fn export_node_store(&mut self, nodes: &[NodeId]) -> Result<NodeStore> {
+        let specs = {
+            let spec_api = self.node_api.spec();
+            nodes
+                .iter()
+                .copied()
+                .map(|id| {
+                    Ok(NodeSpecRecord {
+                        id,
+                        key: NodeSpecKey::new(spec_api.name(id)?.clone(), spec_api.kind(id)?),
+                    })
+                })
+                .collect::<Result<Vec<_>>>()
+        }?;
+
+        let nodes = {
+            let tracker_api = self.node_api.tracker();
+            nodes
+                .iter()
+                .copied()
+                .map(|id| {
+                    let mut children: Vec<_> = self.edge_api.children_of(id).copied().collect();
+                    self.ui_api.node().sort_children(&mut children, |l, r| {
+                        l.position.origin.x.total_cmp(&r.position.origin.x)
+                    })?;
+
+                    Ok(NodeRecord::new(
+                        id,
+                        tracker_api
+                            .spec_id(id)
+                            .with_context(|| anyhow!("expected spec id for node {id}"))?,
+                        children.into_iter(),
+                    ))
+                })
+                .collect::<Result<Vec<NodeRecord>>>()?
+        };
+        Ok(NodeStore { specs, nodes })
     }
 
-    //@todo move to reconstruction crate
-    pub fn snapshot_from(&mut self, tree: ValidTree) -> Result<TreeSnapshot> {
-        let tree = tree.into_inner();
-        let root = self.export_root()?;
-        Ok(TreeSnapshot::builder()
-            .root(root)
-            .channels(self.export_channels()?)
-            .build()?)
+    fn export_parameter_store(&mut self, nodes: &[NodeId]) -> Result<ParameterValueStore> {
+        let parameters_api = self.node_api.parameters();
+        let store = nodes
+            .iter()
+            .copied()
+            .map(|id| {
+                Ok((
+                    id,
+                    ParameterValue {
+                        params: parameters_api.parameters(id)?.clone(),
+                    },
+                ))
+            })
+            .collect::<Result<HashMap<_, _>>>()?;
+        Ok(ParameterValueStore::new(store))
     }
+
+    fn export_port_store(&mut self, nodes: &[NodeId]) -> Result<NodePortStore> {
+        let ports_api = self.node_api.port_state();
+        let port_state_iter = nodes.iter().copied().map(|id| {
+            (
+                id,
+                NodePortState::new(
+                    ports_api
+                        .port_iter(id)
+                        .map(|(id, conn)| (*id, conn.clone())),
+                ),
+            )
+        });
+        Ok(NodePortStore::new(port_state_iter))
+    }
+
+    fn export_channel_store(&mut self, channels: &[ChannelId]) -> Result<ChannelStore> {
+        let specs = channels
+            .iter()
+            .copied()
+            .map(|id| {
+                Ok(ChannelSpecRecord {
+                    id: self.channel_api.spec_id(id)?,
+                    spec: self.channel_api.spec(id)?.clone(),
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        let records = channels
+            .iter()
+            .copied()
+            .map(|id| {
+                Ok(ChannelRecord {
+                    id,
+                    data: self.channel_api.data(id)?.clone(),
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(ChannelStore {
+            specs,
+            channels: records,
+        })
+    }
+
+    fn export_ui_elements(&mut self) -> UiElementStore {
+        let channels: Vec<_> = {
+            let channel_api = self.ui_api.channel();
+            channel_api
+                .iter()
+                .map(|(id, data)| ChannelUiRecord {
+                    id: *id,
+                    data: data.clone(),
+                })
+                .collect()
+        };
+        let nodes: Vec<_> = {
+            let node_api = self.ui_api.node();
+            node_api
+                .iter()
+                .map(|(id, data)| NodeUiRecord {
+                    id: *id,
+                    data: data.clone(),
+                })
+                .collect()
+        };
+        UiElementStore::new(nodes, channels)
+    }
+
     /// Preconditions:
     /// 1. There is one and only root node
     ///
@@ -157,6 +321,16 @@ where
         TreeValidationResult::builder()
             .unconnected_nodes(unconnected_nodes)
             .build()
+    }
+
+    //@todo move to reconstruction crate
+    pub fn snapshot_from(&mut self, tree: ValidTree) -> Result<TreeSnapshot> {
+        let tree = tree.into_inner();
+        let root = self.export_root()?;
+        Ok(TreeSnapshot::builder()
+            .root(root)
+            .channels(self.export_channels()?)
+            .build()?)
     }
 
     fn export_channels(&mut self) -> Result<ChannelSnapshotMap> {

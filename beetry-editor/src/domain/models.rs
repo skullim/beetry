@@ -24,7 +24,7 @@ pub struct Point {
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct NodePosition {
-    origin: Point,
+    pub origin: Point,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -213,15 +213,18 @@ impl NodeSpecKey {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ChannelData {
     pub spec_id: ChannelSpecId,
     pub config: ChannelConfig,
 }
 
+#[derive(Debug, Clone)]
 pub struct NodeUiData {
     pub position: NodePosition,
 }
 
+#[derive(Debug, Clone)]
 pub struct ChannelUiData {
     pub position: ChannelPosition,
 }

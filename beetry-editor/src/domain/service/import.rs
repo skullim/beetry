@@ -2,7 +2,7 @@ use crate::domain::{
     persistence::{EditorStateStore, MaybeValidTree, TreeStore, UiElementStore},
     repository::{
         ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
-        EditorRepositoryViewMut, NodeRepositoryFacadeConcept,
+        EditorRepositoryViewMut, NodeRepositoryFacadeConcept, UiRepositoryFacadeConcept,
     },
     service::{
         channel::ChannelService,
@@ -12,18 +12,19 @@ use crate::domain::{
 };
 use anyhow::Result;
 
-pub struct ImportServiceApi<'a, NRF, ER, CRF> {
+pub struct ImportServiceApi<'a, NRF, ER, CRF, URF> {
     node_service: &'a mut NodeService,
     edge_service: &'a mut EdgeService,
     channel_service: &'a mut ChannelService,
-    repo: &'a mut EditorRepository<NRF, ER, CRF>,
+    repo: &'a mut EditorRepository<NRF, ER, CRF, URF>,
 }
 
-impl<'a, NRF, ER, CRF> ImportServiceApi<'a, NRF, ER, CRF>
+impl<'a, NRF, ER, CRF, URF> ImportServiceApi<'a, NRF, ER, CRF, URF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
     CRF: ChannelRepositoryFacadeConcept,
+    URF: UiRepositoryFacadeConcept,
 {
     pub fn import_project(&mut self, store: EditorStateStore) -> Result<()> {
         self.import_tree(store.tree)?;
