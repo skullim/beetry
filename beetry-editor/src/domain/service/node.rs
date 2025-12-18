@@ -3,7 +3,7 @@ use crate::domain::{
         ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePosition, NodeSpec,
         NodeSpecId, NodeSpecKey, NodeUiData, PortsSpec,
     },
-    persistence::{NodePortState, NodeRecord, NodeSpecRecord, ParameterValue},
+    persistence::{NodePortState, NodeRecord, ParameterValue},
     repository::{
         ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryConcept,
         NodeRepositoryFacadeConcept, NodeRepositoryFacadeViewMut, ParamValueRepositoryConcept,
@@ -16,7 +16,7 @@ use crate::domain::{
 };
 use anyhow::{Context, Result, anyhow, bail};
 use beetry_plugin_types::node::NodeName;
-use beetry_reconstruction_types::parameter::{self, Parameters};
+use beetry_reconstruction_types::parameter::Parameters;
 use std::collections::{HashMap, HashSet};
 use tracing::warn;
 
@@ -312,6 +312,13 @@ where
     pub fn leaf_nodes(&self) -> impl Iterator<Item = &NodeId> {
         self.nodes_by_kind(NodeKind::Action)
             .chain(self.nodes_by_kind(NodeKind::Condition))
+    }
+
+    pub fn spec_id(&self, id: NodeId) -> Result<NodeSpecId> {
+        self.repo
+            .spec_id(&id)
+            .copied()
+            .ok_or_else(|| anyhow!("no mapping between node id {id} and spec id exists"))
     }
 
     pub fn root_id(&self) -> Result<NodeId> {
