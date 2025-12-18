@@ -1,9 +1,9 @@
 use crate::domain::{
     models::{
         ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePosition, NodeSpec,
-        NodeSpecId, NodeUiData, PortsSpec,
+        NodeSpecId, NodeSpecKey, NodeUiData, PortsSpec,
     },
-    persistence::{NodePortRecord, NodeRecord, NodeSpecRecord},
+    persistence::{NodePortState, NodeRecord, NodeSpecRecord, ParameterValue},
     repository::{
         ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryConcept,
         NodeRepositoryFacadeConcept, NodeRepositoryFacadeViewMut, ParamValueRepositoryConcept,
@@ -16,7 +16,7 @@ use crate::domain::{
 };
 use anyhow::{Context, Result, anyhow, bail};
 use beetry_plugin_types::node::NodeName;
-use beetry_reconstruction_types::parameter::Parameters;
+use beetry_reconstruction_types::parameter::{self, Parameters};
 use std::collections::{HashMap, HashSet};
 use tracing::warn;
 
@@ -125,11 +125,11 @@ where
     }
 
     pub fn name(&self, id: NodeId) -> Result<&NodeName> {
-        Ok(&Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.name)
+        Ok(Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.name())
     }
 
     pub fn kind(&self, id: NodeId) -> Result<NodeKind> {
-        Ok(Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.kind)
+        Ok(Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.kind())
     }
 
     pub fn ports(&self, id: NodeId) -> Result<&PortsSpec> {
@@ -137,7 +137,7 @@ where
     }
 
     fn kind_by_spec_id(&self, spec_id: NodeSpecId) -> Result<NodeKind> {
-        Ok(Self::spec_by_spec_id(self.spec_repo, spec_id)?.kind)
+        Ok(Self::spec_by_spec_id(self.spec_repo, spec_id)?.kind())
     }
 
     fn spec_by_node_id<'s>(spec_repo: &'s SR, node_repo: &NR, id: NodeId) -> Result<&'s NodeSpec> {
@@ -188,37 +188,45 @@ where
         }
     }
 
-    pub(super) fn load_node(&mut self, record: NodeRecord) -> Result<()> {
+    pub(super) fn load_node(
+        &mut self,
+        node: NodeRecord,
+        param_value: Option<ParameterValue>,
+        port_state: Option<NodePortState>,
+    ) -> Result<()> {
         self.node_service.load_node(
             self.node_facade_view.specs,
             self.node_facade_view.nodes,
-            record.id,
-            record.spec_id,
+            node.id,
+            node.spec_id,
         )?;
         let spec_service_api = SpecServiceApi {
             spec_repo: self.node_facade_view.specs,
             node_repo: self.node_facade_view.nodes,
         };
-        let channel_service_api =
-            ChannelServiceApi::new(self.channel_facade.view_mut(), self.channel_service);
-        let mut port_service_api = PortConnectionServiceApi::new(
-            self.node_facade_view.ports,
-            spec_service_api,
-            channel_service_api,
-        );
-        port_service_api.load(record.id, record.port_records)?;
-        if let Some(params) = record.parameters {
+        if let Some(state) = port_state {
+            let channel_service_api =
+                ChannelServiceApi::new(self.channel_facade.view_mut(), self.channel_service);
+            let mut port_service_api = PortConnectionServiceApi::new(
+                self.node_facade_view.ports,
+                spec_service_api,
+                channel_service_api,
+            );
+            port_service_api.load(node.id, state)?;
+        }
+
+        if let Some(value) = param_value {
             let mut params_service_api = ParameterValueServiceApi {
                 repo: self.node_facade_view.parameters,
             };
-            params_service_api.load(record.id, params)?;
+            params_service_api.load(node.id, value)?;
         }
         Ok(())
     }
 
-    pub(super) fn load_spec(&mut self, record: NodeSpecRecord) -> Result<()> {
+    pub(super) fn load_spec(&mut self, id: NodeSpecId, spec: NodeSpec) -> Result<()> {
         self.node_service
-            .load_spec(self.node_facade_view.specs, record)
+            .load_spec(self.node_facade_view.specs, id, spec)
     }
 }
 
@@ -328,9 +336,8 @@ where
     }
 
     //@todo move to NodeLoadApi
-    pub fn load(&mut self, id: NodeId, params: Parameters) -> Result<()> {
-        //@todo validate against schema
-        self.repo.create(id, params)
+    pub fn load(&mut self, id: NodeId, value: ParameterValue) -> Result<()> {
+        self.repo.create(id, value.params)
     }
 
     //@todo add API to set parameters, also validate against schema here
@@ -409,14 +416,9 @@ where
     }
 
     //@todo move to NodeLoadApi
-    fn load(
-        &mut self,
-        id: NodeId,
-        records: impl IntoIterator<Item = NodePortRecord>,
-    ) -> Result<()> {
-        for record in records {
-            //@todo validate that conn is valid
-            self.repo.create(id, record.id, record.conn)?;
+    fn load(&mut self, id: NodeId, state: NodePortState) -> Result<()> {
+        for (port_id, conn) in state.conns {
+            self.repo.create(id, port_id, conn)?;
         }
         Ok(())
     }
@@ -434,7 +436,7 @@ where
 
 #[derive(Debug, Default)]
 pub(super) struct NodeService {
-    spec_cache: HashMap<NodeSpec, NodeSpecId>,
+    spec_cache: HashMap<NodeSpecKey, NodeSpecId>,
     node_cache: HashMap<NodeKind, HashSet<NodeId>>,
 }
 
@@ -449,13 +451,13 @@ impl NodeService {
         node_repo: &mut impl NodeRepositoryConcept,
         spec: NodeSpec,
     ) -> Result<NodeId> {
-        let kind = spec.kind;
+        let kind = spec.kind();
         self.validate_creation(kind)?;
-        let spec_id = match self.spec_cache.get(&spec) {
+        let spec_id = match self.spec_cache.get(spec.key()) {
             Some(id) => *id,
             None => {
                 let spec_id = spec_repo.create(spec.clone())?;
-                self.spec_cache.insert(spec, spec_id);
+                self.spec_cache.insert(spec.key, spec_id);
                 spec_id
             }
         };
@@ -495,16 +497,16 @@ impl NodeService {
     fn load_spec(
         &mut self,
         spec_repo: &mut impl SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
-        record: NodeSpecRecord,
+        id: NodeSpecId,
+        spec: NodeSpec,
     ) -> Result<()> {
-        match self.spec_cache.get(&record.spec) {
+        match self.spec_cache.get(spec.key()) {
             Some(id) => {
-                warn!("spec {id} was already loaded");
+                warn!("spec {id} is already loaded");
             }
             None => {
-                let NodeSpecRecord { id, spec } = record;
                 spec_repo.load(id, spec.clone())?;
-                self.spec_cache.insert(spec, id);
+                self.spec_cache.insert(spec.key, id);
             }
         }
         Ok(())
@@ -535,7 +537,7 @@ impl NodeService {
     {
         let spec = SpecServiceApi::spec_by_node_id(view.specs, view.nodes, id)?;
         self.node_cache
-            .get_mut(&spec.kind)
+            .get_mut(&spec.kind())
             .map(|nodes| nodes.remove(&id));
 
         view.parameters.remove(id)

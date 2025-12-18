@@ -11,6 +11,7 @@ use std::collections::HashMap;
 
 use crate::domain::{
     models::{NodeId, NodeKind, NodePortConnection, NodePortKind},
+    persistence::{EditorStateStore, ValidTree},
     repository::{
         ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept,
     },
@@ -34,7 +35,17 @@ where
     ER: EdgeRepositoryConcept,
     CRF: ChannelRepositoryFacadeConcept,
 {
-    pub fn export(&mut self) -> Result<TreeSnapshot> {
+    /// Project can be exported at any time, even if some parts of the tree are not yet connected
+    pub fn export_project() -> Result<EditorStateStore> {
+        todo!()
+    }
+
+    pub fn export_tree2(&mut self) -> Result<ValidTree> {
+        todo!()
+    }
+
+    /// Tree can be exported only if tree is valid and fully connected
+    pub fn export_tree(&mut self) -> Result<TreeSnapshot> {
         let root = self.export_root()?;
         Ok(TreeSnapshot::builder()
             .root(root)

@@ -444,7 +444,7 @@ impl ParamValueRepositoryConcept for ParamValuesRepository {
 
 pub trait EdgeRepositoryConcept: Default {
     fn create(&mut self, edge: NodeEdge) -> Result<EdgeId>;
-    fn load(&mut self, id: EdgeId, edge: NodeEdge) -> Result<()>;
+    // no need for load method, edges are internal constructs that are not exposed outside
 
     fn remove(&mut self, id: &EdgeId) -> Option<NodeEdge>;
 
@@ -470,14 +470,6 @@ impl EdgeRepositoryConcept for EdgeRepository {
             .next_available_id(|id| !self.edges.contains_key(id));
         self.edges.insert(id, edge);
         Ok(id)
-    }
-
-    fn load(&mut self, id: EdgeId, edge: NodeEdge) -> Result<()> {
-        if self.edges.contains_key(&id) {
-            bail!("cannot load edge {id} as there is already an edge stored with the same id");
-        }
-        self.edges.insert(id, edge);
-        Ok(())
     }
 
     fn remove(&mut self, id: &EdgeId) -> Option<NodeEdge> {

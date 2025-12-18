@@ -1,39 +1,51 @@
-use std::default;
+use std::collections::HashMap;
 
+use crate::domain::{
+    models::{
+        ChannelData, ChannelSpecId, ChannelUiData, NodeId, NodePortConnection, NodePortId,
+        NodeSpecId, NodeSpecKey, NodeUiData,
+    },
+    repository::{
+        NodeRepositoryConcept, NodeRepositoryFacadeConcept, NodeRepositoryFacadeView,
+        ParamValueRepositoryConcept, PortStateRepositoryConcept, SpecRepositoryConcept,
+    },
+};
 use anyhow::{Result, anyhow};
-
 use beetry_plugin_types::channel::ChannelSpec;
 use beetry_reconstruction_types::{channel::ChannelId, parameter};
 use indexmap::IndexSet;
 
-use crate::domain::{
-    models::{
-        ChannelData, ChannelSpecId, ChannelUiData, EdgeId, NodeEdge, NodeId, NodePortConnection,
-        NodePortId, NodeSpec, NodeSpecId, NodeUiData,
-    },
-    repository::{
-        EdgeRepositoryConcept, NodeRepositoryConcept, NodeRepositoryFacadeConcept,
-        NodeRepositoryFacadeView, ParamValueRepositoryConcept, PortStateRepositoryConcept,
-        SpecRepositoryConcept,
-    },
-};
-
-pub struct EditorStore {
-    pub tree: TreeStore,
+pub struct EditorStateStore {
+    pub tree: MaybeValidTree,
     pub ui_elements: UiElementStore,
 }
 
-pub struct TreeStore {
-    pub graph: GraphStore,
-    pub channels: ChannelStore,
+// Editor might export/import either valid or (still) invalid tree
+pub struct MaybeValidTree(pub TreeStore);
+
+// Proxy object to store valid tree
+// @todo: hide constructor and let service layer validate and construct the instance
+pub struct ValidTree(pub TreeStore);
+
+impl ValidTree {
+    pub fn into_inner(self) -> TreeStore {
+        self.0
+    }
 }
 
-pub struct GraphStore {
+pub struct TreeStore {
+    pub node: NodeStore,
+    pub ports: NodePortStore,
+    pub parameter: ParameterValueStore,
+    pub channel: ChannelStore,
+}
+
+pub struct NodeStore {
     pub specs: Vec<NodeSpecRecord>,
     pub nodes: Vec<NodeRecord>,
 }
 
-impl GraphStore {
+impl NodeStore {
     pub fn export(facade: &impl NodeRepositoryFacadeConcept) -> Result<Self> {
         let NodeRepositoryFacadeView {
             nodes,
@@ -45,7 +57,7 @@ impl GraphStore {
             .iter()
             .map(|(id, spec)| NodeSpecRecord {
                 id: *id,
-                spec: spec.clone(),
+                key: NodeSpecKey::new(spec.name().clone(), spec.kind()),
             })
             .collect();
 
@@ -57,16 +69,17 @@ impl GraphStore {
                     spec_id: *nodes
                         .spec_id(&id)
                         .ok_or_else(|| anyhow!("expected spec id for node {id}"))?,
-                    parameters: parameters.value(id).cloned(),
-                    port_records: ports
-                        .port_iter(id)
-                        .map(|(port_id, conn)| {
-                            Ok(NodePortRecord {
-                                id: *port_id,
-                                conn: conn.clone(),
-                            })
-                        })
-                        .collect::<Result<Vec<NodePortRecord>>>()?,
+                    // parameters: parameters.value(id).cloned(),
+                    // port_records: ports
+                    //     .port_iter(id)
+                    //     .map(|(port_id, conn)| {
+                    //         Ok(NodePortRecord {
+                    //             id: *port_id,
+                    //             conn: conn.clone(),
+                    //         })
+                    //     })
+                    //     .collect::<Result<Vec<NodePortRecord>>>()?,
+
                     //@todo this has to be obtained from edge service
                     children: <_>::default(),
                 })
@@ -76,45 +89,44 @@ impl GraphStore {
     }
 }
 
+//The remaining parts of spec are to be loaded by the appropriate plugin
 pub struct NodeSpecRecord {
     pub id: NodeSpecId,
-    pub spec: NodeSpec,
+    pub key: NodeSpecKey,
 }
 
 pub struct NodeRecord {
     pub id: NodeId,
     pub spec_id: NodeSpecId,
-    pub port_records: Vec<NodePortRecord>,
-    pub parameters: Option<parameter::Parameters>,
     pub children: IndexSet<NodeId>,
 }
 
-pub struct NodePortRecord {
-    pub id: NodePortId,
-    pub conn: NodePortConnection,
+pub struct ParameterValueStore {
+    parameters: HashMap<NodeId, ParameterValue>,
 }
 
-//@todo should no longer be needed
-pub struct EdgeStore {
-    edges: Vec<EdgeRecord>,
-}
-
-impl EdgeStore {
-    pub fn export(repo: &impl EdgeRepositoryConcept) -> Result<Self> {
-        let edges = repo
-            .iter()
-            .map(|(id, edge)| EdgeRecord {
-                id: *id,
-                node_edge: edge.clone(),
-            })
-            .collect();
-        Ok(Self { edges })
+impl ParameterValueStore {
+    pub fn take(&mut self, id: &NodeId) -> Option<ParameterValue> {
+        self.parameters.remove(id)
     }
 }
 
-pub struct EdgeRecord {
-    pub id: EdgeId,
-    pub node_edge: NodeEdge,
+pub struct ParameterValue {
+    pub params: parameter::Parameters,
+}
+
+pub struct NodePortStore {
+    ports: HashMap<NodeId, NodePortState>,
+}
+
+impl NodePortStore {
+    pub fn take(&mut self, id: &NodeId) -> Option<NodePortState> {
+        self.ports.remove(id)
+    }
+}
+
+pub struct NodePortState {
+    pub conns: Vec<(NodePortId, NodePortConnection)>,
 }
 
 pub struct ChannelStore {

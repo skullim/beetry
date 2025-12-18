@@ -177,14 +177,40 @@ impl PortsSpec {
     }
 }
 
-#[derive(Debug, Builder, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Builder, Clone)]
 pub struct NodeSpec {
-    pub name: NodeName,
-    pub kind: NodeKind,
+    pub key: NodeSpecKey,
     #[builder(default)]
     pub param_schema: parameter::Schema,
     #[builder(default)]
     pub ports: PortsSpec,
+}
+
+impl NodeSpec {
+    //@todo rework using getset macros
+    pub fn key(&self) -> &NodeSpecKey {
+        &self.key
+    }
+
+    pub fn name(&self) -> &NodeName {
+        &self.key.name
+    }
+
+    pub fn kind(&self) -> NodeKind {
+        self.key.kind
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct NodeSpecKey {
+    name: NodeName,
+    kind: NodeKind,
+}
+
+impl NodeSpecKey {
+    pub fn new(name: NodeName, kind: NodeKind) -> Self {
+        Self { name, kind }
+    }
 }
 
 pub struct ChannelData {
