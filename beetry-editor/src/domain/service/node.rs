@@ -309,6 +309,18 @@ where
         self.repo.ids()
     }
 
+    pub fn leaf_nodes(&self) -> impl Iterator<Item = &NodeId> {
+        self.nodes_by_kind(NodeKind::Action)
+            .chain(self.nodes_by_kind(NodeKind::Condition))
+    }
+
+    pub fn root_id(&self) -> Result<NodeId> {
+        self.nodes_by_kind(NodeKind::Root)
+            .next()
+            .copied()
+            .ok_or_else(|| anyhow!("no root found in the tree"))
+    }
+
     pub fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId> {
         self.service.nodes_by_kind(kind)
     }
@@ -375,6 +387,13 @@ where
             spec_service_api,
             channel_service_api,
         }
+    }
+
+    pub fn port_iter(
+        &self,
+        node_id: NodeId,
+    ) -> impl Iterator<Item = (&NodePortId, &NodePortConnection)> {
+        self.repo.port_iter(node_id)
     }
 
     pub fn state(&self, node_id: NodeId, port_id: NodePortId) -> Result<&NodePortConnection> {
