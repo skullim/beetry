@@ -5,8 +5,8 @@ use crate::domain::persistence::{ChannelRecord, ChannelSpecRecord};
 use crate::domain::{
     models::{ChannelId, ChannelSpecId, NodeId},
     repository::{
-        ChannelRepositoryConcept, ChannelRepositoryFacadeConcept, ChannelRepositoryFacadeViewMut,
-        SpecRepositoryConcept,
+        ChannelRepositoryConcept, ChannelRepositoryFacadeConcept, ChannelRepositoryFacadeView,
+        ChannelRepositoryFacadeViewMut, SpecRepositoryConcept,
     },
 };
 use anyhow::{Result, anyhow, bail};
@@ -20,7 +20,50 @@ pub struct ConnectionContext<'a> {
     pub channel: ChannelId,
 }
 
-pub struct ChannelServiceApi<'a, CRF>
+pub struct ChannelBorrowApi<'a, CRF>
+where
+    CRF: ChannelRepositoryFacadeConcept,
+{
+    facade_view: ChannelRepositoryFacadeView<'a, CRF>,
+    channel: &'a ChannelService,
+}
+
+impl<'a, CRF> ChannelBorrowApi<'a, CRF>
+where
+    CRF: ChannelRepositoryFacadeConcept,
+{
+    pub(super) fn new(
+        facade_view: ChannelRepositoryFacadeView<'a, CRF>,
+        channel: &'a ChannelService,
+    ) -> Self {
+        Self {
+            facade_view,
+            channel,
+        }
+    }
+
+    pub fn data(&self, id: ChannelId) -> Result<&ChannelData> {
+        ChannelService::data(self.facade_view.channel, id)
+    }
+
+    pub fn config(&self, id: ChannelId) -> Result<&ChannelConfig> {
+        ChannelService::config(self.facade_view.channel, id)
+    }
+
+    pub fn channels(&self) -> impl Iterator<Item = &ChannelId> {
+        ChannelService::channels(self.facade_view.channel)
+    }
+
+    pub fn spec_id(&self, id: ChannelId) -> Result<ChannelSpecId> {
+        ChannelService::spec_id(self.facade_view.channel, id)
+    }
+
+    pub fn spec(&self, id: ChannelId) -> Result<&ChannelSpec> {
+        ChannelService::spec(self.facade_view.spec, self.facade_view.channel, id)
+    }
+}
+
+pub struct ChannelBorrowMutApi<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
@@ -28,7 +71,7 @@ where
     channel: &'a mut ChannelService,
 }
 
-impl<'a, CRF> ChannelServiceApi<'a, CRF>
+impl<'a, CRF> ChannelBorrowMutApi<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
@@ -55,28 +98,8 @@ where
         ChannelService::remove(self.facade_view.channel, id)
     }
 
-    pub fn data(&self, id: ChannelId) -> Result<&ChannelData> {
-        ChannelService::data(self.facade_view.channel, id)
-    }
-
-    pub fn config(&self, id: ChannelId) -> Result<&ChannelConfig> {
-        ChannelService::config(self.facade_view.channel, id)
-    }
-
     pub fn set_capacity(&mut self, id: ChannelId, capacity: usize) -> Result<()> {
         ChannelService::set_capacity(self.facade_view.channel, id, capacity)
-    }
-
-    pub fn channels(&self) -> impl Iterator<Item = &ChannelId> {
-        ChannelService::channels(self.facade_view.channel)
-    }
-
-    pub fn spec_id(&self, id: ChannelId) -> Result<ChannelSpecId> {
-        ChannelService::spec_id(self.facade_view.channel, id)
-    }
-
-    pub fn spec(&self, id: ChannelId) -> Result<&ChannelSpec> {
-        ChannelService::spec(self.facade_view.spec, self.facade_view.channel, id)
     }
 
     pub(super) fn connect(&mut self, context: ConnectionContext) -> Result<()> {

@@ -16,8 +16,13 @@ pub struct EditorStateStore {
 // Editor might export/import either valid or (still) invalid tree
 pub struct MaybeValidTree(pub TreeStore);
 
+impl From<ValidTree> for MaybeValidTree {
+    fn from(value: ValidTree) -> Self {
+        Self(value.into_inner())
+    }
+}
+
 // Proxy object to store valid tree
-// @todo: hide constructor and let service layer validate and construct the instance
 pub struct ValidTree(TreeStore);
 
 impl ValidTree {

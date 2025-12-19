@@ -6,11 +6,12 @@ use crate::domain::{
     persistence::{NodePortState, NodeRecord, ParameterValue},
     repository::{
         ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryConcept,
-        NodeRepositoryFacadeConcept, NodeRepositoryFacadeViewMut, ParamValueRepositoryConcept,
-        PortStateRepositoryConcept, SpecRepositoryConcept, UiRepositoryConcept,
+        NodeRepositoryFacadeConcept, NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut,
+        ParamValueRepositoryConcept, PortStateRepositoryConcept, SpecRepositoryConcept,
+        UiRepositoryConcept,
     },
     service::{
-        channel::{ChannelService, ChannelServiceApi, ConnectionContext},
+        channel::{ChannelBorrowMutApi, ChannelService, ConnectionContext},
         edge::{self, EdgeService, OnNodeRemovalServiceApi},
     },
 };
@@ -20,8 +21,55 @@ use beetry_reconstruction_types::parameter::Parameters;
 use std::collections::{HashMap, HashSet};
 use tracing::warn;
 
+pub struct NodeBorrowApi<'a, NRF>
+where
+    NRF: NodeRepositoryFacadeConcept,
+{
+    facade_view: NodeRepositoryFacadeView<'a, NRF>,
+    node_service: &'a NodeService,
+}
+impl<'a, NRF> NodeBorrowApi<'a, NRF>
+where
+    NRF: NodeRepositoryFacadeConcept,
+{
+    pub(super) fn new(
+        facade_view: NodeRepositoryFacadeView<'a, NRF>,
+        node_service: &'a NodeService,
+    ) -> Self {
+        Self {
+            facade_view,
+            node_service,
+        }
+    }
+
+    pub fn spec(&self) -> SpecApi<'_, NRF::SpecRepo, NRF::NodeRepo> {
+        SpecApi {
+            spec_repo: self.facade_view.specs,
+            node_repo: self.facade_view.nodes,
+        }
+    }
+
+    pub fn tracker(&self) -> TrackerApi<'_, NRF::NodeRepo> {
+        TrackerApi {
+            service: self.node_service,
+            repo: self.facade_view.nodes,
+        }
+    }
+
+    pub fn port_state(&self) -> PortStateApi<'_, NRF::PortStateRepo> {
+        PortStateApi {
+            repo: self.facade_view.ports,
+        }
+    }
+
+    pub fn parameter(&self) -> ParameterValueBorrowApi<'_, NRF::ParamValuesRepo> {
+        ParameterValueBorrowApi {
+            repo: self.facade_view.parameters,
+        }
+    }
+}
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
-pub struct NodeServiceApi<'a, NRF, ER, CRF>
+pub struct NodeBorrowMutApi<'a, NRF, ER, CRF>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
@@ -33,7 +81,7 @@ where
     channel_service: &'a mut ChannelService,
 }
 
-impl<'a, NRF, ER, CRF> NodeServiceApi<'a, NRF, ER, CRF>
+impl<'a, NRF, ER, CRF> NodeBorrowMutApi<'a, NRF, ER, CRF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
@@ -57,13 +105,6 @@ where
         }
     }
 
-    pub fn spec(&self) -> SpecServiceApi<'_, NRF::SpecRepo, NRF::NodeRepo> {
-        SpecServiceApi {
-            spec_repo: self.facade_view.specs,
-            node_repo: self.facade_view.nodes,
-        }
-    }
-
     pub fn lifecycle(&'a mut self) -> NodeLifecycleApi<'a, NRF, CRF, ER> {
         NodeLifecycleApi {
             node_service: self.node_service,
@@ -77,42 +118,35 @@ where
         }
     }
 
-    pub fn tracker(&self) -> TrackerServiceApi<'_, NRF::NodeRepo> {
-        TrackerServiceApi {
-            service: self.node_service,
-            repo: self.facade_view.nodes,
-        }
-    }
-
-    pub fn port_state(
+    pub fn port_connection(
         &mut self,
-    ) -> PortConnectionServiceApi<'_, NRF::PortStateRepo, NRF::SpecRepo, NRF::NodeRepo, CRF> {
-        PortConnectionServiceApi {
+    ) -> PortConnectionApi<'_, NRF::PortStateRepo, NRF::SpecRepo, NRF::NodeRepo, CRF> {
+        PortConnectionApi {
             repo: self.facade_view.ports,
-            spec_service_api: SpecServiceApi {
+            spec_service_api: SpecApi {
                 spec_repo: self.facade_view.specs,
                 node_repo: self.facade_view.nodes,
             },
-            channel_service_api: ChannelServiceApi::new(
+            channel_service_api: ChannelBorrowMutApi::new(
                 self.channel_facade.view_mut(),
                 self.channel_service,
             ),
         }
     }
 
-    pub fn parameters(&mut self) -> ParameterValueServiceApi<'_, NRF::ParamValuesRepo> {
-        ParameterValueServiceApi {
+    pub fn parameters(&mut self) -> ParameterValueBorrowMutApi<'_, NRF::ParamValuesRepo> {
+        ParameterValueBorrowMutApi {
             repo: self.facade_view.parameters,
         }
     }
 }
 
-pub struct SpecServiceApi<'a, SR, NR> {
+pub struct SpecApi<'a, SR, NR> {
     spec_repo: &'a SR,
     node_repo: &'a NR,
 }
 
-impl<'a, SR, NR> SpecServiceApi<'a, SR, NR>
+impl<'a, SR, NR> SpecApi<'a, SR, NR>
 where
     SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
     NR: NodeRepositoryConcept,
@@ -200,14 +234,14 @@ where
             node.id,
             node.spec_id,
         )?;
-        let spec_service_api = SpecServiceApi {
+        let spec_service_api = SpecApi {
             spec_repo: self.node_facade_view.specs,
             node_repo: self.node_facade_view.nodes,
         };
         if let Some(state) = port_state {
             let channel_service_api =
-                ChannelServiceApi::new(self.channel_facade.view_mut(), self.channel_service);
-            let mut port_service_api = PortConnectionServiceApi::new(
+                ChannelBorrowMutApi::new(self.channel_facade.view_mut(), self.channel_service);
+            let mut port_service_api = PortConnectionApi::new(
                 self.node_facade_view.ports,
                 spec_service_api,
                 channel_service_api,
@@ -216,7 +250,7 @@ where
         }
 
         if let Some(value) = param_value {
-            let mut params_service_api = ParameterValueServiceApi {
+            let mut params_service_api = ParameterValueBorrowMutApi {
                 repo: self.node_facade_view.parameters,
             };
             params_service_api.load(node.id, value)?;
@@ -279,10 +313,10 @@ where
 
     fn disconnect_ports(&mut self, id: NodeId) -> Result<()> {
         let spec_service_api =
-            SpecServiceApi::new(self.node_facade_view.specs, self.node_facade_view.nodes);
+            SpecApi::new(self.node_facade_view.specs, self.node_facade_view.nodes);
         let channel_service_api =
-            ChannelServiceApi::new(self.channel_facade.view_mut(), self.channel_service);
-        let mut port_connection_service_api = PortConnectionServiceApi::new(
+            ChannelBorrowMutApi::new(self.channel_facade.view_mut(), self.channel_service);
+        let mut port_connection_service_api = PortConnectionApi::new(
             self.node_facade_view.ports,
             spec_service_api,
             channel_service_api,
@@ -292,12 +326,12 @@ where
     }
 }
 
-pub struct TrackerServiceApi<'a, NR> {
+pub struct TrackerApi<'a, NR> {
     service: &'a NodeService,
     repo: &'a NR,
 }
 
-impl<'a, NR> TrackerServiceApi<'a, NR>
+impl<'a, NR> TrackerApi<'a, NR>
 where
     NR: NodeRepositoryConcept,
 {
@@ -340,11 +374,11 @@ where
     }
 }
 
-pub struct ParameterValueServiceApi<'a, PVR> {
-    repo: &'a mut PVR,
+pub struct ParameterValueBorrowApi<'a, PVR> {
+    repo: &'a PVR,
 }
 
-impl<'a, PVR> ParameterValueServiceApi<'a, PVR>
+impl<'a, PVR> ParameterValueBorrowApi<'a, PVR>
 where
     PVR: ParamValueRepositoryConcept,
 {
@@ -353,7 +387,16 @@ where
             .value(id)
             .ok_or_else(|| anyhow!("failed to obtain parameters for node {id}"))
     }
+}
 
+pub struct ParameterValueBorrowMutApi<'a, PVR> {
+    repo: &'a mut PVR,
+}
+
+impl<'a, PVR> ParameterValueBorrowMutApi<'a, PVR>
+where
+    PVR: ParamValueRepositoryConcept,
+{
     //@todo move to NodeLoadApi
     pub fn load(&mut self, id: NodeId, value: ParameterValue) -> Result<()> {
         self.repo.create(id, value.params)
@@ -368,32 +411,16 @@ pub struct PortConnectionInput {
     channel: ChannelId,
 }
 
-pub struct PortConnectionServiceApi<'a, PR, SR, NR, CRF>
-where
-    CRF: ChannelRepositoryFacadeConcept,
-{
-    repo: &'a mut PR,
-    spec_service_api: SpecServiceApi<'a, SR, NR>,
-    channel_service_api: ChannelServiceApi<'a, CRF>,
+pub struct PortStateApi<'a, PR> {
+    repo: &'a PR,
 }
 
-impl<'a, PR, SR, NR, CRF> PortConnectionServiceApi<'a, PR, SR, NR, CRF>
+impl<'a, PR> PortStateApi<'a, PR>
 where
     PR: PortStateRepositoryConcept,
-    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
-    NR: NodeRepositoryConcept,
-    CRF: ChannelRepositoryFacadeConcept,
 {
-    pub(super) fn new(
-        repo: &'a mut PR,
-        spec_service_api: SpecServiceApi<'a, SR, NR>,
-        channel_service_api: ChannelServiceApi<'a, CRF>,
-    ) -> Self {
-        Self {
-            repo,
-            spec_service_api,
-            channel_service_api,
-        }
+    pub(super) fn new(repo: &'a PR) -> Self {
+        Self { repo }
     }
 
     pub fn port_iter(
@@ -407,6 +434,35 @@ where
         self.repo.state(node_id, port_id).ok_or_else(|| {
             anyhow!("unable to retrieve node's (id: {node_id}) port (id: {port_id}) state")
         })
+    }
+}
+
+pub struct PortConnectionApi<'a, PR, SR, NR, CRF>
+where
+    CRF: ChannelRepositoryFacadeConcept,
+{
+    repo: &'a mut PR,
+    spec_service_api: SpecApi<'a, SR, NR>,
+    channel_service_api: ChannelBorrowMutApi<'a, CRF>,
+}
+
+impl<'a, PR, SR, NR, CRF> PortConnectionApi<'a, PR, SR, NR, CRF>
+where
+    PR: PortStateRepositoryConcept,
+    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
+    NR: NodeRepositoryConcept,
+    CRF: ChannelRepositoryFacadeConcept,
+{
+    pub(super) fn new(
+        repo: &'a mut PR,
+        spec_service_api: SpecApi<'a, SR, NR>,
+        channel_service_api: ChannelBorrowMutApi<'a, CRF>,
+    ) -> Self {
+        Self {
+            repo,
+            spec_service_api,
+            channel_service_api,
+        }
     }
 
     pub fn connect(&mut self, input: PortConnectionInput) -> Result<()> {
@@ -509,7 +565,7 @@ impl NodeService {
         id: NodeId,
         spec_id: NodeSpecId,
     ) -> Result<()> {
-        let spec_api = SpecServiceApi {
+        let spec_api = SpecApi {
             spec_repo,
             node_repo,
         };
@@ -561,7 +617,7 @@ impl NodeService {
     where
         NRF: NodeRepositoryFacadeConcept,
     {
-        let spec = SpecServiceApi::spec_by_node_id(view.specs, view.nodes, id)?;
+        let spec = SpecApi::spec_by_node_id(view.specs, view.nodes, id)?;
         self.node_cache
             .get_mut(&spec.kind())
             .map(|nodes| nodes.remove(&id));
