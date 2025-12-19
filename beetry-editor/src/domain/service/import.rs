@@ -1,25 +1,29 @@
-use crate::domain::{
-    persistence::{EditorStateStore, MaybeValidTree, TreeStore, UiElementStore},
-    repository::{
-        ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
-        EditorRepositoryViewMut, NodeRepositoryFacadeConcept, UiRepositoryFacadeConcept,
-    },
-    service::{
-        channel::ChannelService,
-        edge::EdgeService,
-        node::{LoadNodeApi, NodeService},
+use crate::{
+    SpecPlugins,
+    domain::{
+        persistence::{EditorStateStore, MaybeValidTree, UiElementStore},
+        repository::{
+            ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
+            EditorRepositoryViewMut, NodeRepositoryFacadeConcept, UiRepositoryFacadeConcept,
+        },
+        service::{
+            channel::ChannelService,
+            edge::EdgeService,
+            node::{LoadNodeApi, NodeService},
+        },
     },
 };
 use anyhow::Result;
 
-pub struct ImportServiceApi<'a, NRF, ER, CRF, URF> {
+pub struct ImportApi<'a, NRF, ER, CRF, URF> {
     node_service: &'a mut NodeService,
     edge_service: &'a mut EdgeService,
     channel_service: &'a mut ChannelService,
     repo: &'a mut EditorRepository<NRF, ER, CRF, URF>,
+    specs: &'a SpecPlugins,
 }
 
-impl<'a, NRF, ER, CRF, URF> ImportServiceApi<'a, NRF, ER, CRF, URF>
+impl<'a, NRF, ER, CRF, URF> ImportApi<'a, NRF, ER, CRF, URF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,

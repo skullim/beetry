@@ -11,4 +11,6 @@ beetry-core = { version = "0.1.0", path = "../beetry-core" }
 beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
 beetry-plugin-types = { version = "0.1.0", path = "../beetry-plugin-types" }
 beetry-reconstruction-types = { version = "0.1.0", path = "../beetry-reconstruction-types" }
+# @todo this should be removed long term
+beetry-editor = { version = "0.1.0", path = "../beetry-editor" }
 tracing.workspace = true

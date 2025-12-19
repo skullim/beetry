@@ -1,14 +1,22 @@
-use crate::domain::{
-    repository::{
-        ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
-        EditorRepositoryViewMut, NodeRepositoryFacadeConcept, NodeRepositoryFacadeView,
-        UiRepositoryFacadeConcept,
-    },
-    service::{
-        channel::{ChannelService, ChannelServiceApi},
-        edge::{EdgeService, EdgeServiceApi},
-        node::{self, NodeService, NodeServiceApi},
-        ui::UiServiceApi,
+use crate::{
+    SpecPlugins,
+    domain::{
+        channel::ChannelBorrowApi,
+        edge::EdgeBorrowApi,
+        export::ExportApi,
+        node::NodeBorrowApi,
+        repository::{
+            ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
+            EditorRepositoryView, EditorRepositoryViewMut, NodeRepositoryFacadeConcept,
+            NodeRepositoryFacadeView, UiRepositoryFacadeConcept,
+        },
+        service::{
+            channel::{ChannelBorrowMutApi, ChannelService},
+            edge::{EdgeBorrowMutApi, EdgeService},
+            node::{self, NodeBorrowMutApi, NodeService},
+            ui::UiBorrowMutApi,
+        },
+        ui::UiBorrowApi,
     },
 };
 
@@ -17,23 +25,7 @@ pub struct EditorService<NRF, ER, CRF, URF> {
     edge_service: EdgeService,
     channel_service: ChannelService,
     repo: EditorRepository<NRF, ER, CRF, URF>,
-}
-
-impl<NRF, ER, CRF, URF> Default for EditorService<NRF, ER, CRF, URF>
-where
-    NRF: NodeRepositoryFacadeConcept,
-    ER: EdgeRepositoryConcept,
-    CRF: ChannelRepositoryFacadeConcept,
-    URF: UiRepositoryFacadeConcept,
-{
-    fn default() -> Self {
-        Self {
-            node_service: NodeService::new(),
-            edge_service: EdgeService::new(),
-            channel_service: ChannelService::new(),
-            repo: EditorRepository::<NRF, ER, CRF, URF>::new(),
-        }
-    }
+    plugins: SpecPlugins,
 }
 
 impl<NRF, ER, CRF, URF> EditorService<NRF, ER, CRF, URF>
@@ -43,11 +35,22 @@ where
     CRF: ChannelRepositoryFacadeConcept,
     URF: UiRepositoryFacadeConcept,
 {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(plugins: SpecPlugins) -> Self {
+        Self {
+            node_service: NodeService::new(),
+            edge_service: EdgeService::new(),
+            channel_service: ChannelService::new(),
+            repo: EditorRepository::<NRF, ER, CRF, URF>::new(),
+            plugins,
+        }
     }
 
-    pub fn node_api(&mut self) -> NodeServiceApi<'_, NRF, ER, CRF> {
+    pub fn node_api(&self) -> NodeBorrowApi<'_, NRF> {
+        let EditorRepositoryView { node, .. } = self.repo.view();
+        NodeBorrowApi::new(node.view(), &self.node_service)
+    }
+
+    pub fn node_api_mut(&mut self) -> NodeBorrowMutApi<'_, NRF, ER, CRF> {
         let EditorRepositoryViewMut {
             node,
             edge,
@@ -55,7 +58,7 @@ where
             ..
         } = self.repo.view_mut();
 
-        NodeServiceApi::new(
+        NodeBorrowMutApi::new(
             node.view_mut(),
             &mut self.node_service,
             edge,
@@ -65,21 +68,45 @@ where
         )
     }
 
-    pub fn edge_api(&mut self) -> EdgeServiceApi<'_, ER, NRF> {
+    pub fn edge_api(&self) -> EdgeBorrowApi<'_, ER> {
+        let EditorRepositoryView { edge, .. } = self.repo.view();
+        EdgeBorrowApi::new(edge, &self.edge_service)
+    }
+
+    pub fn edge_api_mut(&mut self) -> EdgeBorrowMutApi<'_, ER, NRF> {
         let EditorRepositoryViewMut { node, edge, .. } = self.repo.view_mut();
         let NodeRepositoryFacadeView { nodes, specs, .. } = node.view();
-        let tracker_api = node::TrackerServiceApi::new(&self.node_service, nodes);
-        let spec_api = node::SpecServiceApi::new(specs, nodes);
-        EdgeServiceApi::new(edge, &mut self.edge_service, tracker_api, spec_api)
+        let tracker_api = node::TrackerApi::new(&self.node_service, nodes);
+        let spec_api = node::SpecApi::new(specs, nodes);
+        EdgeBorrowMutApi::new(edge, &mut self.edge_service, tracker_api, spec_api)
     }
 
-    pub fn channel_api(&mut self) -> ChannelServiceApi<'_, CRF> {
+    pub fn channel_api(&self) -> ChannelBorrowApi<'_, CRF> {
+        let EditorRepositoryView { channel, .. } = self.repo.view();
+        ChannelBorrowApi::new(channel.view(), &self.channel_service)
+    }
+
+    pub fn channel_api_mut(&mut self) -> ChannelBorrowMutApi<'_, CRF> {
         let EditorRepositoryViewMut { channel, .. } = self.repo.view_mut();
-        ChannelServiceApi::new(channel.view_mut(), &mut self.channel_service)
+        ChannelBorrowMutApi::new(channel.view_mut(), &mut self.channel_service)
     }
 
-    pub fn ui_api(&mut self) -> UiServiceApi<'_, URF> {
+    pub fn ui_api_mut(&mut self) -> UiBorrowMutApi<'_, URF> {
         let EditorRepositoryViewMut { ui, .. } = self.repo.view_mut();
-        UiServiceApi::new(ui.view_mut())
+        UiBorrowMutApi::new(ui.view_mut())
+    }
+
+    pub fn ui_api(&self) -> UiBorrowApi<'_, URF> {
+        let EditorRepositoryView { ui, .. } = self.repo.view();
+        UiBorrowApi::new(ui.view())
+    }
+
+    pub fn export_api(&mut self) -> ExportApi<'_, NRF, ER, CRF, URF> {
+        ExportApi::new(
+            self.channel_api(),
+            self.node_api(),
+            self.edge_api(),
+            self.ui_api(),
+        )
     }
 }

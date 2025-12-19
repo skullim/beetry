@@ -6,11 +6,7 @@ use bon::Builder;
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
 use beetry_core::{BoxReceiver, BoxSender};
 
-use crate::Plugin;
-
-pub trait ChannelPlugin: Plugin<Spec = ChannelSpec, Factory = Factory> {}
-impl<P> ChannelPlugin for P where P: Plugin<Spec = ChannelSpec, Factory = Factory> {}
-pub type BoxChannelPlugin = Box<dyn ChannelPlugin>;
+use crate::{BoxPlugin, ConstructPlugin, Named, PluginConstructor, PluginError, unique_plugins};
 
 #[derive(Builder)]
 pub struct TypeErasedChannel {
@@ -93,25 +89,20 @@ impl Factory {
     }
 }
 
-pub struct ChannelPluginConstructor(fn() -> BoxChannelPlugin);
+impl Named for ChannelSpec {
+    fn name(&self) -> &str {
+        self.msg_type_name().as_str()
+    }
+}
+
+pub type BoxChannelPlugin = BoxPlugin<ChannelSpec, Factory>;
+pub type ChannelPluginConstructor = PluginConstructor<ChannelSpec, Factory>;
 
 impl ChannelPluginConstructor {
-    pub const fn new<T: ChannelPlugin + 'static>() -> Self {
-        Self(|| Box::new(T::new()))
-    }
-
-    fn create(&self) -> BoxChannelPlugin {
-        (self.0)()
+    pub fn plugins() -> Result<Vec<BoxChannelPlugin>, PluginError> {
+        unique_plugins::<Self, <Self as ConstructPlugin>::Spec, <Self as ConstructPlugin>::Factory>(
+        )
     }
 }
 
 inventory::collect!(ChannelPluginConstructor);
-
-pub fn plugins() -> Vec<BoxChannelPlugin> {
-    let mut plugins = vec![];
-    for plugin_constructor in inventory::iter::<ChannelPluginConstructor> {
-        let plugin = plugin_constructor.create();
-        plugins.push(plugin);
-    }
-    plugins
-}

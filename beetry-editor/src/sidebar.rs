@@ -5,7 +5,7 @@ use dioxus::logger::tracing::info;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::Plugins;
+use crate::SpecPlugins;
 use crate::definitions::Point;
 use crate::ui::channel::config_dialog::State as ChannelConfigDialogState;
 use crate::ui::channel::{self};
@@ -31,7 +31,7 @@ pub(crate) fn Sidebar(
 ) -> Element {
     let on_new_node = use_context::<SidebarEventHandlers>().on_new_node;
 
-    let plugins = use_context::<Plugins>();
+    let plugins = use_context::<SpecPlugins>();
     let leaves = plugins.leaves;
     let controls = plugins.controls;
     let channels = plugins.channels;

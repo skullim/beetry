@@ -11,8 +11,11 @@ mod workspace;
 
 pub use domain::service::editor::EditorService;
 
-use beetry_plugin::node::{
-    ActionPluginConstructor, ConditionPluginConstructor, ControlPluginConstructor,
+pub use domain::persistence::*;
+
+use beetry_plugin::{
+    channel::ChannelPluginConstructor,
+    node::{ActionPluginConstructor, ConditionPluginConstructor, ControlPluginConstructor},
 };
 use beetry_plugin_types::{
     channel::ChannelSpec,
@@ -47,7 +50,7 @@ fn app() -> Element {
 }
 
 #[derive(Clone, PartialEq)]
-struct Plugins {
+pub struct SpecPlugins {
     leaves: Vec<LeafSpec>,
     controls: Vec<ControlSpec>,
     channels: Vec<ChannelSpec>,
@@ -73,11 +76,11 @@ pub fn PluginsProvider(children: Element) -> Element {
         .collect();
 
     let channels = {
-        let plugins = beetry_plugin::channel::plugins();
+        let plugins = ChannelPluginConstructor::plugins()?;
         plugins.into_iter().map(|p| p.spec()).collect()
     };
 
-    use_context_provider(move || Plugins {
+    use_context_provider(move || SpecPlugins {
         leaves,
         controls,
         channels,
