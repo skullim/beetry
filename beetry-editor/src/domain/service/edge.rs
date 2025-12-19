@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::domain::service::node::{SpecServiceApi, TrackerServiceApi};
+use crate::domain::service::node::{SpecApi, TrackerApi};
 use crate::domain::{
     models::{EdgeId, NodeEdge, NodeId, NodeKind},
     repository::{EdgeRepositoryConcept, NodeRepositoryFacadeConcept},
@@ -9,17 +9,45 @@ use anyhow::{Result, anyhow, bail};
 use tracing::warn;
 
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
-pub struct EdgeServiceApi<'a, ER, NRF>
+pub struct EdgeBorrowApi<'a, ER> {
+    edge_repo: &'a ER,
+    edge_service: &'a EdgeService,
+}
+
+impl<'a, ER> EdgeBorrowApi<'a, ER>
+where
+    ER: EdgeRepositoryConcept,
+{
+    pub(super) fn new(edge_repo: &'a ER, edge_service: &'a EdgeService) -> Self {
+        Self {
+            edge_repo,
+            edge_service,
+        }
+    }
+    pub fn parent_of(&self, id: NodeId) -> Option<&NodeId> {
+        self.edge_service.parent_of(id)
+    }
+
+    pub fn children_of(&self, id: NodeId) -> impl Iterator<Item = &NodeId> {
+        self.edge_service.children_of(id)
+    }
+
+    pub fn edges(&self) -> impl Iterator<Item = (&EdgeId, &NodeEdge)> {
+        EdgeService::edges(self.edge_repo)
+    }
+}
+
+pub struct EdgeBorrowMutApi<'a, ER, NRF>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
     edge_repo: &'a mut ER,
     edge_service: &'a mut EdgeService,
-    node_tracker_api: TrackerServiceApi<'a, NRF::NodeRepo>,
-    node_spec_api: SpecServiceApi<'a, NRF::SpecRepo, NRF::NodeRepo>,
+    node_tracker_api: TrackerApi<'a, NRF::NodeRepo>,
+    node_spec_api: SpecApi<'a, NRF::SpecRepo, NRF::NodeRepo>,
 }
 
-impl<'a, ER, NRF> EdgeServiceApi<'a, ER, NRF>
+impl<'a, ER, NRF> EdgeBorrowMutApi<'a, ER, NRF>
 where
     ER: EdgeRepositoryConcept,
     NRF: NodeRepositoryFacadeConcept,
@@ -27,8 +55,8 @@ where
     pub(super) fn new(
         edge_repo: &'a mut ER,
         edge_service: &'a mut EdgeService,
-        node_tracker_api: TrackerServiceApi<'a, NRF::NodeRepo>,
-        node_spec_api: SpecServiceApi<'a, NRF::SpecRepo, NRF::NodeRepo>,
+        node_tracker_api: TrackerApi<'a, NRF::NodeRepo>,
+        node_spec_api: SpecApi<'a, NRF::SpecRepo, NRF::NodeRepo>,
     ) -> Self {
         Self {
             edge_repo,
@@ -45,18 +73,6 @@ where
             &self.node_spec_api,
             edge,
         )
-    }
-
-    pub fn parent_of(&self, id: NodeId) -> Option<&NodeId> {
-        self.edge_service.parent_of(id)
-    }
-
-    pub fn children_of(&self, id: NodeId) -> impl Iterator<Item = &NodeId> {
-        self.edge_service.children_of(id)
-    }
-
-    pub fn edges(&self) -> impl Iterator<Item = (&EdgeId, &NodeEdge)> {
-        EdgeService::edges(self.edge_repo)
     }
 
     pub fn remove(&mut self, id: &EdgeId) -> Result<()> {
@@ -114,8 +130,8 @@ impl EdgeService {
     fn create<NRF>(
         &mut self,
         edge_repo: &mut impl EdgeRepositoryConcept,
-        node_tracker_api: &TrackerServiceApi<'_, NRF::NodeRepo>,
-        node_spec_api: &SpecServiceApi<'_, NRF::SpecRepo, NRF::NodeRepo>,
+        node_tracker_api: &TrackerApi<'_, NRF::NodeRepo>,
+        node_spec_api: &SpecApi<'_, NRF::SpecRepo, NRF::NodeRepo>,
         edge: NodeEdge,
     ) -> Result<()>
     where

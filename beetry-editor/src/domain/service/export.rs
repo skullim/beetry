@@ -13,8 +13,7 @@ use tracing::warn;
 
 use crate::domain::{
     models::{
-        ChannelId, ChannelUiData, NodeId, NodeKind, NodePortConnection, NodePortId, NodePortKind,
-        NodeSpecKey,
+        ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePortKind, NodeSpecKey,
     },
     persistence::{
         ChannelRecord, ChannelSpecRecord, ChannelStore, ChannelUiRecord, EditorStateStore,
@@ -26,7 +25,7 @@ use crate::domain::{
         UiRepositoryFacadeConcept,
     },
     service::{
-        channel::ChannelServiceApi, edge::EdgeServiceApi, node::NodeServiceApi, ui::UiServiceApi,
+        channel::ChannelBorrowApi, edge::EdgeBorrowApi, node::NodeBorrowApi, ui::UiBorrowApi,
     },
 };
 
@@ -47,26 +46,40 @@ impl TreeValidationResult {
     }
 }
 
-pub struct ExportServiceApi<'a, NRF, ER, CRF, URF>
+pub struct ExportApi<'a, NRF, ER, CRF, URF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
     CRF: ChannelRepositoryFacadeConcept,
     URF: UiRepositoryFacadeConcept,
 {
-    channel_api: ChannelServiceApi<'a, CRF>,
-    node_api: NodeServiceApi<'a, NRF, ER, CRF>,
-    edge_api: EdgeServiceApi<'a, ER, NRF>,
-    ui_api: UiServiceApi<'a, URF>,
+    channel_api: ChannelBorrowApi<'a, CRF>,
+    node_api: NodeBorrowApi<'a, NRF>,
+    edge_api: EdgeBorrowApi<'a, ER>,
+    ui_api: UiBorrowApi<'a, URF>,
 }
 
-impl<'a, NRF, ER, CRF, URF> ExportServiceApi<'a, NRF, ER, CRF, URF>
+impl<'a, NRF, ER, CRF, URF> ExportApi<'a, NRF, ER, CRF, URF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
     CRF: ChannelRepositoryFacadeConcept,
     URF: UiRepositoryFacadeConcept,
 {
+    pub fn new(
+        channel_api: ChannelBorrowApi<'a, CRF>,
+        node_api: NodeBorrowApi<'a, NRF>,
+        edge_api: EdgeBorrowApi<'a, ER>,
+        ui_api: UiBorrowApi<'a, URF>,
+    ) -> Self {
+        Self {
+            channel_api,
+            node_api,
+            edge_api,
+            ui_api,
+        }
+    }
+
     /// Project can be exported at any time, even if some parts of the tree are not yet connected
     pub fn export_project(&mut self) -> Result<EditorStateStore> {
         let tracker = self.node_api.tracker();
@@ -177,7 +190,7 @@ where
     }
 
     fn export_parameter_store(&mut self, nodes: &[NodeId]) -> Result<ParameterValueStore> {
-        let parameters_api = self.node_api.parameters();
+        let parameter_api = self.node_api.parameter();
         let store = nodes
             .iter()
             .copied()
@@ -185,7 +198,7 @@ where
                 Ok((
                     id,
                     ParameterValue {
-                        params: parameters_api.parameters(id)?.clone(),
+                        params: parameter_api.parameters(id)?.clone(),
                     },
                 ))
             })
@@ -426,7 +439,7 @@ where
             .build();
 
         let name = self.node_api.spec().name(id)?.clone();
-        let params = self.node_api.parameters().parameters(id)?.clone();
+        let params = self.node_api.parameter().parameters(id)?.clone();
         Ok(NodeSnapshot::builder()
             .name(name)
             .data(leaf_snapshot)

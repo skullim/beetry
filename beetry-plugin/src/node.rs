@@ -1,18 +1,11 @@
-use crate::{BoxPlugin, ConstructPlugin, Named, Plugin};
+use crate::{BoxPlugin, ConstructPlugin, Named, PluginConstructor, PluginError, unique_plugins};
 use anyhow::Result;
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
 use beetry_core::{BoxActionBehavior, BoxConditionBehavior, BoxNode, NonEmptyNodes};
 use beetry_plugin_types::node::{ActionSpec, ConditionSpec, ControlSpec, NodeSpec};
 use beetry_reconstruction_types::parameter::Parameters;
 use bon::Builder;
-use std::collections::HashSet;
 use std::marker::PhantomData;
-
-pub trait ActionPlugin: Plugin<Spec = ActionSpec, Factory = ActionFactory> {}
-impl<P> ActionPlugin for P where P: Plugin<Spec = ActionSpec, Factory = ActionFactory> {}
-
-pub trait ConditionPlugin: Plugin<Spec = ConditionSpec, Factory = ConditionFactory> {}
-impl<P> ConditionPlugin for P where P: Plugin<Spec = ConditionSpec, Factory = ConditionFactory> {}
 
 //@todo move those types to beetry-reconstruction-types crate
 pub type LeafReconstructionData = NodeReconstructionData<LeafMetadata>;
@@ -96,29 +89,6 @@ pub type BoxActionPlugin = BoxPlugin<ActionSpec, ActionFactory>;
 pub type BoxConditionPlugin = BoxPlugin<ConditionSpec, ConditionFactory>;
 pub type BoxControlPlugin = BoxPlugin<ControlSpec, ControlFactory>;
 
-pub struct PluginConstructor<S, F>(pub fn() -> BoxPlugin<S, F>);
-
-impl<S, F> PluginConstructor<S, F>
-where
-    S: 'static,
-    F: 'static,
-{
-    pub const fn new<P: Plugin<Spec = S, Factory = F> + 'static>() -> Self {
-        Self(|| Box::new(P::new()))
-    }
-}
-
-impl<S, F> ConstructPlugin for PluginConstructor<S, F>
-where
-    S: Named,
-{
-    type Factory = F;
-    type Spec = S;
-    fn construct(&self) -> BoxPlugin<Self::Spec, Self::Factory> {
-        (self.0)()
-    }
-}
-
 impl<S> Named for NodeSpec<S> {
     fn name(&self) -> &str {
         self.name.0.as_str()
@@ -153,34 +123,6 @@ impl ControlPluginConstructor {
 inventory::collect! {ActionPluginConstructor}
 inventory::collect! {ConditionPluginConstructor}
 inventory::collect! {ControlPluginConstructor}
-
-#[derive(Debug, Clone, thiserror::Error)]
-pub enum PluginError {
-    #[error("duplicate plugin name: '{0}'. Each plugin must have a unique name.")]
-    DuplicateName(String),
-}
-
-fn unique_plugins<C, S, F>() -> Result<Vec<BoxPlugin<S, F>>, PluginError>
-where
-    S: Named,
-    C: inventory::Collect + ConstructPlugin<Spec = S, Factory = F>,
-{
-    let mut seen_names = HashSet::new();
-
-    inventory::iter::<C>().try_fold(Vec::new(), |mut plugins, constructor| {
-        let plugin = constructor.construct();
-        let spec = plugin.spec();
-        let name = spec.name();
-
-        if seen_names.contains(name) {
-            return Err(PluginError::DuplicateName(name.into()));
-        }
-        seen_names.insert(name.to_string());
-
-        plugins.push(plugin);
-        Ok(plugins)
-    })
-}
 
 #[macro_export]
 macro_rules! plugin {
@@ -245,6 +187,8 @@ macro_rules! plugin_impl {
 
 #[cfg(test)]
 mod tests {
+    use crate::Plugin;
+
     use super::*;
     use beetry_plugin_types::node::{ActionLeafSchema, NodeName};
 
