@@ -1,16 +1,13 @@
 use std::{collections::HashMap, fmt::Display, hash::Hash, ops::AddAssign};
 
-use crate::{
-    domain::models::{
-        ChannelData, ChannelId, ChannelSpecId, ChannelUiData, EdgeId, NodeEdge, NodePortConnection,
-        NodePortId, NodeSpec, NodeSpecId, NodeUiData,
-    },
-    id::IdProvider,
-};
+use crate::id::IdProvider;
 
-use super::models::NodeId;
+use beetry_editor_types::{
+    ChannelData, ChannelId, ChannelSpecId, ChannelUiData, EdgeId, NodeEdge, NodeId,
+    NodePortConnection, NodePortId, NodeSpec, NodeSpecId, NodeUiData,
+};
 use beetry_plugin_types::channel::ChannelSpec;
-use beetry_reconstruction_types::{channel::ChannelConfig, parameter::Parameters};
+use beetry_reconstruction_types::parameter::Parameters;
 
 use anyhow::{Result, bail};
 use getset::{Getters, MutGetters};
@@ -569,12 +566,6 @@ pub trait ChannelRepositoryConcept: Default {
 
     fn data_iter(&self) -> impl Iterator<Item = &ChannelData>;
     fn channels(&self) -> impl Iterator<Item = &ChannelId>;
-}
-
-impl ChannelData {
-    pub fn new(spec_id: ChannelSpecId, config: ChannelConfig) -> Self {
-        Self { spec_id, config }
-    }
 }
 
 pub type ChannelSpecRepository = SpecRepository<ChannelSpecId, ChannelSpec>;

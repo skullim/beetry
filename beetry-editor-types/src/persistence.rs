@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
-use crate::domain::models::{
+use crate::models::{
     ChannelData, ChannelSpecId, ChannelUiData, NodeId, NodePortConnection, NodePortId, NodeSpecId,
     NodeSpecKey, NodeUiData,
 };
@@ -27,7 +27,8 @@ impl From<ValidTree> for MaybeValidTree {
 pub struct ValidTree(TreeStore);
 
 impl ValidTree {
-    pub(crate) fn new(tree: TreeStore) -> Self {
+    //@todo this should be hidden and only used in beetry-editor
+    pub fn new(tree: TreeStore) -> Self {
         Self(tree)
     }
 
