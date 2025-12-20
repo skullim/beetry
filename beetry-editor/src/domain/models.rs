@@ -5,6 +5,7 @@ use beetry_core::MessageHash;
 use beetry_plugin_types::{channel::MessageSpec, node::NodeName, parameter};
 use beetry_reconstruction_types::channel::ChannelConfig;
 use bon::Builder;
+use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 
 pub type NodeId = usize;
@@ -180,6 +181,7 @@ impl PortsSpec {
 #[derive(Debug, Builder, Clone)]
 pub struct NodeSpec {
     pub key: NodeSpecKey,
+    //@todo value
     #[builder(default)]
     pub param_schema: parameter::Schema,
     #[builder(default)]
@@ -201,9 +203,19 @@ impl NodeSpec {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Builder, Clone)]
+pub struct NodeSpecValue {
+    #[builder(default)]
+    pub params: parameter::Schema,
+    #[builder(default)]
+    pub ports: PortsSpec,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, CopyGetters)]
 pub struct NodeSpecKey {
+    #[getset(get = "pub")]
     name: NodeName,
+    #[getset(get_copy = "pub")]
     kind: NodeKind,
 }
 

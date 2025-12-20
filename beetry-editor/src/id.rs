@@ -18,7 +18,7 @@ where
 
     fn next(&mut self) -> I {
         let id = self.id;
-        // simple monotonically increasing id increment. There might be holes if elements are deleted, but for now it should do
+        // simple monotonically increasing id increment. There might be holes if elements are deleted, but accept the tradeoff for now
         self.id += I::one();
         id
     }

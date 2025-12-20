@@ -8,24 +8,27 @@ use beetry_reconstruction_types::{
 use bon::Builder;
 
 use itertools::izip;
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use tracing::warn;
 
-use crate::domain::{
-    models::{
-        ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePortKind, NodeSpecKey,
-    },
-    persistence::{
-        ChannelRecord, ChannelSpecRecord, ChannelStore, ChannelUiRecord, EditorStateStore,
-        MaybeValidTree, NodePortState, NodePortStore, NodeRecord, NodeSpecRecord, NodeStore,
-        NodeUiRecord, ParameterValue, ParameterValueStore, TreeStore, UiElementStore, ValidTree,
-    },
-    repository::{
-        ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept,
-        UiRepositoryFacadeConcept,
-    },
-    service::{
-        channel::ChannelBorrowApi, edge::EdgeBorrowApi, node::NodeBorrowApi, ui::UiBorrowApi,
+use crate::{
+    NodeRecordStore, NodeRecordValue, NodeSpecStore,
+    domain::{
+        models::{
+            ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePortKind, NodeSpecKey,
+        },
+        persistence::{
+            ChannelRecord, ChannelSpecRecord, ChannelStore, ChannelUiRecord, EditorStateStore,
+            MaybeValidTree, NodePortState, NodePortStore, NodeStore, NodeUiRecord, ParameterValue,
+            ParameterValueStore, TreeStore, UiElementStore, ValidTree,
+        },
+        repository::{
+            ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept,
+            UiRepositoryFacadeConcept,
+        },
+        service::{
+            channel::ChannelBorrowApi, edge::EdgeBorrowApi, node::NodeBorrowApi, ui::UiBorrowApi,
+        },
     },
 };
 
@@ -153,21 +156,23 @@ where
     fn export_node_store(&mut self, nodes: &[NodeId]) -> Result<NodeStore> {
         let specs = {
             let spec_api = self.node_api.spec();
-            nodes
+            let iter: BTreeMap<usize, NodeSpecKey> = nodes
                 .iter()
                 .copied()
                 .map(|id| {
-                    Ok(NodeSpecRecord {
+                    Ok((
                         id,
-                        key: NodeSpecKey::new(spec_api.name(id)?.clone(), spec_api.kind(id)?),
-                    })
+                        NodeSpecKey::new(spec_api.name(id)?.clone(), spec_api.kind(id)?),
+                    ))
                 })
-                .collect::<Result<Vec<_>>>()
-        }?;
+                //@todo it would be better if BTreeMap is not required to specify here
+                .collect::<Result<BTreeMap<_, _>>>()?;
+            NodeSpecStore::from_iter(iter)
+        };
 
         let nodes = {
             let tracker_api = self.node_api.tracker();
-            nodes
+            let iter = nodes
                 .iter()
                 .copied()
                 .map(|id| {
@@ -176,15 +181,18 @@ where
                         l.position.origin.x.total_cmp(&r.position.origin.x)
                     })?;
 
-                    Ok(NodeRecord::new(
+                    Ok((
                         id,
-                        tracker_api
-                            .spec_id(id)
-                            .with_context(|| anyhow!("expected spec id for node {id}"))?,
-                        children.into_iter(),
+                        NodeRecordValue::new(
+                            tracker_api
+                                .spec_id(id)
+                                .with_context(|| anyhow!("expected spec id for node {id}"))?,
+                            children.into_iter(),
+                        ),
                     ))
                 })
-                .collect::<Result<Vec<NodeRecord>>>()?
+                .collect::<Result<BTreeMap<_, _>>>()?;
+            NodeRecordStore::from_iter(iter)
         };
         Ok(NodeStore { specs, nodes })
     }
