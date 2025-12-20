@@ -9,11 +9,6 @@ mod toolbar;
 mod ui;
 mod workspace;
 
-pub use domain::service::editor::EditorService;
-
-pub use domain::models::*;
-pub use domain::persistence::*;
-
 use beetry_plugin::{
     channel::ChannelPluginConstructor,
     node::{ActionPluginConstructor, ConditionPluginConstructor, ControlPluginConstructor},
@@ -24,6 +19,7 @@ use beetry_plugin_types::{
 };
 use dioxus::logger::tracing::Level;
 use dioxus::prelude::*;
+pub use domain::service::editor::EditorService;
 
 pub use project::ProjectData;
 
@@ -65,20 +61,20 @@ pub fn PluginsProvider(children: Element) -> Element {
 
         let mut plugins = action_plugins
             .into_iter()
-            .map(|p| p.spec())
+            .map(|p| p.into_parts().0)
             .collect::<Vec<_>>();
-        plugins.extend(condition_plugins.into_iter().map(|p| p.spec()));
+        plugins.extend(condition_plugins.into_iter().map(|p| p.into_parts().0));
         plugins
     };
 
     let controls = ControlPluginConstructor::plugins()?
         .into_iter()
-        .map(|p| p.spec())
+        .map(|p| p.into_parts().0)
         .collect();
 
     let channels = {
         let plugins = ChannelPluginConstructor::plugins()?;
-        plugins.into_iter().map(|p| p.spec()).collect()
+        plugins.into_iter().map(|p| p.into_parts().0).collect()
     };
 
     use_context_provider(move || SpecPlugins {

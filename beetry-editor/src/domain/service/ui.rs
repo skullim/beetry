@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
 use anyhow::{Result, anyhow};
+use beetry_editor_types::{
+    ChannelPosition, ChannelUiData, NodeId, NodeKind, NodePosition, NodeUiData,
+};
 use beetry_reconstruction_types::channel::ChannelId;
 
 use crate::domain::{
-    models::{ChannelPosition, ChannelUiData, NodeId, NodeKind, NodePosition, NodeUiData},
     repository::{
         UiRepositoryConcept, UiRepositoryFacadeConcept, UiRepositoryFacadeView,
         UiRepositoryFacadeViewMut,

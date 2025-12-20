@@ -1,7 +1,6 @@
 use crate::{
     SpecPlugins,
     domain::{
-        persistence::{EditorStateStore, MaybeValidTree, UiElementStore},
         repository::{
             ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
             EditorRepositoryViewMut, NodeRepositoryFacadeConcept, UiRepositoryFacadeConcept,
@@ -14,6 +13,7 @@ use crate::{
     },
 };
 use anyhow::Result;
+use beetry_editor_types::{EditorStateStore, MaybeValidTree, UiElementStore};
 
 pub struct ImportApi<'a, NRF, ER, CRF, URF> {
     node_service: &'a mut NodeService,

@@ -175,3 +175,15 @@ impl Factory2 {
         (self.func)(config)
     }
 }
+
+pub type BoxChannelPlugin2 = BoxPlugin<ChannelSpec, Factory2>;
+pub type ChannelPluginConstructor2 = PluginConstructor<ChannelSpec, Factory2>;
+
+impl ChannelPluginConstructor2 {
+    pub fn plugins() -> Result<Vec<BoxChannelPlugin2>, PluginError> {
+        unique_plugins::<Self, <Self as ConstructPlugin>::Spec, <Self as ConstructPlugin>::Factory>(
+        )
+    }
+}
+
+inventory::collect!(ChannelPluginConstructor2);

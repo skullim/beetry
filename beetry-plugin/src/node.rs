@@ -161,7 +161,10 @@ macro_rules! plugin_impl {
         spec = $spec:expr,
         factory_fn = $factory_fn:expr
     ) => {
-        pub struct $plugin_name;
+        pub struct $plugin_name {
+            spec: $spec_ty,
+            factory: $factory_ty,
+        }
 
         impl $crate::Plugin for $plugin_name {
             type Spec = $spec_ty;
@@ -171,19 +174,67 @@ macro_rules! plugin_impl {
             where
                 Self: Sized,
             {
-                Self
+                Self {
+                    spec: $spec,
+                    factory: Self::Factory::new(Box::new($factory_fn)),
+                }
             }
 
-            fn spec(&self) -> Self::Spec {
-                $spec
+            fn spec(&self) -> &Self::Spec {
+                &self.spec
             }
 
-            fn factory(self: Box<Self>) -> Self::Factory {
-                Self::Factory::new(Box::new($factory_fn))
+            fn factory(&self) -> &Self::Factory {
+                &self.factory
+            }
+
+            fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
+                (self.spec, self.factory)
             }
         }
     };
 }
+
+pub type BoxActionPlugin2 = BoxPlugin<beetry_editor_types::NodeSpec, ActionFactory>;
+pub type BoxConditionPlugin2 = BoxPlugin<beetry_editor_types::NodeSpec, ConditionFactory>;
+pub type BoxControlPlugin2 = BoxPlugin<beetry_editor_types::NodeSpec, ControlFactory>;
+
+impl Named for beetry_editor_types::NodeSpec {
+    fn name(&self) -> &str {
+        &self.name().0
+    }
+}
+
+pub type ActionPluginConstructor2 = PluginConstructor<beetry_editor_types::NodeSpec, ActionFactory>;
+pub type ConditionPluginConstructor2 =
+    PluginConstructor<beetry_editor_types::NodeSpec, ConditionFactory>;
+pub type ControlPluginConstructor2 =
+    PluginConstructor<beetry_editor_types::NodeSpec, ControlFactory>;
+
+impl ActionPluginConstructor2 {
+    pub fn plugins() -> Result<Vec<BoxActionPlugin2>, PluginError> {
+        unique_plugins::<Self, <Self as ConstructPlugin>::Spec, <Self as ConstructPlugin>::Factory>(
+        )
+    }
+}
+
+impl ConditionPluginConstructor2 {
+    pub fn plugins() -> Result<Vec<BoxConditionPlugin2>, PluginError> {
+        unique_plugins::<Self, <Self as ConstructPlugin>::Spec, <Self as ConstructPlugin>::Factory>(
+        )
+    }
+}
+
+impl ControlPluginConstructor2 {
+    pub fn plugins() -> Result<Vec<BoxControlPlugin2>, PluginError> {
+        unique_plugins::<Self, <Self as ConstructPlugin>::Spec, <Self as ConstructPlugin>::Factory>(
+        )
+    }
+}
+
+inventory::collect! {ActionPluginConstructor2}
+inventory::collect! {ConditionPluginConstructor2}
+inventory::collect! {ControlPluginConstructor2}
 
 #[cfg(test)]
 mod tests {
@@ -192,51 +243,71 @@ mod tests {
     use super::*;
     use beetry_plugin_types::node::{ActionLeafSchema, NodeName};
 
-    struct TestPluginA;
+    struct TestPluginA {
+        spec: ActionSpec,
+        factory: ActionFactory,
+    }
 
     impl Plugin for TestPluginA {
         type Spec = ActionSpec;
         type Factory = ActionFactory;
 
         fn new() -> Self {
-            Self
+            Self {
+                spec: ActionSpec::builder()
+                    .name(NodeName::new("TestPlugin"))
+                    .schema(ActionLeafSchema::default())
+                    .build(),
+                factory: ActionFactory::new(Box::new(|_| {
+                    Err(anyhow::anyhow!("This is a test factory, not functional"))
+                })),
+            }
         }
 
-        fn spec(&self) -> Self::Spec {
-            ActionSpec::builder()
-                .name(NodeName::new("TestPlugin"))
-                .schema(ActionLeafSchema::default())
-                .build()
+        fn spec(&self) -> &Self::Spec {
+            &self.spec
         }
 
-        fn factory(self: Box<Self>) -> Self::Factory {
-            ActionFactory::new(Box::new(|_| {
-                Err(anyhow::anyhow!("This is a test factory, not functional"))
-            }))
+        fn factory(&self) -> &Self::Factory {
+            &self.factory
+        }
+
+        fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
+            (self.spec, self.factory)
         }
     }
 
-    struct TestPluginB;
+    struct TestPluginB {
+        spec: ActionSpec,
+        factory: ActionFactory,
+    }
 
     impl Plugin for TestPluginB {
         type Spec = ActionSpec;
         type Factory = ActionFactory;
 
         fn new() -> Self {
-            Self
+            Self {
+                spec: ActionSpec::builder()
+                    .name(NodeName::new("TestPlugin"))
+                    .schema(ActionLeafSchema::default())
+                    .build(),
+                factory: ActionFactory::new(Box::new(|_| {
+                    Err(anyhow::anyhow!("This is a test factory, not functional"))
+                })),
+            }
         }
 
-        fn spec(&self) -> Self::Spec {
-            ActionSpec::builder()
-                .name(NodeName::new("TestPlugin"))
-                .schema(ActionLeafSchema::default())
-                .build()
+        fn spec(&self) -> &Self::Spec {
+            &self.spec
         }
 
-        fn factory(self: Box<Self>) -> Self::Factory {
-            ActionFactory::new(Box::new(|_| {
-                Err(anyhow::anyhow!("This is a test factory, not functional"))
-            }))
+        fn factory(&self) -> &Self::Factory {
+            &self.factory
+        }
+
+        fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
+            (self.spec, self.factory)
         }
     }
 
