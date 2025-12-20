@@ -2,18 +2,23 @@ use anyhow::{Result, anyhow};
 use beetry_builder::Builder as BehaviorTreeBuilder;
 use beetry_channel::external;
 use beetry_core::{BoxNode, MessageHash, NonEmptyNodes, RegisterTask, Root, TaskHandle, Tree};
+use beetry_editor::{
+    ChannelStore, NodeId, NodePortConnection, NodePortStore, NodeStore, ParameterValueStore,
+};
+use beetry_editor::{NodeKind, NodeRecordValue};
 use beetry_plugin::channel::{self, BoxChannelPlugin, ChannelPluginConstructor, TypeErasedChannel};
 use beetry_plugin::node::{
     self, ControlMetadata, ControlReconstructionData, LeafMetadata, LeafReconstructionData,
 };
 use beetry_plugin::{BoxPlugin, Named};
 use beetry_plugin_types::node::{LeafKind, NodeName};
+use beetry_reconstruction_types::node::{ControlSnapshot, LeafSnapshot, RootSnapshot};
 use beetry_reconstruction_types::{
     channel::{ChannelId, ChannelSnapshotMap},
     node::{NodeSnapshot, NodeSnapshotData},
     tree::TreeSnapshot,
 };
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use tracing::debug;
 
 pub struct TreeReconstructor {
@@ -272,45 +277,143 @@ impl TreeReconstructor2 {
     // 2. Channels exist in channel plugin registry.
     // 3. Each hash of leaf node matches with the corresponding node found in plugin registry.
     // 4. External receivers (if any) have been created when initializing Self instance
-    // pub fn try_reconstruct<RT, TH>(
-    //     &mut self,
-    //     tree: beetry_editor::ValidTree,
-    //     builder: &BehaviorTreeBuilder<RT, TH>,
-    // ) -> Result<Tree<BoxNode>>
-    // where
-    //     RT: RegisterTask<TH> + 'static,
-    //     TH: TaskHandle + 'static,
-    // {
-    //     let channel_factory_map = ChannelHashToFactoryMap::new(channel::plugins());
-    //     let mut channels = Self::try_reconstruct_channels(snapshot.channels, &channel_factory_map)?;
-
-    //     let child = Self::try_reconstruct_tree(
-    //         snapshot.root.into_child(),
-    //         &self.node_factory,
-    //         &mut channels,
-    //         &mut self.ext_receivers,
-    //         builder,
-    //     )?;
-    //     Ok(Tree::new(Root::new(child)))
-    // }
+    pub fn try_reconstruct<RT, TH>(
+        &mut self,
+        tree: beetry_editor::ValidTree,
+        builder: &BehaviorTreeBuilder<RT, TH>,
+    ) -> Result<Tree<BoxNode>>
+    where
+        RT: RegisterTask<TH> + 'static,
+        TH: TaskHandle + 'static,
+    {
+        let tree = tree.into_inner();
+        //@todo pass plugins to leave it up to user how constructors are provided
+        let channel_factory_map =
+            ChannelHashToFactoryMap2::new(ChannelPluginConstructor::plugins()?);
+        let mut channels = Self::try_reconstruct_channels(tree.channel, &channel_factory_map)?;
+        todo!()
+    }
 
     fn try_reconstruct_channels(
-        snapshot_map: ChannelSnapshotMap,
-        factory_map: &ChannelHashToFactoryMap,
+        store: ChannelStore,
+        factory_map: &ChannelHashToFactoryMap2,
     ) -> Result<ChannelIdToChannelMap> {
-        snapshot_map
+        let spec_map: HashMap<_, _> = store
+            .specs
             .into_iter()
-            .map(|(k, v)| {
-                let msg_hash = v.spec().msg_hash();
-                debug!("{factory_map:?}");
+            .map(|record| (record.id, record.spec))
+            .collect();
+        store.channels.into_iter().map(|record| {
+                let id = record.id;
+                let data = record.data;
+                let msg_hash = spec_map.get(&data.spec_id).ok_or_else(|| anyhow!("failed to get channel spec with id {}", data.spec_id))?.msg_hash();
                 let factory = factory_map.get(msg_hash).ok_or_else(|| {
                     anyhow!(
-                        "cannot create channel, did not find channel with required hash {msg_hash:?}"
+                        "cannot create channel, failed to find channel constructor with required hash {msg_hash:?}"
                     )
                 })?;
-                Ok((k, factory.create(v.metadata().clone())))
+                Ok((id, factory.create(data.config)))
+            }
+            ).collect::<Result<HashMap<_, _>>>()
+    }
+
+    fn try_create_root_snapshot(
+        node: NodeStore,
+        param: ParameterValueStore,
+        ports: NodePortStore,
+        node_factory: &NodeFactoryRegistry,
+    ) -> Result<RootSnapshot> {
+        let root_id = node
+            .nodes
+            .iter()
+            .filter_map(|record| {
+                if node
+                    .specs
+                    .get(&record.value.spec_id())
+                    .map(|spec_key| spec_key.kind())
+                    == Some(NodeKind::Root)
+                {
+                    Some(record.id)
+                } else {
+                    None
+                }
             })
-            .collect::<Result<_>>()
+            .next()
+            .ok_or_else(|| anyhow!("failed to find root id"))?;
+
+        let root_child = *node
+            .nodes
+            .get(root_id)
+            .expect("root id should exist")
+            .children()
+            .next()
+            .expect("root should have a child node");
+
+        todo!()
+    }
+
+    fn try_create_node_snapshot(
+        node_id: NodeId,
+        node_store: &NodeStore,
+        _param: &ParameterValueStore,
+        ports: &mut NodePortStore,
+    ) -> Result<NodeSnapshot> {
+        let kind = node_store.specs.get(&node_id).unwrap().kind();
+        match kind {
+            NodeKind::Control => {
+                let children_id = node_store.nodes.get(&node_id).unwrap().children();
+                //@todo should it also be IndexSet or BTreeSet?
+                let mut children = vec![];
+                for child_id in children_id {
+                    children.push(Self::try_create_node_snapshot(
+                        *child_id, node_store, _param, ports,
+                    )?);
+                }
+                Ok(NodeSnapshot::builder()
+                    .name(node_store.specs.get(&node_id).unwrap().name().clone())
+                    .data(NodeSnapshotData::Control(ControlSnapshot::new(children)?))
+                    .build())
+            }
+            NodeKind::Action => {
+                // let mut receivers = BTreeSet::new();
+                // let mut senders = BTreeSet::new();
+                // let mut ext_receivers = BTreeSet::new();
+                // let mut ext_senders = BTreeSet::new();
+
+                for (id, conn) in ports
+                    .take(&node_id)
+                    .into_iter()
+                    .flat_map(|state| state.conns.into_iter())
+                {
+                    match conn {
+                        //@todo create new type to convert NodePortConnection into ValidNodePortConnection
+                        NodePortConnection::Unconnected => panic!("invalid state"),
+                        NodePortConnection::External => {}
+                        NodePortConnection::Internal(connections) => {
+                            todo!(
+                                "need full NodeSpec here to check if that is sender or receiver port"
+                            )
+                        }
+                    }
+                }
+                todo!()
+                // let leaf_snapshot = LeafSnapshot::builder()
+                //     .kind(LeafKind::Action)
+                //     .receivers(receivers)
+                //     .maybe_senders(senders)
+                //     .ext_receivers(external_receivers.iter().copied().collect())
+                //     .build();
+
+                // Ok(NodeSnapshot::builder()
+                //     .name(spec_map.get(&node_id).unwrap().name().clone())
+                //     .data(leaf_snapshot)
+                //     .parameters(node.selected_params.clone())
+                //     .build())
+            }
+            _ => {
+                todo!()
+            }
+        }
     }
 
     fn try_reconstruct_tree<RT, TH>(
@@ -412,5 +515,20 @@ impl TreeReconstructor2 {
     ) -> Result<&mut TypeErasedChannel> {
         map.get_mut(&id)
             .ok_or_else(|| anyhow!("channel id: {id:?} does not exist"))
+    }
+}
+
+#[derive(Debug)]
+struct ChannelHashToFactoryMap2 {
+    map: HashMap<MessageHash, channel::Factory2>,
+}
+
+impl ChannelHashToFactoryMap2 {
+    fn new(plugins: Vec<BoxChannelPlugin>) -> Self {
+        todo!()
+    }
+
+    fn get(&self, hash: MessageHash) -> Option<&channel::Factory2> {
+        self.map.get(&hash)
     }
 }

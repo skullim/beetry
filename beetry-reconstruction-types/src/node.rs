@@ -75,6 +75,8 @@ impl ControlSnapshot {
 pub struct LeafSnapshot {
     #[get_copy = "pub"]
     kind: LeafKind,
+    //@todo all ports should have NodePortId, so they should rather be BTreeMap
+    // this will allow to coexist more than one port of given message type
     #[get = "pub"]
     #[builder(default, with = <_>::from_iter)]
     receivers: BTreeSet<ChannelId>,
@@ -105,7 +107,7 @@ impl LeafSnapshot {
 
 //@todo harmonize with beetry-editor backend type
 pub type NodeId = usize;
-
+pub type NodePortId = u8;
 /// Provides basic information regarding external communication endpoints.
 /// User should utilize it to provide missing endpoints such that the tree can be reconstructed.
 #[derive(Default, Builder)]
@@ -119,5 +121,10 @@ pub struct ExternalEndpointInfo {
     // but otherwise nodes with the same name would be undistinguishable
     pub id: NodeId,
     pub name: NodeName,
+    pub ports: Vec<ExternalPortInfo>,
+}
+
+pub struct ExternalPortInfo {
+    pub id: NodePortId,
     pub message: MessageSpec,
 }

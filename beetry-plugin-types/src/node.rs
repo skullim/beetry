@@ -117,6 +117,7 @@ impl ConditionLeafSchema {
     }
 }
 
+//@todo harmonize with NodeKind
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum LeafKind {
     Action,

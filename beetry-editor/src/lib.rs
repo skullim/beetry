@@ -11,6 +11,7 @@ mod workspace;
 
 pub use domain::service::editor::EditorService;
 
+pub use domain::models::*;
 pub use domain::persistence::*;
 
 use beetry_plugin::{

@@ -1,6 +1,9 @@
 use anyhow::{Result, anyhow};
 use beetry_plugin_types::channel::ChannelSpec;
-use beetry_reconstruction_types::channel::{ChannelImplKind, ChannelMetadata, TokioChannelConfig};
+use beetry_reconstruction_types::channel::{
+    ChannelConfig, ChannelImplKind, ChannelImplKind2, ChannelMetadata, TokioChannelConfig,
+    TokioChannelKind,
+};
 use bon::Builder;
 
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
@@ -106,3 +109,69 @@ impl ChannelPluginConstructor {
 }
 
 inventory::collect!(ChannelPluginConstructor);
+
+pub struct Factory2 {
+    func: Box<dyn Fn(ChannelConfig) -> TypeErasedChannel>,
+}
+
+impl std::fmt::Debug for Factory2 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Factory2")
+            .field("func", &"<function>")
+            .finish()
+    }
+}
+
+impl Factory2 {
+    pub fn from_msg_type<T: Clone + 'static>() -> Self {
+        Self {
+            func: (Box::new(|config| {
+                let capacity = config.capacity();
+                let count = config.count();
+                // client is responsible for providing correct and valid number of senders and receivers
+                let n_senders = count.sender();
+                let n_receivers = count.receiver();
+
+                let (senders, receivers) = match config.kind() {
+                    ChannelImplKind2::Tokio(TokioChannelKind::Broadcast) => {
+                        let (sender, receiver) =
+                            beetry_channel::tokio::broadcast::channel::<T>(capacity);
+
+                        let receivers: Vec<_> =
+                            std::iter::once(Box::new(receiver) as BoxReceiver<T>)
+                                .chain(
+                                    (1..n_receivers)
+                                        .map(|_| Box::new(sender.subscribe()) as BoxReceiver<T>),
+                                )
+                                .collect();
+                        let senders: Vec<_> = (0..n_senders)
+                            .map(|_| Box::new(sender.clone()) as BoxSender<T>)
+                            .collect();
+
+                        (senders, receivers)
+                    }
+                    ChannelImplKind2::Tokio(TokioChannelKind::Mpsc) => {
+                        let (sender, receiver) =
+                            beetry_channel::tokio::mpsc::channel::<T>(capacity);
+
+                        let senders: Vec<_> = (0..n_senders)
+                            .map(|_| Box::new(sender.clone()) as BoxSender<T>)
+                            .collect();
+                        let receivers = vec![Box::new(receiver) as BoxReceiver<T>];
+
+                        (senders, receivers)
+                    }
+                };
+
+                TypeErasedChannel::builder()
+                    .senders(senders.into_iter().map(Into::into).collect())
+                    .receivers(receivers.into_iter().map(Into::into).collect())
+                    .build()
+            })),
+        }
+    }
+
+    pub fn create(&self, config: ChannelConfig) -> TypeErasedChannel {
+        (self.func)(config)
+    }
+}
