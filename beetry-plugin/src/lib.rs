@@ -9,12 +9,25 @@ pub trait Plugin {
     where
         Self: Sized;
 
-    fn spec(&self) -> Self::Spec;
+    fn spec(&self) -> &Self::Spec;
 
-    fn factory(self: Box<Self>) -> Self::Factory;
+    fn factory(&self) -> &Self::Factory;
+
+    fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory);
 }
 
 pub type BoxPlugin<S, F> = Box<dyn Plugin<Spec = S, Factory = F>>;
+
+impl<S, F> fmt::Debug for dyn Plugin<Spec = S, Factory = F> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Plugin<Spec = {}, Factory = {}>",
+            std::any::type_name::<S>(),
+            std::any::type_name::<F>(),
+        )
+    }
+}
 
 pub trait Named {
     fn name(&self) -> &str;
@@ -78,7 +91,7 @@ where
     })
 }
 
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt};
 
 pub use inventory;
 

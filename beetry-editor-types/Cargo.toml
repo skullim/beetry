@@ -1,15 +1,13 @@
 [package]
-name = "beetry-plugin"
+name = "beetry-editor-types"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 anyhow.workspace = true
-beetry-channel = { version = "0.1.0", path = "../beetry-channel" }
-beetry-core = { version = "0.1.0", path = "../beetry-core" }
 beetry-plugin-types = { version = "0.1.0", path = "../beetry-plugin-types" }
 beetry-reconstruction-types = { version = "0.1.0", path = "../beetry-reconstruction-types" }
-beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
 bon.workspace = true
-inventory = "0.3.21"
-thiserror.workspace = true
+getset.workspace = true
+indexmap = "2.12.1"
+serde.workspace = true

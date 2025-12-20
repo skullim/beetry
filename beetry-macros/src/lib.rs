@@ -192,28 +192,37 @@ fn generate_channel_plugin_impl(input: DeriveInput) -> (syn::Ident, TokenStream)
 
     let expanded = quote! {
         pub struct #channel_name {
+            spec: ChannelSpec,
             factory: Factory,
         }
 
         impl Plugin for #channel_name {
             type Spec = ChannelSpec;
             type Factory = Factory;
-            fn spec(&self) -> ChannelSpec {
-                ChannelSpec::new::<#message_type>()
-            }
 
             fn new() -> Self
             where
                 Self: Sized,
             {
                 Self {
+                    spec: ChannelSpec::new::<#message_type>(),
                     factory: Factory::from_msg_type::<#message_type>(),
                 }
             }
 
-            fn factory(self: Box<Self>) -> Factory {
-                self.factory
+            fn spec(&self) -> &ChannelSpec {
+                &self.spec
             }
+
+            fn factory(&self) -> &Factory {
+                &self.factory
+            }
+
+            fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
+                (self.spec, self.factory)
+        }
+
+
         }
     };
 

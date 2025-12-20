@@ -1,21 +1,13 @@
-use crate::{
-    NodeRecord,
-    domain::{
-        models::{
-            ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePosition, NodeSpec,
-            NodeSpecId, NodeSpecKey, NodeUiData, PortsSpec,
-        },
-        persistence::{NodePortState, ParameterValue},
-        repository::{
-            ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryConcept,
-            NodeRepositoryFacadeConcept, NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut,
-            ParamValueRepositoryConcept, PortStateRepositoryConcept, SpecRepositoryConcept,
-            UiRepositoryConcept,
-        },
-        service::{
-            channel::{ChannelBorrowMutApi, ChannelService, ConnectionContext},
-            edge::{self, EdgeService, OnNodeRemovalServiceApi},
-        },
+use crate::domain::{
+    repository::{
+        ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryConcept,
+        NodeRepositoryFacadeConcept, NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut,
+        ParamValueRepositoryConcept, PortStateRepositoryConcept, SpecRepositoryConcept,
+        UiRepositoryConcept,
+    },
+    service::{
+        channel::{ChannelBorrowMutApi, ChannelService, ConnectionContext},
+        edge::{self, EdgeService, OnNodeRemovalServiceApi},
     },
 };
 use anyhow::{Context, Result, anyhow, bail};
@@ -23,6 +15,11 @@ use beetry_plugin_types::node::NodeName;
 use beetry_reconstruction_types::parameter::Parameters;
 use std::collections::{HashMap, HashSet};
 use tracing::warn;
+
+use beetry_editor_types::{
+    ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePortState, NodePosition,
+    NodeRecord, NodeSpec, NodeSpecId, NodeSpecKey, NodeUiData, ParameterValue, PortsSpec,
+};
 
 pub struct NodeBorrowApi<'a, NRF>
 where
@@ -170,7 +167,7 @@ where
     }
 
     pub fn ports(&self, id: NodeId) -> Result<&PortsSpec> {
-        Ok(&Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.ports)
+        Ok(Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.ports())
     }
 
     fn kind_by_spec_id(&self, spec_id: NodeSpecId) -> Result<NodeKind> {
@@ -285,7 +282,7 @@ where
     ER: EdgeRepositoryConcept,
 {
     pub fn create(&mut self, spec: NodeSpec) -> Result<NodeId> {
-        let ports_spec = spec.ports.clone();
+        let ports_spec = spec.ports().clone();
         let id = self.node_service.create(
             self.node_facade_view.specs,
             self.node_facade_view.nodes,

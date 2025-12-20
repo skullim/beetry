@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use anyhow::{Result, anyhow, bail};
-use beetry_core::MessageHash;
 use beetry_plugin_types::{channel::MessageSpec, node::NodeName, parameter};
 use beetry_reconstruction_types::channel::ChannelConfig;
 use bon::Builder;
@@ -120,14 +119,6 @@ pub struct IndexedDragOffset {
     pub offset: Point,
 }
 
-pub struct ExternalReceivers {
-    receivers: HashSet<MessageHash>,
-}
-
-pub struct ExternalSenders {
-    senders: HashSet<MessageHash>,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodeKind {
     Action,
@@ -178,14 +169,16 @@ impl PortsSpec {
     }
 }
 
-#[derive(Debug, Builder, Clone)]
+#[derive(Debug, Builder, Clone, Getters)]
 pub struct NodeSpec {
     pub key: NodeSpecKey,
     //@todo value
     #[builder(default)]
-    pub param_schema: parameter::Schema,
+    #[getset(get = "pub")]
+    param_schema: parameter::Schema,
     #[builder(default)]
-    pub ports: PortsSpec,
+    #[getset(get = "pub")]
+    ports: PortsSpec,
 }
 
 impl NodeSpec {
@@ -229,6 +222,12 @@ impl NodeSpecKey {
 pub struct ChannelData {
     pub spec_id: ChannelSpecId,
     pub config: ChannelConfig,
+}
+
+impl ChannelData {
+    pub fn new(spec_id: ChannelSpecId, config: ChannelConfig) -> Self {
+        Self { spec_id, config }
+    }
 }
 
 #[derive(Debug, Clone)]

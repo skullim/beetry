@@ -11,24 +11,20 @@ use itertools::izip;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use tracing::warn;
 
-use crate::{
-    NodeRecordStore, NodeRecordValue, NodeSpecStore,
-    domain::{
-        models::{
-            ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePortKind, NodeSpecKey,
-        },
-        persistence::{
-            ChannelRecord, ChannelSpecRecord, ChannelStore, ChannelUiRecord, EditorStateStore,
-            MaybeValidTree, NodePortState, NodePortStore, NodeStore, NodeUiRecord, ParameterValue,
-            ParameterValueStore, TreeStore, UiElementStore, ValidTree,
-        },
-        repository::{
-            ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept,
-            UiRepositoryFacadeConcept,
-        },
-        service::{
-            channel::ChannelBorrowApi, edge::EdgeBorrowApi, node::NodeBorrowApi, ui::UiBorrowApi,
-        },
+use beetry_editor_types::{
+    ChannelId, ChannelRecord, ChannelSpecRecord, ChannelStore, ChannelUiRecord, EditorStateStore,
+    MaybeValidTree, NodeId, NodeKind, NodePortConnection, NodePortId, NodePortKind, NodePortState,
+    NodePortStore, NodeRecordStore, NodeRecordValue, NodeSpecKey, NodeSpecStore, NodeStore,
+    NodeUiRecord, ParameterValue, ParameterValueStore, TreeStore, UiElementStore, ValidTree,
+};
+
+use crate::domain::{
+    repository::{
+        ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept,
+        UiRepositoryFacadeConcept,
+    },
+    service::{
+        channel::ChannelBorrowApi, edge::EdgeBorrowApi, node::NodeBorrowApi, ui::UiBorrowApi,
     },
 };
 

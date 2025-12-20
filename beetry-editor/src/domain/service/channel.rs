@@ -1,15 +1,14 @@
 use std::collections::HashMap;
 
-use crate::domain::models::{ChannelData, NodePortKind, NodePortSpec, NodeSpecId};
-use crate::domain::persistence::{ChannelRecord, ChannelSpecRecord};
-use crate::domain::{
-    models::{ChannelId, ChannelSpecId, NodeId},
-    repository::{
-        ChannelRepositoryConcept, ChannelRepositoryFacadeConcept, ChannelRepositoryFacadeView,
-        ChannelRepositoryFacadeViewMut, SpecRepositoryConcept,
-    },
+use crate::domain::repository::{
+    ChannelRepositoryConcept, ChannelRepositoryFacadeConcept, ChannelRepositoryFacadeView,
+    ChannelRepositoryFacadeViewMut, SpecRepositoryConcept,
 };
 use anyhow::{Result, anyhow, bail};
+use beetry_editor_types::{
+    ChannelData, ChannelId, ChannelRecord, ChannelSpecId, ChannelSpecRecord, NodeId, NodePortKind,
+    NodePortSpec, NodeSpecId,
+};
 use beetry_plugin_types::channel::ChannelSpec;
 use beetry_reconstruction_types::channel::{ChannelConfig, ChannelImplKind2, TokioChannelKind};
 use tracing::warn;
