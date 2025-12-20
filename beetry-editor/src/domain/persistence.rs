@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::domain::models::{
     ChannelData, ChannelSpecId, ChannelUiData, NodeId, NodePortConnection, NodePortId, NodeSpecId,
@@ -6,6 +6,7 @@ use crate::domain::models::{
 };
 use beetry_plugin_types::channel::ChannelSpec;
 use beetry_reconstruction_types::{channel::ChannelId, parameter};
+use getset::{CopyGetters, Getters};
 use indexmap::IndexSet;
 
 pub struct EditorStateStore {
@@ -59,26 +60,102 @@ impl TreeStore {
 }
 
 pub struct NodeStore {
-    pub specs: Vec<NodeSpecRecord>,
-    pub nodes: Vec<NodeRecord>,
+    pub specs: NodeSpecStore,
+    pub nodes: NodeRecordStore,
 }
 
 //The remaining parts of spec are to be loaded by the appropriate plugin
-pub struct NodeSpecRecord {
-    pub id: NodeSpecId,
-    pub key: NodeSpecKey,
+pub struct NodeSpecStore {
+    // BTreeMap in favor of HashMap to have nicely ordered entries
+    store: BTreeMap<NodeSpecId, NodeSpecKey>,
+}
+
+impl FromIterator<(NodeSpecId, NodeSpecKey)> for NodeSpecStore {
+    fn from_iter<T: IntoIterator<Item = (NodeSpecId, NodeSpecKey)>>(iter: T) -> Self {
+        Self {
+            store: iter.into_iter().collect(),
+        }
+    }
+}
+
+impl NodeSpecStore {
+    //@todo consider using delegate crate
+    pub fn get(&self, id: &NodeSpecId) -> Option<&NodeSpecKey> {
+        self.store.get(id)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&NodeSpecId, &NodeSpecKey)> {
+        self.store.iter()
+    }
+
+    pub fn values(&self) -> impl Iterator<Item = &NodeSpecKey> {
+        self.store.values()
+    }
+}
+
+pub struct NodeRecordStore {
+    store: BTreeMap<NodeId, NodeRecordValue>,
+}
+
+impl FromIterator<(NodeId, NodeRecordValue)> for NodeRecordStore {
+    fn from_iter<T: IntoIterator<Item = (NodeId, NodeRecordValue)>>(iter: T) -> Self {
+        Self {
+            store: iter.into_iter().collect(),
+        }
+    }
+}
+
+impl NodeRecordStore {
+    pub fn get(&self, id: &NodeId) -> Option<&NodeRecordValue> {
+        self.store.get(id)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = NodeRecordView<'_>> {
+        self.store
+            .iter()
+            .map(|(id, value)| NodeRecordView { id, value })
+    }
+
+    pub fn values(&self) -> impl Iterator<Item = &NodeRecordValue> {
+        self.store.values()
+    }
+
+    pub fn into_records(self) -> impl Iterator<Item = NodeRecord> {
+        self.store
+            .into_iter()
+            .map(|(id, value)| NodeRecord { id, value })
+    }
 }
 
 pub struct NodeRecord {
     pub id: NodeId,
-    pub spec_id: NodeSpecId,
-    pub children: IndexSet<NodeId>,
+    pub value: NodeRecordValue,
 }
 
-impl NodeRecord {
-    pub fn new(id: NodeId, spec_id: NodeSpecId, children: impl Iterator<Item = NodeId>) -> Self {
+#[derive(Debug, Getters, CopyGetters)]
+pub struct NodeRecordView<'a> {
+    #[getset(get_copy = "pub")]
+    pub id: &'a NodeId,
+    #[getset(get_copy = "pub")]
+    pub value: &'a NodeRecordValue,
+}
+
+#[derive(Debug, Getters, CopyGetters)]
+pub struct NodeRecordValue {
+    #[getset(get_copy = "pub")]
+    spec_id: NodeSpecId,
+    children: IndexSet<NodeId>,
+}
+
+impl NodeRecordValue {
+    pub fn children(&self) -> impl Iterator<Item = &NodeId> {
+        self.children.iter()
+    }
+}
+
+impl NodeRecordValue {
+    pub fn new(spec_id: NodeSpecId, children: impl IntoIterator<Item = NodeId>) -> Self {
         Self {
-            id,
             spec_id,
             children: children.into_iter().collect(),
         }
@@ -133,6 +210,7 @@ impl NodePortState {
     }
 }
 
+//@todo storing as BTreeMap might make more sense
 pub struct ChannelStore {
     pub specs: Vec<ChannelSpecRecord>,
     pub channels: Vec<ChannelRecord>,

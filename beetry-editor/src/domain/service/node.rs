@@ -1,18 +1,21 @@
-use crate::domain::{
-    models::{
-        ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePosition, NodeSpec,
-        NodeSpecId, NodeSpecKey, NodeUiData, PortsSpec,
-    },
-    persistence::{NodePortState, NodeRecord, ParameterValue},
-    repository::{
-        ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryConcept,
-        NodeRepositoryFacadeConcept, NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut,
-        ParamValueRepositoryConcept, PortStateRepositoryConcept, SpecRepositoryConcept,
-        UiRepositoryConcept,
-    },
-    service::{
-        channel::{ChannelBorrowMutApi, ChannelService, ConnectionContext},
-        edge::{self, EdgeService, OnNodeRemovalServiceApi},
+use crate::{
+    NodeRecord,
+    domain::{
+        models::{
+            ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePosition, NodeSpec,
+            NodeSpecId, NodeSpecKey, NodeUiData, PortsSpec,
+        },
+        persistence::{NodePortState, ParameterValue},
+        repository::{
+            ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryConcept,
+            NodeRepositoryFacadeConcept, NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut,
+            ParamValueRepositoryConcept, PortStateRepositoryConcept, SpecRepositoryConcept,
+            UiRepositoryConcept,
+        },
+        service::{
+            channel::{ChannelBorrowMutApi, ChannelService, ConnectionContext},
+            edge::{self, EdgeService, OnNodeRemovalServiceApi},
+        },
     },
 };
 use anyhow::{Context, Result, anyhow, bail};
@@ -232,7 +235,7 @@ where
             self.node_facade_view.specs,
             self.node_facade_view.nodes,
             node.id,
-            node.spec_id,
+            node.value.spec_id(),
         )?;
         let spec_service_api = SpecApi {
             spec_repo: self.node_facade_view.specs,
