@@ -1,5 +1,5 @@
 use crate::{
-    SpecPlugins,
+    SpecPlugins2,
     domain::{
         channel::ChannelBorrowApi,
         edge::EdgeBorrowApi,
@@ -25,7 +25,7 @@ pub struct EditorService<NRF, ER, CRF, URF> {
     edge_service: EdgeService,
     channel_service: ChannelService,
     repo: EditorRepository<NRF, ER, CRF, URF>,
-    plugins: SpecPlugins,
+    plugins: SpecPlugins2,
 }
 
 impl<NRF, ER, CRF, URF> EditorService<NRF, ER, CRF, URF>
@@ -35,7 +35,7 @@ where
     CRF: ChannelRepositoryFacadeConcept,
     URF: UiRepositoryFacadeConcept,
 {
-    pub fn new(plugins: SpecPlugins) -> Self {
+    pub fn new(plugins: SpecPlugins2) -> Self {
         Self {
             node_service: NodeService::new(),
             edge_service: EdgeService::new(),

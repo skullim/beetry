@@ -9,6 +9,8 @@ mod toolbar;
 mod ui;
 mod workspace;
 
+use anyhow::{Result, anyhow};
+use beetry_editor_types::{NodeSpec, NodeSpecKey};
 use beetry_plugin::{
     channel::ChannelPluginConstructor,
     node::{ActionPluginConstructor, ConditionPluginConstructor, ControlPluginConstructor},
@@ -20,6 +22,7 @@ use beetry_plugin_types::{
 use dioxus::logger::tracing::Level;
 use dioxus::prelude::*;
 pub use domain::service::editor::EditorService;
+use std::collections::HashMap;
 
 pub use project::ProjectData;
 
@@ -51,6 +54,20 @@ pub struct SpecPlugins {
     leaves: Vec<LeafSpec>,
     controls: Vec<ControlSpec>,
     channels: Vec<ChannelSpec>,
+}
+
+#[derive(Clone)]
+pub struct SpecPlugins2 {
+    nodes: HashMap<NodeSpecKey, NodeSpec>,
+    pub channels: Vec<ChannelSpec>,
+}
+
+impl SpecPlugins2 {
+    pub fn get_node_spec(&self, key: &NodeSpecKey) -> Result<&NodeSpec> {
+        self.nodes
+            .get(key)
+            .ok_or_else(|| anyhow!("failed to obtain node spec for key {key:?}"))
+    }
 }
 
 #[component]

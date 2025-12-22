@@ -1,9 +1,13 @@
 use crate::{
-    SpecPlugins,
+    SpecPlugins2,
     domain::{
+        channel::LoadChannelApi,
+        edge::EdgeBorrowMutApi,
+        node,
         repository::{
             ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
-            EditorRepositoryViewMut, NodeRepositoryFacadeConcept, UiRepositoryFacadeConcept,
+            EditorRepositoryViewMut, NodeRepositoryFacadeConcept, NodeRepositoryFacadeView,
+            UiRepositoryFacadeConcept,
         },
         service::{
             channel::ChannelService,
@@ -13,14 +17,14 @@ use crate::{
     },
 };
 use anyhow::Result;
-use beetry_editor_types::{EditorStateStore, MaybeValidTree, UiElementStore};
+use beetry_editor_types::{EditorStateStore, MaybeValidTree, NodeEdge, UiElementStore};
 
 pub struct ImportApi<'a, NRF, ER, CRF, URF> {
     node_service: &'a mut NodeService,
     edge_service: &'a mut EdgeService,
     channel_service: &'a mut ChannelService,
     repo: &'a mut EditorRepository<NRF, ER, CRF, URF>,
-    specs: &'a SpecPlugins,
+    spec_plugins: &'a SpecPlugins2,
 }
 
 impl<'a, NRF, ER, CRF, URF> ImportApi<'a, NRF, ER, CRF, URF>
@@ -36,22 +40,55 @@ where
     }
 
     pub fn import_tree(&mut self, MaybeValidTree(mut tree): MaybeValidTree) -> Result<()> {
-        let EditorRepositoryViewMut { node, channel, .. } = self.repo.view_mut();
-        let node_view = node.view_mut();
-        let mut load_api =
-            LoadNodeApi::new(self.node_service, self.channel_service, node_view, channel);
-        for spec_record in tree.node.specs.values() {
-            //@todo need to get the plugins here to load fully the specs
-            //load_api.load_spec(spec_record)?;
+        let EditorRepositoryViewMut {
+            node,
+            channel,
+            edge,
+            ..
+        } = self.repo.view_mut();
+        {
+            let mut load_channel_api =
+                LoadChannelApi::new(channel.view_mut(), self.channel_service);
+            for record in tree.channel.specs.into_records() {
+                load_channel_api.load_spec(record)?;
+            }
+
+            for record in tree.channel.channels.into_records() {
+                load_channel_api.load_channel(record)?;
+            }
         }
 
-        for record in tree.node.nodes.into_records() {
-            let param_value = tree.parameter.take(&record.id);
-            let port_state = tree.ports.take(&record.id);
-            load_api.load_node(record, param_value, port_state)?;
-        }
+        let mut edges = vec![];
+        {
+            let node_view = node.view_mut();
+            let mut load_node_api =
+                LoadNodeApi::new(self.node_service, self.channel_service, node_view, channel);
+            for (spec_id, spec_key) in tree.node.specs.iter() {
+                let spec = self.spec_plugins.get_node_spec(spec_key)?;
+                load_node_api.load_spec(*spec_id, spec.clone())?;
+            }
 
-        todo!("load edges and channels")
+            for record in tree.node.nodes.into_records() {
+                let edge_iter = record.value.children().map(|to| NodeEdge {
+                    from: record.id,
+                    to: *to,
+                });
+                edges.extend(edge_iter);
+
+                let param_value = tree.parameter.take(&record.id);
+                let port_state = tree.ports.take(&record.id);
+                load_node_api.load_node(record, param_value, port_state)?;
+            }
+        }
+        let NodeRepositoryFacadeView { nodes, specs, .. } = node.view();
+        let tracker_api = node::TrackerApi::new(self.node_service, nodes);
+        let spec_api = node::SpecApi::new(specs, nodes);
+        let mut edge_mut_api: EdgeBorrowMutApi<'_, ER, NRF> =
+            EdgeBorrowMutApi::new(edge, self.edge_service, tracker_api, spec_api);
+        for edge in edges {
+            edge_mut_api.create(edge)?;
+        }
+        Ok(())
     }
 
     pub fn import_ui(&mut self, ui: UiElementStore) -> Result<()> {
