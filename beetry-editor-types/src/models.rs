@@ -145,6 +145,7 @@ pub struct PortsSpec {
 }
 
 impl PortsSpec {
+    //@todo tedious to use, sometimes only senders or receivers are present
     pub fn new(
         senders: impl IntoIterator<Item = MessageSpec>,
         receivers: impl IntoIterator<Item = MessageSpec>,

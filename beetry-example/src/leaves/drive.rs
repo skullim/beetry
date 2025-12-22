@@ -4,9 +4,13 @@ use crate::Pose;
 use anyhow::{Result, anyhow};
 use beetry_channel::downcast;
 use beetry_core::{ActionBehavior, BoxActionBehavior, NodeTask, Receiver, Task, TickStatus};
+use beetry_editor_types::{NodeSpecKey, PortsSpec};
 use beetry_macros::receivers;
-use beetry_plugin::plugin;
+use beetry_plugin::node::ActionFactory;
+use beetry_plugin::{Plugin, plugin};
 use beetry_plugin::{node::ActionReconstructionData, plugin2};
+use beetry_plugin_types::channel::MessageSpec;
+use beetry_plugin_types::node::{NodeName, NodeSpec};
 use beetry_plugin_types::spec;
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
@@ -95,12 +99,62 @@ impl Task for DriveTask {
 //     }
 // }
 
-plugin2! {
-    DrivePlugin: Action {
-        name: "Drive",
-        receivers: {
-            Pose => "Drive pose",
+// plugin2! {
+//     DrivePlugin: Action {
+//         name: "Drive",
+//         receivers: {
+//             Pose => "Drive pose",
+//         }
+//     }
+// }
+
+pub struct DrivePlugin {
+    spec: beetry_editor_types::NodeSpec,
+    factory: ActionFactory,
+}
+
+impl Plugin for DrivePlugin {
+    type Spec = beetry_editor_types::NodeSpec;
+    type Factory = ActionFactory;
+
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
+        let factory_fn = |mut data: ActionReconstructionData| {
+            let receivers = downcast! {receivers = &mut data.inner.receivers, expected = [Pose]}
+                .map_err(|_| anyhow!("failed to obtain typed receivers"))?;
+            Ok(Box::new(Drive::new(
+                DriveReceivers::builder().pose(receivers.0).build(),
+            )) as BoxActionBehavior)
+        };
+        let spec = beetry_editor_types::NodeSpec::builder()
+            .key(NodeSpecKey::new(
+                NodeName::new("Drive"),
+                beetry_editor_types::NodeKind::Action,
+            ))
+            .ports(PortsSpec::new(
+                std::iter::once(MessageSpec::new::<Pose>("Localize pose")),
+                std::iter::empty(),
+            ))
+            .build();
+
+        Self {
+            spec,
+            factory: Self::Factory::new(Box::new(factory_fn)),
         }
+    }
+
+    fn spec(&self) -> &Self::Spec {
+        &self.spec
+    }
+
+    fn factory(&self) -> &Self::Factory {
+        &self.factory
+    }
+
+    fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
+        (self.spec, self.factory)
     }
 }
 
