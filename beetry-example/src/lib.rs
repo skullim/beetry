@@ -8,7 +8,10 @@ pub use leaves::{
 use beetry_macros::{Message, submit_as_channel_plugin};
 use beetry_plugin::Plugin;
 use beetry_plugin::channel::{ChannelPluginConstructor, Factory};
-use beetry_plugin::node::{ActionPluginConstructor, ConditionPluginConstructor};
+use beetry_plugin::node::{
+    ActionPluginConstructor, ActionPluginConstructor2, ConditionPluginConstructor,
+    ConditionPluginConstructor2,
+};
 use beetry_plugin_types::channel::{ChannelSpec, Message};
 
 use type_hash::TypeHash;
@@ -50,8 +53,12 @@ impl ExternalData {
     }
 }
 
-beetry_plugin::submit!(ActionPluginConstructor::new::<DrivePlugin>());
-beetry_plugin::submit!(ActionPluginConstructor::new::<LocalizePlugin>());
-beetry_plugin::submit!(ActionPluginConstructor::new::<ReadExternalDataPlugin>());
+// beetry_plugin::submit!(ActionPluginConstructor::new::<DrivePlugin>());
+// beetry_plugin::submit!(ActionPluginConstructor::new::<LocalizePlugin>());
+// beetry_plugin::submit!(ActionPluginConstructor::new::<ReadExternalDataPlugin>());
+// beetry_plugin::submit!(ConditionPluginConstructor::new::<CheckBatteryPlugin>());
 
-beetry_plugin::submit!(ConditionPluginConstructor::new::<CheckBatteryPlugin>());
+beetry_plugin::submit!(ActionPluginConstructor2::new::<DrivePlugin>());
+// beetry_plugin::submit!(ActionPluginConstructor2::new::<LocalizePlugin>());
+// beetry_plugin::submit!(ActionPluginConstructor2::new::<ReadExternalDataPlugin>());
+// beetry_plugin::submit!(ConditionPluginConstructor2::new::<CheckBatteryPlugin>());

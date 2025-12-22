@@ -101,6 +101,10 @@ impl ChannelSpecMap {
             .get(key)
             .ok_or_else(|| anyhow!("failed to obtain channel spec for key {key:?}"))
     }
+
+    pub fn values(&self) -> impl Iterator<Item = &ChannelSpec> {
+        self.map.values()
+    }
 }
 
 #[component]

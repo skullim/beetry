@@ -11,7 +11,6 @@ use beetry_reconstruction_types::{
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::ui::channel::config_dialog::State as ChannelConfigDialogState;
 use crate::ui::channel::{self};
 use crate::ui::node::{ParameterDialogHandlers, ParameterDialogState};
 use crate::ui::{self, edge};
@@ -29,7 +28,10 @@ use crate::{
 };
 use crate::{
     Specs2,
-    sidebar::{Sidebar, SidebarEventHandlers},
+    sidebar::{Sidebar, Sidebar2, SidebarEventHandlers},
+};
+use crate::{
+    sidebar::SidebarEventHandlers2, ui::channel::config_dialog::State as ChannelConfigDialogState,
 };
 
 #[derive(Debug, Clone)]
@@ -211,7 +213,7 @@ pub(crate) fn Editor2() -> Element {
         use_signal(ParameterDialogState::default);
 
     let sidebar_handlers = use_context_provider(move || {
-        let on_new_node = |node: ui::Node| {
+        let on_new_node = |node_spec_key: NodeSpecKey| {
             let mut service_ctx = use_context::<ServiceContext>();
 
             let mut write = service_ctx.service.write();
@@ -220,37 +222,31 @@ pub(crate) fn Editor2() -> Element {
             //@todo this should be returned as reference
             let specs_map = use_context::<Specs2>();
 
-            //@todo remove ui::NodeKind after integration
-            let kind = match node.kind {
-                ui::NodeKind::Root => NodeKind::Root,
-                ui::NodeKind::Leaf { .. } => NodeKind::Action,
-                ui::NodeKind::Control { .. } => NodeKind::Control,
-            };
             //@todo handle unwraps
-            let node_spec = specs_map
-                .nodes
-                .spec(&NodeSpecKey::new(node.name, kind))
-                .unwrap();
+            let node_spec = specs_map.nodes.spec(&node_spec_key).unwrap();
             lifecycle_api.create(node_spec.clone()).unwrap();
+            //@todo missing instantiation of ui element, maybe pass position into closure?
+
+            //@todo root node has to be created once at the initialization phase
         };
 
-        SidebarEventHandlers::new(on_new_node)
+        SidebarEventHandlers2::new(on_new_node)
     });
 
     use_context_provider(move || {
         channel_config_dialog_handlers(channel_ctx.tracker, channel_config_dialog_state)
     });
 
-    use_context_provider(move || {
-        parameter_dialog_handlers(parameter_dialog_state, sidebar_handlers)
-    });
+    // use_context_provider(move || {
+    //     parameter_dialog_handlers2(parameter_dialog_state, sidebar_handlers)
+    // });
 
     rsx! {
         div { style: "display: flex; flex-direction: row; gap: 10px;",
             div { style: "flex: 0 1 20%;",
-                Sidebar {
+                Sidebar2 {
                     channel_config_dialog_state,
-                    parameter_dialog_state,
+                    //parameter_dialog_state,
                 }
             }
             div { style: "flex: 0 1 80%;", Workspace2 {} }
@@ -259,3 +255,19 @@ pub(crate) fn Editor2() -> Element {
         }
     }
 }
+
+// fn parameter_dialog_handlers2(
+//     mut state: Signal<ParameterDialogState2>,
+//     sidebar_handlers: SidebarEventHandlers2,
+// ) -> ParameterDialogHandlers {
+//     let on_confirm = move |spec: beetry_editor_types::NodeSpecKey| {
+//         sidebar_handlers.on_new_node.call(spec);
+//         state.take();
+//     };
+
+//     let on_cancel = move |_| {
+//         state.take();
+//     };
+
+//     ParameterDialogHandlers::new(on_confirm, on_cancel)
+// }
