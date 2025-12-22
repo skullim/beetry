@@ -618,6 +618,7 @@ impl ChannelRepositoryConcept for ChannelRepository {
     }
 }
 
+//@todo harmonize with other repo types to provide the ID by the repo
 pub trait UiRepositoryConcept: Default {
     type Id;
     type Data;

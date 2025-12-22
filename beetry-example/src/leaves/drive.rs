@@ -5,8 +5,8 @@ use anyhow::{Result, anyhow};
 use beetry_channel::downcast;
 use beetry_core::{ActionBehavior, BoxActionBehavior, NodeTask, Receiver, Task, TickStatus};
 use beetry_macros::receivers;
-use beetry_plugin::node::ActionReconstructionData;
 use beetry_plugin::plugin;
+use beetry_plugin::{node::ActionReconstructionData, plugin2};
 use beetry_plugin_types::spec;
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
@@ -83,15 +83,24 @@ impl Task for DriveTask {
     }
 }
 
-plugin! {
-  DrivePlugin: Action {
-    spec = spec! {type = action, name = "Drive", receivers = [Pose, desc = "Drive pose"] },
-    factory_fn = |mut data: ActionReconstructionData| {
-      let receivers = downcast! {receivers = &mut data.inner.receivers, expected = [Pose]}
-      .map_err(|_| anyhow!("failed to obtain typed receivers"))?;
-      Ok(Box::new(Drive::new(
-         DriveReceivers::builder().pose(receivers.0).build())) as BoxActionBehavior)
-      }
+// plugin! {
+//   DrivePlugin: Action {
+//     spec = spec! {type = action, name = "Drive", receivers = [Pose, desc = "Drive pose"] },
+//     factory_fn = |mut data: ActionReconstructionData| {
+//       let receivers = downcast! {receivers = &mut data.inner.receivers, expected = [Pose]}
+//       .map_err(|_| anyhow!("failed to obtain typed receivers"))?;
+//       Ok(Box::new(Drive::new(
+//          DriveReceivers::builder().pose(receivers.0).build())) as BoxActionBehavior)
+//       }
+//     }
+// }
+
+plugin2! {
+    DrivePlugin: Action {
+        name: "Drive",
+        receivers: {
+            Pose => "Drive pose",
+        }
     }
 }
 

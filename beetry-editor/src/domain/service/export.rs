@@ -12,7 +12,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use tracing::warn;
 
 use beetry_editor_types::{
-    ChannelId, ChannelRecord, ChannelSpecRecord, ChannelStore, ChannelUiRecord, EditorStateStore,
+    ChannelDataStore, ChannelId, ChannelSpecStore, ChannelStore, ChannelUiRecord, EditorStateStore,
     MaybeValidTree, NodeId, NodeKind, NodePortConnection, NodePortId, NodePortKind, NodePortState,
     NodePortStore, NodeRecordStore, NodeRecordValue, NodeSpecKey, NodeSpecStore, NodeStore,
     NodeUiRecord, ParameterValue, ParameterValueStore, TreeStore, UiElementStore, ValidTree,
@@ -226,32 +226,26 @@ where
     }
 
     fn export_channel_store(&mut self, channels: &[ChannelId]) -> Result<ChannelStore> {
-        let specs = channels
+        let iter = channels
             .iter()
             .copied()
             .map(|id| {
-                Ok(ChannelSpecRecord {
-                    id: self.channel_api.spec_id(id)?,
-                    spec: self.channel_api.spec(id)?.clone(),
-                })
+                Ok((
+                    self.channel_api.spec_id(id)?,
+                    self.channel_api.spec(id)?.clone(),
+                ))
             })
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Result<BTreeMap<_, _>>>()?;
+        let specs = ChannelSpecStore::from_iter(iter);
 
-        let records = channels
+        let iter = channels
             .iter()
             .copied()
-            .map(|id| {
-                Ok(ChannelRecord {
-                    id,
-                    data: self.channel_api.data(id)?.clone(),
-                })
-            })
-            .collect::<Result<Vec<_>>>()?;
+            .map(|id| Ok((id, self.channel_api.data(id)?.clone())))
+            .collect::<Result<BTreeMap<_, _>>>()?;
+        let channels = ChannelDataStore::from_iter(iter);
 
-        Ok(ChannelStore {
-            specs,
-            channels: records,
-        })
+        Ok(ChannelStore { specs, channels })
     }
 
     fn export_ui_elements(&mut self) -> UiElementStore {

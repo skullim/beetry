@@ -124,6 +124,59 @@ inventory::collect! {ActionPluginConstructor}
 inventory::collect! {ConditionPluginConstructor}
 inventory::collect! {ControlPluginConstructor}
 
+//@todo improve to factor out hard coded types
+#[macro_export]
+macro_rules! plugin2 {
+    ($plugin_name:ident : Action {
+        name: $name:literal,
+        receivers: {
+            $(
+                $receiver:ty => $desc:literal
+            ),* $(,)?
+        }
+    }) => {
+        pub struct $plugin_name {
+            spec: $crate::ActionSpec,
+            factory: $crate::node::ActionFactory,
+        }
+
+        impl $crate::Plugin for $plugin_name {
+            type Spec = $crate::ActionSpec;
+            type Factory = $crate::node::ActionFactory;
+
+            fn new() -> Self
+            where
+                Self: Sized,
+            {
+                let factory_fn = |mut data: ActionReconstructionData| {
+                    let receivers = downcast! {receivers = &mut data.inner.receivers, expected = [ $($receiver),*]}
+                    .map_err(|_| anyhow!("failed to obtain typed receivers"))?;
+                    Ok(Box::new(Drive::new(
+                        DriveReceivers::builder().pose(receivers.0).build())) as BoxActionBehavior)
+                };
+                let spec = $crate::ActionSpec::builder().name($name).schema(beetry_plugin_types::schema!{kind = action, receivers = [$($receiver, desc = $desc),* ]}).build();
+
+                Self {
+                    spec,
+                    factory: Self::Factory::new(Box::new(factory_fn)),
+                }
+            }
+
+            fn spec(&self) -> &Self::Spec {
+                &self.spec
+            }
+
+            fn factory(&self) -> &Self::Factory {
+                &self.factory
+            }
+
+            fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
+                (self.spec, self.factory)
+            }
+        }
+    };
+}
+
 #[macro_export]
 macro_rules! plugin {
     ($plugin_name:ident : Action {

@@ -65,6 +65,8 @@ pub struct NodeStore {
     pub nodes: NodeRecordStore,
 }
 
+//@todo Store structs could be created from generic struct
+
 //The remaining parts of spec are to be loaded by the appropriate plugin
 pub struct NodeSpecStore {
     // BTreeMap in favor of HashMap to have nicely ordered entries
@@ -211,10 +213,73 @@ impl NodePortState {
     }
 }
 
-//@todo storing as BTreeMap might make more sense
 pub struct ChannelStore {
-    pub specs: Vec<ChannelSpecRecord>,
-    pub channels: Vec<ChannelRecord>,
+    pub specs: ChannelSpecStore,
+    pub channels: ChannelDataStore,
+}
+
+impl FromIterator<(ChannelSpecId, ChannelSpec)> for ChannelSpecStore {
+    fn from_iter<T: IntoIterator<Item = (ChannelSpecId, ChannelSpec)>>(iter: T) -> Self {
+        Self {
+            store: iter.into_iter().collect(),
+        }
+    }
+}
+
+pub struct ChannelSpecStore {
+    store: BTreeMap<ChannelSpecId, ChannelSpec>,
+}
+
+impl ChannelSpecStore {
+    pub fn get(&self, id: &ChannelSpecId) -> Option<&ChannelSpec> {
+        self.store.get(id)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&ChannelSpecId, &ChannelSpec)> {
+        self.store.iter()
+    }
+
+    pub fn values(&self) -> impl Iterator<Item = &ChannelSpec> {
+        self.store.values()
+    }
+
+    pub fn into_records(self) -> impl Iterator<Item = ChannelSpecRecord> {
+        self.store
+            .into_iter()
+            .map(|(id, spec)| ChannelSpecRecord { id, spec })
+    }
+}
+
+impl FromIterator<(ChannelId, ChannelData)> for ChannelDataStore {
+    fn from_iter<T: IntoIterator<Item = (ChannelId, ChannelData)>>(iter: T) -> Self {
+        Self {
+            store: iter.into_iter().collect(),
+        }
+    }
+}
+
+pub struct ChannelDataStore {
+    store: BTreeMap<ChannelId, ChannelData>,
+}
+
+impl ChannelDataStore {
+    pub fn get(&self, id: &ChannelId) -> Option<&ChannelData> {
+        self.store.get(id)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&ChannelId, &ChannelData)> {
+        self.store.iter()
+    }
+
+    pub fn values(&self) -> impl Iterator<Item = &ChannelData> {
+        self.store.values()
+    }
+
+    pub fn into_records(self) -> impl Iterator<Item = ChannelRecord> {
+        self.store
+            .into_iter()
+            .map(|(id, data)| ChannelRecord { id, data })
+    }
 }
 
 pub struct ChannelSpecRecord {

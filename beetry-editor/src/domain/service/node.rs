@@ -234,19 +234,8 @@ where
             node.id,
             node.value.spec_id(),
         )?;
-        let spec_service_api = SpecApi {
-            spec_repo: self.node_facade_view.specs,
-            node_repo: self.node_facade_view.nodes,
-        };
         if let Some(state) = port_state {
-            let channel_service_api =
-                ChannelBorrowMutApi::new(self.channel_facade.view_mut(), self.channel_service);
-            let mut port_service_api = PortConnectionApi::new(
-                self.node_facade_view.ports,
-                spec_service_api,
-                channel_service_api,
-            );
-            port_service_api.load(node.id, state)?;
+            self.load_ports(node.id, state)?;
         }
 
         if let Some(value) = param_value {
@@ -254,6 +243,14 @@ where
                 repo: self.node_facade_view.parameters,
             };
             params_service_api.load(node.id, value)?;
+        }
+        Ok(())
+    }
+
+    fn load_ports(&mut self, id: NodeId, state: NodePortState) -> Result<()> {
+        //@todo should there be a validation that given channels exist?
+        for (port_id, conn) in state.conns {
+            self.node_facade_view.ports.create(id, port_id, conn)?;
         }
         Ok(())
     }
@@ -397,7 +394,7 @@ impl<'a, PVR> ParameterValueBorrowMutApi<'a, PVR>
 where
     PVR: ParamValueRepositoryConcept,
 {
-    //@todo move to NodeLoadApi
+    //@todo move to LoadNodeApi
     pub fn load(&mut self, id: NodeId, value: ParameterValue) -> Result<()> {
         self.repo.create(id, value.params)
     }
@@ -493,14 +490,6 @@ where
                 self.channel_service_api
                     .disconnect(channel, ports_spec.spec(*port_id)?.kind)?;
             }
-        }
-        Ok(())
-    }
-
-    //@todo move to NodeLoadApi
-    fn load(&mut self, id: NodeId, state: NodePortState) -> Result<()> {
-        for (port_id, conn) in state.conns {
-            self.repo.create(id, port_id, conn)?;
         }
         Ok(())
     }
