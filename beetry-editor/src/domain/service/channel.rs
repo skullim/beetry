@@ -122,6 +122,16 @@ impl<'a, CRF> LoadChannelApi<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
+    pub(super) fn new(
+        facade_view: ChannelRepositoryFacadeViewMut<'a, CRF>,
+        channel: &'a mut ChannelService,
+    ) -> Self {
+        Self {
+            facade_view,
+            channel,
+        }
+    }
+
     pub(super) fn load_spec(&mut self, record: ChannelSpecRecord) -> Result<()> {
         self.channel.load_spec(self.facade_view.spec, record)
     }

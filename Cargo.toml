@@ -6,7 +6,7 @@ members = [
     "beetry-channel",
     "beetry-core",
     "beetry-editor",
-    "beetry-editor-launch",
+    "beetry-editor-launch", "beetry-editor-types",
     "beetry-example",
     "beetry-exec",
     "beetry-macros",

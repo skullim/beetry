@@ -331,15 +331,10 @@ impl TreeReconstructor2 {
         store: ChannelStore,
         channel_plugin_map: &ChannelHashToPluginMap2,
     ) -> Result<ChannelIdToChannelMap> {
-        let spec_map: HashMap<_, _> = store
-            .specs
-            .into_iter()
-            .map(|record| (record.id, record.spec))
-            .collect();
-        store.channels.into_iter().map(|record| {
+        store.channels.into_records().map(|record| {
                 let id = record.id;
                 let data = record.data;
-                let msg_hash = spec_map.get(&data.spec_id).ok_or_else(|| anyhow!("failed to get channel spec with id {}", data.spec_id))?.msg_hash();
+                let msg_hash = store.specs.get(&data.spec_id).ok_or_else(|| anyhow!("failed to get channel spec with id {}", data.spec_id))?.msg_hash();
                 let factory = channel_plugin_map.get(msg_hash).ok_or_else(|| {
                     anyhow!(
                         "cannot create channel, failed to find channel constructor with required hash {msg_hash:?}"
@@ -627,7 +622,12 @@ struct ChannelHashToPluginMap2 {
 
 impl ChannelHashToPluginMap2 {
     fn new(plugins: Vec<BoxChannelPlugin2>) -> Self {
-        todo!()
+        Self {
+            map: plugins
+                .into_iter()
+                .map(|p| (p.spec().msg_hash(), p))
+                .collect(),
+        }
     }
 
     fn get(&self, hash: MessageHash) -> Option<&BoxChannelPlugin2> {
