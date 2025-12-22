@@ -16,8 +16,10 @@ pub use parameter_dialog::{
 pub use port::input::Handlers as InputPortHandlers;
 pub use port::output::Handlers as OutputPortHandlers;
 pub use port::receiver::Handlers as ReceiverPortHandlers;
+pub use port::receiver::Handlers2 as ReceiverPortHandlers2;
 pub use port::sender::Handlers as SenderPortHandlers;
-pub use renderer::Renderer;
+pub use port::sender::Handlers2 as SenderPortHandlers2;
+pub use renderer::{Renderer, Renderer2};
 
 use dioxus::prelude::*;
 

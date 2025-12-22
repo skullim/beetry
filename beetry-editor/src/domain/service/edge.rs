@@ -73,7 +73,7 @@ where
         )
     }
 
-    pub fn remove(&mut self, id: &EdgeId) -> Result<()> {
+    pub fn remove(&mut self, id: EdgeId) -> Result<()> {
         self.edge_service.remove(self.edge_repo, id)
     }
 }
@@ -104,7 +104,7 @@ where
             })
             .collect();
         for id in filtered {
-            self.service.remove(self.repo, &id)?;
+            self.service.remove(self.repo, id)?;
         }
         Ok(())
     }
@@ -168,7 +168,7 @@ impl EdgeService {
                 Self::find_edge_id_from(edge_repo, |(_, e)| e.from == old_parent_id)
         {
             warn!("re-parenting node {child} from {old_parent_id} to {parent}");
-            self.remove(edge_repo, &edge_id)?;
+            self.remove(edge_repo, edge_id)?;
         }
 
         //implicit re-childing (more convenient to use for client)
@@ -180,7 +180,7 @@ impl EdgeService {
                 .map(|children| children.iter().next().copied())
                 && let Some(edge_id) = Self::find_edge_id_from(edge_repo, |(_, e)| e.to == child_id)
             {
-                self.remove(edge_repo, &edge_id)?;
+                self.remove(edge_repo, edge_id)?;
             }
         }
 
@@ -194,9 +194,9 @@ impl EdgeService {
     }
 
     // All edges are *always* removed by Id
-    fn remove(&mut self, edge_repo: &mut impl EdgeRepositoryConcept, id: &EdgeId) -> Result<()> {
+    fn remove(&mut self, edge_repo: &mut impl EdgeRepositoryConcept, id: EdgeId) -> Result<()> {
         let removed = edge_repo
-            .remove(id)
+            .remove(&id)
             .ok_or_else(|| anyhow!("attempted to remove edge {id} that does not exist"))?;
 
         if let Some(children) = self.parent_children_map.get_mut(&removed.from) {

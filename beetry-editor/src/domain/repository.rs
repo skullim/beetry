@@ -294,11 +294,14 @@ impl UiRepositoryFacadeConcept for UiRepositoryFacade {
 pub trait SpecRepositoryConcept: Default {
     type Spec;
     type SpecId;
+    //type Key;
 
     fn create(&mut self, spec: Self::Spec) -> Result<Self::SpecId>;
     fn load(&mut self, id: Self::SpecId, spec: Self::Spec) -> Result<()>;
 
     fn remove(&mut self, id: Self::SpecId) -> Option<Self::Spec>;
+
+    //fn spec_by_key(&self, key: Self::Key) -> Option<Self::Spec>;
 
     fn spec(&self, id: Self::SpecId) -> Option<&Self::Spec>;
     fn specs(&self) -> impl Iterator<Item = &Self::Spec>;

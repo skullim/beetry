@@ -6,6 +6,7 @@ use beetry_reconstruction_types::channel::ChannelConfig;
 use bon::Builder;
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
+use tracing::warn;
 
 pub type NodeId = usize;
 pub type NodeSpecId = usize;
@@ -45,6 +46,14 @@ impl NodePortConnection {
         !matches!(self, Self::Unconnected)
     }
 
+    pub fn connected(&self) -> impl Iterator<Item = &ChannelId> {
+        if let Self::Internal(connected) = self {
+            connected.iter()
+        } else {
+            std::collections::hash_set::Iter::default()
+        }
+    }
+
     pub fn connect(&mut self, id: ChannelId) -> Result<()> {
         match self {
             Self::Unconnected => *self = Self::Internal(<_>::from_iter(std::iter::once(id))),
@@ -52,7 +61,8 @@ impl NodePortConnection {
                 connected.insert(id);
             }
             Self::External => {
-                bail!("attempted to connect {id} to external port")
+                warn!("attempted to connect {id} to external port, switching port to internal");
+                *self = Self::Internal(<_>::from_iter(std::iter::once(id)));
             }
         }
         Ok(())
@@ -119,7 +129,7 @@ pub struct IndexedDragOffset {
     pub offset: Point,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum NodeKind {
     Action,
     Condition,
@@ -204,7 +214,7 @@ pub struct NodeSpecValue {
     pub ports: PortsSpec,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, CopyGetters)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, CopyGetters, Serialize, Deserialize)]
 pub struct NodeSpecKey {
     #[getset(get = "pub")]
     name: NodeName,
@@ -218,7 +228,7 @@ impl NodeSpecKey {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChannelData {
     pub spec_id: ChannelSpecId,
     pub config: ChannelConfig,
@@ -230,12 +240,12 @@ impl ChannelData {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NodeUiData {
     pub position: NodePosition,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChannelUiData {
     pub position: ChannelPosition,
 }

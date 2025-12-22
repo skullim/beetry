@@ -8,13 +8,16 @@ use beetry_plugin_types::channel::ChannelSpec;
 use beetry_reconstruction_types::{channel::ChannelId, parameter};
 use getset::{CopyGetters, Getters};
 use indexmap::IndexSet;
+use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct EditorStateStore {
     pub tree: MaybeValidTree,
     pub ui_elements: UiElementStore,
 }
 
 // Editor might export/import either valid or (still) invalid tree
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MaybeValidTree(pub TreeStore);
 
 impl From<ValidTree> for MaybeValidTree {
@@ -37,6 +40,7 @@ impl ValidTree {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TreeStore {
     pub node: NodeStore,
     pub ports: NodePortStore,
@@ -60,6 +64,7 @@ impl TreeStore {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct NodeStore {
     pub specs: NodeSpecStore,
     pub nodes: NodeRecordStore,
@@ -68,6 +73,7 @@ pub struct NodeStore {
 //@todo Store structs could be created from generic struct
 
 //The remaining parts of spec are to be loaded by the appropriate plugin
+#[derive(Debug, Serialize, Deserialize)]
 pub struct NodeSpecStore {
     // BTreeMap in favor of HashMap to have nicely ordered entries
     store: BTreeMap<NodeSpecId, NodeSpecKey>,
@@ -96,6 +102,7 @@ impl NodeSpecStore {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct NodeRecordStore {
     store: BTreeMap<NodeId, NodeRecordValue>,
 }
@@ -143,7 +150,7 @@ pub struct NodeRecordView<'a> {
     pub value: &'a NodeRecordValue,
 }
 
-#[derive(Debug, Getters, CopyGetters)]
+#[derive(Debug, Getters, CopyGetters, Serialize, Deserialize)]
 pub struct NodeRecordValue {
     #[getset(get_copy = "pub")]
     spec_id: NodeSpecId,
@@ -165,6 +172,7 @@ impl NodeRecordValue {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ParameterValueStore {
     parameters: HashMap<NodeId, ParameterValue>,
 }
@@ -181,10 +189,12 @@ impl ParameterValueStore {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ParameterValue {
     pub params: parameter::Parameters,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct NodePortStore {
     ports: HashMap<NodeId, NodePortState>,
 }
@@ -201,6 +211,7 @@ impl NodePortStore {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct NodePortState {
     pub conns: Vec<(NodePortId, NodePortConnection)>,
 }
@@ -213,6 +224,7 @@ impl NodePortState {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ChannelStore {
     pub specs: ChannelSpecStore,
     pub channels: ChannelDataStore,
@@ -226,6 +238,7 @@ impl FromIterator<(ChannelSpecId, ChannelSpec)> for ChannelSpecStore {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ChannelSpecStore {
     store: BTreeMap<ChannelSpecId, ChannelSpec>,
 }
@@ -258,6 +271,7 @@ impl FromIterator<(ChannelId, ChannelData)> for ChannelDataStore {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ChannelDataStore {
     store: BTreeMap<ChannelId, ChannelData>,
 }
@@ -292,7 +306,7 @@ pub struct ChannelRecord {
     pub data: ChannelData,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct UiElementStore {
     pub nodes: Vec<NodeUiRecord>,
     pub channels: Vec<ChannelUiRecord>,
@@ -310,13 +324,13 @@ impl UiElementStore {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NodeUiRecord {
     pub id: NodeId,
     pub data: NodeUiData,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChannelUiRecord {
     pub id: ChannelId,
     pub data: ChannelUiData,

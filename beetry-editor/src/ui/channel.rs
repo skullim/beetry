@@ -4,10 +4,11 @@ pub mod temporary;
 mod tracker;
 
 use beetry_core::MessageHash;
+use beetry_plugin::Named;
 use beetry_plugin_types::channel::ChannelSpec;
 use beetry_reconstruction_types::channel::{ChannelId, ChannelSnapshot};
 pub use config_dialog::Dialog as ConfigDialog;
-pub use renderer::Renderer;
+pub use renderer::{Renderer, Renderer2};
 use serde::{Deserialize, Serialize};
 pub use temporary::Temporary;
 pub use tracker::Tracker;
@@ -16,6 +17,7 @@ use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 
 use crate::definitions::{EdgePos, Point};
+use crate::editor::ServiceContext;
 use crate::ui::curve::Curve;
 use crate::ui::text::{self, text_width_from};
 use crate::ui::viewport::{ViewportContext, ZoomLevel};
@@ -60,6 +62,27 @@ impl Handlers {
         on_drag_start: impl FnMut((ChannelId, Point)) + 'static,
         on_receiver: impl FnMut((ChannelId, MessageHash)) + 'static,
         on_sender: impl FnMut((ChannelId, MessageHash)) + 'static,
+    ) -> Self {
+        Self {
+            on_drag_start: EventHandler::new(on_drag_start),
+            on_receiver: EventHandler::new(on_receiver),
+            on_sender: EventHandler::new(on_sender),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Handlers2 {
+    on_drag_start: EventHandler<(ChannelId, Point)>,
+    on_receiver: EventHandler<ChannelId>,
+    on_sender: EventHandler<ChannelId>,
+}
+
+impl Handlers2 {
+    pub(crate) fn new(
+        on_drag_start: impl FnMut((ChannelId, Point)) + 'static,
+        on_receiver: impl FnMut(ChannelId) + 'static,
+        on_sender: impl FnMut(ChannelId) + 'static,
     ) -> Self {
         Self {
             on_drag_start: EventHandler::new(on_drag_start),
@@ -300,6 +323,170 @@ pub(crate) fn ReceiverConnection(edge: EdgePos) -> Element {
             stroke: "#6B7280", // color matching channel receiver gradient
             stroke_width: "3",
             fill: "none",
+        }
+    }
+}
+
+#[derive(Props, PartialEq, Clone)]
+pub struct ChannelProps2 {
+    id: ChannelId,
+}
+
+#[component]
+pub(crate) fn Channel2(props: ChannelProps2) -> Element {
+    let id = props.id;
+
+    let service = use_context::<ServiceContext>();
+    let read = service.service.read();
+    let channel_api = read.channel_api();
+    let ui_channel_api = read.ui_api();
+
+    let name = channel_api.spec(id).unwrap().name();
+    let position = ui_channel_api.channel().position(id).unwrap().origin;
+
+    let zoom_level = use_context::<ViewportContext>().zoom_level;
+    let handlers = use_context::<Handlers2>();
+
+    let font_size = 10;
+    let body_width = text_width_from(name, font_size);
+
+    let mut sender_hovered = use_signal(|| false);
+    let mut body_hovered = use_signal(|| false);
+    let mut receiver_hovered = use_signal(|| false);
+    let mut show_tooltip = use_signal(|| false);
+
+    rsx! {
+        g {
+            onmousedown: move |evt| {
+                on_mouse_down(
+                    evt,
+                    Point {
+                        x: position.x,
+                        y: position.y,
+                    },
+                    id,
+                    zoom_level.into(),
+                    &handlers.on_drag_start,
+                );
+            },
+
+            // Sender port (left side)
+            rect {
+                onmouseup: move |_| { handlers.on_sender.call(id) },
+                onmouseenter: move |_| sender_hovered.set(true),
+                onmouseleave: move |_| sender_hovered.set(false),
+                x: "{position.x}",
+                y: "{position.y}",
+                width: "40",
+                height: "25",
+                rx: "10",
+                ry: "10",
+                fill: if *sender_hovered.read() { "url(#channel-sender-gradient-hover)" } else { "url(#channel-sender-gradient)" },
+                stroke: "rgba(255,255,255,0.3)",
+                stroke_width: "1",
+                filter: if *sender_hovered.read() { "url(#shadow-hover)" } else { "url(#shadow)" },
+                style: "cursor: grab;",
+            }
+
+            // Main body
+            rect {
+                onmouseenter: move |_| {
+                    body_hovered.set(true);
+                    show_tooltip.set(true);
+                },
+                onmouseleave: move |_| {
+                    body_hovered.set(false);
+                    show_tooltip.set(false);
+                },
+                x: "{position.x + 40.0}",
+                y: "{position.y}",
+                width: "{body_width}",
+                height: "25",
+                rx: "10",
+                ry: "10",
+                fill: if *body_hovered.peek() { "url(#channel-body-gradient-hover)" } else { "url(#channel-body-gradient)" },
+                stroke: "rgba(255,255,255,0.3)",
+                stroke_width: "1",
+                filter: "url(#shadow)",
+                style: "cursor: grab;",
+            }
+
+            // Receiver port (right side)
+            rect {
+                onmouseup: move |_| { handlers.on_receiver.call(id) },
+                onmouseenter: move |_| receiver_hovered.set(true),
+                onmouseleave: move |_| receiver_hovered.set(false),
+                x: "{position.x + 40.0 + body_width}",
+                y: "{position.y}",
+                width: "40",
+                height: "25",
+                rx: "10",
+                ry: "10",
+                fill: if *receiver_hovered.peek() { "url(#channel-receiver-gradient-hover)" } else { "url(#channel-receiver-gradient)" },
+                stroke: "rgba(255,255,255,0.3)",
+                stroke_width: "1",
+                filter: if *receiver_hovered.peek() { "url(#shadow-hover)" } else { "url(#shadow)" },
+                style: "cursor: grab;",
+            }
+
+            text {
+                x: "{position.x + 40.0 + (body_width / 2.0)}",
+                y: "{position.y + 16.0}",
+                fill: "white",
+                font_family: text::font_family(),
+                font_size: "{font_size}",
+                font_weight: "medium",
+                text_anchor: "middle",
+                pointer_events: "none",
+                "{name}"
+            }
+
+            // Tooltip for channel ID (only show on hover)
+            if *show_tooltip.read() {
+                g {
+                    rect {
+                        x: "{position.x + 38.0 + (body_width / 2.0) - 15.0}",
+                        y: "{position.y - 35.0}",
+                        width: "30",
+                        height: "18",
+                        rx: "4",
+                        ry: "4",
+                        fill: "rgba(0, 0, 0, 0.8)",
+                        stroke: "rgba(255, 255, 255, 0.2)",
+                        stroke_width: "1",
+                    }
+
+                    text {
+                        x: "{position.x + 38.0 + (body_width / 2.0)}",
+                        y: "{position.y - 23.0}",
+                        fill: "white",
+                        font_family: text::font_family(),
+                        font_size: "{font_size}",
+                        font_weight: "400",
+                        text_anchor: "middle",
+                        pointer_events: "none",
+                        "ID: {id}"
+                    }
+                }
+            }
+
+            // Port indicators (small dots)
+            // Sender
+            circle {
+                cx: "{position.x + 20.0}",
+                cy: "{position.y + 12.0}",
+                r: "3",
+                fill: "rgba(255,255,255,0.8)",
+                pointer_events: "none",
+            }
+            // Receiver
+            circle {
+                cx: "{position.x + 38.0 + body_width + 20.0}",
+                cy: "{position.y + 12.0}",
+                r: "3",
+                fill: "rgba(255,255,255,0.8)",
+                pointer_events: "none",
+            }
         }
     }
 }

@@ -22,7 +22,7 @@ derive_more.workspace = true
 dioxus = { version = "0.7.0", features = [] }
 dioxus-logger = "0.7.0"
 getset.workspace = true
-indexmap = "2.11.3"
+indexmap.workspace = true
 itertools.workspace = true
 num-traits.workspace = true
 rfd = { version = "0.15.4", default-features = false, features = [
