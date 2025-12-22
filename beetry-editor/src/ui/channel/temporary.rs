@@ -1,4 +1,5 @@
 use beetry_core::MessageHash;
+use beetry_editor_types::NodePortId;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
@@ -119,5 +120,75 @@ pub fn Temporary(edge: ReadSignal<EdgePos>) -> Element {
             opacity: "0.7",
             style: "pointer-events: none",
         }
+    }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub enum ConnectionState2 {
+    #[default]
+    Idle,
+    Dragged(DraggedData),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DraggedData {
+    pub origin: ConnectionOrigin,
+    pub node_id: NodeId,
+    pub port_id: NodePortId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Context2 {
+    state: Signal<ConnectionState2>,
+    edge: Signal<EdgePos>,
+}
+
+impl Context2 {
+    pub(crate) fn new() -> Self {
+        Self {
+            state: Signal::new(ConnectionState2::Idle),
+            edge: Signal::new(EdgePos::default()),
+        }
+    }
+
+    pub(crate) fn is_dragged(&self) -> bool {
+        matches!(*self.state.read(), ConnectionState2::Dragged { .. })
+    }
+
+    pub(crate) fn set_dragged(&mut self, data: DraggedData) {
+        self.state.set(ConnectionState2::Dragged(data));
+    }
+
+    pub(crate) fn take_dragged(&mut self) -> Option<DraggedData> {
+        if let ConnectionState2::Dragged(data) = self.state.take() {
+            return Some(data);
+        }
+        None
+    }
+
+    pub(crate) fn update_end_if_dragged(&mut self, evt: &Event<MouseData>) {
+        if let ConnectionState2::Dragged(..) = *self.state.peek() {
+            let mouse_coords = evt.element_coordinates();
+            self.edge.with_mut(|data| {
+                data.end = Point {
+                    x: mouse_coords.x,
+                    y: mouse_coords.y,
+                }
+            });
+        }
+    }
+
+    pub(crate) fn update_edge_pos(&mut self, mut pos: EdgePos) {
+        self.edge.with_mut(|p| {
+            std::mem::swap(p, &mut pos);
+        })
+    }
+
+    pub(crate) fn edge(&self) -> EdgePos {
+        self.edge.read().clone()
+    }
+
+    pub(crate) fn reset(&mut self) {
+        self.state.set(ConnectionState2::Idle);
     }
 }

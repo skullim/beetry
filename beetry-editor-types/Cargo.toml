@@ -9,5 +9,6 @@ beetry-plugin-types = { version = "0.1.0", path = "../beetry-plugin-types" }
 beetry-reconstruction-types = { version = "0.1.0", path = "../beetry-reconstruction-types" }
 bon.workspace = true
 getset.workspace = true
-indexmap = "2.12.1"
+indexmap.workspace = true
 serde.workspace = true
+tracing.workspace = true

@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
+use beetry_editor_types::{NodeKind, NodeSpecKey};
 use beetry_plugin_types::node::{LeafSpec, NodeName};
 use beetry_reconstruction_types::{
     channel::{ChannelMetadata, ChannelSnapshot},
@@ -10,14 +11,26 @@ use beetry_reconstruction_types::{
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::definitions::NodeId;
-use crate::sidebar::{Sidebar, SidebarEventHandlers};
-use crate::toolbar::Toolbar;
 use crate::ui::channel::config_dialog::State as ChannelConfigDialogState;
 use crate::ui::channel::{self};
 use crate::ui::node::{ParameterDialogHandlers, ParameterDialogState};
 use crate::ui::{self, edge};
-use crate::workspace::Workspace;
+use crate::workspace::{Workspace, Workspace2};
+use crate::{
+    EditorService,
+    definitions::NodeId,
+    domain::repository::{
+        ChannelRepositoryFacade, EdgeRepository, NodeRepositoryFacade, UiRepositoryFacade,
+    },
+};
+use crate::{
+    NodeSpecMap,
+    toolbar::{Toolbar, Toolbar2},
+};
+use crate::{
+    Specs2,
+    sidebar::{Sidebar, SidebarEventHandlers},
+};
 
 #[derive(Debug, Clone)]
 struct EditorContext {
@@ -161,4 +174,88 @@ fn parameter_dialog_handlers(
     };
 
     ParameterDialogHandlers::new(on_confirm, on_cancel)
+}
+
+type EditorServiceImpl = EditorService<
+    NodeRepositoryFacade,
+    EdgeRepository,
+    ChannelRepositoryFacade,
+    UiRepositoryFacade,
+>;
+
+#[derive(Clone)]
+pub struct ServiceContext {
+    pub service: CopyValue<EditorServiceImpl>,
+}
+
+impl ServiceContext {
+    fn new(node_specs: NodeSpecMap) -> Self {
+        Self {
+            service: CopyValue::new(EditorServiceImpl::new(node_specs)),
+        }
+    }
+}
+
+#[component]
+pub(crate) fn Editor2() -> Element {
+    debug!("rendering editor");
+
+    let specs = use_context::<Specs2>();
+    use_context_provider(|| ServiceContext::new(specs.nodes));
+
+    let ctx = use_context_provider(EditorContext::new);
+    let channel_ctx = ctx.channel;
+    let channel_config_dialog_state: Signal<ChannelConfigDialogState> =
+        use_signal(ChannelConfigDialogState::default);
+    let parameter_dialog_state: Signal<ParameterDialogState> =
+        use_signal(ParameterDialogState::default);
+
+    let sidebar_handlers = use_context_provider(move || {
+        let on_new_node = |node: ui::Node| {
+            let mut service_ctx = use_context::<ServiceContext>();
+
+            let mut write = service_ctx.service.write();
+            let mut node_api_mut = write.node_api_mut();
+            let mut lifecycle_api = node_api_mut.lifecycle();
+            //@todo this should be returned as reference
+            let specs_map = use_context::<Specs2>();
+
+            //@todo remove ui::NodeKind after integration
+            let kind = match node.kind {
+                ui::NodeKind::Root => NodeKind::Root,
+                ui::NodeKind::Leaf { .. } => NodeKind::Action,
+                ui::NodeKind::Control { .. } => NodeKind::Control,
+            };
+            //@todo handle unwraps
+            let node_spec = specs_map
+                .nodes
+                .spec(&NodeSpecKey::new(node.name, kind))
+                .unwrap();
+            lifecycle_api.create(node_spec.clone()).unwrap();
+        };
+
+        SidebarEventHandlers::new(on_new_node)
+    });
+
+    use_context_provider(move || {
+        channel_config_dialog_handlers(channel_ctx.tracker, channel_config_dialog_state)
+    });
+
+    use_context_provider(move || {
+        parameter_dialog_handlers(parameter_dialog_state, sidebar_handlers)
+    });
+
+    rsx! {
+        div { style: "display: flex; flex-direction: row; gap: 10px;",
+            div { style: "flex: 0 1 20%;",
+                Sidebar {
+                    channel_config_dialog_state,
+                    parameter_dialog_state,
+                }
+            }
+            div { style: "flex: 0 1 80%;", Workspace2 {} }
+            div { style: "flex: 0 1 10%;", Toolbar2 {
+            } }
+        }
+    }
 }

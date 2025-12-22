@@ -19,18 +19,28 @@ where
     URF: UiRepositoryFacadeConcept,
 {
     facade_view: UiRepositoryFacadeView<'a, URF>,
+    service: &'a NodeService,
 }
 
 impl<'a, URF> UiBorrowApi<'a, URF>
 where
     URF: UiRepositoryFacadeConcept,
 {
-    pub(super) fn new(facade_view: UiRepositoryFacadeView<'a, URF>) -> Self {
-        Self { facade_view }
+    pub(super) fn new(
+        facade_view: UiRepositoryFacadeView<'a, URF>,
+        service: &'a NodeService,
+    ) -> Self {
+        Self {
+            facade_view,
+            service,
+        }
     }
 
     pub fn node(&self) -> NodeUiBorrowApi<'_, URF::UiNodeRepo> {
-        todo!()
+        NodeUiBorrowApi {
+            repo: self.facade_view.node,
+            service: self.service,
+        }
     }
 
     pub fn channel(&self) -> ChannelUiBorrowApi<'_, URF::UiChannelRepo> {
@@ -83,6 +93,10 @@ where
             .ok_or_else(|| anyhow!("unable to retrieve node {id} data"))
     }
 
+    pub fn position(&self, id: NodeId) -> Result<&NodePosition> {
+        Ok(&self.data(id)?.position)
+    }
+
     pub fn positions(&self) -> impl Iterator<Item = &NodePosition> {
         self.repo.data_iter().map(|data| &data.position)
     }
@@ -110,7 +124,10 @@ where
     }
 
     //@todo maybe should be pulled up, something like node cache service?
-    pub fn positions_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodePosition> {
+    pub fn positions_by_kind(
+        &self,
+        kind: NodeKind,
+    ) -> impl Iterator<Item = (NodeId, &NodePosition)> {
         self.service.positions_by_kind(self.repo, kind)
     }
 }
@@ -131,7 +148,7 @@ where
         self.repo.create(id, data)
     }
 
-    pub(super) fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
+    pub fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
         let data = self
             .repo
             .data_mut(id)
@@ -149,6 +166,14 @@ impl<'a, UR> ChannelUiBorrowApi<'a, UR>
 where
     UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
 {
+    pub fn position(&self, id: ChannelId) -> Result<&ChannelPosition> {
+        Ok(&self
+            .repo
+            .data(id)
+            .ok_or_else(|| anyhow!("failed to get channel {id} position"))?
+            .position)
+    }
+
     pub fn positions(&self) -> impl Iterator<Item = &ChannelPosition> {
         self.repo.data_iter().map(|data| &data.position)
     }
@@ -174,11 +199,7 @@ where
         self.repo.create(id, data)
     }
 
-    pub(super) fn update_position(
-        &mut self,
-        id: ChannelId,
-        position: ChannelPosition,
-    ) -> Result<()> {
+    pub fn update_position(&mut self, id: ChannelId, position: ChannelPosition) -> Result<()> {
         let data = self
             .repo
             .data_mut(id)

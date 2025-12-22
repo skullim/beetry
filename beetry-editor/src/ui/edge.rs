@@ -3,8 +3,9 @@ mod renderer;
 mod tracker;
 
 pub mod temporary;
+use beetry_editor_types::EdgeId;
 pub use context_menu::{ContextMenu, Handlers as ContextMenuHandlers, State as ContextMenuState};
-pub use renderer::Renderer;
+pub use renderer::{Renderer, Renderer2};
 pub use temporary::Temporary;
 pub use tracker::Tracker;
 
@@ -29,7 +30,7 @@ impl Context {
 #[derive(Props, Clone, PartialEq)]
 pub struct EdgeProps {
     pos: EdgePos,
-    edge_index: usize,
+    edge_index: EdgeId,
     on_context_menu: EventHandler<(usize, Point)>,
 }
 

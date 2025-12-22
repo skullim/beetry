@@ -1,5 +1,5 @@
 use crate::{
-    SpecPlugins2,
+    NodeSpecMap,
     domain::{
         channel::ChannelBorrowApi,
         edge::EdgeBorrowApi,
@@ -26,7 +26,7 @@ pub struct EditorService<NRF, ER, CRF, URF> {
     edge_service: EdgeService,
     channel_service: ChannelService,
     repo: EditorRepository<NRF, ER, CRF, URF>,
-    spec_plugins: SpecPlugins2,
+    spec_map: NodeSpecMap,
 }
 
 impl<NRF, ER, CRF, URF> EditorService<NRF, ER, CRF, URF>
@@ -36,13 +36,13 @@ where
     CRF: ChannelRepositoryFacadeConcept,
     URF: UiRepositoryFacadeConcept,
 {
-    pub fn new(spec_plugins: SpecPlugins2) -> Self {
+    pub fn new(spec_plugins: NodeSpecMap) -> Self {
         Self {
             node_service: NodeService::new(),
             edge_service: EdgeService::new(),
             channel_service: ChannelService::new(),
             repo: EditorRepository::<NRF, ER, CRF, URF>::new(),
-            spec_plugins,
+            spec_map: spec_plugins,
         }
     }
 
@@ -99,7 +99,7 @@ where
 
     pub fn ui_api(&self) -> UiBorrowApi<'_, URF> {
         let EditorRepositoryView { ui, .. } = self.repo.view();
-        UiBorrowApi::new(ui.view())
+        UiBorrowApi::new(ui.view(), &self.node_service)
     }
 
     pub fn import_api(&mut self) -> ImportApi<'_, NRF, ER, CRF, URF> {
@@ -108,7 +108,7 @@ where
             &mut self.edge_service,
             &mut self.channel_service,
             &mut self.repo,
-            &self.spec_plugins,
+            &self.spec_map,
         )
     }
 
