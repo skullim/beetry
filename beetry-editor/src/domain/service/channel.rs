@@ -24,21 +24,14 @@ where
     CRF: ChannelRepositoryFacadeConcept,
 {
     facade_view: ChannelRepositoryFacadeView<'a, CRF>,
-    channel: &'a ChannelService,
 }
 
 impl<'a, CRF> ChannelBorrowApi<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
-    pub(super) fn new(
-        facade_view: ChannelRepositoryFacadeView<'a, CRF>,
-        channel: &'a ChannelService,
-    ) -> Self {
-        Self {
-            facade_view,
-            channel,
-        }
+    pub(super) fn new(facade_view: ChannelRepositoryFacadeView<'a, CRF>) -> Self {
+        Self { facade_view }
     }
 
     pub fn data(&self, id: ChannelId) -> Result<&ChannelData> {

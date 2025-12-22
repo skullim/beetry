@@ -57,9 +57,7 @@ where
     }
 
     pub fn port_state(&self) -> PortStateApi<'_, NRF::PortStateRepo> {
-        PortStateApi {
-            repo: self.facade_view.ports,
-        }
+        PortStateApi::new(self.facade_view.ports)
     }
 
     pub fn parameter(&self) -> ParameterValueBorrowApi<'_, NRF::ParamValuesRepo> {
@@ -193,32 +191,25 @@ where
     }
 }
 
-pub(super) struct LoadNodeApi<'a, NRF, CRF>
+pub(super) struct LoadNodeApi<'a, NRF>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
     node_service: &'a mut NodeService,
-    channel_service: &'a mut ChannelService,
     node_facade_view: NodeRepositoryFacadeViewMut<'a, NRF>,
-    channel_facade: &'a mut CRF,
 }
 
-impl<'a, NRF, CRF> LoadNodeApi<'a, NRF, CRF>
+impl<'a, NRF> LoadNodeApi<'a, NRF>
 where
     NRF: NodeRepositoryFacadeConcept,
-    CRF: ChannelRepositoryFacadeConcept,
 {
     pub(super) fn new(
         node_service: &'a mut NodeService,
-        channel_service: &'a mut ChannelService,
         node_facade_view: NodeRepositoryFacadeViewMut<'a, NRF>,
-        channel_facade: &'a mut CRF,
     ) -> Self {
         Self {
             node_service,
-            channel_service,
             node_facade_view,
-            channel_facade,
         }
     }
 
