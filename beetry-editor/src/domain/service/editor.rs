@@ -4,6 +4,7 @@ use crate::{
         channel::ChannelBorrowApi,
         edge::EdgeBorrowApi,
         export::ExportApi,
+        import::ImportApi,
         node::NodeBorrowApi,
         repository::{
             ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
@@ -25,7 +26,7 @@ pub struct EditorService<NRF, ER, CRF, URF> {
     edge_service: EdgeService,
     channel_service: ChannelService,
     repo: EditorRepository<NRF, ER, CRF, URF>,
-    plugins: SpecPlugins2,
+    spec_plugins: SpecPlugins2,
 }
 
 impl<NRF, ER, CRF, URF> EditorService<NRF, ER, CRF, URF>
@@ -35,13 +36,13 @@ where
     CRF: ChannelRepositoryFacadeConcept,
     URF: UiRepositoryFacadeConcept,
 {
-    pub fn new(plugins: SpecPlugins2) -> Self {
+    pub fn new(spec_plugins: SpecPlugins2) -> Self {
         Self {
             node_service: NodeService::new(),
             edge_service: EdgeService::new(),
             channel_service: ChannelService::new(),
             repo: EditorRepository::<NRF, ER, CRF, URF>::new(),
-            plugins,
+            spec_plugins,
         }
     }
 
@@ -83,7 +84,7 @@ where
 
     pub fn channel_api(&self) -> ChannelBorrowApi<'_, CRF> {
         let EditorRepositoryView { channel, .. } = self.repo.view();
-        ChannelBorrowApi::new(channel.view(), &self.channel_service)
+        ChannelBorrowApi::new(channel.view())
     }
 
     pub fn channel_api_mut(&mut self) -> ChannelBorrowMutApi<'_, CRF> {
@@ -101,7 +102,17 @@ where
         UiBorrowApi::new(ui.view())
     }
 
-    pub fn export_api(&mut self) -> ExportApi<'_, NRF, ER, CRF, URF> {
+    pub fn import_api(&mut self) -> ImportApi<'_, NRF, ER, CRF, URF> {
+        ImportApi::new(
+            &mut self.node_service,
+            &mut self.edge_service,
+            &mut self.channel_service,
+            &mut self.repo,
+            &self.spec_plugins,
+        )
+    }
+
+    pub fn export_api(&self) -> ExportApi<'_, NRF, ER, CRF, URF> {
         ExportApi::new(
             self.channel_api(),
             self.node_api(),

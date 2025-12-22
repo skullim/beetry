@@ -35,6 +35,22 @@ where
     CRF: ChannelRepositoryFacadeConcept,
     URF: UiRepositoryFacadeConcept,
 {
+    pub(super) fn new(
+        node_service: &'a mut NodeService,
+        edge_service: &'a mut EdgeService,
+        channel_service: &'a mut ChannelService,
+        repo: &'a mut EditorRepository<NRF, ER, CRF, URF>,
+        spec_plugins: &'a SpecPlugins2,
+    ) -> Self {
+        Self {
+            node_service,
+            edge_service,
+            channel_service,
+            repo,
+            spec_plugins,
+        }
+    }
+
     pub fn import_project(&mut self, store: EditorStateStore) -> Result<()> {
         self.import_tree(store.tree)?;
         self.import_ui(store.ui_elements)
@@ -62,8 +78,7 @@ where
         let mut edges = vec![];
         {
             let node_view = node.view_mut();
-            let mut load_node_api =
-                LoadNodeApi::new(self.node_service, self.channel_service, node_view, channel);
+            let mut load_node_api = LoadNodeApi::new(self.node_service, node_view);
             for (spec_id, spec_key) in tree.node.specs.iter() {
                 let spec = self.spec_plugins.get_node_spec(spec_key)?;
                 load_node_api.load_spec(*spec_id, spec.clone())?;
@@ -110,4 +125,5 @@ where
 }
 
 //@todo implement in next release
+#[allow(unused)]
 struct SubtreeImporter;
