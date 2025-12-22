@@ -6,7 +6,8 @@ members = [
     "beetry-channel",
     "beetry-core",
     "beetry-editor",
-    "beetry-editor-launch", "beetry-editor-types",
+    "beetry-editor-launch",
+    "beetry-editor-types",
     "beetry-example",
     "beetry-exec",
     "beetry-macros",
@@ -23,6 +24,7 @@ anyhow = "1.0.100"
 bon = "3.8.1"
 derive_more = { version = "2.0.1", features = ["full"] }
 getset = "0.1.6"
+indexmap = { version = "2.12.1", features = ["serde"] }
 mitsein = { version = "0.8.0", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde-value = "0.7.0"

@@ -156,6 +156,10 @@ where
         }
     }
 
+    pub fn spec_by_key(&self, key: &NodeSpecKey) -> Result<&NodeSpec> {
+        todo!()
+    }
+
     pub fn name(&self, id: NodeId) -> Result<&NodeName> {
         Ok(Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.name())
     }
@@ -399,6 +403,16 @@ pub struct PortConnectionInput {
     channel: ChannelId,
 }
 
+impl PortConnectionInput {
+    pub fn new(node: NodeId, port: NodePortId, channel: ChannelId) -> Self {
+        Self {
+            node,
+            port,
+            channel,
+        }
+    }
+}
+
 pub struct PortStateApi<'a, PR> {
     repo: &'a PR,
 }
@@ -578,15 +592,13 @@ impl NodeService {
         &self,
         repo: &'a impl UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
         kind: NodeKind,
-    ) -> impl Iterator<Item = &'a NodePosition> {
+    ) -> impl Iterator<Item = (NodeId, &'a NodePosition)> {
         let position_ids = self
             .node_cache
             .get(&kind)
             .into_iter()
             .flat_map(|i| i.iter().copied());
-        position_ids
-            .flat_map(|id| repo.data(id))
-            .map(|data| &data.position)
+        position_ids.flat_map(|id| repo.data(id).map(|data| (id, &data.position)))
     }
 
     fn remove<NRF>(

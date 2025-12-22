@@ -1,5 +1,5 @@
 use crate::{
-    SpecPlugins2,
+    NodeSpecMap,
     domain::{
         channel::LoadChannelApi,
         edge::EdgeBorrowMutApi,
@@ -25,7 +25,7 @@ pub struct ImportApi<'a, NRF, ER, CRF, URF> {
     edge_service: &'a mut EdgeService,
     channel_service: &'a mut ChannelService,
     repo: &'a mut EditorRepository<NRF, ER, CRF, URF>,
-    spec_plugins: &'a SpecPlugins2,
+    spec_map: &'a NodeSpecMap,
 }
 
 impl<'a, NRF, ER, CRF, URF> ImportApi<'a, NRF, ER, CRF, URF>
@@ -40,14 +40,14 @@ where
         edge_service: &'a mut EdgeService,
         channel_service: &'a mut ChannelService,
         repo: &'a mut EditorRepository<NRF, ER, CRF, URF>,
-        spec_plugins: &'a SpecPlugins2,
+        spec_map: &'a NodeSpecMap,
     ) -> Self {
         Self {
             node_service,
             edge_service,
             channel_service,
             repo,
-            spec_plugins,
+            spec_map,
         }
     }
 
@@ -80,7 +80,7 @@ where
             let node_view = node.view_mut();
             let mut load_node_api = LoadNodeApi::new(self.node_service, node_view);
             for (spec_id, spec_key) in tree.node.specs.iter() {
-                let spec = self.spec_plugins.get_node_spec(spec_key)?;
+                let spec = self.spec_map.spec(spec_key)?;
                 load_node_api.load_spec(*spec_id, spec.clone())?;
             }
 

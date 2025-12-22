@@ -1,11 +1,14 @@
-use std::path::PathBuf;
+use std::io::Read;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Result, anyhow};
-use beetry_serialization::{JsonSerializer, Serializer};
+use beetry_editor_types::EditorStateStore;
+use beetry_serialization::{Deserializer, JsonDeserializer, JsonSerializer, Serializer};
 use dioxus::prelude::*;
 use rfd::FileDialog;
 
 use crate::definitions::NodeId;
+use crate::editor::ServiceContext;
 use crate::project::{EditorMetadata, ProjectData};
 use crate::ui::{self, channel, edge, transfer};
 #[derive(Debug, Clone)]
@@ -122,4 +125,107 @@ fn select_import_file() -> Result<PathBuf> {
         .set_title("Select file to import")
         .pick_file()
         .ok_or_else(|| anyhow!("No file selected"))
+}
+
+#[component]
+pub(crate) fn Toolbar2() -> Element {
+    let mut export_result = use_signal(transfer::OperationResult::default);
+    let mut import_result = use_signal(transfer::OperationResult::default);
+
+    {
+        let on_export = move |()| {
+            let service = use_context::<ServiceContext>();
+            let read = service.service.read();
+
+            let export_project_result = read.export_api().export_project();
+            match export_project_result {
+                Ok(state) => match export_project_to_file2(state) {
+                    Ok(()) => {
+                        export_result.set(transfer::OperationResult::new(
+                            "Export successful",
+                            transfer::OperationStatus::Success,
+                        ));
+                    }
+                    Err(e) => {
+                        export_result.set(transfer::OperationResult::new(
+                            format!("Export failed:\n{e}"),
+                            transfer::OperationStatus::Error,
+                        ));
+                    }
+                },
+                Err(e) => {
+                    export_result.set(transfer::OperationResult::new(
+                        format!("Export failed:\n{e}"),
+                        transfer::OperationStatus::Error,
+                    ));
+                }
+            };
+        };
+
+        let on_import = move |()| {
+            let result = import_project_from_file();
+
+            match result {
+                Ok(state) => {
+                    let mut service = use_context::<ServiceContext>();
+                    let mut write = service.service.write();
+                    match write.import_api().import_project(state) {
+                        Ok(()) => {
+                            import_result.set(transfer::OperationResult::new(
+                                "Import successful",
+                                transfer::OperationStatus::Success,
+                            ));
+                        }
+                        Err(e) => {
+                            import_result.set(transfer::OperationResult::new(
+                                format!("Import failed:\n{e}"),
+                                transfer::OperationStatus::Error,
+                            ));
+                        }
+                    }
+                }
+                Err(e) => {
+                    import_result.set(transfer::OperationResult::new(
+                        format!("Import failed:\n{e}"),
+                        transfer::OperationStatus::Error,
+                    ));
+                }
+            }
+        };
+
+        use_context_provider(move || ToolbarHandlers {
+            import: transfer::ImportHandlers::new(on_import),
+            export: transfer::ExportHandlers::new(on_export),
+        });
+    }
+
+    rsx! {
+        transfer::Export { result: export_result }
+        transfer::Import { result: import_result }
+    }
+}
+
+fn export_project_to_file2(editor_state: EditorStateStore) -> Result<()> {
+    let serialized = JsonSerializer::serialize(&editor_state)?;
+    let file_path = select_export_file()?;
+
+    std::fs::write(&file_path, serialized)
+        .map_err(|e| anyhow!("Failed to save file '{}': {}", file_path.display(), e))
+}
+
+pub(crate) fn import_project_from_file() -> Result<EditorStateStore> {
+    let path = select_import_file()?;
+    let ext = path
+        .extension()
+        .and_then(|s| s.to_str())
+        .ok_or_else(|| anyhow!("import path should contain extension"))?;
+    if !matches!(ext, "json") {
+        return Err(anyhow!("unsupported extension: {ext:?}"));
+    }
+
+    let mut file = std::fs::File::open(path)?;
+    let mut content_buffer = String::new();
+    file.read_to_string(&mut content_buffer)?;
+    let store: EditorStateStore = JsonDeserializer::deserialize(&content_buffer)?;
+    Ok(store)
 }

@@ -1,4 +1,5 @@
 use beetry_core::MessageHash;
+use beetry_editor_types::NodePortId;
 use beetry_plugin_types::channel::MessageSpec;
 use dioxus::prelude::*;
 
@@ -14,6 +15,21 @@ pub struct Handlers {
 impl Handlers {
     pub(crate) fn new(
         on_mouse_down: impl FnMut((ConnectionOrigin, IndexedDragOffset, MessageHash)) + 'static,
+    ) -> Self {
+        Self {
+            on_mouse_down: EventHandler::new(on_mouse_down),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Handlers2 {
+    on_mouse_down: EventHandler<(ConnectionOrigin, IndexedDragOffset, NodePortId)>,
+}
+
+impl Handlers2 {
+    pub(crate) fn new(
+        on_mouse_down: impl FnMut((ConnectionOrigin, IndexedDragOffset, NodePortId)) + 'static,
     ) -> Self {
         Self {
             on_mouse_down: EventHandler::new(on_mouse_down),

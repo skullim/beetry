@@ -1,13 +1,19 @@
 use beetry_core::MessageHash;
+use beetry_editor_types::{ChannelPosition, EdgeId, NodePortId, NodePosition};
 use beetry_reconstruction_types::channel::ChannelId;
 use bon::Builder;
 use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
 
 use crate::definitions::{EdgePos, IndexedDragOffset, NodeEdge, NodeId, Point};
-use crate::ui::channel::temporary::ConnectionOrigin;
+use crate::domain::node::PortConnectionInput;
+use crate::editor::ServiceContext;
+use crate::ui::channel::temporary::{ConnectionOrigin, DraggedData};
 use crate::ui::channel::{self};
-use crate::ui::node::{self, ContextMenuState, ReceiverPortHandlers, SenderPortHandlers};
+use crate::ui::node::{
+    self, ContextMenuState, ReceiverPortHandlers, ReceiverPortHandlers2, SenderPortHandlers,
+    SenderPortHandlers2,
+};
 use crate::ui::viewport::ViewportContext;
 use crate::ui::{self, edge};
 
@@ -473,6 +479,333 @@ fn style_defs() -> Element {
             }
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct WorkspaceContext2 {
+    dimensions_ctx: DimensionsContext,
+    drag_node_state: Signal<DragNodeState>,
+    drag_channel_state: Signal<DragChannelState>,
+    context_menu_state: Signal<ContextMenuState>,
+    edge_context_menu_state: Signal<edge::ContextMenuState>,
+    channel_temp_conn_ctx: channel::temporary::Context2,
+}
+
+impl WorkspaceContext2 {
+    fn new() -> Self {
+        Self {
+            dimensions_ctx: DimensionsContext::new(),
+            drag_node_state: Signal::new(DragNodeState::Idle),
+            drag_channel_state: Signal::new(DragChannelState::Idle),
+            context_menu_state: Signal::new(node::ContextMenuState::default()),
+            edge_context_menu_state: Signal::new(edge::ContextMenuState::default()),
+            channel_temp_conn_ctx: channel::temporary::Context2::new(),
+        }
+    }
+}
+
+pub(crate) fn Workspace2() -> Element {
+    debug!("rendering workspace");
+
+    let workspace_ctx = use_context_provider(WorkspaceContext2::new);
+    let mut drag_node_state = workspace_ctx.drag_node_state;
+    let mut drag_channel_state = workspace_ctx.drag_channel_state;
+    let context_menu_state = workspace_ctx.context_menu_state;
+    let edge_context_menu_state = workspace_ctx.edge_context_menu_state;
+    let dimensions_ctx = workspace_ctx.dimensions_ctx;
+    let mut temp_channel_conn_ctx = workspace_ctx.channel_temp_conn_ctx;
+
+    let mut temp_edge_ctx = use_context_provider(edge::temporary::Context::new);
+    let mut viewport_ctx = use_context_provider(ViewportContext::new);
+    let zoom_level = viewport_ctx.zoom_level;
+
+    use_context_provider(move || node_handlers(drag_node_state, context_menu_state));
+    use_context_provider(move || input_port_handlers2(temp_edge_ctx));
+    use_context_provider(move || output_port_handlers(temp_edge_ctx));
+    use_context_provider(move || context_menu_handlers2(context_menu_state));
+    use_context_provider(move || edge_context_menu_handlers2(edge_context_menu_state));
+
+    use_context_provider(move || sender_handlers2(temp_channel_conn_ctx));
+    use_context_provider(move || receiver_handlers2(temp_channel_conn_ctx));
+    use_context_provider(move || channel_handlers2(drag_channel_state, temp_channel_conn_ctx));
+
+    let workspace_handlers_ctx = use_context_provider(move || {
+        let on_mouse_move = move |evt: Event<MouseData>| {
+            evt.stop_propagation();
+            if let DragNodeState::Dragged { id, offset } = *drag_node_state.peek() {
+                let mouse_coords = evt.client_coordinates();
+
+                let zoom = zoom_level.peek().get();
+                let updated_pos = Point {
+                    x: (mouse_coords.x / zoom - offset.x),
+                    y: (mouse_coords.y / zoom - offset.y),
+                };
+                let mut service = use_context::<ServiceContext>();
+                let mut write = service.service.write();
+                let mut ui_api = write.ui_api_mut();
+                //@todo error handling
+                ui_api.node().update_position(
+                    id,
+                    NodePosition {
+                        origin: beetry_editor_types::Point {
+                            x: updated_pos.x,
+                            y: updated_pos.y,
+                        },
+                    },
+                );
+                //@todo fix zoom
+                //dimensions_ctx.resize_if_needed(ui_nodes.into());
+            }
+
+            if let DragChannelState::Dragged { id, offset } = *drag_channel_state.peek() {
+                let mouse_coords = evt.client_coordinates();
+
+                let zoom = zoom_level.peek().get();
+                let updated_pos = Point {
+                    x: (mouse_coords.x / zoom - offset.x),
+                    y: (mouse_coords.y / zoom - offset.y),
+                };
+
+                let mut service = use_context::<ServiceContext>();
+                let mut write = service.service.write();
+                let mut ui_api = write.ui_api_mut();
+                //@todo error handling
+                ui_api.channel().update_position(
+                    id,
+                    ChannelPosition {
+                        origin: beetry_editor_types::Point {
+                            x: updated_pos.x,
+                            y: updated_pos.y,
+                        },
+                    },
+                );
+            }
+
+            temp_edge_ctx.update_end_if_dragged(&evt);
+            temp_channel_conn_ctx.update_end_if_dragged(&evt);
+        };
+
+        let on_mouse_up = move |evt: Event<MouseData>| {
+            evt.stop_propagation();
+            drag_node_state.set(DragNodeState::Idle);
+            drag_channel_state.set(DragChannelState::Idle);
+            temp_edge_ctx.reset();
+            temp_channel_conn_ctx.reset();
+        };
+
+        let on_wheel = move |evt: Event<WheelData>| {
+            if evt.modifiers().ctrl() {
+                evt.prevent_default();
+                let delta = evt.delta();
+                viewport_ctx
+                    .zoom_level
+                    .with_mut(|level| level.update(&delta));
+            }
+        };
+
+        WorkspaceEventHandlers::builder()
+            .on_mouse_move(EventHandler::new(on_mouse_move))
+            .on_mouse_up(EventHandler::new(on_mouse_up))
+            .on_wheel(EventHandler::new(on_wheel))
+            .build()
+    });
+
+    rsx! {
+        div {
+            style: "overflow: auto; border: 1px solid black; width: 800px; height: 800px;",
+            onwheel: workspace_handlers_ctx.on_wheel,
+
+            svg {
+                style: "transform: scale({zoom_level.read().get()}); transform-origin: 0 0;",
+                width: "{dimensions_ctx.width()}",
+                height: "{dimensions_ctx.height()}",
+
+                onmousemove: workspace_handlers_ctx.on_mouse_move,
+                onmouseup: workspace_handlers_ctx.on_mouse_up,
+
+                rect {
+                    x: "0",
+                    y: "0",
+                    width: "100%",
+                    height: "100%",
+                    fill: "#5045454f",
+                }
+
+                {ui::channel::style_defs()}
+                {ui::node::style_defs()}
+                {ui::shadow::style_defs()}
+
+                {style_defs()}
+                rect {
+                    x: "0",
+                    y: "0",
+                    width: "100%",
+                    height: "100%",
+                    fill: "url(#grid)",
+                }
+
+                edge::Renderer2 {  edge_context_menu_state }
+                channel::Renderer2 {}
+                node::Renderer2 {}
+
+                if temp_edge_ctx.is_dragged() {
+
+                    edge::Temporary { edge: temp_edge_ctx.edge() }
+                }
+                if temp_channel_conn_ctx.is_dragged() {
+                    channel::Temporary { edge: temp_channel_conn_ctx.edge() }
+                }
+            }
+
+            node::ContextMenu { state: context_menu_state }
+            edge::ContextMenu { state: edge_context_menu_state }
+        }
+    }
+}
+
+fn input_port_handlers2(mut temp_edge_ctx: edge::temporary::Context) -> node::InputPortHandlers {
+    let on_mouse_up = move |to: NodeId| {
+        if let Some(from) = temp_edge_ctx.take_dragged()
+            && from != to
+        {
+            let mut service = use_context::<ServiceContext>();
+            let mut write = service.service.write();
+            let mut edge_api = write.edge_api_mut();
+            //@todo error handling
+            edge_api.create(beetry_editor_types::NodeEdge { from, to });
+        }
+    };
+    node::InputPortHandlers::new(on_mouse_up)
+}
+
+fn sender_handlers2(
+    mut channel_temp_connection_ctx: channel::temporary::Context2,
+) -> SenderPortHandlers2 {
+    let on_mouse_down = move |(origin, indexed_drag_offset, port_id): (
+        ConnectionOrigin,
+        IndexedDragOffset,
+        NodePortId,
+    )| {
+        let dragged_data = DraggedData {
+            node_id: indexed_drag_offset.id,
+            origin,
+            port_id,
+        };
+        let offset = indexed_drag_offset.offset;
+        channel_temp_connection_ctx.set_dragged(dragged_data);
+        channel_temp_connection_ctx.update_edge_pos(EdgePos {
+            start: offset,
+            end: offset,
+        });
+    };
+    SenderPortHandlers2::new(on_mouse_down)
+}
+
+fn receiver_handlers2(
+    mut channel_temp_connection_ctx: channel::temporary::Context2,
+) -> ReceiverPortHandlers2 {
+    let on_mouse_down = move |(origin, indexed_drag_offset, port_id): (
+        ConnectionOrigin,
+        IndexedDragOffset,
+        NodePortId,
+    )| {
+        let dragged_data = DraggedData {
+            node_id: indexed_drag_offset.id,
+            origin,
+            port_id,
+        };
+        let offset = indexed_drag_offset.offset;
+        channel_temp_connection_ctx.set_dragged(dragged_data);
+        channel_temp_connection_ctx.update_edge_pos(EdgePos {
+            start: offset,
+            end: offset,
+        });
+    };
+
+    let on_context_menu = move |(node_id, port_id): (NodeId, NodePortId)| {
+        //@todo enable setting external port. Service layer has to provide such API
+    };
+
+    ReceiverPortHandlers2::new(on_mouse_down, on_context_menu)
+}
+
+fn channel_handlers2(
+    mut drag_channel_state: Signal<DragChannelState>,
+    mut channel_temp_connection_ctx: channel::temporary::Context2,
+) -> channel::Handlers2 {
+    let on_drag_start = move |(id, offset): (ChannelId, Point)| {
+        drag_channel_state.set(DragChannelState::Dragged { id, offset });
+    };
+
+    let receiver_on_mouse_up = move |id: ChannelId| {
+        if let Some(data) = channel_temp_connection_ctx.take_dragged()
+            && matches!(data.origin, ConnectionOrigin::Receiver)
+        {
+            let mut service = use_context::<ServiceContext>();
+            let mut write = service.service.write();
+            let mut node_api_mut = write.node_api_mut();
+            let mut port_connection = node_api_mut.port_connection();
+            let input = PortConnectionInput::new(data.node_id, data.port_id, id);
+            //@todo error handling
+            port_connection.connect(input);
+        }
+    };
+
+    let sender_on_mouse_up = move |id: ChannelId| {
+        if let Some(data) = channel_temp_connection_ctx.take_dragged()
+            && matches!(data.origin, ConnectionOrigin::Sender)
+        {
+            let mut service = use_context::<ServiceContext>();
+            let mut write = service.service.write();
+            let mut node_api_mut = write.node_api_mut();
+            let mut port_connection = node_api_mut.port_connection();
+            let input = PortConnectionInput::new(data.node_id, data.port_id, id);
+            //@todo error handling
+            port_connection.connect(input);
+        }
+    };
+
+    channel::Handlers2::new(on_drag_start, receiver_on_mouse_up, sender_on_mouse_up)
+}
+
+fn context_menu_handlers2(
+    mut ctx_menu_state: Signal<node::ContextMenuState>,
+) -> node::ContextMenuHandlers {
+    let on_delete = move |node_id: NodeId| {
+        let mut service = use_context::<ServiceContext>();
+        let mut write = service.service.write();
+        let mut node_api = write.node_api_mut();
+        let mut lifecycle = node_api.lifecycle();
+        //@todo error handling
+        lifecycle.remove(node_id);
+
+        ctx_menu_state.with_mut(|state| state.is_visible = false);
+    };
+
+    let on_close = move |_| {
+        ctx_menu_state.with_mut(|state| state.is_visible = false);
+    };
+    node::ContextMenuHandlers::new(on_delete, on_close)
+}
+
+fn edge_context_menu_handlers2(
+    mut edge_ctx_menu_state: Signal<edge::ContextMenuState>,
+) -> edge::ContextMenuHandlers {
+    let on_delete = move |edge_id: EdgeId| {
+        let mut service = use_context::<ServiceContext>();
+        let mut write = service.service.write();
+        let mut edge_api = write.edge_api_mut();
+        //@todo error handling
+        edge_api.remove(edge_id);
+
+        edge_ctx_menu_state.with_mut(|state| state.is_visible = false);
+    };
+
+    let on_close = move |()| {
+        edge_ctx_menu_state.with_mut(|state| state.is_visible = false);
+    };
+
+    edge::ContextMenuHandlers::new(on_delete, on_close)
 }
 
 #[cfg(test)]
