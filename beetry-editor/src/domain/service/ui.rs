@@ -56,7 +56,9 @@ where
     }
 
     pub fn node(&mut self) -> NodeUiBorrowMutApi<'_, URF::UiNodeRepo> {
-        todo!()
+        NodeUiBorrowMutApi {
+            repo: self.facade_view.node,
+        }
     }
 
     pub fn channel(&mut self) -> ChannelUiBorrowMutApi<'_, URF::UiChannelRepo> {
