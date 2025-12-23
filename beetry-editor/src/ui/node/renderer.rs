@@ -4,7 +4,7 @@ use dioxus_logger::tracing::debug;
 use crate::editor::ServiceContext;
 use crate::signals::RequestRender;
 use crate::ui::node::control::{Control, Control2};
-use crate::ui::node::leaf::Leaf;
+use crate::ui::node::leaf::{Leaf, Leaf2};
 use crate::ui::node::root::Root;
 use crate::ui::{NodeKind, NodeMap, Point};
 
@@ -75,6 +75,36 @@ pub fn Renderer2(render_nodes: Signal<RequestRender>) -> Element {
                 }
             }
         });
+    let actions = ui_node_api
+        .positions_by_kind(beetry_editor_types::NodeKind::Action)
+        .map(|(id, pos)| {
+            rsx! {
+                Leaf2 {
+                    key: "{id}",
+                    id,
+                    position: Point {
+                        x: pos.origin.x,
+                        y: pos.origin.y,
+                    },
+                }
+            }
+        });
+
+    let conditions = ui_node_api
+        .positions_by_kind(beetry_editor_types::NodeKind::Condition)
+        .map(|(id, pos)| {
+            rsx! {
+                Leaf2 {
+                    key: "{id}",
+                    id,
+                    position: Point {
+                        x: pos.origin.x,
+                        y: pos.origin.y,
+                    },
+                }
+            }
+        });
+
     //@todo implement rendering for remaining node types
 
     // let rendered_lock = ui_nodes.read();
@@ -111,6 +141,8 @@ pub fn Renderer2(render_nodes: Signal<RequestRender>) -> Element {
     // });
 
     rsx! {
+        {actions}
+        {conditions}
         {controls}
     }
 }

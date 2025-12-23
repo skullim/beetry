@@ -1,8 +1,14 @@
 use beetry_core::{BoxConditionBehavior, ConditionBehavior};
+use beetry_editor_types::NodeSpecKey;
 use beetry_macros::ProvideSchema;
-use beetry_plugin::{node::ConditionReconstructionData, plugin};
+use beetry_plugin::{
+    Plugin,
+    node::{ConditionFactory, ConditionReconstructionData},
+    plugin,
+};
 
 use beetry_plugin_types::{
+    node::NodeName,
     parameter::{self, Bounds, ProvideSchema, Schema},
     spec,
 };
@@ -54,15 +60,59 @@ impl ConditionBehavior for CheckBattery {
     }
 }
 
-plugin! {
-  CheckBatteryPlugin: Condition {
-    spec = spec! {type = condition, name = "CheckBattery", params = CheckBatteryParams::provide()},
-    factory_fn = |data: ConditionReconstructionData| {
-            Ok(
-                Box::new(
-                    CheckBattery::new(beetry_reconstruction_types::parameter::Deserializer::deserialize(data.parameters)?))
-                    as BoxConditionBehavior,
-            )
+// plugin! {
+//   CheckBatteryPlugin: Condition {
+//     spec = spec! {type = condition, name = "CheckBattery", params = CheckBatteryParams::provide()},
+//     factory_fn = |data: ConditionReconstructionData| {
+//             Ok(
+//                 Box::new(
+//                     CheckBattery::new(beetry_reconstruction_types::parameter::Deserializer::deserialize(data.parameters)?))
+//                     as BoxConditionBehavior,
+//             )
+//     }
+//   }
+// }
+
+pub struct CheckBatteryPlugin {
+    spec: beetry_editor_types::NodeSpec,
+    factory: ConditionFactory,
+}
+
+impl Plugin for CheckBatteryPlugin {
+    type Spec = beetry_editor_types::NodeSpec;
+    type Factory = ConditionFactory;
+
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
+        let factory_fn = |data: ConditionReconstructionData| {
+            Ok(Box::new(CheckBattery::new(
+                beetry_reconstruction_types::parameter::Deserializer::deserialize(data.parameters)?,
+            )) as BoxConditionBehavior)
+        };
+        let spec = beetry_editor_types::NodeSpec::builder()
+            .key(NodeSpecKey::new(
+                NodeName::new("Check Battery"),
+                beetry_editor_types::NodeKind::Condition,
+            ))
+            .build();
+
+        Self {
+            spec,
+            factory: Self::Factory::new(Box::new(factory_fn)),
+        }
     }
-  }
+
+    fn spec(&self) -> &Self::Spec {
+        &self.spec
+    }
+
+    fn factory(&self) -> &Self::Factory {
+        &self.factory
+    }
+
+    fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
+        (self.spec, self.factory)
+    }
 }

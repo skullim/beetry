@@ -7,7 +7,7 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
 use crate::definitions::{NodeId, Point};
-use crate::editor::SharedNodeIdToNameStorage;
+use crate::editor::{ServiceContext, SharedNodeIdToNameStorage};
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithContextMenu};
 use crate::ui::node::port::{self, input};
 
@@ -110,6 +110,75 @@ pub(super) fn style_defs() -> Element {
             linearGradient { id: "condition-hover",
                 stop { offset: "0%", stop_color: "#9CA3AF" }
                 stop { offset: "100%", stop_color: "#6B7280" }
+            }
+        }
+    }
+}
+
+#[derive(PartialEq, Clone, Props)]
+pub struct LeafProps2 {
+    id: NodeId,
+    position: Point,
+}
+
+#[component]
+pub(crate) fn Leaf2(props: LeafProps2) -> Element {
+    let id = props.id;
+    debug!("rendering leaf component: {id}");
+    let service = use_context::<ServiceContext>();
+    let read = service.service.read();
+    let node_api = read.node_api();
+    let spec_api = node_api.spec();
+    let name = spec_api.name(id).unwrap();
+    let kind = if spec_api.kind(id).unwrap() == beetry_editor_types::NodeKind::Action {
+        LeafKind::Action
+    } else {
+        LeafKind::Condition
+    };
+    let ports_spec = spec_api.ports(id).unwrap();
+
+    let style = use_hook(|| Rc::new(style(kind, &name.0)));
+    let position = props.position;
+
+    let half_width = style.width / 2.0;
+    let width = style.width;
+
+    rsx! {
+        g {
+            NodeWithContextMenu {
+                children: rsx! {
+                    NodeBase { id, position, style }
+                },
+                id,
+            }
+        }
+        g { transform: "translate({half_width}, 0)",
+            input::Port { id, position }
+        }
+
+        g { transform: "translate(-80, 10)",
+            for (port_id , port_spec) in ports_spec.receivers() {
+                port::Receiver2 {
+                    key: "{port_id}",
+                    id,
+                    position,
+                    msg_spec: port_spec.msg_spec.clone(),
+                    port_id: *port_id,
+                    //@todo provide from connection state store
+                    is_external: false,
+                }
+            }
+        }
+
+        g { transform: "translate({width}, 10)",
+            for (port_id , port_spec) in ports_spec.senders() {
+                port::Sender2 {
+                    key: "{port_id}",
+                    id,
+                    position,
+                    msg_spec: port_spec.msg_spec.clone(),
+                    port_id: *port_id,
+                }
             }
         }
     }

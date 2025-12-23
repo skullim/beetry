@@ -3,8 +3,11 @@ use std::time::Duration;
 use anyhow::{Result, anyhow};
 use beetry_channel::downcast;
 use beetry_core::{self, ActionBehavior, BoxActionBehavior, NodeTask, Task, TickStatus};
-use beetry_plugin::node::ActionReconstructionData;
-use beetry_plugin::plugin;
+use beetry_editor_types::{NodeSpecKey, PortsSpec};
+use beetry_plugin::node::{ActionFactory, ActionReconstructionData};
+use beetry_plugin::{Plugin, plugin};
+use beetry_plugin_types::channel::MessageSpec;
+use beetry_plugin_types::node::NodeName;
 use beetry_plugin_types::spec;
 use tokio::sync::mpsc::{Receiver, Sender, channel as mpsc_channel};
 use tracing::{debug, instrument};
@@ -96,14 +99,62 @@ impl Task for LocalizeTask {
     }
 }
 
-plugin! {
-    LocalizePlugin: Action {
-      spec = spec! {type = action, name = "Localize", senders = [Pose, desc = "Localized pose"] },
-      factory_fn = |mut data: ActionReconstructionData| {
-        let senders = downcast! {senders = &mut data.inner.senders, expected = [Pose]}
-        .map_err(|_| anyhow!("failed to obtain typed senders"))?;
-        Ok(Box::new(Localize::new(senders.0)) as BoxActionBehavior)
+// plugin! {
+//     LocalizePlugin: Action {
+//       spec = spec! {type = action, name = "Localize", senders = [Pose, desc = "Localized pose"] },
+//       factory_fn = |mut data: ActionReconstructionData| {
+//         let senders = downcast! {senders = &mut data.inner.senders, expected = [Pose]}
+//         .map_err(|_| anyhow!("failed to obtain typed senders"))?;
+//         Ok(Box::new(Localize::new(senders.0)) as BoxActionBehavior)
 
+//         }
+//     }
+// }
+
+pub struct LocalizePlugin {
+    spec: beetry_editor_types::NodeSpec,
+    factory: ActionFactory,
+}
+
+impl Plugin for LocalizePlugin {
+    type Spec = beetry_editor_types::NodeSpec;
+    type Factory = ActionFactory;
+
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
+        let factory_fn = |mut data: ActionReconstructionData| {
+            let senders = downcast! {senders = &mut data.inner.senders, expected = [Pose]}
+                .map_err(|_| anyhow!("failed to obtain typed senders"))?;
+            Ok(Box::new(Localize::new(senders.0)) as BoxActionBehavior)
+        };
+        let spec = beetry_editor_types::NodeSpec::builder()
+            .key(NodeSpecKey::new(
+                NodeName::new("Localize"),
+                beetry_editor_types::NodeKind::Action,
+            ))
+            .ports(PortsSpec::new(
+                std::iter::once(MessageSpec::new::<Pose>("Localized pose")),
+                std::iter::empty(),
+            ))
+            .build();
+
+        Self {
+            spec,
+            factory: Self::Factory::new(Box::new(factory_fn)),
         }
+    }
+
+    fn spec(&self) -> &Self::Spec {
+        &self.spec
+    }
+
+    fn factory(&self) -> &Self::Factory {
+        &self.factory
+    }
+
+    fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
+        (self.spec, self.factory)
     }
 }

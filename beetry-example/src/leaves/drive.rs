@@ -134,8 +134,8 @@ impl Plugin for DrivePlugin {
                 beetry_editor_types::NodeKind::Action,
             ))
             .ports(PortsSpec::new(
-                std::iter::once(MessageSpec::new::<Pose>("Localize pose")),
                 std::iter::empty(),
+                std::iter::once(MessageSpec::new::<Pose>("Drive pose")),
             ))
             .build();
 
