@@ -513,6 +513,8 @@ pub(crate) fn Workspace2(
     debug!("rendering workspace");
 
     let workspace_ctx = use_context_provider(WorkspaceContext2::new);
+
+    let mut render_edges = use_signal(RequestRender::new);
     let mut drag_node_state = workspace_ctx.drag_node_state;
     let mut drag_channel_state = workspace_ctx.drag_channel_state;
     let context_menu_state = workspace_ctx.context_menu_state;
@@ -525,9 +527,9 @@ pub(crate) fn Workspace2(
     let zoom_level = viewport_ctx.zoom_level;
 
     use_context_provider(move || node_handlers(drag_node_state, context_menu_state));
-    use_context_provider(move || input_port_handlers2(temp_edge_ctx));
+    use_context_provider(move || input_port_handlers2(temp_edge_ctx, render_edges));
     use_context_provider(move || output_port_handlers(temp_edge_ctx));
-    use_context_provider(move || context_menu_handlers2(context_menu_state));
+    use_context_provider(move || context_menu_handlers2(context_menu_state, render_nodes));
     use_context_provider(move || edge_context_menu_handlers2(edge_context_menu_state));
 
     use_context_provider(move || sender_handlers2(temp_channel_conn_ctx));
@@ -559,6 +561,7 @@ pub(crate) fn Workspace2(
                     },
                 );
                 render_nodes.with_mut(|write| write.request());
+                render_edges.with_mut(|write| write.request());
                 //@todo fix zoom
                 //dimensions_ctx.resize_if_needed(ui_nodes.into());
             }
@@ -651,7 +654,7 @@ pub(crate) fn Workspace2(
                     fill: "url(#grid)",
                 }
 
-                edge::Renderer2 {  edge_context_menu_state }
+                edge::Renderer2 {  render_edges, edge_context_menu_state }
                 channel::Renderer2 {render_channels}
                 node::Renderer2 {render_nodes}
 
@@ -670,7 +673,10 @@ pub(crate) fn Workspace2(
     }
 }
 
-fn input_port_handlers2(mut temp_edge_ctx: edge::temporary::Context) -> node::InputPortHandlers {
+fn input_port_handlers2(
+    mut temp_edge_ctx: edge::temporary::Context,
+    mut render_edges: Signal<RequestRender>,
+) -> node::InputPortHandlers {
     let on_mouse_up = move |to: NodeId| {
         if let Some(from) = temp_edge_ctx.take_dragged()
             && from != to
@@ -679,7 +685,11 @@ fn input_port_handlers2(mut temp_edge_ctx: edge::temporary::Context) -> node::In
             let mut write = service.service.write();
             let mut edge_api = write.edge_api_mut();
             //@todo error handling
-            edge_api.create(beetry_editor_types::NodeEdge { from, to });
+            edge_api
+                .create(beetry_editor_types::NodeEdge { from, to })
+                .unwrap();
+            render_edges.with_mut(|write| write.request());
+            debug!("created edge from node {from}: to: {to}");
         }
     };
     node::InputPortHandlers::new(on_mouse_up)
@@ -777,6 +787,7 @@ fn channel_handlers2(
 
 fn context_menu_handlers2(
     mut ctx_menu_state: Signal<node::ContextMenuState>,
+    mut render_nodes: Signal<RequestRender>,
 ) -> node::ContextMenuHandlers {
     let on_delete = move |node_id: NodeId| {
         let mut service = use_context::<ServiceContext>();
@@ -787,6 +798,8 @@ fn context_menu_handlers2(
         lifecycle.remove(node_id);
 
         ctx_menu_state.with_mut(|state| state.is_visible = false);
+        render_nodes.with_mut(|write| write.request());
+        //@todo probably nodes should have been rerendered if nodes had present edges
     };
 
     let on_close = move |_| {

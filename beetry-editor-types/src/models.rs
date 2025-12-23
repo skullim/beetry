@@ -146,6 +146,7 @@ pub struct PortsSpec {
 
 impl PortsSpec {
     //@todo tedious to use, sometimes only senders or receivers are present
+    // also order matters here, much better to define builder
     pub fn new(
         senders: impl IntoIterator<Item = MessageSpec>,
         receivers: impl IntoIterator<Item = MessageSpec>,
@@ -167,6 +168,20 @@ impl PortsSpec {
 
     pub fn ids(&self) -> &[NodePortId] {
         &self.ids
+    }
+
+    pub fn senders(&self) -> impl Iterator<Item = (&NodePortId, &NodePortSpec)> {
+        self.iter()
+            .filter(|(_, spec)| spec.kind == NodePortKind::Sender)
+    }
+
+    pub fn receivers(&self) -> impl Iterator<Item = (&NodePortId, &NodePortSpec)> {
+        self.iter()
+            .filter(|(_, spec)| spec.kind == NodePortKind::Receiver)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&NodePortId, &NodePortSpec)> {
+        self.ids().iter().zip(self.specs())
     }
 
     pub fn spec(&self, id: NodePortId) -> Result<&NodePortSpec> {
