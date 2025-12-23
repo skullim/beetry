@@ -1,6 +1,7 @@
+use beetry_editor_types::NodeId;
 use dioxus::prelude::*;
 
-use crate::definitions::{IndexedDragOffset, NodeId, Point};
+use crate::definitions::{IndexedDragOffset, Point};
 
 #[derive(Debug, Clone)]
 pub struct Handlers {

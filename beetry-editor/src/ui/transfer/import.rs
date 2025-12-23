@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::toolbar::ToolbarHandlers;
+use crate::toolbar::ToolbarHandlers2;
 use crate::ui::transfer::{OperationResult, OperationStatus};
 
 #[derive(Debug, Clone)]
@@ -16,10 +16,11 @@ impl Handlers {
     }
 }
 
+//@todo add signals to render ui elements
 #[component]
-pub fn Import(result: ReadSignal<OperationResult>) -> Element {
+pub fn Import2(result: ReadSignal<OperationResult>) -> Element {
     rsx! {
-        button { onclick: move |_| { use_context::<ToolbarHandlers>().import.on_click.call(()) },
+        button { onclick: move |_| { use_context::<ToolbarHandlers2>().import.on_click.call(()) },
             "Import"
         }
 

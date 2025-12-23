@@ -3,56 +3,14 @@ use dioxus_logger::tracing::debug;
 
 use crate::editor::ServiceContext;
 use crate::signals::RequestRender;
-use crate::ui::node::control::{Control, Control2};
-use crate::ui::node::leaf::{Leaf, Leaf2};
+use crate::ui::Point;
+use crate::ui::node::control::Control2;
+use crate::ui::node::leaf::Leaf2;
 use crate::ui::node::root::Root;
-use crate::ui::{NodeKind, NodeMap, Point};
 
 // Conditions to re-render the nodes:
 // - new node created
 // - node position updated
-#[component]
-pub fn Renderer(ui_nodes: Signal<NodeMap>) -> Element {
-    debug!("rendering nodes renderer");
-    let rendered_lock = ui_nodes.read();
-    let rendered = rendered_lock.iter().map(|(&id, node)| match &node.kind {
-        NodeKind::Control { params_schema: _ } => {
-            rsx! {
-                Control {
-                    key: "{id}",
-                    id,
-                    position: node.pos,
-                    name: node.name.clone(),
-                }
-            }
-        }
-
-        NodeKind::Leaf {
-            schema,
-            external_receivers,
-        } => rsx! {
-            Leaf {
-                key: "{id}",
-                id,
-                position: node.pos,
-                name: node.name.clone(),
-                schema: schema.clone(),
-                external_receivers: external_receivers.clone(),
-            }
-        },
-        NodeKind::Root => {
-            rsx! {
-                Root { key: "{id}", id, position: node.pos }
-            }
-        }
-    });
-
-    rsx! {
-        {rendered}
-    }
-}
-
-//@todo add signal for rerendering
 #[component]
 pub fn Renderer2(render_nodes: Signal<RequestRender>) -> Element {
     debug!("rendering nodes renderer");
@@ -105,42 +63,23 @@ pub fn Renderer2(render_nodes: Signal<RequestRender>) -> Element {
             }
         });
 
-    //@todo implement rendering for remaining node types
-
-    // let rendered_lock = ui_nodes.read();
-    // let rendered = rendered_lock.iter().map(|(&id, node)| match &node.kind {
-    //     NodeKind::Control { params_schema: _ } => {
-    //         rsx! {
-    //             Control {
-    //                 key: "{id}",
-    //                 id,
-    //                 position: node.pos,
-    //                 name: node.name.clone(),
-    //             }
-    //         }
-    //     }
-
-    //     NodeKind::Leaf {
-    //         schema,
-    //         external_receivers,
-    //     } => rsx! {
-    //         Leaf {
-    //             key: "{id}",
-    //             id,
-    //             position: node.pos,
-    //             name: node.name.clone(),
-    //             schema: schema.clone(),
-    //             external_receivers: external_receivers.clone(),
-    //         }
-    //     },
-    //     NodeKind::Root => {
-    //         rsx! {
-    //             Root { key: "{id}", id, position: node.pos }
-    //         }
-    //     }
-    // });
+    let root = ui_node_api
+        .positions_by_kind(beetry_editor_types::NodeKind::Root)
+        .map(|(id, pos)| {
+            rsx! {
+                Root {
+                    key: "{id}",
+                    id,
+                    position: Point {
+                        x: pos.origin.x,
+                        y: pos.origin.y,
+                    },
+                }
+            }
+        });
 
     rsx! {
+        {root}
         {actions}
         {conditions}
         {controls}

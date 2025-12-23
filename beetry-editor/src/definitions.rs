@@ -1,7 +1,6 @@
+use beetry_editor_types::NodeId;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
-
-pub type NodeId = usize;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Point {
