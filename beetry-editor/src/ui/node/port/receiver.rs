@@ -25,24 +25,6 @@ impl Handlers {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Handlers2 {
-    on_mouse_down: EventHandler<(ConnectionOrigin, IndexedDragOffset, NodePortId)>,
-    on_context_menu: EventHandler<(NodeId, NodePortId)>,
-}
-
-impl Handlers2 {
-    pub(crate) fn new(
-        on_mouse_down: impl FnMut((ConnectionOrigin, IndexedDragOffset, NodePortId)) + 'static,
-        on_context_menu: impl FnMut((NodeId, NodePortId)) + 'static,
-    ) -> Self {
-        Self {
-            on_mouse_down: EventHandler::new(on_mouse_down),
-            on_context_menu: EventHandler::new(on_context_menu),
-        }
-    }
-}
-
 #[derive(Props, PartialEq, Clone)]
 pub struct ReceiverProps {
     id: NodeId,
@@ -125,6 +107,24 @@ pub fn Receiver(props: ReceiverProps) -> Element {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct Handlers2 {
+    on_mouse_down: EventHandler<(ConnectionOrigin, IndexedDragOffset, NodePortId)>,
+    on_context_menu: EventHandler<(NodeId, NodePortId)>,
+}
+
+impl Handlers2 {
+    pub(crate) fn new(
+        on_mouse_down: impl FnMut((ConnectionOrigin, IndexedDragOffset, NodePortId)) + 'static,
+        on_context_menu: impl FnMut((NodeId, NodePortId)) + 'static,
+    ) -> Self {
+        Self {
+            on_mouse_down: EventHandler::new(on_mouse_down),
+            on_context_menu: EventHandler::new(on_context_menu),
+        }
+    }
+}
+
 #[derive(Props, PartialEq, Clone)]
 pub struct ReceiverProps2 {
     id: NodeId,
@@ -138,7 +138,6 @@ pub struct ReceiverProps2 {
 pub fn Receiver2(props: ReceiverProps2) -> Element {
     let position = props.position;
     let node_id = props.id;
-    let message_hash = props.msg_spec.hash();
     let message_desc = props.msg_spec.as_str();
     let port_id = props.port_id;
 
