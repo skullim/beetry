@@ -170,6 +170,14 @@ impl PortsSpec {
         &self.ids
     }
 
+    pub fn sender_ids(&self) -> impl Iterator<Item = &NodePortId> {
+        self.senders().map(|(id, _)| id)
+    }
+
+    pub fn receiver_ids(&self) -> impl Iterator<Item = &NodePortId> {
+        self.receivers().map(|(id, _)| id)
+    }
+
     pub fn senders(&self) -> impl Iterator<Item = (&NodePortId, &NodePortSpec)> {
         self.iter()
             .filter(|(_, spec)| spec.kind == NodePortKind::Sender)

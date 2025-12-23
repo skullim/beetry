@@ -534,7 +534,9 @@ pub(crate) fn Workspace2(
 
     use_context_provider(move || sender_handlers2(temp_channel_conn_ctx));
     use_context_provider(move || receiver_handlers2(temp_channel_conn_ctx));
-    use_context_provider(move || channel_handlers2(drag_channel_state, temp_channel_conn_ctx));
+    use_context_provider(move || {
+        channel_handlers2(drag_channel_state, temp_channel_conn_ctx, render_channels)
+    });
 
     let workspace_handlers_ctx = use_context_provider(move || {
         let on_mouse_move = move |evt: Event<MouseData>| {
@@ -562,6 +564,9 @@ pub(crate) fn Workspace2(
                 );
                 render_nodes.with_mut(|write| write.request());
                 render_edges.with_mut(|write| write.request());
+                //@todo actually just channel edges if they are separated
+                render_channels.with_mut(|write| write.request());
+
                 //@todo fix zoom
                 //dimensions_ctx.resize_if_needed(ui_nodes.into());
             }
@@ -749,6 +754,7 @@ fn receiver_handlers2(
 fn channel_handlers2(
     mut drag_channel_state: Signal<DragChannelState>,
     mut channel_temp_connection_ctx: channel::temporary::Context2,
+    mut render_channels: Signal<RequestRender>,
 ) -> channel::Handlers2 {
     let on_drag_start = move |(id, offset): (ChannelId, Point)| {
         drag_channel_state.set(DragChannelState::Dragged { id, offset });
@@ -764,7 +770,12 @@ fn channel_handlers2(
             let mut port_connection = node_api_mut.port_connection();
             let input = PortConnectionInput::new(data.node_id, data.port_id, id);
             //@todo error handling
-            port_connection.connect(input);
+            port_connection.connect(input).unwrap();
+            render_channels.with_mut(|write| write.request());
+            info!(
+                "connected channel {id} and node (id: {}, port_id: {})",
+                data.node_id, data.port_id
+            );
         }
     };
 
@@ -778,7 +789,12 @@ fn channel_handlers2(
             let mut port_connection = node_api_mut.port_connection();
             let input = PortConnectionInput::new(data.node_id, data.port_id, id);
             //@todo error handling
-            port_connection.connect(input);
+            port_connection.connect(input).unwrap();
+            render_channels.with_mut(|write| write.request());
+            info!(
+                "connected channel {id} and node (id: {}, port_id: {})",
+                data.node_id, data.port_id
+            );
         }
     };
 
