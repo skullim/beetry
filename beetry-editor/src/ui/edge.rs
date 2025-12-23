@@ -1,31 +1,16 @@
 mod context_menu;
 mod renderer;
-mod tracker;
 
 pub mod temporary;
 use beetry_editor_types::EdgeId;
 pub use context_menu::{ContextMenu, Handlers as ContextMenuHandlers, State as ContextMenuState};
-pub use renderer::{Renderer, Renderer2};
+pub use renderer::Renderer2;
 pub use temporary::Temporary;
-pub use tracker::Tracker;
 
 use dioxus::prelude::*;
 
 use crate::definitions::{EdgePos, Point};
 use crate::ui::curve::Curve;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Context {
-    pub(crate) tracker: Signal<Tracker>,
-}
-
-impl Context {
-    pub(crate) fn new() -> Self {
-        Self {
-            tracker: Signal::new(Tracker::new()),
-        }
-    }
-}
 
 #[derive(Props, Clone, PartialEq)]
 pub struct EdgeProps {

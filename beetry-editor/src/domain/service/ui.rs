@@ -148,6 +148,10 @@ where
         self.repo.create(id, data)
     }
 
+    pub fn remove(&mut self, id: NodeId) -> Option<NodeUiData> {
+        self.repo.remove(id)
+    }
+
     pub fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
         let data = self
             .repo

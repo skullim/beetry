@@ -1,5 +1,6 @@
 use anyhow::{Context, Result, anyhow, bail};
 use bon::Builder;
+use itertools::Itertools;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use tracing::warn;
@@ -114,14 +115,10 @@ where
             let tracker = self.node_api.tracker();
             tracker
                 .nodes()
-                .filter(|id| validation.unconnected_nodes.contains(*id))
+                .filter(|id| !validation.unconnected_nodes.contains(*id))
                 .copied()
                 .collect()
         };
-
-        let node_store = self.export_node_store(&nodes_to_export)?;
-        let param_store = self.export_parameter_store(&nodes_to_export)?;
-        let port_store = self.export_port_store(&nodes_to_export)?;
 
         let channels_to_export: Vec<_> = {
             if !validation.unconnected_channels.is_empty() {
@@ -132,11 +129,15 @@ where
             }
             let channel_id_iter = self.channel_api.channels();
             channel_id_iter
-                .filter(|id| validation.unconnected_channels.contains(*id))
+                .filter(|id| !validation.unconnected_channels.contains(*id))
                 .copied()
                 .collect()
         };
         let channel_store = self.export_channel_store(&channels_to_export)?;
+
+        let node_store = self.export_node_store(&nodes_to_export)?;
+        let param_store = self.export_parameter_store(&nodes_to_export)?;
+        let port_store = self.export_port_store(&nodes_to_export)?;
 
         let tree = TreeStore::new(node_store, port_store, param_store, channel_store);
         Ok(ValidTree::new(tree))
@@ -144,14 +145,22 @@ where
 
     fn export_node_store(&mut self, nodes: &[NodeId]) -> Result<NodeStore> {
         let specs = {
-            let spec_api = self.node_api.spec();
-            let iter: BTreeMap<usize, NodeSpecKey> = nodes
+            let tracker_api = self.node_api.tracker();
+            let spec_ids = nodes
                 .iter()
-                .copied()
-                .map(|id| {
+                //@todo handle unwrap
+                .map(|id| tracker_api.spec_id(*id).unwrap())
+                .unique();
+
+            let spec_api = self.node_api.spec();
+            let iter: BTreeMap<usize, NodeSpecKey> = spec_ids
+                .map(|spec_id| {
                     Ok((
-                        id,
-                        NodeSpecKey::new(spec_api.name(id)?.clone(), spec_api.kind(id)?),
+                        spec_id,
+                        NodeSpecKey::new(
+                            spec_api.name_by_spec_id(spec_id)?.clone(),
+                            spec_api.kind_by_spec_id(spec_id)?,
+                        ),
                     ))
                 })
                 //@todo it would be better if BTreeMap is not required to specify here
@@ -188,8 +197,17 @@ where
 
     fn export_parameter_store(&mut self, nodes: &[NodeId]) -> Result<ParameterValueStore> {
         let parameter_api = self.node_api.parameter();
+        let spec_api = self.node_api.spec();
+        let nodes = nodes.iter().filter(|id| {
+            if let Ok(param) = spec_api.params(**id)
+                && !param.defs.is_empty()
+            {
+                true
+            } else {
+                false
+            }
+        });
         let store = nodes
-            .iter()
             .copied()
             .map(|id| {
                 Ok((
@@ -199,7 +217,8 @@ where
                     },
                 ))
             })
-            .collect::<Result<HashMap<_, _>>>()?;
+            .collect::<Result<HashMap<_, _>>>()
+            .with_context(|| anyhow!("failed to export parameters"))?;
         Ok(ParameterValueStore::new(store))
     }
 
@@ -290,31 +309,33 @@ where
         let mut to_visit = BTreeSet::from_iter(std::iter::once(root_id));
 
         while let Some(parent) = to_visit.pop_first() {
-            let children: Vec<_> = self.edge_api.children_of(parent).collect();
+            let children: Vec<_> = self.edge_api.children_of(parent).copied().collect();
             if children.is_empty() {
                 return TreeValidationResult::builder()
                     .child_free_non_leaf_node(parent)
                     .build();
             }
             for child in children {
-                if leaf_nodes.contains(child) {
+                if leaf_nodes.contains(&child) {
                     if let Some(unconnected) = self
                         .node_api
                         .port_state()
-                        .port_iter(*child)
+                        .port_iter(child)
                         .find(|(_, conn)| !conn.is_valid())
                     {
                         return TreeValidationResult::builder()
-                            .unconnected_port((*child, *unconnected.0))
+                            .unconnected_port((child, *unconnected.0))
                             .build();
+                    } else {
+                        valid_nodes.insert(child);
                     }
-                    continue;
                 } else {
-                    to_visit.insert(*child);
+                    to_visit.insert(child);
                 }
             }
             valid_nodes.insert(parent);
         }
+
         let unconnected_nodes = self
             .node_api
             .tracker()

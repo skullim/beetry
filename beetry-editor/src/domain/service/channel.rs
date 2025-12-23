@@ -86,7 +86,7 @@ where
         )
     }
 
-    pub fn remove(&mut self, id: ChannelId) -> Result<()> {
+    pub fn remove(&mut self, id: ChannelId) -> Option<ChannelData> {
         ChannelService::remove(self.facade_view.channel, id)
     }
 
@@ -193,9 +193,11 @@ impl ChannelService {
     }
 
     //@todo also on_node_removal should remove connections to removed node
-    fn remove(channel_repo: &mut impl ChannelRepositoryConcept, id: ChannelId) -> Result<()> {
-        channel_repo.remove(id);
-        Ok(())
+    fn remove(
+        channel_repo: &mut impl ChannelRepositoryConcept,
+        id: ChannelId,
+    ) -> Option<ChannelData> {
+        channel_repo.remove(id)
     }
 
     fn config(repo: &impl ChannelRepositoryConcept, id: ChannelId) -> Result<&ChannelConfig> {

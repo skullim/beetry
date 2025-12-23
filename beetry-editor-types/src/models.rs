@@ -209,13 +209,17 @@ pub struct NodeSpec {
     //@todo value
     #[builder(default)]
     #[getset(get = "pub")]
-    param_schema: parameter::Schema,
+    params: parameter::Schema,
     #[builder(default)]
     #[getset(get = "pub")]
     ports: PortsSpec,
 }
 
 impl NodeSpec {
+    pub fn root() -> Self {
+        NodeSpec::builder().key(NodeSpecKey::root()).build()
+    }
+
     //@todo rework using getset macros
     pub fn key(&self) -> &NodeSpecKey {
         &self.key
@@ -249,6 +253,13 @@ pub struct NodeSpecKey {
 impl NodeSpecKey {
     pub fn new(name: NodeName, kind: NodeKind) -> Self {
         Self { name, kind }
+    }
+
+    pub fn root() -> Self {
+        Self {
+            name: NodeName::new("Root"),
+            kind: NodeKind::Root,
+        }
     }
 }
 

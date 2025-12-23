@@ -1,6 +1,6 @@
 use beetry_channel::AnyBoxReceiver;
 use beetry_channel::external::ReceiverRegistry;
-use beetry_editor::ProjectData;
+use beetry_editor_types::ValidTree;
 use beetry_plugin_types::channel::MessageHashProvider;
 use beetry_serialization::{Deserializer, JsonDeserializer};
 use rfd::FileHandle;
@@ -45,7 +45,7 @@ async fn main() -> Result<()> {
 
     let creation_type = BtCreationType::Editor;
     let bt = match creation_type {
-        BtCreationType::Editor => bt_from_editor(&builder, receiver_registry).await?,
+        BtCreationType::Editor => bt_from_editor2(&builder, receiver_registry).await?,
         BtCreationType::Code => bt_from_code(&builder)?,
     };
 
@@ -80,25 +80,6 @@ where
     ]))))
 }
 
-async fn bt_from_editor<R, T>(
-    builder: &Builder<R, T>,
-    receiver_registry: ReceiverRegistry,
-) -> Result<Tree<BoxNode>>
-where
-    R: RegisterTask<T> + 'static,
-    T: TaskHandle + 'static,
-{
-    use beetry_reconstruction::TreeReconstructor;
-
-    let handle = select_import_file().await?;
-    let mut file = std::fs::File::open(handle.path())?;
-    let mut content_buffer = String::new();
-    file.read_to_string(&mut content_buffer)?;
-    let data: ProjectData = JsonDeserializer::deserialize(&content_buffer)?;
-    let mut reconstructor = TreeReconstructor::with_receiver_registry(receiver_registry)?;
-    reconstructor.try_reconstruct(data.tree, builder)
-}
-
 async fn select_import_file() -> Result<FileHandle> {
     use rfd;
     rfd::AsyncFileDialog::new()
@@ -108,4 +89,23 @@ async fn select_import_file() -> Result<FileHandle> {
         .pick_file()
         .await
         .ok_or_else(|| anyhow!("No file selected"))
+}
+
+async fn bt_from_editor2<R, T>(
+    builder: &Builder<R, T>,
+    receiver_registry: ReceiverRegistry,
+) -> Result<Tree<BoxNode>>
+where
+    R: RegisterTask<T> + 'static,
+    T: TaskHandle + 'static,
+{
+    use beetry_reconstruction::TreeReconstructor2;
+
+    let handle = select_import_file().await?;
+    let mut file = std::fs::File::open(handle.path())?;
+    let mut content_buffer = String::new();
+    file.read_to_string(&mut content_buffer)?;
+    let valid_tree: ValidTree = JsonDeserializer::deserialize(&content_buffer)?;
+    let mut reconstructor = TreeReconstructor2::with_receiver_registry(receiver_registry)?;
+    reconstructor.try_reconstruct(valid_tree, builder)
 }

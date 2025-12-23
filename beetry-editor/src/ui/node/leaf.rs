@@ -1,83 +1,14 @@
-use std::collections::HashSet;
 use std::rc::Rc;
 
-use beetry_core::MessageHash;
-use beetry_plugin_types::node::{LeafKind, LeafSchema};
+use beetry_editor_types::NodeId;
+use beetry_plugin_types::node::LeafKind;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::definitions::{NodeId, Point};
-use crate::editor::{ServiceContext, SharedNodeIdToNameStorage};
+use crate::definitions::Point;
+use crate::editor::ServiceContext;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithContextMenu};
 use crate::ui::node::port::{self, input};
-
-#[derive(PartialEq, Clone, Props)]
-pub struct LeafProps {
-    id: NodeId,
-    position: Point,
-    //@todo would be better if this is accessible as lookup based on NodeId
-    schema: LeafSchema,
-    //@todo would be better if this is accessible as lookup based on NodeId
-    name: String,
-    //@todo higher level can provide the info what channel type it is
-    external_receivers: HashSet<MessageHash>,
-}
-
-#[component]
-pub(crate) fn Leaf(props: LeafProps) -> Element {
-    debug!("rendering leaf component: {}", props.id);
-    let leaf_schema = props.schema;
-    let id = props.id;
-    let storage = use_context::<SharedNodeIdToNameStorage>();
-    let storage_borrow = storage.borrow();
-    let name = storage_borrow.map.get(&id).unwrap();
-
-    let style = use_hook(|| Rc::new(style(leaf_schema.kind, &name.0)));
-    let position = props.position;
-    let external_receivers = props.external_receivers;
-
-    let half_width = style.width / 2.0;
-    let width = style.width;
-
-    rsx! {
-        g {
-            NodeWithContextMenu {
-                children: rsx! {
-                    NodeBase { id, position, style }
-                },
-                id,
-            }
-        }
-        g { transform: "translate({half_width}, 0)",
-            input::Port { id, position }
-        }
-
-        g { transform: "translate(-80, 10)",
-            for (idx , msg_spec) in leaf_schema.receivers.iter().enumerate() {
-                port::Receiver {
-                    key: "{idx}",
-                    id,
-                    position,
-                    spec: msg_spec.clone(),
-                    channel_idx: idx,
-                    is_external: external_receivers.contains(&msg_spec.hash()),
-                }
-            }
-        }
-
-        g { transform: "translate({width}, 10)",
-            for (idx , msg_spec) in leaf_schema.senders.iter().enumerate() {
-                port::Sender {
-                    key: "{idx}",
-                    id,
-                    position,
-                    spec: msg_spec.clone(),
-                    channel_idx: idx,
-                }
-            }
-        }
-    }
-}
 
 fn style(kind: LeafKind, name: &str) -> NodeStyle {
     let (fill_color, hover_color) = match kind {

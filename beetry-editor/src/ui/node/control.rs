@@ -1,47 +1,13 @@
 use std::rc::Rc;
 
+use beetry_editor_types::NodeId;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::definitions::{NodeId, Point};
+use crate::definitions::Point;
 use crate::editor::ServiceContext;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithContextMenu};
 use crate::ui::node::port::{input, output};
-
-#[derive(Props, PartialEq, Clone)]
-pub struct ControlProps {
-    id: NodeId,
-    position: Point,
-    name: String,
-}
-
-#[component]
-pub fn Control(props: ControlProps) -> Element {
-    debug!("rendering control component: {}", props.id);
-
-    let style = use_hook(|| Rc::new(style(&props.name)));
-    let id = props.id;
-    let position = props.position;
-    let half_width = style.width / 2.0;
-    let height = style.height;
-
-    rsx! {
-        g {
-            NodeWithContextMenu {
-                children: rsx! {
-                    NodeBase { id, position, style }
-                },
-                id,
-            }
-        }
-        g { transform: "translate({half_width}, 0)",
-            input::Port { id, position }
-        }
-        g { transform: "translate({half_width}, {height})",
-            output::Port { id, position }
-        }
-    }
-}
 
 fn style(name: &str) -> NodeStyle {
     NodeStyle::builder()
