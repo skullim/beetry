@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 
 use crate::definitions::{EdgePos, Point};
 use crate::editor::ServiceContext;
+use crate::signals::RequestRender;
 use crate::ui::NodeMap;
 use crate::ui::edge::tracker::Tracker;
 use crate::ui::edge::{ContextMenuState, Edge};
@@ -53,14 +54,12 @@ pub fn Renderer(
 
 #[component]
 pub fn Renderer2(
-    //@todo need signal to rerender
-    //service: ServiceContext,
+    render_edges: Signal<RequestRender>,
     mut edge_context_menu_state: Signal<ContextMenuState>,
 ) -> Element {
-    debug!("before service context");
+    debug!("rendering edges");
+    let _read = render_edges.read();
     let service = use_context::<ServiceContext>();
-    debug!("after service context");
-
     let read = service.service.read();
     let edge_api = read.edge_api();
     let ui_node_api = read.ui_api();

@@ -95,6 +95,6 @@ impl ExternalData {
 // beetry_plugin::submit!(ConditionPluginConstructor::new::<CheckBatteryPlugin>());
 
 beetry_plugin::submit!(ActionPluginConstructor2::new::<DrivePlugin>());
-// beetry_plugin::submit!(ActionPluginConstructor2::new::<LocalizePlugin>());
+beetry_plugin::submit!(ActionPluginConstructor2::new::<LocalizePlugin>());
 // beetry_plugin::submit!(ActionPluginConstructor2::new::<ReadExternalDataPlugin>());
-// beetry_plugin::submit!(ConditionPluginConstructor2::new::<CheckBatteryPlugin>());
+beetry_plugin::submit!(ConditionPluginConstructor2::new::<CheckBatteryPlugin>());
