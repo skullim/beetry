@@ -4,10 +4,12 @@ pub mod temporary;
 mod tracker;
 
 use beetry_core::MessageHash;
+use beetry_editor_types::ChannelPosition;
 use beetry_plugin::Named;
 use beetry_plugin_types::channel::ChannelSpec;
 use beetry_reconstruction_types::channel::{ChannelId, ChannelSnapshot};
 pub use config_dialog::Dialog as ConfigDialog;
+pub use config_dialog::Dialog2 as ConfigDialog2;
 pub use renderer::{Renderer, Renderer2};
 use serde::{Deserialize, Serialize};
 pub use temporary::Temporary;
@@ -330,19 +332,20 @@ pub(crate) fn ReceiverConnection(edge: EdgePos) -> Element {
 #[derive(Props, PartialEq, Clone)]
 pub struct ChannelProps2 {
     id: ChannelId,
+    position: ChannelPosition,
 }
 
 #[component]
 pub(crate) fn Channel2(props: ChannelProps2) -> Element {
     let id = props.id;
+    debug!("rendering channel {id}");
+    let position = props.position.origin;
 
     let service = use_context::<ServiceContext>();
     let read = service.service.read();
     let channel_api = read.channel_api();
-    let ui_channel_api = read.ui_api();
 
     let name = channel_api.spec(id).unwrap().name();
-    let position = ui_channel_api.channel().position(id).unwrap().origin;
 
     let zoom_level = use_context::<ViewportContext>().zoom_level;
     let handlers = use_context::<Handlers2>();

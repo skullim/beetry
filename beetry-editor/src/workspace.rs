@@ -8,6 +8,7 @@ use dioxus::prelude::*;
 use crate::definitions::{EdgePos, IndexedDragOffset, NodeEdge, NodeId, Point};
 use crate::domain::node::PortConnectionInput;
 use crate::editor::ServiceContext;
+use crate::signals::RequestRender;
 use crate::ui::channel::temporary::{ConnectionOrigin, DraggedData};
 use crate::ui::channel::{self};
 use crate::ui::node::{
@@ -504,7 +505,11 @@ impl WorkspaceContext2 {
     }
 }
 
-pub(crate) fn Workspace2() -> Element {
+#[component]
+pub(crate) fn Workspace2(
+    render_nodes: Signal<RequestRender>,
+    render_channels: Signal<RequestRender>,
+) -> Element {
     debug!("rendering workspace");
 
     let workspace_ctx = use_context_provider(WorkspaceContext2::new);
@@ -553,6 +558,7 @@ pub(crate) fn Workspace2() -> Element {
                         },
                     },
                 );
+                render_nodes.with_mut(|write| write.request());
                 //@todo fix zoom
                 //dimensions_ctx.resize_if_needed(ui_nodes.into());
             }
@@ -579,6 +585,7 @@ pub(crate) fn Workspace2() -> Element {
                         },
                     },
                 );
+                render_channels.with_mut(|write| write.request());
             }
 
             temp_edge_ctx.update_end_if_dragged(&evt);
@@ -645,8 +652,8 @@ pub(crate) fn Workspace2() -> Element {
                 }
 
                 edge::Renderer2 {  edge_context_menu_state }
-                channel::Renderer2 {}
-                node::Renderer2 {}
+                channel::Renderer2 {render_channels}
+                node::Renderer2 {render_nodes}
 
                 if temp_edge_ctx.is_dragged() {
 
