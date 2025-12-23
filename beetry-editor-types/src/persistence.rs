@@ -27,6 +27,7 @@ impl From<ValidTree> for MaybeValidTree {
 }
 
 // Proxy object to store valid tree
+#[derive(Debug, Deserialize)]
 pub struct ValidTree(TreeStore);
 
 impl ValidTree {

@@ -8,7 +8,7 @@ pub struct IdProvider<I> {
 
 impl<I> IdProvider<I>
 where
-    I: Default + Copy + AddAssign + Hash + One,
+    I: Copy + AddAssign + Hash + One,
 {
     pub fn next_available_id(&mut self, find_predicate: impl Fn(&I) -> bool) -> I {
         std::iter::repeat_with(|| self.next())

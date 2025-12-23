@@ -2,7 +2,6 @@ mod definitions;
 mod domain;
 mod editor;
 mod id;
-mod project;
 mod sidebar;
 mod signals;
 mod toolbar;
@@ -13,22 +12,14 @@ use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
 use beetry_editor_types::{NodeSpec, NodeSpecKey};
 use beetry_plugin::{
-    channel::{ChannelPluginConstructor, ChannelPluginConstructor2},
-    node::{
-        ActionPluginConstructor, ActionPluginConstructor2, ConditionPluginConstructor,
-        ConditionPluginConstructor2, ControlPluginConstructor, ControlPluginConstructor2,
-    },
+    channel::ChannelPluginConstructor2,
+    node::{ActionPluginConstructor2, ConditionPluginConstructor2, ControlPluginConstructor2},
 };
-use beetry_plugin_types::{
-    channel::ChannelSpec,
-    node::{ControlSpec, LeafSpec},
-};
+use beetry_plugin_types::channel::ChannelSpec;
 use dioxus::logger::tracing::Level;
 use dioxus::prelude::*;
 pub use domain::service::editor::EditorService;
 use std::collections::HashMap;
-
-pub use project::ProjectData;
 
 #[cfg(target_family = "wasm")]
 unsafe extern "C" {
@@ -47,24 +38,10 @@ pub fn launch() {
 }
 
 #[component]
-fn app() -> Element {
-    rsx! {
-        PluginsProvider { editor::Editor {} }
-    }
-}
-
-#[component]
 fn app2() -> Element {
     rsx! {
         Specs2Provider { editor::Editor2 {} }
     }
-}
-
-#[derive(Clone, PartialEq)]
-pub struct SpecPlugins {
-    leaves: Vec<LeafSpec>,
-    controls: Vec<ControlSpec>,
-    channels: Vec<ChannelSpec>,
 }
 
 #[derive(Clone)]
@@ -79,6 +56,12 @@ pub struct NodeSpecMap {
 }
 
 impl NodeSpecMap {
+    fn new(iter: impl Iterator<Item = (NodeSpecKey, NodeSpec)>) -> Self {
+        let mut map: HashMap<_, _> = iter.into_iter().collect();
+        map.insert(NodeSpecKey::root(), NodeSpec::root());
+        Self { map }
+    }
+
     pub fn spec(&self, key: &NodeSpecKey) -> Result<&NodeSpec> {
         self.map
             .get(key)
@@ -108,61 +91,26 @@ impl ChannelSpecMap {
 }
 
 #[component]
-pub fn PluginsProvider(children: Element) -> Element {
-    let leaves = {
-        let action_plugins = ActionPluginConstructor::plugins()?;
-        let condition_plugins = ConditionPluginConstructor::plugins()?;
-
-        let mut plugins = action_plugins
-            .into_iter()
-            .map(|p| p.into_parts().0)
-            .collect::<Vec<_>>();
-        plugins.extend(condition_plugins.into_iter().map(|p| p.into_parts().0));
-        plugins
-    };
-
-    let controls = ControlPluginConstructor::plugins()?
-        .into_iter()
-        .map(|p| p.into_parts().0)
-        .collect();
-
-    let channels = {
-        let plugins = ChannelPluginConstructor::plugins()?;
-        plugins.into_iter().map(|p| p.into_parts().0).collect()
-    };
-
-    use_context_provider(move || SpecPlugins {
-        leaves,
-        controls,
-        channels,
-    });
-    children
-}
-
-#[component]
 pub fn Specs2Provider(children: Element) -> Element {
     let nodes: NodeSpecMap = {
         let action_plugins = ActionPluginConstructor2::plugins()?;
         let condition_plugins = ConditionPluginConstructor2::plugins()?;
         let control_plugins = ControlPluginConstructor2::plugins()?;
 
-        let mut map = action_plugins
-            .into_iter()
-            .map(|p| {
-                let spec = p.into_parts().0;
-                (spec.key().clone(), spec)
-            })
-            .collect::<HashMap<_, _>>();
+        let iter = action_plugins.into_iter().map(|p| {
+            let spec = p.into_parts().0;
+            (spec.key().clone(), spec)
+        });
+        let iter = iter.chain(condition_plugins.into_iter().map(|p| {
+            let spec = p.into_parts().0;
+            (spec.key().clone(), spec)
+        }));
 
-        map.extend(condition_plugins.into_iter().map(|p| {
+        let iter = iter.chain(control_plugins.into_iter().map(|p| {
             let spec = p.into_parts().0;
             (spec.key().clone(), spec)
         }));
-        map.extend(control_plugins.into_iter().map(|p| {
-            let spec = p.into_parts().0;
-            (spec.key().clone(), spec)
-        }));
-        NodeSpecMap { map }
+        NodeSpecMap::new(iter)
     };
 
     let channels = {

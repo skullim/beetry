@@ -1,7 +1,8 @@
+use beetry_editor_types::NodeId;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::definitions::{NodeId, Point};
+use crate::definitions::Point;
 
 #[derive(Debug, Clone)]
 pub struct Handlers {

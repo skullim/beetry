@@ -290,18 +290,20 @@ impl UiRepositoryFacadeConcept for UiRepositoryFacade {
     }
 }
 
+// @todo Right now all specs are duplicated,
+// spec needs to be split into key and value, and the key should be inserted into seen set.
+// Only if not seen insert the spec, otherwise give back the given spec id.
+// Also it would be good to change from value semantics to reference semantics, Self::Spec -> &Self::Spec
+
 /// Service layer should guarantee that no same Specs are stored
 pub trait SpecRepositoryConcept: Default {
     type Spec;
     type SpecId;
-    //type Key;
 
     fn create(&mut self, spec: Self::Spec) -> Result<Self::SpecId>;
     fn load(&mut self, id: Self::SpecId, spec: Self::Spec) -> Result<()>;
 
     fn remove(&mut self, id: Self::SpecId) -> Option<Self::Spec>;
-
-    //fn spec_by_key(&self, key: Self::Key) -> Option<Self::Spec>;
 
     fn spec(&self, id: Self::SpecId) -> Option<&Self::Spec>;
     fn specs(&self) -> impl Iterator<Item = &Self::Spec>;
@@ -318,7 +320,6 @@ pub struct SpecRepository<I, S> {
     specs: HashMap<I, S>,
     id_provider: IdProvider<I>,
 }
-
 impl<I, S> Default for SpecRepository<I, S>
 where
     I: Default,
@@ -378,7 +379,7 @@ pub trait NodeRepositoryConcept: Default {
     fn create(&mut self, spec_id: NodeSpecId) -> Result<NodeId>;
     fn load(&mut self, id: NodeId, spec_id: NodeSpecId) -> Result<()>;
 
-    fn remove(&mut self, id: NodeId) -> Result<()>;
+    fn remove(&mut self, id: NodeId) -> Option<NodeSpecId>;
 
     fn contains(&self, id: &NodeId) -> bool;
 
@@ -415,9 +416,8 @@ impl NodeRepositoryConcept for NodeRepository {
         Ok(())
     }
 
-    fn remove(&mut self, id: NodeId) -> Result<()> {
-        self.nodes.remove(&id);
-        Ok(())
+    fn remove(&mut self, id: NodeId) -> Option<NodeSpecId> {
+        self.nodes.remove(&id)
     }
 
     fn contains(&self, id: &NodeId) -> bool {
@@ -482,7 +482,7 @@ impl PortStateRepositoryConcept for PortStateRepository {
 /// caller (service layer) has to assure that params are valid w.r.t. schema
 pub trait ParamValueRepositoryConcept: Default {
     fn create(&mut self, id: NodeId, params: Parameters) -> Result<()>;
-    fn remove(&mut self, id: NodeId) -> Result<()>;
+    fn remove(&mut self, id: NodeId) -> Option<Parameters>;
 
     fn value(&self, id: NodeId) -> Option<&Parameters>;
     fn value_mut(&mut self, id: NodeId) -> Option<&mut Parameters>;
@@ -499,9 +499,8 @@ impl ParamValueRepositoryConcept for ParamValuesRepository {
         Ok(())
     }
 
-    fn remove(&mut self, id: NodeId) -> Result<()> {
-        self.params.remove(&id);
-        Ok(())
+    fn remove(&mut self, id: NodeId) -> Option<Parameters> {
+        self.params.remove(&id)
     }
 
     fn value(&self, id: NodeId) -> Option<&Parameters> {
@@ -627,7 +626,7 @@ pub trait UiRepositoryConcept: Default {
     type Data;
 
     fn create(&mut self, id: Self::Id, data: Self::Data) -> Result<()>;
-    fn remove(&mut self, id: Self::Id) -> Result<()>;
+    fn remove(&mut self, id: Self::Id) -> Option<Self::Data>;
 
     fn data(&self, id: Self::Id) -> Option<&Self::Data>;
     fn data_mut(&mut self, id: Self::Id) -> Option<&mut Self::Data>;
@@ -665,9 +664,8 @@ where
         Ok(())
     }
 
-    fn remove(&mut self, id: Self::Id) -> Result<()> {
-        self.data.remove(&id);
-        Ok(())
+    fn remove(&mut self, id: Self::Id) -> Option<Self::Data> {
+        self.data.remove(&id)
     }
 
     fn data(&self, id: Self::Id) -> Option<&Self::Data> {

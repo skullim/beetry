@@ -14,7 +14,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use beetry_plugin_types::node::NodeName;
 use beetry_reconstruction_types::parameter::Parameters;
 use std::collections::{HashMap, HashSet};
-use tracing::warn;
+use tracing::{debug, warn};
 
 use beetry_editor_types::{
     ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePortState, NodePosition,
@@ -156,10 +156,6 @@ where
         }
     }
 
-    pub fn spec_by_key(&self, key: &NodeSpecKey) -> Result<&NodeSpec> {
-        todo!()
-    }
-
     pub fn name(&self, id: NodeId) -> Result<&NodeName> {
         Ok(Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.name())
     }
@@ -172,7 +168,15 @@ where
         Ok(Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.ports())
     }
 
-    fn kind_by_spec_id(&self, spec_id: NodeSpecId) -> Result<NodeKind> {
+    pub fn params(&self, id: NodeId) -> Result<&beetry_plugin_types::parameter::Schema> {
+        Ok(Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.params())
+    }
+
+    pub fn name_by_spec_id(&self, spec_id: NodeSpecId) -> Result<&NodeName> {
+        Ok(Self::spec_by_spec_id(self.spec_repo, spec_id)?.name())
+    }
+
+    pub fn kind_by_spec_id(&self, spec_id: NodeSpecId) -> Result<NodeKind> {
         Ok(Self::spec_by_spec_id(self.spec_repo, spec_id)?.kind())
     }
 
@@ -532,6 +536,7 @@ impl NodeService {
         let spec_id = match self.spec_cache.get(spec.key()) {
             Some(id) => *id,
             None => {
+                debug!("inserting new spec into spec repo");
                 let spec_id = spec_repo.create(spec.clone())?;
                 self.spec_cache.insert(spec.key, spec_id);
                 spec_id
@@ -614,7 +619,10 @@ impl NodeService {
             .get_mut(&spec.kind())
             .map(|nodes| nodes.remove(&id));
 
-        view.parameters.remove(id)
+        view.nodes.remove(id);
+        view.parameters.remove(id);
+        //@todo also channel connections have to be decremented
+        Ok(())
     }
 
     pub(super) fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId> {

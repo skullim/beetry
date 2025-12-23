@@ -52,11 +52,14 @@ where
     }
 
     pub fn import_project(&mut self, store: EditorStateStore) -> Result<()> {
+        self.reset_editor_state();
         self.import_tree(store.tree)?;
         self.import_ui(store.ui_elements)
     }
 
     pub fn import_tree(&mut self, MaybeValidTree(mut tree): MaybeValidTree) -> Result<()> {
+        self.reset_editor_state();
+
         let EditorRepositoryViewMut {
             node,
             channel,
@@ -121,6 +124,13 @@ where
             }
         }
         Ok(())
+    }
+
+    fn reset_editor_state(&mut self) {
+        *self.node_service = NodeService::new();
+        *self.edge_service = EdgeService::new();
+        *self.channel_service = ChannelService::new();
+        *self.repo = EditorRepository::default();
     }
 }
 

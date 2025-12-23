@@ -1,108 +1,14 @@
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{Result, anyhow};
-use beetry_editor_types::EditorStateStore;
+use beetry_editor_types::{EditorStateStore, ValidTree};
 use beetry_serialization::{Deserializer, JsonDeserializer, JsonSerializer, Serializer};
 use dioxus::prelude::*;
 use rfd::FileDialog;
 
-use crate::definitions::NodeId;
 use crate::editor::ServiceContext;
-use crate::project::{EditorMetadata, ProjectData};
-use crate::ui::{self, channel, edge, transfer};
-#[derive(Debug, Clone)]
-pub struct ToolbarHandlers {
-    pub(crate) import: transfer::ImportHandlers,
-    pub(crate) export: transfer::ExportHandlers,
-}
-
-#[component]
-pub(crate) fn Toolbar(
-    mut id: Signal<NodeId>,
-    mut ui_nodes: Signal<ui::NodeMap>,
-    mut edge_tracker: Signal<edge::Tracker>,
-    mut channel_tracker: Signal<channel::Tracker>,
-) -> Element {
-    let mut export_result = use_signal(transfer::OperationResult::default);
-    let mut import_result = use_signal(transfer::OperationResult::default);
-
-    {
-        let on_export = move |()| {
-            let nodes = ui_nodes.peek();
-            let edge_tracker = edge_tracker.read();
-            let result = export_to_file(&nodes, id(), &edge_tracker, &channel_tracker.peek());
-
-            match result {
-                Ok(()) => {
-                    export_result.set(transfer::OperationResult::new(
-                        "Export successful",
-                        transfer::OperationStatus::Success,
-                    ));
-                }
-                Err(error) => {
-                    export_result.set(transfer::OperationResult::new(
-                        format!("Export failed:\n{error}"),
-                        transfer::OperationStatus::Error,
-                    ));
-                }
-            }
-        };
-
-        let on_import = move |()| {
-            let result = import_from_file();
-
-            match result {
-                Ok(mut data) => {
-                    ui_nodes.with_mut(|elements| std::mem::swap(elements, &mut data.nodes));
-                    edge_tracker.with_mut(|tracker| {
-                        let mut new = edge::Tracker::from_edges(data.edges);
-                        std::mem::swap(tracker, &mut new);
-                    });
-                    id.with_mut(|id| *id = data.last_id);
-
-                    channel_tracker
-                        .with_mut(|tracker| std::mem::swap(tracker, &mut data.channel_tracker));
-
-                    import_result.set(transfer::OperationResult::new(
-                        "Import successful",
-                        transfer::OperationStatus::Success,
-                    ));
-                }
-                Err(error) => {
-                    import_result.set(transfer::OperationResult::new(
-                        format!("Import failed:\n{error}"),
-                        transfer::OperationStatus::Error,
-                    ));
-                }
-            }
-        };
-
-        use_context_provider(move || ToolbarHandlers {
-            import: transfer::ImportHandlers::new(on_import),
-            export: transfer::ExportHandlers::new(on_export),
-        });
-    }
-
-    rsx! {
-        transfer::Export { result: export_result }
-        transfer::Import { result: import_result }
-    }
-}
-
-fn export_to_file(
-    nodes: &ui::NodeMap,
-    last_id: NodeId,
-    edge_tracker: &edge::Tracker,
-    channel_tracker: &channel::Tracker,
-) -> Result<()> {
-    let data = ProjectData::export(nodes, last_id, edge_tracker, channel_tracker)?;
-    let serialized = JsonSerializer::serialize(&data)?;
-    let file_path = select_export_file()?;
-
-    std::fs::write(&file_path, serialized)
-        .map_err(|e| anyhow!("Failed to save file '{}': {}", file_path.display(), e))
-}
+use crate::ui::transfer;
 
 fn select_export_file() -> Result<PathBuf> {
     FileDialog::new()
@@ -111,11 +17,6 @@ fn select_export_file() -> Result<PathBuf> {
         .set_file_name("behavior_tree.json")
         .save_file()
         .ok_or_else(|| anyhow!("No file selected"))
-}
-
-fn import_from_file() -> Result<EditorMetadata> {
-    let file_path = select_import_file()?;
-    ProjectData::import(&file_path)
 }
 
 fn select_import_file() -> Result<PathBuf> {
@@ -130,10 +31,11 @@ fn select_import_file() -> Result<PathBuf> {
 #[component]
 pub(crate) fn Toolbar2() -> Element {
     let mut export_result = use_signal(transfer::OperationResult::default);
+    let mut valid_tree_export_result = use_signal(transfer::OperationResult::default);
     let mut import_result = use_signal(transfer::OperationResult::default);
 
     {
-        let on_export = move |()| {
+        let on_project_export = move |()| {
             let service = use_context::<ServiceContext>();
             let read = service.service.read();
 
@@ -155,6 +57,35 @@ pub(crate) fn Toolbar2() -> Element {
                 },
                 Err(e) => {
                     export_result.set(transfer::OperationResult::new(
+                        format!("Export failed:\n{e}"),
+                        transfer::OperationStatus::Error,
+                    ));
+                }
+            };
+        };
+
+        let on_valid_tree_export = move |()| {
+            let service = use_context::<ServiceContext>();
+            let read = service.service.read();
+
+            let export_valid_tree_result = read.export_api().export_valid_tree();
+            match export_valid_tree_result {
+                Ok(tree) => match export_valid_tree_to_file(tree) {
+                    Ok(()) => {
+                        valid_tree_export_result.set(transfer::OperationResult::new(
+                            "Valid tree export successful",
+                            transfer::OperationStatus::Success,
+                        ));
+                    }
+                    Err(e) => {
+                        valid_tree_export_result.set(transfer::OperationResult::new(
+                            format!("Export failed:\n{e}"),
+                            transfer::OperationStatus::Error,
+                        ));
+                    }
+                },
+                Err(e) => {
+                    valid_tree_export_result.set(transfer::OperationResult::new(
                         format!("Export failed:\n{e}"),
                         transfer::OperationStatus::Error,
                     ));
@@ -193,20 +124,29 @@ pub(crate) fn Toolbar2() -> Element {
             }
         };
 
-        use_context_provider(move || ToolbarHandlers {
+        use_context_provider(move || ToolbarHandlers2 {
             import: transfer::ImportHandlers::new(on_import),
-            export: transfer::ExportHandlers::new(on_export),
+            export: transfer::ExportHandlers2::new(on_project_export, on_valid_tree_export),
         });
     }
 
     rsx! {
-        transfer::Export { result: export_result }
-        transfer::Import { result: import_result }
+        transfer::ExportProject { result: export_result }
+        transfer::ExportValidTree { result: valid_tree_export_result }
+        transfer::Import2 { result: import_result }
     }
 }
 
 fn export_project_to_file2(editor_state: EditorStateStore) -> Result<()> {
     let serialized = JsonSerializer::serialize(&editor_state)?;
+    let file_path = select_export_file()?;
+
+    std::fs::write(&file_path, serialized)
+        .map_err(|e| anyhow!("Failed to save file '{}': {}", file_path.display(), e))
+}
+
+fn export_valid_tree_to_file(valid_tree: ValidTree) -> Result<()> {
+    let serialized = JsonSerializer::serialize(&valid_tree.into_inner())?;
     let file_path = select_export_file()?;
 
     std::fs::write(&file_path, serialized)
@@ -228,4 +168,10 @@ pub(crate) fn import_project_from_file() -> Result<EditorStateStore> {
     file.read_to_string(&mut content_buffer)?;
     let store: EditorStateStore = JsonDeserializer::deserialize(&content_buffer)?;
     Ok(store)
+}
+
+#[derive(Debug, Clone)]
+pub struct ToolbarHandlers2 {
+    pub(crate) import: transfer::ImportHandlers,
+    pub(crate) export: transfer::ExportHandlers2,
 }

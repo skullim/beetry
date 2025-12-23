@@ -1,10 +1,11 @@
 use std::rc::Rc;
 
+use beetry_editor_types::NodeId;
 use bon::Builder;
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 
-use crate::definitions::{IndexedDragOffset, NodeId, Point};
+use crate::definitions::{IndexedDragOffset, Point};
 use crate::ui::text;
 use crate::ui::viewport::{ViewportContext, ZoomLevel};
 
