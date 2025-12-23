@@ -2,16 +2,15 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use beetry_editor_types::{NodeKind, NodeSpecKey};
+use beetry_editor_types::{ChannelUiData, NodeKind, NodePosition, NodeSpecKey, NodeUiData};
 use beetry_plugin_types::node::{LeafSpec, NodeName};
 use beetry_reconstruction_types::{
-    channel::{ChannelMetadata, ChannelSnapshot},
+    channel::{ChannelConfig, ChannelMetadata, ChannelSnapshot},
     parameter::Parameters,
 };
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::ui::channel::{self};
 use crate::ui::node::{ParameterDialogHandlers, ParameterDialogState};
 use crate::ui::{self, edge};
 use crate::workspace::{Workspace, Workspace2};
@@ -32,6 +31,10 @@ use crate::{
 };
 use crate::{
     sidebar::SidebarEventHandlers2, ui::channel::config_dialog::State as ChannelConfigDialogState,
+};
+use crate::{
+    signals::RequestRender,
+    ui::channel::{self},
 };
 
 #[derive(Debug, Clone)]
@@ -207,15 +210,18 @@ pub(crate) fn Editor2() -> Element {
 
     let ctx = use_context_provider(EditorContext::new);
     let channel_ctx = ctx.channel;
-    let channel_config_dialog_state: Signal<ChannelConfigDialogState> =
+    let mut channel_config_dialog_state: Signal<ChannelConfigDialogState> =
         use_signal(ChannelConfigDialogState::default);
     let parameter_dialog_state: Signal<ParameterDialogState> =
         use_signal(ParameterDialogState::default);
 
-    let sidebar_handlers = use_context_provider(move || {
-        let on_new_node = |node_spec_key: NodeSpecKey| {
-            let mut service_ctx = use_context::<ServiceContext>();
+    let mut render_nodes = use_signal(RequestRender::new);
+    let mut render_channels = use_signal(RequestRender::new);
 
+    let sidebar_handlers = use_context_provider(move || {
+        let on_new_node = move |node_spec_key: NodeSpecKey| {
+            //@todo improve ergonomics
+            let mut service_ctx = use_context::<ServiceContext>();
             let mut write = service_ctx.service.write();
             let mut node_api_mut = write.node_api_mut();
             let mut lifecycle_api = node_api_mut.lifecycle();
@@ -224,17 +230,49 @@ pub(crate) fn Editor2() -> Element {
 
             //@todo handle unwraps
             let node_spec = specs_map.nodes.spec(&node_spec_key).unwrap();
-            lifecycle_api.create(node_spec.clone()).unwrap();
-            //@todo missing instantiation of ui element, maybe pass position into closure?
+            let id = lifecycle_api.create(node_spec.clone()).unwrap();
 
+            //@todo improve default position
+            let data = NodeUiData::default();
+            let mut ui_api = write.ui_api_mut();
+            ui_api.node().create(id, data).unwrap();
+            info!(
+                "created node {id} with name {} and {:?} kind",
+                node_spec_key.name(),
+                node_spec_key.kind()
+            );
             //@todo root node has to be created once at the initialization phase
+            render_nodes.with_mut(|write| write.request());
         };
 
         SidebarEventHandlers2::new(on_new_node)
     });
 
     use_context_provider(move || {
-        channel_config_dialog_handlers(channel_ctx.tracker, channel_config_dialog_state)
+        let on_new_channel = move |config: ChannelConfig| {
+            if let ChannelConfigDialogState::Visible { spec, .. } =
+                channel_config_dialog_state.take()
+            {
+                let mut service_ctx = use_context::<ServiceContext>();
+                let mut write = service_ctx.service.write();
+                let id = {
+                    let mut channel_api = write.channel_api_mut();
+                    channel_api.create(spec, config).unwrap()
+                };
+                {
+                    //@todo improve default position
+                    let data = ChannelUiData::default();
+                    let mut ui_api = write.ui_api_mut();
+                    ui_api.channel().create(id, data).unwrap();
+                }
+                render_channels.with_mut(|write| write.request());
+            }
+        };
+
+        let on_cancel = move |_| {
+            channel_config_dialog_state.take();
+        };
+        channel::config_dialog::Handlers2::new(on_new_channel, on_cancel)
     });
 
     // use_context_provider(move || {
@@ -249,9 +287,8 @@ pub(crate) fn Editor2() -> Element {
                     //parameter_dialog_state,
                 }
             }
-            div { style: "flex: 0 1 80%;", Workspace2 {} }
-            div { style: "flex: 0 1 10%;", Toolbar2 {
-            } }
+            div { style: "flex: 0 1 80%;", Workspace2 {render_nodes, render_channels} }
+            div { style: "flex: 0 1 10%;", Toolbar2 {} }
         }
     }
 }

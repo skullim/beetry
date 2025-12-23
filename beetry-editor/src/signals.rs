@@ -1,9 +1,9 @@
-pub struct RequestRerender {
+pub struct RequestRender {
     // dummy flag to trigger value change
     flag: bool,
 }
 
-impl RequestRerender {
+impl RequestRender {
     pub fn new() -> Self {
         Self { flag: false }
     }

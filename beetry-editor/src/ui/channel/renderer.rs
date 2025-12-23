@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 
 use crate::definitions::{EdgePos, Point};
 use crate::editor::ServiceContext;
+use crate::signals::RequestRender;
 use crate::ui::channel::tracker::Tracker;
 use crate::ui::channel::{Channel, Channel2, ReceiverConnection, SenderConnection};
 use crate::ui::{self, text};
@@ -79,16 +80,20 @@ pub fn Renderer(tracker: ReadSignal<Tracker>, ui_nodes: ReadSignal<ui::NodeMap>)
 }
 
 #[component]
-pub fn Renderer2() -> Element {
+pub fn Renderer2(render_channels: Signal<RequestRender>) -> Element {
+    debug!("rendering channels");
+    let _read = render_channels.read();
     let service = use_context::<ServiceContext>();
     let read = service.service.read();
     let ui_api = read.ui_api();
     let channel_api = ui_api.channel();
-    let channels = channel_api.iter().map(|(id, _)| {
+    let channels = channel_api.iter().map(|(id, data)| {
         rsx! {
-            Channel2 { id: *id }
+            Channel2 { key: "{id}", id: *id, position: data.position }
         }
     });
+
+    //@todo still render channel <-> port edges
 
     // let node_api = read.node_api();
     // let tracker = node_api.tracker();
