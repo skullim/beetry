@@ -171,6 +171,7 @@ pub(crate) fn Sidebar2(
 
     let new_leaf_handler = |spec_key: NodeSpecKey| {
         move |_| {
+            on_new_node.call(spec_key.clone());
             // let schema = spec_key.schema();
             // let params_schema = spec_key.params_schema();
             // let params_len = params_schema.defs.len();
@@ -229,7 +230,7 @@ pub(crate) fn Sidebar2(
             }
 
             div {
-                channel::ConfigDialog { state: channel_config_dialog_state }
+                channel::ConfigDialog2 { state: channel_config_dialog_state }
             }
 
             // div {

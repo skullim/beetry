@@ -241,12 +241,12 @@ impl ChannelData {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct NodeUiData {
     pub position: NodePosition,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ChannelUiData {
     pub position: ChannelPosition,
 }

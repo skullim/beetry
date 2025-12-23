@@ -7,7 +7,9 @@ pub use leaves::{
 
 use beetry_macros::{Message, submit_as_channel_plugin};
 use beetry_plugin::Plugin;
-use beetry_plugin::channel::{ChannelPluginConstructor, Factory};
+use beetry_plugin::channel::{
+    ChannelPluginConstructor, ChannelPluginConstructor2, Factory, Factory2,
+};
 use beetry_plugin::node::{
     ActionPluginConstructor, ActionPluginConstructor2, ConditionPluginConstructor,
     ConditionPluginConstructor2,
@@ -18,7 +20,7 @@ use type_hash::TypeHash;
 
 use crate::leaves::{CheckBatteryPlugin, ReadExternalDataPlugin};
 
-#[submit_as_channel_plugin]
+//#[submit_as_channel_plugin]
 #[derive(Debug, Clone, Copy, TypeHash, Message)]
 pub struct Pose {
     x: f32,
@@ -30,6 +32,40 @@ impl Pose {
         Self { x, y }
     }
 }
+
+pub struct ChannelPose {
+    spec: ChannelSpec,
+    factory: Factory2,
+}
+
+impl Plugin for ChannelPose {
+    type Spec = ChannelSpec;
+    type Factory = Factory2;
+
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
+        Self {
+            spec: ChannelSpec::new::<Pose>(),
+            factory: Factory2::from_msg_type::<Pose>(),
+        }
+    }
+
+    fn spec(&self) -> &ChannelSpec {
+        &self.spec
+    }
+
+    fn factory(&self) -> &Factory2 {
+        &self.factory
+    }
+
+    fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
+        (self.spec, self.factory)
+    }
+}
+
+beetry_plugin::submit!(ChannelPluginConstructor2::new::<ChannelPose>());
 
 #[derive(Debug, Clone, Copy, TypeHash)]
 pub enum ChargeCommand {

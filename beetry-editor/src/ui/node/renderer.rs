@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
 use crate::editor::ServiceContext;
+use crate::signals::RequestRender;
 use crate::ui::node::control::{Control, Control2};
 use crate::ui::node::leaf::Leaf;
 use crate::ui::node::root::Root;
@@ -53,8 +54,9 @@ pub fn Renderer(ui_nodes: Signal<NodeMap>) -> Element {
 
 //@todo add signal for rerendering
 #[component]
-pub fn Renderer2() -> Element {
+pub fn Renderer2(render_nodes: Signal<RequestRender>) -> Element {
     debug!("rendering nodes renderer");
+    let _read = render_nodes.read();
     let service = use_context::<ServiceContext>();
     let read = service.service.read();
     let ui_api = read.ui_api();

@@ -1,15 +1,18 @@
 use crate::Sequence;
 use beetry_core::BoxNode;
+use beetry_editor_types::{NodeSpec, NodeSpecKey};
 use beetry_plugin::Plugin;
-use beetry_plugin::node::{ControlFactory, ControlPluginConstructor, ControlReconstructionData};
+use beetry_plugin::node::{
+    ControlFactory, ControlPluginConstructor, ControlPluginConstructor2, ControlReconstructionData,
+};
 use beetry_plugin_types::node::{ControlSchema, ControlSpec, NodeName};
 
 struct SequencePlugin {
-    spec: ControlSpec,
+    spec: NodeSpec,
     factory: ControlFactory,
 }
 impl Plugin for SequencePlugin {
-    type Spec = ControlSpec;
+    type Spec = NodeSpec;
     type Factory = ControlFactory;
 
     fn new() -> Self
@@ -17,9 +20,11 @@ impl Plugin for SequencePlugin {
         Self: Sized,
     {
         Self {
-            spec: ControlSpec::builder()
-                .name(NodeName::new("Sequence"))
-                .schema(ControlSchema)
+            spec: NodeSpec::builder()
+                .key(NodeSpecKey::new(
+                    NodeName::new("Sequence"),
+                    beetry_editor_types::NodeKind::Control,
+                ))
                 .build(),
             factory: ControlFactory::new(Box::new(|data: ControlReconstructionData| {
                 Ok(Box::new(Sequence::new(data.inner.children)) as BoxNode)
@@ -112,6 +117,6 @@ impl Plugin for ParallelPlugin {
     }
 }
 
-beetry_plugin::submit!(ControlPluginConstructor::new::<SequencePlugin>());
-beetry_plugin::submit!(ControlPluginConstructor::new::<FallbackPlugin>());
-beetry_plugin::submit!(ControlPluginConstructor::new::<ParallelPlugin>());
+beetry_plugin::submit!(ControlPluginConstructor2::new::<SequencePlugin>());
+// beetry_plugin::submit!(ControlPluginConstructor2::new::<FallbackPlugin>());
+// beetry_plugin::submit!(ControlPluginConstructor2::new::<ParallelPlugin>());
