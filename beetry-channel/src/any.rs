@@ -61,7 +61,7 @@ macro_rules! downcast {
     (receivers = $receivers: expr, expected = [$($exp_ty: ty),+]) => {
         {
             // casting tuples of results to result of tuple for easier user processing
-            tupleops::all_ok(( $(
+            $crate::tupleops::all_ok(( $(
                 {
                   let expected_idx = $receivers.iter()
                     .position(|any_recv| any_recv.is_receiver_of::<$exp_ty>())
@@ -75,7 +75,7 @@ macro_rules! downcast {
     (senders = $senders: expr, expected = [$($exp_ty: ty),+]) => {
         {
             // casting tuples of results to result of tuple for easier user processing
-            tupleops::all_ok(( $(
+            $crate::tupleops::all_ok(( $(
                 {
                   let expected_idx = $senders.iter()
                     .position(|any_sender| any_sender.is_sender_of::<$exp_ty>())

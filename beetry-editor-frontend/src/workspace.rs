@@ -1,3 +1,4 @@
+use beetry_editor_backend::node::PortConnectionInput;
 use beetry_editor_types::{ChannelPosition, EdgeId, NodeId, NodePortId, NodePosition};
 use beetry_reconstruction_types::channel::ChannelId;
 use bon::Builder;
@@ -5,7 +6,6 @@ use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
 
 use crate::definitions::{EdgePos, IndexedDragOffset, Point};
-use crate::domain::node::PortConnectionInput;
 use crate::editor::ServiceContext;
 use crate::signals::RequestRender;
 use crate::ui::channel::temporary::{ConnectionOrigin, DraggedData};

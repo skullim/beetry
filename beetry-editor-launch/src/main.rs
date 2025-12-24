@@ -2,5 +2,5 @@
 use {beetry_example as _, beetry_node as _};
 
 fn main() {
-    beetry_editor::launch();
+    beetry_editor_frontend::launch();
 }
