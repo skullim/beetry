@@ -1,5 +1,5 @@
 [package]
-name = "beetry-editor"
+name = "beetry-editor-frontend"
 version = "0.1.0"
 edition = "2024"
 
@@ -10,26 +10,18 @@ desktop = ["dioxus/desktop"]
 
 [dependencies]
 anyhow.workspace = true
-beetry-core = { version = "0.1.0", path = "../beetry-core" }
 beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
 beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
 beetry-plugin-types = { version = "0.1.0", path = "../beetry-plugin-types" }
 beetry-reconstruction-types = { version = "0.1.0", path = "../beetry-reconstruction-types" }
 beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }
+beetry-editor-backend = { version = "0.1.0", path = "../beetry-editor-backend" }
 bon.workspace = true
-delegate = "0.13.5"
-derive_more.workspace = true
 dioxus = { version = "0.7.0", features = [] }
 dioxus-logger = "0.7.0"
-getset.workspace = true
-indexmap.workspace = true
-itertools.workspace = true
-num-traits.workspace = true
 rfd = { version = "0.15.4", default-features = false, features = [
     "xdg-portal",
     "tokio",
 ] }
 serde.workspace = true
 serde-value.workspace = true
-slotmap = "1.0.7"
-tracing.workspace = true

@@ -1,3 +1,7 @@
+use beetry_editor_backend::EditorService;
+use beetry_editor_backend::repository::{
+    ChannelRepositoryFacade, EdgeRepository, NodeRepositoryFacade, UiRepositoryFacade,
+};
 use beetry_editor_types::{ChannelUiData, NodeSpecKey, NodeUiData};
 use beetry_reconstruction_types::channel::ChannelConfig;
 use dioxus::prelude::*;
@@ -5,12 +9,6 @@ use dioxus_logger::tracing::debug;
 
 use crate::ui::node::{ParameterDialogHandlers, ParameterDialogState};
 use crate::workspace::Workspace2;
-use crate::{
-    EditorService,
-    domain::repository::{
-        ChannelRepositoryFacade, EdgeRepository, NodeRepositoryFacade, UiRepositoryFacade,
-    },
-};
 use crate::{NodeSpecMap, toolbar::Toolbar2};
 use crate::{Specs2, sidebar::Sidebar2};
 use crate::{
