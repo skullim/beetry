@@ -1,14 +1,9 @@
-use std::collections::HashMap;
-use std::num::NonZeroUsize;
-
 use anyhow::{Result, bail};
-use bon::Builder;
 use derive_more::{AddAssign, Display, From};
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use num_traits::One;
 use serde::{Deserialize, Serialize};
 
-use crate::tree::{ExportResult, ExportValidationError};
 use beetry_plugin_types::channel::ChannelSpec;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
@@ -30,11 +25,11 @@ pub struct ChannelConfig {
     #[getset(get_copy = "pub", get_mut = "pub")]
     count: SenderReceiverCount,
     #[getset(get_copy = "pub")]
-    kind: ChannelImplKind2,
+    kind: ChannelKind,
 }
 
 impl ChannelConfig {
-    pub fn new(capacity: usize, kind: ChannelImplKind2) -> Self {
+    pub fn new(capacity: usize, kind: ChannelKind) -> Self {
         Self {
             capacity,
             kind,
@@ -42,7 +37,7 @@ impl ChannelConfig {
         }
     }
 
-    pub fn set_kind(&mut self, kind: ChannelImplKind2) -> Result<()> {
+    pub fn set_kind(&mut self, kind: ChannelKind) -> Result<()> {
         // validate if kind is valid, e.g. if there are multiple receivers and one tries to change to mpsc
         todo!()
     }
@@ -93,9 +88,8 @@ impl std::ops::Mul for ChannelId {
     }
 }
 
-//@todo: rename to ChannelKind
 #[derive(Debug, From, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub enum ChannelImplKind2 {
+pub enum ChannelKind {
     Tokio(TokioChannelKind),
 }
 
@@ -139,148 +133,6 @@ impl SenderReceiverCount {
             None => {
                 bail!("cannot decrease receiver count below 0");
             }
-        }
-        Ok(())
-    }
-}
-
-//@todo remove
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
-#[getset(get = "pub")]
-pub struct ChannelSnapshot {
-    spec: ChannelSpec,
-    metadata: ChannelMetadata,
-}
-
-impl ChannelSnapshot {
-    pub fn new(spec: ChannelSpec, metadata: ChannelMetadata) -> Self {
-        Self { spec, metadata }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, CopyGetters, Getters)]
-pub struct ChannelMetadata {
-    #[get_copy = "pub"]
-    capacity: usize, // there might be channels with 0 capacity
-    #[get_copy = "pub"]
-    kind: ChannelKind,
-    #[get = "pub"]
-    impl_kind: ChannelImplKind,
-}
-
-impl ChannelMetadata {
-    pub fn new(capacity: usize, kind: ChannelKind, impl_kind: ChannelImplKind) -> Self {
-        Self {
-            capacity,
-            kind,
-            impl_kind,
-        }
-    }
-}
-
-//@todo remove from here to below, validation should not be needed anymore
-#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
-pub enum ChannelKind {
-    Internal,
-    External,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum ChannelImplKind {
-    Tokio(TokioChannelConfig),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TokioChannelConfig {
-    Mpsc(MpscConfig),
-    Broadcast(BroadcastConfig),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, CopyGetters)]
-pub struct MpscConfig {
-    #[get_copy = "pub"]
-    n_senders: NonZeroUsize,
-}
-
-impl MpscConfig {
-    pub fn new(n_senders: NonZeroUsize) -> Self {
-        Self { n_senders }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Builder, Serialize, Deserialize, CopyGetters)]
-#[get_copy = "pub"]
-pub struct BroadcastConfig {
-    n_senders: NonZeroUsize,
-    n_receivers: NonZeroUsize,
-}
-
-pub type ChannelSnapshotMap = HashMap<ChannelId, ChannelSnapshot>;
-pub(super) struct ChannelValidator;
-pub(super) type ChannelIdSenderReceiverCountMap = HashMap<ChannelId, SenderReceiverCount>;
-
-impl ChannelValidator {
-    pub(super) fn validate(
-        snapshot_map: &ChannelSnapshotMap,
-        count_map: &ChannelIdSenderReceiverCountMap,
-    ) -> ExportResult<()> {
-        for (id, count) in count_map {
-            let snapshot = Self::validate_channel_presence(snapshot_map, *id)?;
-            Self::validate_endpoint_count(snapshot, *id, count)?;
-        }
-        Ok(())
-    }
-
-    fn validate_channel_presence(
-        snapshot_map: &ChannelSnapshotMap,
-        id: ChannelId,
-    ) -> ExportResult<&ChannelSnapshot> {
-        snapshot_map
-            .get(&id)
-            .map_or(Err(ExportValidationError::ChannelNotFound(id)), |snap| {
-                Ok(snap)
-            })
-    }
-
-    const fn validate_endpoint_count(
-        snapshot: &ChannelSnapshot,
-        id: ChannelId,
-        count: &SenderReceiverCount,
-    ) -> ExportResult<()> {
-        match &snapshot.metadata.impl_kind {
-            ChannelImplKind::Tokio(tokio_config) => match tokio_config {
-                TokioChannelConfig::Mpsc(mpsc_config) => {
-                    let expected_senders = mpsc_config.n_senders.get();
-                    if count.sender != expected_senders {
-                        return Err(ExportValidationError::SenderCountMismatch(
-                            id,
-                            expected_senders,
-                            count.sender,
-                        ));
-                    }
-                }
-                TokioChannelConfig::Broadcast(broadcast_config) => {
-                    let expected_senders = broadcast_config.n_senders.get();
-                    let expected_receivers = broadcast_config.n_receivers.get();
-
-                    if count.sender != expected_senders {
-                        return Err(ExportValidationError::SenderCountMismatch(
-                            id,
-                            expected_senders,
-                            count.sender,
-                        ));
-                    }
-
-                    if count.receiver != expected_receivers {
-                        return Err(ExportValidationError::ReceiverCountMismatch(
-                            id,
-                            expected_receivers,
-                            count.receiver,
-                        ));
-                    }
-                }
-            },
         }
         Ok(())
     }

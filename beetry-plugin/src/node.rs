@@ -2,7 +2,6 @@ use crate::{BoxPlugin, ConstructPlugin, Named, PluginConstructor, PluginError, u
 use anyhow::Result;
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
 use beetry_core::{BoxActionBehavior, BoxConditionBehavior, BoxNode, NonEmptyNodes};
-use beetry_plugin_types::node::{ActionSpec, ConditionSpec, ControlSpec, NodeSpec};
 use beetry_reconstruction_types::parameter::Parameters;
 use bon::Builder;
 use std::marker::PhantomData;
@@ -85,45 +84,6 @@ where
     }
 }
 
-pub type BoxActionPlugin = BoxPlugin<ActionSpec, ActionFactory>;
-pub type BoxConditionPlugin = BoxPlugin<ConditionSpec, ConditionFactory>;
-pub type BoxControlPlugin = BoxPlugin<ControlSpec, ControlFactory>;
-
-impl<S> Named for NodeSpec<S> {
-    fn name(&self) -> &str {
-        self.name.0.as_str()
-    }
-}
-
-pub type ActionPluginConstructor = PluginConstructor<ActionSpec, ActionFactory>;
-pub type ConditionPluginConstructor = PluginConstructor<ConditionSpec, ConditionFactory>;
-pub type ControlPluginConstructor = PluginConstructor<ControlSpec, ControlFactory>;
-
-impl ActionPluginConstructor {
-    pub fn plugins() -> Result<Vec<BoxActionPlugin>, PluginError> {
-        unique_plugins::<Self, <Self as ConstructPlugin>::Spec, <Self as ConstructPlugin>::Factory>(
-        )
-    }
-}
-
-impl ConditionPluginConstructor {
-    pub fn plugins() -> Result<Vec<BoxConditionPlugin>, PluginError> {
-        unique_plugins::<Self, <Self as ConstructPlugin>::Spec, <Self as ConstructPlugin>::Factory>(
-        )
-    }
-}
-
-impl ControlPluginConstructor {
-    pub fn plugins() -> Result<Vec<BoxControlPlugin>, PluginError> {
-        unique_plugins::<Self, <Self as ConstructPlugin>::Spec, <Self as ConstructPlugin>::Factory>(
-        )
-    }
-}
-
-inventory::collect! {ActionPluginConstructor}
-inventory::collect! {ConditionPluginConstructor}
-inventory::collect! {ControlPluginConstructor}
-
 //@todo improve to factor out hard coded types
 #[macro_export]
 macro_rules! plugin2 {
@@ -159,77 +119,6 @@ macro_rules! plugin2 {
                 Self {
                     spec,
                     factory: Self::Factory::new(Box::new(factory_fn)),
-                }
-            }
-
-            fn spec(&self) -> &Self::Spec {
-                &self.spec
-            }
-
-            fn factory(&self) -> &Self::Factory {
-                &self.factory
-            }
-
-            fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
-                (self.spec, self.factory)
-            }
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! plugin {
-    ($plugin_name:ident : Action {
-        spec = $spec:expr,
-        factory_fn = $factory_fn:expr $(,)?
-    }) => {
-        $crate::plugin_impl!(
-            plugin = $plugin_name,
-            spec_ty = $crate::ActionSpec,
-            factory_ty = $crate::node::ActionFactory,
-            spec = $spec,
-            factory_fn = $factory_fn
-        );
-    };
-
-    ($plugin_name:ident : Condition {
-        spec = $spec:expr,
-        factory_fn = $factory_fn:expr $(,)?
-    }) => {
-        $crate::plugin_impl!(
-            plugin = $plugin_name,
-            spec_ty = $crate::ConditionSpec,
-            factory_ty = $crate::node::ConditionFactory,
-            spec = $spec,
-            factory_fn = $factory_fn
-        );
-    };
-}
-
-#[macro_export]
-macro_rules! plugin_impl {
-    (   plugin = $plugin_name:ident,
-        spec_ty = $spec_ty:ty,
-        factory_ty = $factory_ty:ty,
-        spec = $spec:expr,
-        factory_fn = $factory_fn:expr
-    ) => {
-        pub struct $plugin_name {
-            spec: $spec_ty,
-            factory: $factory_ty,
-        }
-
-        impl $crate::Plugin for $plugin_name {
-            type Spec = $spec_ty;
-            type Factory = $factory_ty;
-
-            fn new() -> Self
-            where
-                Self: Sized,
-            {
-                Self {
-                    spec: $spec,
-                    factory: Self::Factory::new(Box::new($factory_fn)),
                 }
             }
 
@@ -294,22 +183,25 @@ mod tests {
     use crate::Plugin;
 
     use super::*;
-    use beetry_plugin_types::node::{ActionLeafSchema, NodeName};
+    use beetry_editor_types::{NodeSpec, NodeSpecKey};
+    use beetry_plugin_types::node::NodeName;
 
     struct TestPluginA {
-        spec: ActionSpec,
+        spec: NodeSpec,
         factory: ActionFactory,
     }
 
     impl Plugin for TestPluginA {
-        type Spec = ActionSpec;
+        type Spec = NodeSpec;
         type Factory = ActionFactory;
 
         fn new() -> Self {
             Self {
-                spec: ActionSpec::builder()
-                    .name(NodeName::new("TestPlugin"))
-                    .schema(ActionLeafSchema::default())
+                spec: NodeSpec::builder()
+                    .key(NodeSpecKey::new(
+                        NodeName::new("TestPlugin"),
+                        beetry_editor_types::NodeKind::Action,
+                    ))
                     .build(),
                 factory: ActionFactory::new(Box::new(|_| {
                     Err(anyhow::anyhow!("This is a test factory, not functional"))
@@ -331,19 +223,21 @@ mod tests {
     }
 
     struct TestPluginB {
-        spec: ActionSpec,
+        spec: NodeSpec,
         factory: ActionFactory,
     }
 
     impl Plugin for TestPluginB {
-        type Spec = ActionSpec;
+        type Spec = NodeSpec;
         type Factory = ActionFactory;
 
         fn new() -> Self {
             Self {
-                spec: ActionSpec::builder()
-                    .name(NodeName::new("TestPlugin"))
-                    .schema(ActionLeafSchema::default())
+                spec: NodeSpec::builder()
+                    .key(NodeSpecKey::new(
+                        NodeName::new("TestPlugin"),
+                        beetry_editor_types::NodeKind::Action,
+                    ))
                     .build(),
                 factory: ActionFactory::new(Box::new(|_| {
                     Err(anyhow::anyhow!("This is a test factory, not functional"))
@@ -365,18 +259,18 @@ mod tests {
     }
 
     inventory::submit! {
-        ActionPluginConstructor::new::<TestPluginA>()
+        ActionPluginConstructor2::new::<TestPluginA>()
     }
 
     //@todo registering duplicated entry might affect other tests when plugins() method is called.
     //Better to avoid global registration if possible
     inventory::submit! {
-        ActionPluginConstructor::new::<TestPluginB>()
+        ActionPluginConstructor2::new::<TestPluginB>()
     }
 
     #[test]
     fn test_duplicate_plugin_name_error() {
-        let result = ActionPluginConstructor::plugins();
+        let result = ActionPluginConstructor2::plugins();
         assert!(matches!(
             result,
             Err(PluginError::DuplicateName(name)) if name == NodeName::new("TestPlugin").0

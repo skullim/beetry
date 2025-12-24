@@ -7,18 +7,13 @@ pub use leaves::{
 
 use beetry_macros::{Message, submit_as_channel_plugin};
 use beetry_plugin::Plugin;
-use beetry_plugin::channel::{
-    ChannelPluginConstructor, ChannelPluginConstructor2, Factory, Factory2,
-};
-use beetry_plugin::node::{
-    ActionPluginConstructor, ActionPluginConstructor2, ConditionPluginConstructor,
-    ConditionPluginConstructor2,
-};
+use beetry_plugin::channel::{ChannelPluginConstructor2, Factory2};
+use beetry_plugin::node::{ActionPluginConstructor2, ConditionPluginConstructor2};
 use beetry_plugin_types::channel::{ChannelSpec, Message};
 
 use type_hash::TypeHash;
 
-use crate::leaves::{CheckBatteryPlugin, ReadExternalDataPlugin};
+use crate::leaves::CheckBatteryPlugin;
 
 //#[submit_as_channel_plugin]
 #[derive(Debug, Clone, Copy, TypeHash, Message)]
@@ -73,7 +68,8 @@ pub enum ChargeCommand {
     Stop,
 }
 
-#[submit_as_channel_plugin]
+//@todo adapt macro to new interface
+//#[submit_as_channel_plugin]
 #[derive(Debug, Clone, Copy, TypeHash, Message)]
 pub struct ExternalData {
     pub charge_command: ChargeCommand,

@@ -6,12 +6,11 @@ use beetry_channel::downcast;
 use beetry_core::{ActionBehavior, BoxActionBehavior, NodeTask, Receiver, Task, TickStatus};
 use beetry_editor_types::{NodeSpecKey, PortsSpec};
 use beetry_macros::receivers;
+use beetry_plugin::Plugin;
 use beetry_plugin::node::ActionFactory;
-use beetry_plugin::{Plugin, plugin};
 use beetry_plugin::{node::ActionReconstructionData, plugin2};
 use beetry_plugin_types::channel::MessageSpec;
-use beetry_plugin_types::node::{NodeName, NodeSpec};
-use beetry_plugin_types::spec;
+use beetry_plugin_types::node::NodeName;
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
 
