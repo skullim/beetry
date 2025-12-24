@@ -101,6 +101,3 @@ macro_rules! submit {
         $crate::inventory::submit!($plugin);
     };
 }
-
-// reexport for macro
-pub use beetry_plugin_types::node::{ActionSpec, ConditionSpec};

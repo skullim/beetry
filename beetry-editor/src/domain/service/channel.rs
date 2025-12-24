@@ -10,7 +10,7 @@ use beetry_editor_types::{
     NodePortSpec, NodeSpecId,
 };
 use beetry_plugin_types::channel::ChannelSpec;
-use beetry_reconstruction_types::channel::{ChannelConfig, ChannelImplKind2, TokioChannelKind};
+use beetry_reconstruction_types::channel::{ChannelConfig, ChannelKind, TokioChannelKind};
 use tracing::warn;
 
 pub struct ConnectionContext<'a> {
@@ -290,7 +290,7 @@ impl ChannelService {
         }
         //@todo this check should be moved somewhere else, rationale: might want to hide different channels behind a feature gate at some point
         let channel_params = Self::config(channel_repo, id)?;
-        if let ChannelImplKind2::Tokio(TokioChannelKind::Mpsc) = channel_params.kind()
+        if let ChannelKind::Tokio(TokioChannelKind::Mpsc) = channel_params.kind()
             && channel_params.count().receiver() == 1
         {
             bail!("attempted to create more than 1 receiver of mpsc channel");

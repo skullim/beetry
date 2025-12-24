@@ -1,5 +1,5 @@
 use beetry_plugin_types::channel::ChannelSpec;
-use beetry_reconstruction_types::channel::{ChannelConfig, ChannelImplKind2, TokioChannelKind};
+use beetry_reconstruction_types::channel::{ChannelConfig, ChannelKind, TokioChannelKind};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
@@ -45,8 +45,8 @@ pub fn Dialog2(props: DialogProps) -> Element {
         let capacity_val = *capacity.read();
         let type_val = *channel_type.read();
         let impl_kind = match type_val {
-            ChannelType::Mpsc => ChannelImplKind2::Tokio(TokioChannelKind::Mpsc),
-            ChannelType::Broadcast => ChannelImplKind2::Tokio(TokioChannelKind::Broadcast),
+            ChannelType::Mpsc => ChannelKind::Tokio(TokioChannelKind::Mpsc),
+            ChannelType::Broadcast => ChannelKind::Tokio(TokioChannelKind::Broadcast),
         };
 
         let channel_metadata = ChannelConfig::new(capacity_val, impl_kind);
