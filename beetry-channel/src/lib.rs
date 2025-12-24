@@ -13,3 +13,4 @@ pub use bon::{bon, builder};
 
 // reexport for macro
 pub use anyhow;
+pub use tupleops;

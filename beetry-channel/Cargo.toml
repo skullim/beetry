@@ -16,3 +16,4 @@ tokio = { version = "1.47.1", features = [
     "macros",
 ], optional = true }
 bon.workspace = true
+tupleops = "0.1.1"

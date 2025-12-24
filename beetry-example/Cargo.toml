@@ -8,7 +8,6 @@ anyhow.workspace = true
 beetry-builder = { version = "0.1.0", path = "../beetry-builder" }
 beetry-channel = { version = "0.1.0", path = "../beetry-channel" }
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
-beetry-editor = { version = "0.1.0", path = "../beetry-editor" }
 beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
 beetry-exec = { version = "0.1.0", path = "../beetry-exec" }
 beetry-macros = { version = "0.1.0", path = "../beetry-macros" }
@@ -27,5 +26,4 @@ tokio = { version = "1.47.1", features = ["macros", "rt"] }
 tracing.workspace = true
 tracing-subscriber = "0.3.19"
 tracing-tree = "0.4.0"
-tupleops = "0.1.1"
 type_hash = "0.3.0"

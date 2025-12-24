@@ -140,10 +140,6 @@ impl<'a, UR> NodeUiBorrowMutApi<'a, UR>
 where
     UR: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
 {
-    pub(super) fn new(repo: &'a mut UR) -> Self {
-        Self { repo }
-    }
-
     pub fn create(&mut self, id: NodeId, data: NodeUiData) -> Result<()> {
         self.repo.create(id, data)
     }
@@ -195,10 +191,6 @@ impl<'a, UR> ChannelUiBorrowMutApi<'a, UR>
 where
     UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
 {
-    pub(super) fn new(repo: &'a mut UR) -> Self {
-        Self { repo }
-    }
-
     pub fn create(&mut self, id: ChannelId, data: ChannelUiData) -> Result<()> {
         self.repo.create(id, data)
     }
