@@ -5,8 +5,7 @@ use beetry_channel::downcast;
 use beetry_core::BoxActionBehavior;
 use beetry_core::{self, ActionBehavior, NodeTask, Task, TickStatus};
 use beetry_macros::receivers;
-use beetry_plugin::{node::ActionReconstructionData, plugin};
-use beetry_plugin_types::spec;
+use beetry_plugin::node::ActionReconstructionData;
 use bon::bon;
 use type_hash::TypeHash;
 
@@ -56,14 +55,14 @@ impl Task for ReadExternalDataTask {
     }
 }
 
-plugin! {
-  ReadExternalDataPlugin: Action {
-    spec = spec! {type = action, name = "ReadExternalData", receivers = [ExternalData, desc = "External data"] },
-    factory_fn = |mut data: ActionReconstructionData| {
-      let receivers = downcast! {receivers = &mut data.inner.receivers, expected = [ExternalData]}
-      .map_err(|_| anyhow!("failed to obtain typed receivers"))?;
-      Ok(Box::new(ReadExternalData::new(
-         ReadExternalDataReceivers::builder().data(receivers.0).build())) as BoxActionBehavior)
-      }
-    }
-}
+// plugin! {
+//   ReadExternalDataPlugin: Action {
+//     spec = spec! {type = action, name = "ReadExternalData", receivers = [ExternalData, desc = "External data"] },
+//     factory_fn = |mut data: ActionReconstructionData| {
+//       let receivers = downcast! {receivers = &mut data.inner.receivers, expected = [ExternalData]}
+//       .map_err(|_| anyhow!("failed to obtain typed receivers"))?;
+//       Ok(Box::new(ReadExternalData::new(
+//          ReadExternalDataReceivers::builder().data(receivers.0).build())) as BoxActionBehavior)
+//       }
+//     }
+// }
