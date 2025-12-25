@@ -11,6 +11,7 @@ pub enum State {
     Idle,
     Visible {
         position: Point,
+        //@todo better pass id and do lookup inside component
         spec: ChannelSpec,
     },
 }
@@ -27,7 +28,7 @@ pub struct DialogProps {
 }
 
 #[component]
-pub fn Dialog2(props: DialogProps) -> Element {
+pub fn Dialog(props: DialogProps) -> Element {
     debug!("rendering channel config dialog");
     let state_read = props.state.read();
 
@@ -39,7 +40,7 @@ pub fn Dialog2(props: DialogProps) -> Element {
     let mut capacity = use_signal(|| 1usize);
     let mut channel_type = use_signal(|| ChannelType::Mpsc);
 
-    let handlers = use_context::<Handlers2>();
+    let handlers = use_context::<Handlers>();
 
     let on_confirm = move |_| {
         let capacity_val = *capacity.read();
@@ -171,12 +172,12 @@ pub fn Dialog2(props: DialogProps) -> Element {
 }
 
 #[derive(Debug, Clone)]
-pub struct Handlers2 {
+pub struct Handlers {
     pub(crate) on_confirm: EventHandler<ChannelConfig>,
     pub(crate) on_cancel: EventHandler<()>,
 }
 
-impl Handlers2 {
+impl Handlers {
     pub(crate) fn new(
         on_confirm: impl FnMut(ChannelConfig) + 'static,
         on_cancel: impl FnMut(()) + 'static,

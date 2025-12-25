@@ -4,7 +4,7 @@ mod renderer;
 pub mod temporary;
 use beetry_editor_types::EdgeId;
 pub use context_menu::{ContextMenu, Handlers as ContextMenuHandlers, State as ContextMenuState};
-pub use renderer::Renderer2;
+pub use renderer::Renderer;
 pub use temporary::Temporary;
 
 use dioxus::prelude::*;
@@ -15,15 +15,15 @@ use crate::ui::curve::Curve;
 #[derive(Props, Clone, PartialEq)]
 pub struct EdgeProps {
     pos: EdgePos,
-    edge_index: EdgeId,
-    on_context_menu: EventHandler<(usize, Point)>,
+    edge_id: EdgeId,
+    on_context_menu: EventHandler<(EdgeId, Point)>,
 }
 
 #[component]
 pub(crate) fn Edge(props: EdgeProps) -> Element {
     let start = props.pos.start;
     let end = props.pos.end;
-    let edge_index = props.edge_index;
+    let edge_id = props.edge_id;
 
     let curve_start = Point {
         x: start.x + 50.0, // Center of node + offset to output port
@@ -51,7 +51,7 @@ pub(crate) fn Edge(props: EdgeProps) -> Element {
                     x: evt.page_coordinates().x,
                     y: evt.page_coordinates().y,
                 };
-                props.on_context_menu.call((edge_index, click_point));
+                props.on_context_menu.call((edge_id, click_point));
             },
         }
     }

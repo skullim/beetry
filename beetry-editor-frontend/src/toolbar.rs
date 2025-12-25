@@ -29,7 +29,7 @@ fn select_import_file() -> Result<PathBuf> {
 }
 
 #[component]
-pub(crate) fn Toolbar2() -> Element {
+pub(crate) fn Toolbar() -> Element {
     let mut export_result = use_signal(transfer::OperationResult::default);
     let mut valid_tree_export_result = use_signal(transfer::OperationResult::default);
     let mut import_result = use_signal(transfer::OperationResult::default);
@@ -41,7 +41,7 @@ pub(crate) fn Toolbar2() -> Element {
 
             let export_project_result = read.export_api().export_project();
             match export_project_result {
-                Ok(state) => match export_project_to_file2(state) {
+                Ok(state) => match export_project_to_file(state) {
                     Ok(()) => {
                         export_result.set(transfer::OperationResult::new(
                             "Export successful",
@@ -124,20 +124,20 @@ pub(crate) fn Toolbar2() -> Element {
             }
         };
 
-        use_context_provider(move || ToolbarHandlers2 {
+        use_context_provider(move || ToolbarHandlers {
             import: transfer::ImportHandlers::new(on_import),
-            export: transfer::ExportHandlers2::new(on_project_export, on_valid_tree_export),
+            export: transfer::ExportHandlers::new(on_project_export, on_valid_tree_export),
         });
     }
 
     rsx! {
         transfer::ExportProject { result: export_result }
         transfer::ExportValidTree { result: valid_tree_export_result }
-        transfer::Import2 { result: import_result }
+        transfer::Import { result: import_result }
     }
 }
 
-fn export_project_to_file2(editor_state: EditorStateStore) -> Result<()> {
+fn export_project_to_file(editor_state: EditorStateStore) -> Result<()> {
     let serialized = JsonSerializer::serialize(&editor_state)?;
     let file_path = select_export_file()?;
 
@@ -171,7 +171,7 @@ pub(crate) fn import_project_from_file() -> Result<EditorStateStore> {
 }
 
 #[derive(Debug, Clone)]
-pub struct ToolbarHandlers2 {
+pub struct ToolbarHandlers {
     pub(crate) import: transfer::ImportHandlers,
-    pub(crate) export: transfer::ExportHandlers2,
+    pub(crate) export: transfer::ExportHandlers,
 }

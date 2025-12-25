@@ -1,8 +1,8 @@
 mod export;
 mod import;
 
-pub use export::{ExportProject, ExportValidTree, Handlers2 as ExportHandlers2};
-pub use import::{Handlers as ImportHandlers, Import2};
+pub use export::{ExportProject, ExportValidTree, Handlers as ExportHandlers};
+pub use import::{Handlers as ImportHandlers, Import};
 
 use dioxus::prelude::*;
 

@@ -18,9 +18,3 @@ pub struct IndexedDragOffset {
     pub id: NodeId,
     pub offset: Point,
 }
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct NodeEdge {
-    pub from: NodeId,
-    pub to: NodeId,
-}

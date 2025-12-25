@@ -1,15 +1,15 @@
 use dioxus::prelude::*;
 
-use crate::toolbar::ToolbarHandlers2;
+use crate::toolbar::ToolbarHandlers;
 use crate::ui::transfer::{OperationResult, OperationStatus};
 
 #[derive(Debug, Clone)]
-pub struct Handlers2 {
+pub struct Handlers {
     on_project: EventHandler<()>,
     on_valid_tree: EventHandler<()>,
 }
 
-impl Handlers2 {
+impl Handlers {
     pub(crate) fn new(
         on_project: impl FnMut(()) + 'static,
         on_valid_tree: impl FnMut(()) + 'static,
@@ -24,7 +24,7 @@ impl Handlers2 {
 #[component]
 pub fn ExportProject(result: ReadSignal<OperationResult>) -> Element {
     rsx! {
-        button { onclick: move |_| { use_context::<ToolbarHandlers2>().export.on_project.call(()) },
+        button { onclick: move |_| { use_context::<ToolbarHandlers>().export.on_project.call(()) },
             "Export project"
         }
 
@@ -49,7 +49,7 @@ pub fn ExportProject(result: ReadSignal<OperationResult>) -> Element {
 #[component]
 pub fn ExportValidTree(result: ReadSignal<OperationResult>) -> Element {
     rsx! {
-        button { onclick: move |_| { use_context::<ToolbarHandlers2>().export.on_valid_tree.call(()) },
+        button { onclick: move |_| { use_context::<ToolbarHandlers>().export.on_valid_tree.call(()) },
             "Export valid tree"
         }
 
