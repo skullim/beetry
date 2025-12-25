@@ -10,7 +10,7 @@ use crate::editor::ServiceContext;
 use crate::signals::RequestRender;
 use crate::ui::channel::temporary::{ConnectionOrigin, DraggedData};
 use crate::ui::channel::{self};
-use crate::ui::node::{self, ContextMenuState, ReceiverPortHandlers2, SenderPortHandlers2};
+use crate::ui::node::{self, ContextMenuState, ReceiverPortHandlers, SenderPortHandlers};
 use crate::ui::viewport::ViewportContext;
 use crate::ui::{self, edge};
 
@@ -92,16 +92,16 @@ fn style_defs() -> Element {
 }
 
 #[derive(Debug, Clone)]
-pub struct WorkspaceContext2 {
+pub struct WorkspaceContext {
     dimensions_ctx: DimensionsContext,
     drag_node_state: Signal<DragNodeState>,
     drag_channel_state: Signal<DragChannelState>,
     context_menu_state: Signal<ContextMenuState>,
     edge_context_menu_state: Signal<edge::ContextMenuState>,
-    channel_temp_conn_ctx: channel::temporary::Context2,
+    channel_temp_conn_ctx: channel::temporary::Context,
 }
 
-impl WorkspaceContext2 {
+impl WorkspaceContext {
     fn new() -> Self {
         Self {
             dimensions_ctx: DimensionsContext::new(),
@@ -109,19 +109,19 @@ impl WorkspaceContext2 {
             drag_channel_state: Signal::new(DragChannelState::Idle),
             context_menu_state: Signal::new(node::ContextMenuState::default()),
             edge_context_menu_state: Signal::new(edge::ContextMenuState::default()),
-            channel_temp_conn_ctx: channel::temporary::Context2::new(),
+            channel_temp_conn_ctx: channel::temporary::Context::new(),
         }
     }
 }
 
 #[component]
-pub(crate) fn Workspace2(
+pub(crate) fn Workspace(
     render_nodes: Signal<RequestRender>,
     render_channels: Signal<RequestRender>,
 ) -> Element {
     debug!("rendering workspace");
 
-    let workspace_ctx = use_context_provider(WorkspaceContext2::new);
+    let workspace_ctx = use_context_provider(WorkspaceContext::new);
 
     let mut render_edges = use_signal(RequestRender::new);
     let mut drag_node_state = workspace_ctx.drag_node_state;
@@ -136,15 +136,15 @@ pub(crate) fn Workspace2(
     let zoom_level = viewport_ctx.zoom_level;
 
     use_context_provider(move || node_handlers(drag_node_state, context_menu_state));
-    use_context_provider(move || input_port_handlers2(temp_edge_ctx, render_edges));
+    use_context_provider(move || input_port_handlers(temp_edge_ctx, render_edges));
     use_context_provider(move || output_port_handlers(temp_edge_ctx));
-    use_context_provider(move || context_menu_handlers2(context_menu_state, render_nodes));
-    use_context_provider(move || edge_context_menu_handlers2(edge_context_menu_state));
+    use_context_provider(move || node_context_menu_handlers(context_menu_state, render_nodes));
+    use_context_provider(move || edge_context_menu_handlers(edge_context_menu_state, render_edges));
 
-    use_context_provider(move || sender_handlers2(temp_channel_conn_ctx));
-    use_context_provider(move || receiver_handlers2(temp_channel_conn_ctx));
+    use_context_provider(move || sender_handlers(temp_channel_conn_ctx));
+    use_context_provider(move || receiver_handlers(temp_channel_conn_ctx));
     use_context_provider(move || {
-        channel_handlers2(drag_channel_state, temp_channel_conn_ctx, render_channels)
+        channel_handlers(drag_channel_state, temp_channel_conn_ctx, render_channels)
     });
 
     let workspace_handlers_ctx = use_context_provider(move || {
@@ -274,9 +274,9 @@ pub(crate) fn Workspace2(
                     fill: "url(#grid)",
                 }
 
-                edge::Renderer2 { render_edges, edge_context_menu_state }
-                channel::Renderer2 { render_channels }
-                node::Renderer2 { render_nodes }
+                edge::Renderer { render_edges, edge_context_menu_state }
+                channel::Renderer { render_channels }
+                node::Renderer { render_nodes }
 
                 if temp_edge_ctx.is_dragged() {
 
@@ -293,7 +293,7 @@ pub(crate) fn Workspace2(
     }
 }
 
-fn input_port_handlers2(
+fn input_port_handlers(
     mut temp_edge_ctx: edge::temporary::Context,
     mut render_edges: Signal<RequestRender>,
 ) -> node::InputPortHandlers {
@@ -348,9 +348,9 @@ fn node_handlers(
     node::Handlers::new(on_drag_start, on_context_menu)
 }
 
-fn sender_handlers2(
-    mut channel_temp_connection_ctx: channel::temporary::Context2,
-) -> SenderPortHandlers2 {
+fn sender_handlers(
+    mut channel_temp_connection_ctx: channel::temporary::Context,
+) -> SenderPortHandlers {
     let on_mouse_down = move |(origin, indexed_drag_offset, port_id): (
         ConnectionOrigin,
         IndexedDragOffset,
@@ -368,12 +368,12 @@ fn sender_handlers2(
             end: offset,
         });
     };
-    SenderPortHandlers2::new(on_mouse_down)
+    SenderPortHandlers::new(on_mouse_down)
 }
 
-fn receiver_handlers2(
-    mut channel_temp_connection_ctx: channel::temporary::Context2,
-) -> ReceiverPortHandlers2 {
+fn receiver_handlers(
+    mut channel_temp_connection_ctx: channel::temporary::Context,
+) -> ReceiverPortHandlers {
     let on_mouse_down = move |(origin, indexed_drag_offset, port_id): (
         ConnectionOrigin,
         IndexedDragOffset,
@@ -396,14 +396,14 @@ fn receiver_handlers2(
         //@todo enable setting external port. Service layer has to provide such API
     };
 
-    ReceiverPortHandlers2::new(on_mouse_down, on_context_menu)
+    ReceiverPortHandlers::new(on_mouse_down, on_context_menu)
 }
 
-fn channel_handlers2(
+fn channel_handlers(
     mut drag_channel_state: Signal<DragChannelState>,
-    mut channel_temp_connection_ctx: channel::temporary::Context2,
+    mut channel_temp_connection_ctx: channel::temporary::Context,
     mut render_channels: Signal<RequestRender>,
-) -> channel::Handlers2 {
+) -> channel::Handlers {
     let on_drag_start = move |(id, offset): (ChannelId, Point)| {
         drag_channel_state.set(DragChannelState::Dragged { id, offset });
     };
@@ -446,10 +446,10 @@ fn channel_handlers2(
         }
     };
 
-    channel::Handlers2::new(on_drag_start, receiver_on_mouse_up, sender_on_mouse_up)
+    channel::Handlers::new(on_drag_start, receiver_on_mouse_up, sender_on_mouse_up)
 }
 
-fn context_menu_handlers2(
+fn node_context_menu_handlers(
     mut ctx_menu_state: Signal<node::ContextMenuState>,
     mut render_nodes: Signal<RequestRender>,
 ) -> node::ContextMenuHandlers {
@@ -477,17 +477,18 @@ fn context_menu_handlers2(
     node::ContextMenuHandlers::new(on_delete, on_close)
 }
 
-fn edge_context_menu_handlers2(
+fn edge_context_menu_handlers(
     mut edge_ctx_menu_state: Signal<edge::ContextMenuState>,
+    mut render_edges: Signal<RequestRender>,
 ) -> edge::ContextMenuHandlers {
     let on_delete = move |edge_id: EdgeId| {
         let mut service = use_context::<ServiceContext>();
         let mut write = service.service.write();
         let mut edge_api = write.edge_api_mut();
         //@todo error handling
-        edge_api.remove(edge_id);
-
+        edge_api.remove(edge_id).unwrap();
         edge_ctx_menu_state.with_mut(|state| state.is_visible = false);
+        render_edges.with_mut(|write| write.request());
     };
 
     let on_close = move |()| {

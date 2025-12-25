@@ -8,8 +8,8 @@ mod workspace;
 
 use beetry_editor_backend::{ChannelSpecMap, NodeSpecMap};
 use beetry_plugin::{
-    channel::ChannelPluginConstructor2,
-    node::{ActionPluginConstructor2, ConditionPluginConstructor2, ControlPluginConstructor2},
+    channel::ChannelPluginConstructor,
+    node::{ActionPluginConstructor, ConditionPluginConstructor, ControlPluginConstructor},
 };
 use dioxus::logger::tracing::Level;
 use dioxus::prelude::*;
@@ -28,28 +28,28 @@ pub fn launch() {
         __wasm_call_ctors();
     }
     dioxus_logger::init(Level::DEBUG).expect("failed to init logger");
-    dioxus::launch(app2);
+    dioxus::launch(app);
 }
 
 #[component]
-fn app2() -> Element {
+fn app() -> Element {
     rsx! {
-        Specs2Provider { editor::Editor2 {} }
+        SpecsProvider { editor::Editor {} }
     }
 }
 
 #[derive(Clone)]
-pub struct Specs2 {
+pub struct Specs {
     pub nodes: NodeSpecMap,
     pub channels: ChannelSpecMap,
 }
 
 #[component]
-pub fn Specs2Provider(children: Element) -> Element {
+pub fn SpecsProvider(children: Element) -> Element {
     let nodes: NodeSpecMap = {
-        let action_plugins = ActionPluginConstructor2::plugins()?;
-        let condition_plugins = ConditionPluginConstructor2::plugins()?;
-        let control_plugins = ControlPluginConstructor2::plugins()?;
+        let action_plugins = ActionPluginConstructor::plugins()?;
+        let condition_plugins = ConditionPluginConstructor::plugins()?;
+        let control_plugins = ControlPluginConstructor::plugins()?;
 
         let iter = action_plugins.into_iter().map(|p| {
             let spec = p.into_parts().0;
@@ -59,16 +59,15 @@ pub fn Specs2Provider(children: Element) -> Element {
             let spec = p.into_parts().0;
             (spec.key().clone(), spec)
         }));
-
         let iter = iter.chain(control_plugins.into_iter().map(|p| {
             let spec = p.into_parts().0;
             (spec.key().clone(), spec)
         }));
-        NodeSpecMap::new(iter)
+        NodeSpecMap::from_iter(iter)
     };
 
     let channels = {
-        let plugins = ChannelPluginConstructor2::plugins()?;
+        let plugins = ChannelPluginConstructor::plugins()?;
         let map = plugins
             .into_iter()
             .map(|p| {
@@ -79,6 +78,6 @@ pub fn Specs2Provider(children: Element) -> Element {
         ChannelSpecMap::new(map)
     };
 
-    use_context_provider(move || Specs2 { nodes, channels });
+    use_context_provider(move || Specs { nodes, channels });
     children
 }

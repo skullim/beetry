@@ -8,7 +8,7 @@ use beetry_editor_types::{NodeSpecKey, PortsSpec};
 use beetry_macros::receivers;
 use beetry_plugin::Plugin;
 use beetry_plugin::node::ActionFactory;
-use beetry_plugin::{node::ActionReconstructionData, plugin2};
+use beetry_plugin::node::ActionReconstructionData;
 use beetry_plugin_types::channel::MessageSpec;
 use beetry_plugin_types::node::NodeName;
 use tracing::{debug, instrument};

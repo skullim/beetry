@@ -3,14 +3,14 @@ use dioxus::prelude::*;
 use crate::definitions::{EdgePos, Point};
 use crate::editor::ServiceContext;
 use crate::signals::RequestRender;
-use crate::ui::channel::{Channel2, ReceiverConnection, SenderConnection};
+use crate::ui::channel::{Channel, ReceiverConnection, SenderConnection};
 use crate::ui::text;
 
 // Conditions to re-render the channels:
 // - new channel created
 // - node/channel position updated
 #[component]
-pub fn Renderer2(render_channels: Signal<RequestRender>) -> Element {
+pub fn Renderer(render_channels: Signal<RequestRender>) -> Element {
     debug!("rendering channels");
     let _read = render_channels.read();
 
@@ -20,7 +20,7 @@ pub fn Renderer2(render_channels: Signal<RequestRender>) -> Element {
     let channel_api = ui_api.channel();
     let channels = channel_api.iter().map(|(id, data)| {
         rsx! {
-            Channel2 { key: "{id}", id: *id, position: data.position }
+            Channel { key: "{id}", id: *id, position: data.position }
         }
     });
 

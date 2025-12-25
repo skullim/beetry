@@ -124,6 +124,7 @@ impl Plugin for LocalizePlugin {
         Self: Sized,
     {
         let factory_fn = |mut data: ActionReconstructionData| {
+            debug!("reconstruction data: {data:?}");
             let senders = downcast! {senders = &mut data.inner.senders, expected = [Pose]}
                 .map_err(|_| anyhow!("failed to obtain typed senders"))?;
             Ok(Box::new(Localize::new(senders.0)) as BoxActionBehavior)

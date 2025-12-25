@@ -6,9 +6,9 @@ use beetry_editor_types::{
     ChannelStore, NodeId, NodeKind, NodePortConnection, NodePortKind, NodePortStore, NodeStore,
     ParameterValueStore,
 };
-use beetry_plugin::channel::{BoxChannelPlugin2, ChannelPluginConstructor2, TypeErasedChannel};
+use beetry_plugin::channel::{BoxChannelPlugin, ChannelPluginConstructor, TypeErasedChannel};
 use beetry_plugin::node::{
-    self, BoxActionPlugin2, BoxConditionPlugin2, BoxControlPlugin2, ControlMetadata,
+    self, BoxActionPlugin, BoxConditionPlugin, BoxControlPlugin, ControlMetadata,
     ControlReconstructionData, LeafMetadata, LeafReconstructionData,
 };
 use beetry_plugin::{BoxPlugin, Named, Plugin};
@@ -19,24 +19,25 @@ use beetry_reconstruction_types::{
     node::{NodeSnapshot, NodeSnapshotData},
 };
 use std::collections::{BTreeSet, HashMap};
+use tracing::debug;
 
-pub struct TreeReconstructor2 {
+pub struct TreeReconstructor {
     ext_receivers: external::ReceiverRegistry,
-    node_plugins: NodePluginRegistry2,
+    node_plugins: NodePluginRegistry,
 }
 
-impl TreeReconstructor2 {
+impl TreeReconstructor {
     pub fn new() -> Result<Self> {
         Ok(Self {
             ext_receivers: external::ReceiverRegistry::new(),
-            node_plugins: NodePluginRegistry2::new()?,
+            node_plugins: NodePluginRegistry::new()?,
         })
     }
 
     pub fn with_receiver_registry(ext_receivers: external::ReceiverRegistry) -> Result<Self> {
         Ok(Self {
             ext_receivers,
-            node_plugins: NodePluginRegistry2::new()?,
+            node_plugins: NodePluginRegistry::new()?,
         })
     }
 
@@ -56,8 +57,7 @@ impl TreeReconstructor2 {
     {
         let tree = tree.into_inner();
         //@todo pass plugins to leave it up to user how constructors are provided
-        let channel_factory_map =
-            ChannelHashToPluginMap2::new(ChannelPluginConstructor2::plugins()?);
+        let channel_factory_map = ChannelHashToPluginMap::new(ChannelPluginConstructor::plugins()?);
         let mut channels = Self::try_reconstruct_channels(tree.channel, &channel_factory_map)?;
         let root = Self::try_create_root_snapshot(
             tree.node,
@@ -78,7 +78,7 @@ impl TreeReconstructor2 {
 
     fn try_reconstruct_channels(
         store: ChannelStore,
-        channel_plugin_map: &ChannelHashToPluginMap2,
+        channel_plugin_map: &ChannelHashToPluginMap,
     ) -> Result<ChannelIdToChannelMap> {
         store.channels.into_records().map(|record| {
                 let id = record.id;
@@ -98,7 +98,7 @@ impl TreeReconstructor2 {
         node_store: NodeStore,
         mut param_store: ParameterValueStore,
         mut port_store: NodePortStore,
-        node_plugins: &NodePluginRegistry2,
+        node_plugins: &NodePluginRegistry,
     ) -> Result<RootSnapshot> {
         let root_id = node_store
             .nodes
@@ -141,7 +141,7 @@ impl TreeReconstructor2 {
         node_store: &NodeStore,
         param_store: &mut ParameterValueStore,
         port_store: &mut NodePortStore,
-        node_plugins: &NodePluginRegistry2,
+        node_plugins: &NodePluginRegistry,
     ) -> Result<NodeSnapshot> {
         let kind = node_store.specs.get(&node_id).unwrap().kind();
         let name = node_store.specs.get(&node_id).unwrap().name().clone();
@@ -164,7 +164,7 @@ impl TreeReconstructor2 {
                     .data(NodeSnapshotData::Control(ControlSnapshot::new(children)?))
                     .build())
             }
-            NodeKind::Action => {
+            leaf_kind @ (NodeKind::Action | NodeKind::Condition) => {
                 let mut receivers = BTreeSet::new();
                 let mut senders = BTreeSet::new();
                 let mut ext_receivers = Vec::new();
@@ -206,8 +206,14 @@ impl TreeReconstructor2 {
                         }
                     }
                 }
+                let leaf_kind = match leaf_kind {
+                    NodeKind::Action => LeafKind::Action,
+                    NodeKind::Condition => LeafKind::Condition,
+                    _ => unreachable!("only action or condition variant allowed"),
+                };
+
                 let leaf_snapshot = LeafSnapshot::builder()
-                    .kind(LeafKind::Action)
+                    .kind(leaf_kind)
                     .receivers(receivers)
                     .senders(senders)
                     .ext_receivers(ext_receivers)
@@ -233,7 +239,7 @@ impl TreeReconstructor2 {
 
     fn try_reconstruct_tree<RT, TH>(
         mut node: NodeSnapshot,
-        node_plugins: &NodePluginRegistry2,
+        node_plugins: &NodePluginRegistry,
         channel_map: &mut ChannelIdToChannelMap,
         ext_receivers_registry: &mut external::ReceiverRegistry,
         builder: &BehaviorTreeBuilder<RT, TH>,
@@ -307,6 +313,7 @@ impl TreeReconstructor2 {
                     )
                     .parameters(parameters)
                     .build();
+                debug!("created node reconstruction data {data:?} for node {node_name}");
 
                 match leaf.kind() {
                     LeafKind::Action => {
@@ -345,32 +352,32 @@ impl TreeReconstructor2 {
     }
 }
 
-struct NodePluginRegistry2 {
-    action: ActionToPluginMap2,
-    condition: ConditionToPluginMap2,
-    control: ControlToPluginMap2,
+struct NodePluginRegistry {
+    action: ActionToPluginMap,
+    condition: ConditionToPluginMap,
+    control: ControlToPluginMap,
 }
 
-impl NodePluginRegistry2 {
+impl NodePluginRegistry {
     fn new() -> Result<Self> {
         Ok(Self {
-            action: ActionToPluginMap2::new(node::ActionPluginConstructor2::plugins()?),
-            condition: ConditionToPluginMap2::new(node::ConditionPluginConstructor2::plugins()?),
-            control: ControlToPluginMap2::new(node::ControlPluginConstructor2::plugins()?),
+            action: ActionToPluginMap::new(node::ActionPluginConstructor::plugins()?),
+            condition: ConditionToPluginMap::new(node::ConditionPluginConstructor::plugins()?),
+            control: ControlToPluginMap::new(node::ControlPluginConstructor::plugins()?),
         })
     }
 }
 
-type ConditionToPluginMap2 = NodeNameToPluginMap<BoxConditionPlugin2>;
-type ActionToPluginMap2 = NodeNameToPluginMap<BoxActionPlugin2>;
-type ControlToPluginMap2 = NodeNameToPluginMap<BoxControlPlugin2>;
+type ConditionToPluginMap = NodeNameToPluginMap<BoxConditionPlugin>;
+type ActionToPluginMap = NodeNameToPluginMap<BoxActionPlugin>;
+type ControlToPluginMap = NodeNameToPluginMap<BoxControlPlugin>;
 
-struct ChannelHashToPluginMap2 {
-    map: HashMap<MessageHash, BoxChannelPlugin2>,
+struct ChannelHashToPluginMap {
+    map: HashMap<MessageHash, BoxChannelPlugin>,
 }
 
-impl ChannelHashToPluginMap2 {
-    fn new(plugins: Vec<BoxChannelPlugin2>) -> Self {
+impl ChannelHashToPluginMap {
+    fn new(plugins: Vec<BoxChannelPlugin>) -> Self {
         Self {
             map: plugins
                 .into_iter()
@@ -379,7 +386,7 @@ impl ChannelHashToPluginMap2 {
         }
     }
 
-    fn get(&self, hash: MessageHash) -> Option<&BoxChannelPlugin2> {
+    fn get(&self, hash: MessageHash) -> Option<&BoxChannelPlugin> {
         self.map.get(&hash)
     }
 }

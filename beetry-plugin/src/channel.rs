@@ -34,19 +34,19 @@ impl Named for ChannelSpec {
     }
 }
 
-pub struct Factory2 {
+pub struct Factory {
     func: Box<dyn Fn(ChannelConfig) -> TypeErasedChannel>,
 }
 
-impl std::fmt::Debug for Factory2 {
+impl std::fmt::Debug for Factory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Factory2")
+        f.debug_struct("Factory")
             .field("func", &"<function>")
             .finish()
     }
 }
 
-impl Factory2 {
+impl Factory {
     pub fn from_msg_type<T: Clone + 'static>() -> Self {
         Self {
             func: (Box::new(|config| {
@@ -100,14 +100,14 @@ impl Factory2 {
     }
 }
 
-pub type BoxChannelPlugin2 = BoxPlugin<ChannelSpec, Factory2>;
-pub type ChannelPluginConstructor2 = PluginConstructor<ChannelSpec, Factory2>;
+pub type BoxChannelPlugin = BoxPlugin<ChannelSpec, Factory>;
+pub type ChannelPluginConstructor = PluginConstructor<ChannelSpec, Factory>;
 
-impl ChannelPluginConstructor2 {
-    pub fn plugins() -> Result<Vec<BoxChannelPlugin2>, PluginError> {
+impl ChannelPluginConstructor {
+    pub fn plugins() -> Result<Vec<BoxChannelPlugin>, PluginError> {
         unique_plugins::<Self, <Self as ConstructPlugin>::Spec, <Self as ConstructPlugin>::Factory>(
         )
     }
 }
 
-inventory::collect!(ChannelPluginConstructor2);
+inventory::collect!(ChannelPluginConstructor);

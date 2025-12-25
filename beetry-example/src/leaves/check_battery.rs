@@ -94,6 +94,7 @@ impl Plugin for CheckBatteryPlugin {
                 NodeName::new("Check Battery"),
                 beetry_editor_types::NodeKind::Condition,
             ))
+            .params(CheckBatteryParams::provide())
             .build();
 
         Self {

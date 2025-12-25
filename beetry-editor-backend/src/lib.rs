@@ -18,13 +18,16 @@ pub struct NodeSpecMap {
     map: HashMap<NodeSpecKey, NodeSpec>,
 }
 
-impl NodeSpecMap {
-    pub fn new(iter: impl Iterator<Item = (NodeSpecKey, NodeSpec)>) -> Self {
+impl FromIterator<(NodeSpecKey, NodeSpec)> for NodeSpecMap {
+    fn from_iter<T: IntoIterator<Item = (NodeSpecKey, NodeSpec)>>(iter: T) -> Self {
         let mut map: HashMap<_, _> = iter.into_iter().collect();
+        //@todo probably not idiomatic to insert random stuff
         map.insert(NodeSpecKey::root(), NodeSpec::root());
         Self { map }
     }
+}
 
+impl NodeSpecMap {
     pub fn spec(&self, key: &NodeSpecKey) -> Result<&NodeSpec> {
         self.map
             .get(key)

@@ -7,11 +7,11 @@ use crate::ui::channel::temporary::ConnectionOrigin;
 use crate::ui::text::{self, text_width_from};
 
 #[derive(Debug, Clone)]
-pub struct Handlers2 {
+pub struct Handlers {
     on_mouse_down: EventHandler<(ConnectionOrigin, IndexedDragOffset, NodePortId)>,
 }
 
-impl Handlers2 {
+impl Handlers {
     pub(crate) fn new(
         on_mouse_down: impl FnMut((ConnectionOrigin, IndexedDragOffset, NodePortId)) + 'static,
     ) -> Self {
@@ -22,7 +22,7 @@ impl Handlers2 {
 }
 
 #[derive(Props, PartialEq, Clone)]
-pub struct SenderProps2 {
+pub struct SenderProps {
     id: NodeId,
     position: Point,
     msg_spec: MessageSpec,
@@ -30,7 +30,7 @@ pub struct SenderProps2 {
 }
 
 #[component]
-pub fn Sender2(props: SenderProps2) -> Element {
+pub fn Sender(props: SenderProps) -> Element {
     let position = props.position;
     let message_desc = props.msg_spec.as_str();
     let port_id = props.port_id;
@@ -67,7 +67,7 @@ pub fn Sender2(props: SenderProps2) -> Element {
                         x: mouse_coords.x,
                         y: mouse_coords.y,
                     };
-                    use_context::<Handlers2>()
+                    use_context::<Handlers>()
                         .on_mouse_down
                         .call((
                             ConnectionOrigin::Sender,

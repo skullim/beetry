@@ -7,8 +7,8 @@ pub use leaves::{
 
 use beetry_macros::{Message, submit_as_channel_plugin};
 use beetry_plugin::Plugin;
-use beetry_plugin::channel::{ChannelPluginConstructor2, Factory2};
-use beetry_plugin::node::{ActionPluginConstructor2, ConditionPluginConstructor2};
+use beetry_plugin::channel::{ChannelPluginConstructor, Factory};
+use beetry_plugin::node::{ActionPluginConstructor, ConditionPluginConstructor};
 use beetry_plugin_types::channel::{ChannelSpec, Message};
 
 use type_hash::TypeHash;
@@ -30,12 +30,12 @@ impl Pose {
 
 pub struct ChannelPose {
     spec: ChannelSpec,
-    factory: Factory2,
+    factory: Factory,
 }
 
 impl Plugin for ChannelPose {
     type Spec = ChannelSpec;
-    type Factory = Factory2;
+    type Factory = Factory;
 
     fn new() -> Self
     where
@@ -43,7 +43,7 @@ impl Plugin for ChannelPose {
     {
         Self {
             spec: ChannelSpec::new::<Pose>(),
-            factory: Factory2::from_msg_type::<Pose>(),
+            factory: Factory::from_msg_type::<Pose>(),
         }
     }
 
@@ -51,7 +51,7 @@ impl Plugin for ChannelPose {
         &self.spec
     }
 
-    fn factory(&self) -> &Factory2 {
+    fn factory(&self) -> &Factory {
         &self.factory
     }
 
@@ -60,7 +60,7 @@ impl Plugin for ChannelPose {
     }
 }
 
-beetry_plugin::submit!(ChannelPluginConstructor2::new::<ChannelPose>());
+beetry_plugin::submit!(ChannelPluginConstructor::new::<ChannelPose>());
 
 #[derive(Debug, Clone, Copy, TypeHash)]
 pub enum ChargeCommand {
@@ -85,12 +85,7 @@ impl ExternalData {
     }
 }
 
-// beetry_plugin::submit!(ActionPluginConstructor::new::<DrivePlugin>());
-// beetry_plugin::submit!(ActionPluginConstructor::new::<LocalizePlugin>());
+beetry_plugin::submit!(ActionPluginConstructor::new::<DrivePlugin>());
+beetry_plugin::submit!(ActionPluginConstructor::new::<LocalizePlugin>());
 // beetry_plugin::submit!(ActionPluginConstructor::new::<ReadExternalDataPlugin>());
-// beetry_plugin::submit!(ConditionPluginConstructor::new::<CheckBatteryPlugin>());
-
-beetry_plugin::submit!(ActionPluginConstructor2::new::<DrivePlugin>());
-beetry_plugin::submit!(ActionPluginConstructor2::new::<LocalizePlugin>());
-// beetry_plugin::submit!(ActionPluginConstructor2::new::<ReadExternalDataPlugin>());
-beetry_plugin::submit!(ConditionPluginConstructor2::new::<CheckBatteryPlugin>());
+beetry_plugin::submit!(ConditionPluginConstructor::new::<CheckBatteryPlugin>());

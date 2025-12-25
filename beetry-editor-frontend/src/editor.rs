@@ -1,48 +1,25 @@
+use crate::ui::node::ParameterDialog;
 use beetry_editor_backend::EditorService;
 use beetry_editor_backend::repository::{
     ChannelRepositoryFacade, EdgeRepository, NodeRepositoryFacade, UiRepositoryFacade,
 };
-use beetry_editor_types::{ChannelUiData, NodeSpecKey, NodeUiData};
+use beetry_editor_types::{ChannelUiData, NodeId, NodeSpecKey, NodeUiData, ParameterValue};
 use beetry_reconstruction_types::channel::ChannelConfig;
+use beetry_reconstruction_types::parameter::Parameters;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
 use crate::ui::node::{ParameterDialogHandlers, ParameterDialogState};
-use crate::workspace::Workspace2;
-use crate::{NodeSpecMap, toolbar::Toolbar2};
-use crate::{Specs2, sidebar::Sidebar2};
+use crate::workspace::Workspace;
+use crate::{NodeSpecMap, toolbar::Toolbar};
+use crate::{Specs, sidebar::Sidebar};
 use crate::{
-    sidebar::SidebarEventHandlers2, ui::channel::config_dialog::State as ChannelConfigDialogState,
+    sidebar::SidebarEventHandlers, ui::channel::config_dialog::State as ChannelConfigDialogState,
 };
 use crate::{
     signals::RequestRender,
     ui::channel::{self},
 };
-
-// fn parameter_dialog_handlers(
-//     mut state: Signal<ParameterDialogState>,
-//     sidebar_handlers: SidebarEventHandlers,
-// ) -> ParameterDialogHandlers {
-//     let on_confirm = move |(spec, params): (LeafSpec, Parameters)| {
-//         sidebar_handlers.on_new_node.call(
-//             ui::Node::new(
-//                 spec.name,
-//                 ui::NodeKind::Leaf {
-//                     schema: spec.schema,
-//                     external_receivers: Default::default(),
-//                 },
-//             )
-//             .with_params(params),
-//         );
-//         state.take();
-//     };
-
-//     let on_cancel = move |_| {
-//         state.take();
-//     };
-
-//     ParameterDialogHandlers::new(on_confirm, on_cancel)
-// }
 
 type EditorServiceImpl = EditorService<
     NodeRepositoryFacade,
@@ -65,23 +42,21 @@ impl ServiceContext {
 }
 
 #[component]
-pub(crate) fn Editor2() -> Element {
+pub(crate) fn Editor() -> Element {
     debug!("rendering editor");
 
-    let specs = use_context::<Specs2>();
+    let specs = use_context::<Specs>();
     use_context_provider(|| ServiceContext::new(specs.nodes));
 
-    // let ctx = use_context_provider(EditorContext::new);
-    // let channel_ctx = ctx.channel;
     let mut channel_config_dialog_state: Signal<ChannelConfigDialogState> =
         use_signal(ChannelConfigDialogState::default);
-    let parameter_dialog_state: Signal<ParameterDialogState> =
+    let mut parameter_dialog_state: Signal<ParameterDialogState> =
         use_signal(ParameterDialogState::default);
 
     let mut render_nodes = use_signal(RequestRender::new);
     let mut render_channels = use_signal(RequestRender::new);
 
-    let sidebar_handlers = use_context_provider(move || {
+    use_context_provider(move || {
         let on_new_node = move |node_spec_key: NodeSpecKey| {
             //@todo improve ergonomics
             let mut service_ctx = use_context::<ServiceContext>();
@@ -89,11 +64,20 @@ pub(crate) fn Editor2() -> Element {
             let mut node_api_mut = write.node_api_mut();
             let mut lifecycle_api = node_api_mut.lifecycle();
             //@todo this should be returned as reference
-            let specs_map = use_context::<Specs2>();
+            let specs_map = use_context::<Specs>();
 
             //@todo handle unwraps
             let node_spec = specs_map.nodes.spec(&node_spec_key).unwrap();
             let id = lifecycle_api.create(node_spec.clone()).unwrap();
+
+            // make param state visible if params expected for this node spec
+            if !node_spec.params().defs.is_empty() {
+                debug!("setting parameter dialog state");
+                parameter_dialog_state.set(ParameterDialogState::Visible {
+                    position: crate::definitions::Point { x: 300.0, y: 200.0 },
+                    id,
+                });
+            }
 
             //@todo improve default position
             let data = NodeUiData::default();
@@ -107,7 +91,7 @@ pub(crate) fn Editor2() -> Element {
             render_nodes.with_mut(|write| write.request());
         };
 
-        SidebarEventHandlers2::new(on_new_node)
+        SidebarEventHandlers::new(on_new_node)
     });
 
     use_context_provider(move || {
@@ -134,38 +118,42 @@ pub(crate) fn Editor2() -> Element {
         let on_cancel = move |_| {
             channel_config_dialog_state.take();
         };
-        channel::config_dialog::Handlers2::new(on_new_channel, on_cancel)
+        channel::config_dialog::Handlers::new(on_new_channel, on_cancel)
     });
 
-    // use_context_provider(move || {
-    //     parameter_dialog_handlers2(parameter_dialog_state, sidebar_handlers)
-    // });
+    use_context_provider(move || parameter_dialog_handlers(parameter_dialog_state));
 
     rsx! {
         div { style: "display: flex; flex-direction: row; gap: 10px;",
             div { style: "flex: 0 1 20%;",
-                Sidebar2 { channel_config_dialog_state }
+                Sidebar { channel_config_dialog_state }
             }
             div { style: "flex: 0 1 80%;",
-                Workspace2 { render_nodes, render_channels }
+                Workspace { render_nodes, render_channels }
             }
-            div { style: "flex: 0 1 10%;", Toolbar2 {} }
+            div {
+                ParameterDialog { state: parameter_dialog_state }
+            }
+            div { style: "flex: 0 1 10%;", Toolbar {} }
         }
     }
 }
 
-// fn parameter_dialog_handlers2(
-//     mut state: Signal<ParameterDialogState2>,
-//     sidebar_handlers: SidebarEventHandlers2,
-// ) -> ParameterDialogHandlers {
-//     let on_confirm = move |spec: beetry_editor_types::NodeSpecKey| {
-//         sidebar_handlers.on_new_node.call(spec);
-//         state.take();
-//     };
+fn parameter_dialog_handlers(mut state: Signal<ParameterDialogState>) -> ParameterDialogHandlers {
+    let on_confirm = move |(node_id, params): (NodeId, Parameters)| {
+        let mut service_ctx = use_context::<ServiceContext>();
+        let mut write = service_ctx.service.write();
+        let mut node_api = write.node_api_mut();
+        let mut node_api_params = node_api.parameters();
+        node_api_params
+            .load(node_id, ParameterValue { params })
+            .unwrap();
+        state.take();
+    };
 
-//     let on_cancel = move |_| {
-//         state.take();
-//     };
+    let on_cancel = move |_| {
+        state.take();
+    };
 
-//     ParameterDialogHandlers::new(on_confirm, on_cancel)
-// }
+    ParameterDialogHandlers::new(on_confirm, on_cancel)
+}

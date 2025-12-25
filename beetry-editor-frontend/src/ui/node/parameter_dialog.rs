@@ -1,27 +1,27 @@
 use std::collections::BTreeMap;
 
 use anyhow::bail;
-use beetry_editor_types::{NodeSpec, NodeSpecKey};
+use beetry_editor_types::{NodeId, NodeSpec, NodeSpecKey};
 use beetry_plugin_types::parameter::{Definition, Type};
 use beetry_reconstruction_types::parameter::Parameters;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 use serde_value::Value;
 
-use crate::definitions::Point;
+use crate::{Specs, definitions::Point, editor::ServiceContext};
 
 #[derive(Debug, Clone)]
 pub struct Handlers {
     //@todo ideally it should be only Parameters that are passed
     // right now if node has params then it is created by the on_confirm handler.
     // However this component should not be responsible for that, but rather only for inserting valid params into repository
-    pub(crate) on_confirm: EventHandler<(NodeSpecKey, Parameters)>,
+    pub(crate) on_confirm: EventHandler<(NodeId, Parameters)>,
     pub(crate) on_cancel: EventHandler<()>,
 }
 
 impl Handlers {
     pub(crate) fn new(
-        on_confirm: impl FnMut((NodeSpecKey, Parameters)) + 'static,
+        on_confirm: impl FnMut((NodeId, Parameters)) + 'static,
         on_cancel: impl FnMut(()) + 'static,
     ) -> Self {
         Self {
@@ -37,7 +37,7 @@ pub enum State {
     Idle,
     Visible {
         position: Point,
-        spec: NodeSpecKey,
+        id: NodeId,
     },
 }
 
@@ -48,30 +48,41 @@ pub struct DialogProps {
 
 #[component]
 pub fn Dialog(props: DialogProps) -> Element {
-    rsx!()
-    // debug!("rendering parameter dialog");
-    // let state_read = props.state.read();
+    // rsx!()
+    debug!("rendering parameter dialog");
+    let state_read = props.state.read();
 
-    // let (position, spec) = match state_read.clone() {
-    //     State::Idle => return rsx! {},
-    //     State::Visible { position, spec } => (position, spec),
-    // };
+    let (id, position, params_schema, node_name) = match state_read.clone() {
+        State::Idle => return rsx! {},
+        State::Visible { position, id } => {
+            let service = use_context::<ServiceContext>();
+            let read = service.service.read();
+            let node_api = read.node_api();
+            let spec_api = node_api.spec();
 
-    // let parameter_values = use_signal(|| {
-    //     let mut values_map = BTreeMap::new();
-    //     for param_def in &spec.params_schema.defs {
-    //         let default_value = match &param_def.ty {
-    //             Type::Boolean => Value::Bool(false),
-    //             Type::Integer { bounds: _ } => Value::I64(0),
-    //             Type::Float { bounds: _ } => Value::F64(0.0),
-    //             Type::String { max_length: _ } => Value::String(String::new()),
-    //         };
-    //         values_map.insert(param_def.name.clone(), default_value);
-    //     }
-    //     values_map
-    // });
+            (
+                id,
+                position,
+                spec_api.params(id).unwrap().clone(),
+                spec_api.name(id).unwrap().clone(),
+            )
+        }
+    };
+    let parameter_values = use_signal(|| {
+        let mut values_map = BTreeMap::new();
+        for param_def in &params_schema.defs {
+            let default_value = match &param_def.ty {
+                Type::Boolean => Value::Bool(false),
+                Type::Integer { bounds: _ } => Value::I64(0),
+                Type::Float { bounds: _ } => Value::F64(0.0),
+                Type::String { max_length: _ } => Value::String(String::new()),
+            };
+            values_map.insert(param_def.name.clone(), default_value);
+        }
+        values_map
+    });
 
-    // let param_defs = spec.params_schema.defs.clone();
+    //let param_defs = params_schema.defs.clone();
     // let has_validation_errors = use_memo(move || {
     //     let values = parameter_values.read();
 
@@ -83,90 +94,90 @@ pub fn Dialog(props: DialogProps) -> Element {
     //     false
     // });
 
-    // let handlers = use_context::<Handlers>();
+    let handlers = use_context::<Handlers>();
+    let on_confirm = move |_| {
+        //@todo restore error validation
+        //if !has_validation_errors() {
+        let values = parameter_values.read();
+        let value_iter = values.iter().map(|(k, v)| (k.to_string(), v.clone()));
+        let serialized_params = Parameters::from_iter(value_iter);
+        handlers.on_confirm.call((id, serialized_params));
+        //}
+    };
 
-    // let spec_for_confirm = spec.clone();
-    // let on_confirm = move |_| {
-    //     if !has_validation_errors() {
-    //         let values = parameter_values.read();
-    //         let value_iter = values.iter().map(|(k, v)| (k.to_string(), v.clone()));
-    //         let serialized_params = Parameters::from_iter(value_iter);
-    //         handlers
-    //             .on_confirm
-    //             .call((spec_for_confirm.clone(), serialized_params));
-    //     }
-    // };
+    let on_cancel = move |_| {
+        handlers.on_cancel.call(());
+    };
 
-    // let on_cancel = move |_| {
-    //     handlers.on_cancel.call(());
-    // };
+    rsx! {
+        div {
+            position: "fixed",
+            top: "0",
+            left: "0",
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.5)",
+            z_index: "1000",
+            onclick: on_cancel,
 
-    // rsx! {
-    //     div {
-    //         position: "fixed",
-    //         top: "0",
-    //         left: "0",
-    //         width: "100vw",
-    //         height: "100vh",
-    //         background: "rgba(0,0,0,0.5)",
-    //         z_index: "1000",
-    //         onclick: on_cancel,
+            div {
+                position: "absolute",
+                left: "{position.x}px",
+                top: "{position.y}px",
+                background: "white",
+                border: "1px solid #ccc",
+                border_radius: "8px",
+                box_shadow: "0 4px 16px rgba(0,0,0,0.3)",
+                min_width: "320px",
+                max_width: "500px",
+                padding: "20px",
+                z_index: "1001",
+                onclick: move |evt| evt.stop_propagation(),
 
-    //         div {
-    //             position: "absolute",
-    //             left: "{position.x}px",
-    //             top: "{position.y}px",
-    //             background: "white",
-    //             border: "1px solid #ccc",
-    //             border_radius: "8px",
-    //             box_shadow: "0 4px 16px rgba(0,0,0,0.3)",
-    //             min_width: "320px",
-    //             max_width: "500px",
-    //             padding: "20px",
-    //             z_index: "1001",
-    //             onclick: move |evt| evt.stop_propagation(),
+                h3 { margin: "0 0 16px 0", "Configure Parameters for {node_name}" }
 
-    //             h3 { margin: "0 0 16px 0", "Configure Parameters for {spec.name()}" }
+                for param_def in &params_schema.defs {
+                    div { margin_bottom: "16px",
+                        ParameterField {
+                            definition: param_def.clone(),
+                            values: parameter_values,
+                        }
+                    }
+                }
 
-    //             for param_def in &spec.params_schema.defs {
-    //                 div { margin_bottom: "16px",
-    //                     ParameterField {
-    //                         definition: param_def.clone(),
-    //                         values: parameter_values,
-    //                     }
-    //                 }
-    //             }
+                div {
+                    display: "flex",
+                    justify_content: "flex-end",
+                    gap: "8px",
+                    margin_top: "20px",
 
-    //             div {
-    //                 display: "flex",
-    //                 justify_content: "flex-end",
-    //                 gap: "8px",
-    //                 margin_top: "20px",
+                    button {
+                        padding: "8px 16px",
+                        border: "1px solid #ddd",
+                        border_radius: "4px",
+                        background: "white",
+                        cursor: "pointer",
+                        onclick: on_cancel,
+                        "Cancel"
+                    }
 
-    //                 button {
-    //                     padding: "8px 16px",
-    //                     border: "1px solid #ddd",
-    //                     border_radius: "4px",
-    //                     background: "white",
-    //                     cursor: "pointer",
-    //                     onclick: on_cancel,
-    //                     "Cancel"
-    //                 }
-
-    //                 button {
-    //                     padding: "8px 16px",
-    //                     border: if has_validation_errors() { "1px solid #ccc" } else { "1px solid #007acc" },
-    //                     border_radius: "4px",
-    //                     background: if has_validation_errors() { "#ccc" } else { "#007acc" },
-    //                     color: "white",
-    //                     cursor: if has_validation_errors() { "not-allowed" } else { "pointer" },
-    //                     onclick: on_confirm,
-    //                     "Confirm"
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+                    button {
+                        padding: "8px 16px",
+                        //border: if has_validation_errors() { "1px solid #ccc" } else { "1px solid #007acc" },
+                        border: "1px solid #007acc",
+                        border_radius: "4px",
+                        //background: if has_validation_errors() { "#ccc" } else { "#007acc" },
+                        background: "#007acc",
+                        color: "white",
+                        //cursor: if has_validation_errors() { "not-allowed" } else { "pointer" },
+                        cursor: "pointer",
+                        onclick: on_confirm,
+                        "Confirm"
+                    }
+                }
+            }
+        }
+    }
 }
 
 #[derive(Props, Clone, PartialEq)]

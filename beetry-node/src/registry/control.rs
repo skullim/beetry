@@ -2,7 +2,7 @@ use crate::Sequence;
 use beetry_core::BoxNode;
 use beetry_editor_types::{NodeSpec, NodeSpecKey};
 use beetry_plugin::Plugin;
-use beetry_plugin::node::{ControlFactory, ControlPluginConstructor2, ControlReconstructionData};
+use beetry_plugin::node::{ControlFactory, ControlPluginConstructor, ControlReconstructionData};
 use beetry_plugin_types::node::NodeName;
 
 struct SequencePlugin {
@@ -119,6 +119,6 @@ impl Plugin for ParallelPlugin {
     }
 }
 
-beetry_plugin::submit!(ControlPluginConstructor2::new::<SequencePlugin>());
-beetry_plugin::submit!(ControlPluginConstructor2::new::<FallbackPlugin>());
-beetry_plugin::submit!(ControlPluginConstructor2::new::<ParallelPlugin>());
+beetry_plugin::submit!(ControlPluginConstructor::new::<SequencePlugin>());
+beetry_plugin::submit!(ControlPluginConstructor::new::<FallbackPlugin>());
+beetry_plugin::submit!(ControlPluginConstructor::new::<ParallelPlugin>());
