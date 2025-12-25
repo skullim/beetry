@@ -34,13 +34,13 @@ pub(super) fn style_defs() -> Element {
 }
 
 #[derive(Props, PartialEq, Clone)]
-pub struct ControlProps2 {
+pub struct ControlProps {
     id: NodeId,
     position: Point,
 }
 
 #[component]
-pub fn Control2(props: ControlProps2) -> Element {
+pub fn Control(props: ControlProps) -> Element {
     let id = props.id;
     debug!("rendering control component: {id}");
     let service = use_context::<ServiceContext>();

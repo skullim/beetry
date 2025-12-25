@@ -2,7 +2,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use bon::Builder;
 use itertools::Itertools;
 
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use tracing::warn;
 
 use beetry_editor_types::{
@@ -153,7 +153,7 @@ where
                 .unique();
 
             let spec_api = self.node_api.spec();
-            let iter: BTreeMap<usize, NodeSpecKey> = spec_ids
+            spec_ids
                 .map(|spec_id| {
                     Ok((
                         spec_id,
@@ -163,14 +163,12 @@ where
                         ),
                     ))
                 })
-                //@todo it would be better if BTreeMap is not required to specify here
-                .collect::<Result<BTreeMap<_, _>>>()?;
-            NodeSpecStore::from_iter(iter)
+                .collect::<Result<NodeSpecStore>>()?
         };
 
         let nodes = {
             let tracker_api = self.node_api.tracker();
-            let iter = nodes
+            nodes
                 .iter()
                 .copied()
                 .map(|id| {
@@ -189,8 +187,7 @@ where
                         ),
                     ))
                 })
-                .collect::<Result<BTreeMap<_, _>>>()?;
-            NodeRecordStore::from_iter(iter)
+                .collect::<Result<NodeRecordStore>>()?
         };
         Ok(NodeStore { specs, nodes })
     }
@@ -238,7 +235,7 @@ where
     }
 
     fn export_channel_store(&mut self, channels: &[ChannelId]) -> Result<ChannelStore> {
-        let iter = channels
+        let specs = channels
             .iter()
             .copied()
             .map(|id| {
@@ -247,15 +244,13 @@ where
                     self.channel_api.spec(id)?.clone(),
                 ))
             })
-            .collect::<Result<BTreeMap<_, _>>>()?;
-        let specs = ChannelSpecStore::from_iter(iter);
+            .collect::<Result<ChannelSpecStore>>()?;
 
-        let iter = channels
+        let channels = channels
             .iter()
             .copied()
             .map(|id| Ok((id, self.channel_api.data(id)?.clone())))
-            .collect::<Result<BTreeMap<_, _>>>()?;
-        let channels = ChannelDataStore::from_iter(iter);
+            .collect::<Result<ChannelDataStore>>()?;
 
         Ok(ChannelStore { specs, channels })
     }

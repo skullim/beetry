@@ -7,12 +7,12 @@ use crate::ui::channel::temporary::ConnectionOrigin;
 use crate::ui::text::{self, text_width_from};
 
 #[derive(Debug, Clone)]
-pub struct Handlers2 {
+pub struct Handlers {
     on_mouse_down: EventHandler<(ConnectionOrigin, IndexedDragOffset, NodePortId)>,
     on_context_menu: EventHandler<(NodeId, NodePortId)>,
 }
 
-impl Handlers2 {
+impl Handlers {
     pub(crate) fn new(
         on_mouse_down: impl FnMut((ConnectionOrigin, IndexedDragOffset, NodePortId)) + 'static,
         on_context_menu: impl FnMut((NodeId, NodePortId)) + 'static,
@@ -25,7 +25,7 @@ impl Handlers2 {
 }
 
 #[derive(Props, PartialEq, Clone)]
-pub struct ReceiverProps2 {
+pub struct ReceiverProps {
     id: NodeId,
     position: Point,
     msg_spec: MessageSpec,
@@ -34,7 +34,7 @@ pub struct ReceiverProps2 {
 }
 
 #[component]
-pub fn Receiver2(props: ReceiverProps2) -> Element {
+pub fn Receiver(props: ReceiverProps) -> Element {
     let position = props.position;
     let node_id = props.id;
     let message_desc = props.msg_spec.as_str();
@@ -75,7 +75,7 @@ pub fn Receiver2(props: ReceiverProps2) -> Element {
                         x: mouse_coords.x,
                         y: mouse_coords.y,
                     };
-                    use_context::<Handlers2>()
+                    use_context::<Handlers>()
                         .on_mouse_down
                         .call((
                             ConnectionOrigin::Receiver,
@@ -89,7 +89,7 @@ pub fn Receiver2(props: ReceiverProps2) -> Element {
                 oncontextmenu: move |evt| {
                     evt.prevent_default();
                     evt.stop_propagation();
-                    use_context::<Handlers2>().on_context_menu.call((node_id, port_id))
+                    use_context::<Handlers>().on_context_menu.call((node_id, port_id))
                 },
             }
             text {

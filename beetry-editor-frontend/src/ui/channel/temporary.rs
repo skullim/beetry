@@ -30,7 +30,7 @@ pub fn Temporary(edge: ReadSignal<EdgePos>) -> Element {
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub enum ConnectionState2 {
+pub enum ConnectionState {
     #[default]
     Idle,
     Dragged(DraggedData),
@@ -44,36 +44,36 @@ pub struct DraggedData {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Context2 {
-    state: Signal<ConnectionState2>,
+pub struct Context {
+    state: Signal<ConnectionState>,
     edge: Signal<EdgePos>,
 }
 
-impl Context2 {
+impl Context {
     pub(crate) fn new() -> Self {
         Self {
-            state: Signal::new(ConnectionState2::Idle),
+            state: Signal::new(ConnectionState::Idle),
             edge: Signal::new(EdgePos::default()),
         }
     }
 
     pub(crate) fn is_dragged(&self) -> bool {
-        matches!(*self.state.read(), ConnectionState2::Dragged { .. })
+        matches!(*self.state.read(), ConnectionState::Dragged { .. })
     }
 
     pub(crate) fn set_dragged(&mut self, data: DraggedData) {
-        self.state.set(ConnectionState2::Dragged(data));
+        self.state.set(ConnectionState::Dragged(data));
     }
 
     pub(crate) fn take_dragged(&mut self) -> Option<DraggedData> {
-        if let ConnectionState2::Dragged(data) = self.state.take() {
+        if let ConnectionState::Dragged(data) = self.state.take() {
             return Some(data);
         }
         None
     }
 
     pub(crate) fn update_end_if_dragged(&mut self, evt: &Event<MouseData>) {
-        if let ConnectionState2::Dragged(..) = *self.state.peek() {
+        if let ConnectionState::Dragged(..) = *self.state.peek() {
             let mouse_coords = evt.element_coordinates();
             self.edge.with_mut(|data| {
                 data.end = Point {
@@ -95,6 +95,6 @@ impl Context2 {
     }
 
     pub(crate) fn reset(&mut self) {
-        self.state.set(ConnectionState2::Idle);
+        self.state.set(ConnectionState::Idle);
     }
 }

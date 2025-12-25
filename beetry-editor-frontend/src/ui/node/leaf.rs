@@ -47,13 +47,13 @@ pub(super) fn style_defs() -> Element {
 }
 
 #[derive(PartialEq, Clone, Props)]
-pub struct LeafProps2 {
+pub struct LeafProps {
     id: NodeId,
     position: Point,
 }
 
 #[component]
-pub(crate) fn Leaf2(props: LeafProps2) -> Element {
+pub(crate) fn Leaf(props: LeafProps) -> Element {
     let id = props.id;
     debug!("rendering leaf component: {id}");
     let service = use_context::<ServiceContext>();
@@ -89,7 +89,7 @@ pub(crate) fn Leaf2(props: LeafProps2) -> Element {
 
         g { transform: "translate(-80, 10)",
             for (port_id , port_spec) in ports_spec.receivers() {
-                port::Receiver2 {
+                port::Receiver {
                     key: "{port_id}",
                     id,
                     position,
@@ -103,7 +103,7 @@ pub(crate) fn Leaf2(props: LeafProps2) -> Element {
 
         g { transform: "translate({width}, 10)",
             for (port_id , port_spec) in ports_spec.senders() {
-                port::Sender2 {
+                port::Sender {
                     key: "{port_id}",
                     id,
                     position,

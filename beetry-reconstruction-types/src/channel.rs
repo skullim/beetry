@@ -7,12 +7,12 @@ use serde::{Deserialize, Serialize};
 use beetry_plugin_types::channel::ChannelSpec;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
-pub struct ChannelSnapshot2 {
+pub struct ChannelSnapshot {
     spec: ChannelSpec,
     config: ChannelConfig,
 }
 
-impl ChannelSnapshot2 {
+impl ChannelSnapshot {
     pub fn new(spec: ChannelSpec, config: ChannelConfig) -> Self {
         Self { spec, config }
     }

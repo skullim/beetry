@@ -12,7 +12,7 @@ pub type ActionReconstructionData = LeafReconstructionData;
 pub type ConditionReconstructionData = LeafReconstructionData;
 pub type ControlReconstructionData = NodeReconstructionData<ControlMetadata>;
 
-#[derive(Builder)]
+#[derive(Debug, Builder)]
 pub struct NodeReconstructionData<D> {
     pub inner: D,
     #[builder(default)]
@@ -24,7 +24,7 @@ pub enum NodeMetadata {
     Control(ControlMetadata),
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Default, Builder)]
 pub struct LeafMetadata {
     #[builder(default, into)]
     pub receivers: Vec<AnyBoxReceiver>,
@@ -137,9 +137,9 @@ macro_rules! plugin2 {
     };
 }
 
-pub type BoxActionPlugin2 = BoxPlugin<beetry_editor_types::NodeSpec, ActionFactory>;
-pub type BoxConditionPlugin2 = BoxPlugin<beetry_editor_types::NodeSpec, ConditionFactory>;
-pub type BoxControlPlugin2 = BoxPlugin<beetry_editor_types::NodeSpec, ControlFactory>;
+pub type BoxActionPlugin = BoxPlugin<beetry_editor_types::NodeSpec, ActionFactory>;
+pub type BoxConditionPlugin = BoxPlugin<beetry_editor_types::NodeSpec, ConditionFactory>;
+pub type BoxControlPlugin = BoxPlugin<beetry_editor_types::NodeSpec, ControlFactory>;
 
 impl Named for beetry_editor_types::NodeSpec {
     fn name(&self) -> &str {
@@ -147,36 +147,36 @@ impl Named for beetry_editor_types::NodeSpec {
     }
 }
 
-pub type ActionPluginConstructor2 = PluginConstructor<beetry_editor_types::NodeSpec, ActionFactory>;
-pub type ConditionPluginConstructor2 =
+pub type ActionPluginConstructor = PluginConstructor<beetry_editor_types::NodeSpec, ActionFactory>;
+pub type ConditionPluginConstructor =
     PluginConstructor<beetry_editor_types::NodeSpec, ConditionFactory>;
-pub type ControlPluginConstructor2 =
+pub type ControlPluginConstructor =
     PluginConstructor<beetry_editor_types::NodeSpec, ControlFactory>;
 
-impl ActionPluginConstructor2 {
-    pub fn plugins() -> Result<Vec<BoxActionPlugin2>, PluginError> {
+impl ActionPluginConstructor {
+    pub fn plugins() -> Result<Vec<BoxActionPlugin>, PluginError> {
         unique_plugins::<Self, <Self as ConstructPlugin>::Spec, <Self as ConstructPlugin>::Factory>(
         )
     }
 }
 
-impl ConditionPluginConstructor2 {
-    pub fn plugins() -> Result<Vec<BoxConditionPlugin2>, PluginError> {
+impl ConditionPluginConstructor {
+    pub fn plugins() -> Result<Vec<BoxConditionPlugin>, PluginError> {
         unique_plugins::<Self, <Self as ConstructPlugin>::Spec, <Self as ConstructPlugin>::Factory>(
         )
     }
 }
 
-impl ControlPluginConstructor2 {
-    pub fn plugins() -> Result<Vec<BoxControlPlugin2>, PluginError> {
+impl ControlPluginConstructor {
+    pub fn plugins() -> Result<Vec<BoxControlPlugin>, PluginError> {
         unique_plugins::<Self, <Self as ConstructPlugin>::Spec, <Self as ConstructPlugin>::Factory>(
         )
     }
 }
 
-inventory::collect! {ActionPluginConstructor2}
-inventory::collect! {ConditionPluginConstructor2}
-inventory::collect! {ControlPluginConstructor2}
+inventory::collect! {ActionPluginConstructor}
+inventory::collect! {ConditionPluginConstructor}
+inventory::collect! {ControlPluginConstructor}
 
 #[cfg(test)]
 mod tests {
@@ -259,18 +259,18 @@ mod tests {
     }
 
     inventory::submit! {
-        ActionPluginConstructor2::new::<TestPluginA>()
+        ActionPluginConstructor::new::<TestPluginA>()
     }
 
     //@todo registering duplicated entry might affect other tests when plugins() method is called.
     //Better to avoid global registration if possible
     inventory::submit! {
-        ActionPluginConstructor2::new::<TestPluginB>()
+        ActionPluginConstructor::new::<TestPluginB>()
     }
 
     #[test]
     fn test_duplicate_plugin_name_error() {
-        let result = ActionPluginConstructor2::plugins();
+        let result = ActionPluginConstructor::plugins();
         assert!(matches!(
             result,
             Err(PluginError::DuplicateName(name)) if name == NodeName::new("TestPlugin").0

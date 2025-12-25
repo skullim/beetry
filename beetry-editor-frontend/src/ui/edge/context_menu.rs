@@ -1,3 +1,4 @@
+use beetry_editor_types::EdgeId;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
@@ -5,13 +6,13 @@ use crate::definitions::Point;
 
 #[derive(Debug, Clone)]
 pub struct Handlers {
-    on_delete: EventHandler<usize>, // Pass edge index
+    on_delete: EventHandler<EdgeId>,
     on_close: EventHandler<()>,
 }
 
 impl Handlers {
     pub(crate) fn new(
-        on_delete: impl FnMut(usize) + 'static,
+        on_delete: impl FnMut(EdgeId) + 'static,
         on_close: impl FnMut(()) + 'static,
     ) -> Self {
         Self {
@@ -24,7 +25,7 @@ impl Handlers {
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct State {
     pub(crate) position: Point,
-    pub(crate) target_edge_index: usize,
+    pub(crate) edge_id: EdgeId,
     pub(crate) is_visible: bool,
 }
 
@@ -39,7 +40,7 @@ pub fn ContextMenu(props: ContextMenuProps) -> Element {
     let state_read = props.state.read();
 
     let position = &state_read.position;
-    let target_edge_index = state_read.target_edge_index;
+    let edge_id = state_read.edge_id;
     let is_visible = state_read.is_visible;
 
     let context_menu_handlers = use_context::<Handlers>();
@@ -71,7 +72,7 @@ pub fn ContextMenu(props: ContextMenuProps) -> Element {
                         padding: "8px 16px",
                         cursor: "pointer",
                         onclick: move |_| {
-                            context_menu_handlers.on_delete.call(target_edge_index);
+                            context_menu_handlers.on_delete.call(edge_id);
                             context_menu_handlers.on_close.call(());
                         },
                         "Delete Edge"

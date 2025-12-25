@@ -3,8 +3,8 @@ pub mod output;
 pub mod receiver;
 pub mod sender;
 
-pub use receiver::Receiver2;
-pub use sender::Sender2;
+pub use receiver::Receiver;
+pub use sender::Sender;
 
 use dioxus::prelude::*;
 

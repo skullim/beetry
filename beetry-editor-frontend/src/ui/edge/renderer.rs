@@ -1,3 +1,4 @@
+use beetry_editor_types::EdgeId;
 use dioxus::prelude::*;
 
 use crate::definitions::{EdgePos, Point};
@@ -9,7 +10,7 @@ use crate::ui::edge::{ContextMenuState, Edge};
 // - new edge created
 // - node position updated
 #[component]
-pub fn Renderer2(
+pub fn Renderer(
     render_edges: Signal<RequestRender>,
     mut edge_context_menu_state: Signal<ContextMenuState>,
 ) -> Element {
@@ -38,12 +39,12 @@ pub fn Renderer2(
             Edge {
                 key: "{id}",
                 pos: edge_pos,
-                edge_index: *id,
-                on_context_menu: move |(idx, point): (usize, Point)| {
+                edge_id: *id,
+                on_context_menu: move |(id, point): (EdgeId, Point)| {
                     edge_context_menu_state
                         .with_mut(|state| {
                             state.position = point;
-                            state.target_edge_index = idx;
+                            state.edge_id = id;
                             state.is_visible = true;
                         });
                 },

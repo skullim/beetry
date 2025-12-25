@@ -5,8 +5,8 @@ pub mod temporary;
 use beetry_editor_types::ChannelPosition;
 use beetry_plugin::Named;
 use beetry_reconstruction_types::channel::ChannelId;
-pub use config_dialog::Dialog2 as ConfigDialog2;
-pub use renderer::Renderer2;
+pub use config_dialog::Dialog as ConfigDialog;
+pub use renderer::Renderer;
 pub use temporary::Temporary;
 
 use dioxus::html::input_data::MouseButton;
@@ -19,13 +19,13 @@ use crate::ui::text::{self, text_width_from};
 use crate::ui::viewport::{ViewportContext, ZoomLevel};
 
 #[derive(Debug, Clone)]
-pub struct Handlers2 {
+pub struct Handlers {
     on_drag_start: EventHandler<(ChannelId, Point)>,
     on_receiver: EventHandler<ChannelId>,
     on_sender: EventHandler<ChannelId>,
 }
 
-impl Handlers2 {
+impl Handlers {
     pub(crate) fn new(
         on_drag_start: impl FnMut((ChannelId, Point)) + 'static,
         on_receiver: impl FnMut(ChannelId) + 'static,
@@ -124,13 +124,13 @@ pub(crate) fn ReceiverConnection(edge: EdgePos) -> Element {
 }
 
 #[derive(Props, PartialEq, Clone)]
-pub struct ChannelProps2 {
+pub struct ChannelProps {
     id: ChannelId,
     position: ChannelPosition,
 }
 
 #[component]
-pub(crate) fn Channel2(props: ChannelProps2) -> Element {
+pub(crate) fn Channel(props: ChannelProps) -> Element {
     let id = props.id;
     debug!("rendering channel {id}");
     let position = props.position.origin;
@@ -142,7 +142,7 @@ pub(crate) fn Channel2(props: ChannelProps2) -> Element {
     let name = channel_api.spec(id).unwrap().name();
 
     let zoom_level = use_context::<ViewportContext>().zoom_level;
-    let handlers = use_context::<Handlers2>();
+    let handlers = use_context::<Handlers>();
 
     let font_size = 10;
     let body_width = text_width_from(name, font_size);

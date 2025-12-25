@@ -80,7 +80,6 @@ pub fn NodeBase(props: NodeBaseProps) -> Element {
 
     rsx! {
         g {
-
             onmousedown: move |evt| {
                 evt.stop_propagation();
                 on_mouse_down(evt, position, id, zoom_level.into(), &on_drag_start_cb);

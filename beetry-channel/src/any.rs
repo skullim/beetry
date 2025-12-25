@@ -3,6 +3,7 @@ use std::any::Any;
 
 use anyhow::{Result, anyhow};
 
+#[derive(Debug)]
 pub struct AnyBoxReceiver(Box<dyn Any>);
 
 impl AnyBoxReceiver {
@@ -34,6 +35,7 @@ impl<T: 'static> From<BoxReceiver<T>> for AnyBoxReceiver {
     }
 }
 
+#[derive(Debug)]
 pub struct AnyBoxSender(Box<dyn Any>);
 
 impl AnyBoxSender {
