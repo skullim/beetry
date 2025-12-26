@@ -1,8 +1,9 @@
+use crate::Point;
 use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::definitions::{EdgePos, Point};
+use crate::definitions::EdgePos;
 use crate::ui::curve::Curve;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

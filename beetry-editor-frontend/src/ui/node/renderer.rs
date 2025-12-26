@@ -1,12 +1,13 @@
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
+use crate::Point;
 use crate::editor::ServiceContext;
 use crate::signals::RequestRender;
-use crate::ui::Point;
 use crate::ui::node::control::Control;
 use crate::ui::node::leaf::Leaf;
 use crate::ui::node::root::Root;
+use beetry_editor_types::spec::node::{LeafKind, NodeKind};
 
 // Conditions to re-render the nodes:
 // - new node created
@@ -20,7 +21,7 @@ pub fn Renderer(render_nodes: Signal<RequestRender>) -> Element {
     let ui_api = read.ui_api();
     let ui_node_api = ui_api.node();
     let controls = ui_node_api
-        .positions_by_kind(beetry_editor_types::NodeKind::Control)
+        .positions_by_kind(NodeKind::Control)
         .map(|(id, pos)| {
             rsx! {
                 Control {
@@ -34,7 +35,7 @@ pub fn Renderer(render_nodes: Signal<RequestRender>) -> Element {
             }
         });
     let actions = ui_node_api
-        .positions_by_kind(beetry_editor_types::NodeKind::Action)
+        .positions_by_kind(NodeKind::action())
         .map(|(id, pos)| {
             rsx! {
                 Leaf {
@@ -49,7 +50,7 @@ pub fn Renderer(render_nodes: Signal<RequestRender>) -> Element {
         });
 
     let conditions = ui_node_api
-        .positions_by_kind(beetry_editor_types::NodeKind::Condition)
+        .positions_by_kind(NodeKind::condition())
         .map(|(id, pos)| {
             rsx! {
                 Leaf {
@@ -64,7 +65,7 @@ pub fn Renderer(render_nodes: Signal<RequestRender>) -> Element {
         });
 
     let root = ui_node_api
-        .positions_by_kind(beetry_editor_types::NodeKind::Root)
+        .positions_by_kind(NodeKind::Root)
         .map(|(id, pos)| {
             rsx! {
                 Root {

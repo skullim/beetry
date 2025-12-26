@@ -1,7 +1,8 @@
+use crate::Point;
 use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 
-use crate::definitions::{IndexedDragOffset, Point};
+use crate::definitions::IndexedDragOffset;
 
 #[derive(Debug, Clone)]
 pub struct Handlers {

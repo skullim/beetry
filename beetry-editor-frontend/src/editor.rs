@@ -1,11 +1,15 @@
+use crate::Point;
 use crate::ui::node::ParameterDialog;
 use beetry_editor_backend::EditorService;
 use beetry_editor_backend::repository::{
     ChannelRepositoryFacade, EdgeRepository, NodeRepositoryFacade, UiRepositoryFacade,
 };
-use beetry_editor_types::output::channel::ChannelConfig;
-use beetry_editor_types::output::node::Parameters;
-use beetry_editor_types::{ChannelUiData, NodeSpecKey, NodeUiData, ParameterValue, id::NodeId};
+use beetry_editor_types::output::{
+    channel::ChannelConfig,
+    node::Parameters,
+    ui::{ChannelUiData, NodeUiData},
+};
+use beetry_editor_types::{id::NodeId, persistence::ParameterValue, spec::node::NodeSpecKey};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
@@ -74,7 +78,7 @@ pub(crate) fn Editor() -> Element {
             if !node_spec.params().defs.is_empty() {
                 debug!("setting parameter dialog state");
                 parameter_dialog_state.set(ParameterDialogState::Visible {
-                    position: crate::definitions::Point { x: 300.0, y: 200.0 },
+                    position: Point { x: 300.0, y: 200.0 },
                     id,
                 });
             }

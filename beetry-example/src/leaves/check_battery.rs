@@ -1,11 +1,7 @@
 use beetry_core::{BoxConditionBehavior, ConditionBehavior};
-use beetry_editor_types::NodeSpecKey;
-use beetry_editor_types::spec::node::Bounds;
-use beetry_editor_types::spec::node::{self, Definition};
-
-use beetry_editor_types::spec::node::NodeName;
-use beetry_editor_types::spec::node::ProvideSchema;
-use beetry_editor_types::spec::node::Schema;
+use beetry_editor_types::spec::node::{
+    self, Bounds, Definition, NodeKind, NodeName, NodeSpec, NodeSpecKey, ProvideSchema, Schema,
+};
 use beetry_macros::ProvideSchema;
 use beetry_plugin::{
     Plugin,
@@ -74,12 +70,12 @@ impl ConditionBehavior for CheckBattery {
 // }
 
 pub struct CheckBatteryPlugin {
-    spec: beetry_editor_types::NodeSpec,
+    spec: NodeSpec,
     factory: ConditionFactory,
 }
 
 impl Plugin for CheckBatteryPlugin {
-    type Spec = beetry_editor_types::NodeSpec;
+    type Spec = NodeSpec;
     type Factory = ConditionFactory;
 
     fn new() -> Self
@@ -91,10 +87,10 @@ impl Plugin for CheckBatteryPlugin {
                 beetry_editor_types::output::node::Deserializer::deserialize(data.parameters)?,
             )) as BoxConditionBehavior)
         };
-        let spec = beetry_editor_types::NodeSpec::builder()
+        let spec = NodeSpec::builder()
             .key(NodeSpecKey::new(
                 NodeName::new("Check Battery"),
-                beetry_editor_types::NodeKind::Condition,
+                NodeKind::condition(),
             ))
             .params(CheckBatteryParams::provide())
             .build();

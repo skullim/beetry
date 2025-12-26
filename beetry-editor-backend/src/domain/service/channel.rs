@@ -6,10 +6,11 @@ use crate::domain::repository::{
 };
 use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{
-    ChannelData, ChannelRecord, ChannelSpecRecord, NodePortKind, NodePortSpec,
     id::{ChannelId, ChannelSpecId, NodeId},
-    output::channel::{ChannelConfig, ChannelKind, TokioChannelKind},
+    output::channel::{ChannelConfig, ChannelData, ChannelKind, TokioChannelKind},
+    persistence::{ChannelRecord, ChannelSpecRecord},
     spec::channel::ChannelSpec,
+    spec::node::{NodePortKind, NodePortSpec},
 };
 use tracing::warn;
 

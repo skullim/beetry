@@ -1,10 +1,10 @@
-use beetry_editor_types::NodeSpecKey;
+use crate::Point;
+use beetry_editor_types::spec::node::{LeafKind, NodeKind, NodeSpecKey};
 use dioxus::logger::tracing::info;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
 use crate::Specs;
-use crate::definitions::Point;
 use crate::ui::channel::config_dialog::State as ChannelConfigDialogState;
 use crate::ui::channel::{self};
 
@@ -36,14 +36,14 @@ pub(crate) fn Sidebar(channel_config_dialog_state: Signal<ChannelConfigDialogSta
 
     let controls = node_specs
         .values()
-        .filter(|v| v.kind() == beetry_editor_types::NodeKind::Control);
+        .filter(|v| v.kind() == NodeKind::Control);
 
     let actions = node_specs
         .values()
-        .filter(|v| v.kind() == beetry_editor_types::NodeKind::Action);
+        .filter(|v| v.kind() == NodeKind::action());
     let conditions = node_specs
         .values()
-        .filter(|v| v.kind() == beetry_editor_types::NodeKind::Condition);
+        .filter(|v| v.kind() == NodeKind::condition());
 
     let new_node_handler = |spec: NodeSpecKey| {
         move |_| {

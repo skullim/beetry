@@ -1,10 +1,10 @@
-use beetry_editor_types::id::EdgeId;
-use dioxus::prelude::*;
-
-use crate::definitions::{EdgePos, Point};
+use crate::Point;
+use crate::definitions::EdgePos;
 use crate::editor::ServiceContext;
 use crate::signals::RequestRender;
 use crate::ui::edge::{ContextMenuState, Edge};
+use beetry_editor_types::id::EdgeId;
+use dioxus::prelude::*;
 
 // Conditions to re-render the edges:
 // - new edge created
@@ -26,14 +26,8 @@ pub fn Renderer(
         let edge_start = ui_node_api.node().data(edge.from).unwrap().position.origin;
         let edge_end = ui_node_api.node().data(edge.to).unwrap().position.origin;
         let edge_pos = EdgePos {
-            start: Point {
-                x: edge_start.x,
-                y: edge_start.y,
-            },
-            end: Point {
-                x: edge_end.x,
-                y: edge_end.y,
-            },
+            start: edge_start,
+            end: edge_end,
         };
         rsx! {
             Edge {

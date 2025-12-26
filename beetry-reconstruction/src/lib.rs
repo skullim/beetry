@@ -3,14 +3,16 @@ use beetry_builder::Builder as BehaviorTreeBuilder;
 use beetry_channel::external;
 use beetry_core::{BoxNode, MessageHash, NonEmptyNodes, RegisterTask, Root, TaskHandle, Tree};
 use beetry_editor_types::id::ChannelId;
-use beetry_editor_types::spec::node::{LeafKind, NodeName};
+use beetry_editor_types::output::node::NodePortConnection;
+use beetry_editor_types::spec::node::{LeafKind, NodeKind, NodeName, NodePortKind};
 use beetry_editor_types::{
-    ChannelStore, NodeKind, NodePortConnection, NodePortKind, NodePortStore, NodeStore,
-    ParameterValueStore, id::NodeId,
+    id::NodeId,
+    persistence::{ChannelStore, NodePortStore, NodeStore, ParameterValueStore, ValidTree},
 };
 use beetry_plugin::channel::{BoxChannelPlugin, ChannelPluginConstructor, TypeErasedChannel};
 use beetry_plugin::node::{
-    self, BoxActionPlugin, BoxConditionPlugin, BoxControlPlugin, ControlMetadata,
+    ActionPluginConstructor, BoxActionPlugin, BoxConditionPlugin, BoxControlPlugin,
+    ConditionPluginConstructor, ControlMetadata, ControlPluginConstructor,
     ControlReconstructionData, LeafMetadata, LeafReconstructionData,
 };
 use beetry_plugin::{BoxPlugin, Named, Plugin};
@@ -46,7 +48,7 @@ impl TreeReconstructor {
     // 4. External receivers (if any) have been created when initializing Self instance
     pub fn try_reconstruct<RT, TH>(
         &mut self,
-        tree: beetry_editor_types::ValidTree,
+        tree: ValidTree,
         builder: &BehaviorTreeBuilder<RT, TH>,
     ) -> Result<Tree<BoxNode>>
     where
@@ -163,7 +165,7 @@ impl TreeReconstructor {
                     .data(NodeSnapshotData::Control(ControlSnapshot::new(children)?))
                     .build())
             }
-            leaf_kind @ (NodeKind::Action | NodeKind::Condition) => {
+            NodeKind::Leaf(leaf_kind) => {
                 let mut receivers = BTreeSet::new();
                 let mut senders = BTreeSet::new();
                 let mut ext_receivers = Vec::new();
@@ -205,11 +207,6 @@ impl TreeReconstructor {
                         }
                     }
                 }
-                let leaf_kind = match leaf_kind {
-                    NodeKind::Action => LeafKind::Action,
-                    NodeKind::Condition => LeafKind::Condition,
-                    _ => unreachable!("only action or condition variant allowed"),
-                };
 
                 let leaf_snapshot = LeafSnapshot::builder()
                     .kind(leaf_kind)
@@ -360,9 +357,9 @@ struct NodePluginRegistry {
 impl NodePluginRegistry {
     fn new() -> Result<Self> {
         Ok(Self {
-            action: ActionToPluginMap::new(node::ActionPluginConstructor::plugins()?),
-            condition: ConditionToPluginMap::new(node::ConditionPluginConstructor::plugins()?),
-            control: ControlToPluginMap::new(node::ControlPluginConstructor::plugins()?),
+            action: ActionToPluginMap::new(ActionPluginConstructor::plugins()?),
+            condition: ConditionToPluginMap::new(ConditionPluginConstructor::plugins()?),
+            control: ControlToPluginMap::new(ControlPluginConstructor::plugins()?),
         })
     }
 }

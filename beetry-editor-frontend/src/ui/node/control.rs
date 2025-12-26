@@ -1,13 +1,11 @@
-use std::rc::Rc;
-
-use beetry_editor_types::id::NodeId;
-use dioxus::prelude::*;
-use dioxus_logger::tracing::debug;
-
-use crate::definitions::Point;
+use crate::Point;
 use crate::editor::ServiceContext;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithContextMenu};
 use crate::ui::node::port::{input, output};
+use beetry_editor_types::id::NodeId;
+use dioxus::prelude::*;
+use dioxus_logger::tracing::debug;
+use std::rc::Rc;
 
 fn style(name: &str) -> NodeStyle {
     NodeStyle::builder()

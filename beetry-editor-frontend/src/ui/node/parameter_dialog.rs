@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+use crate::Point;
+use crate::editor::ServiceContext;
 use anyhow::bail;
 use beetry_editor_types::{
     id::NodeId,
@@ -9,8 +11,6 @@ use beetry_editor_types::{
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 use serde_value::Value;
-
-use crate::{definitions::Point, editor::ServiceContext};
 
 #[derive(Debug, Clone)]
 pub struct Handlers {

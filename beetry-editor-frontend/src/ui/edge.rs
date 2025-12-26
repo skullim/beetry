@@ -9,7 +9,8 @@ pub use temporary::Temporary;
 
 use dioxus::prelude::*;
 
-use crate::definitions::{EdgePos, Point};
+use crate::Point;
+use crate::definitions::EdgePos;
 use crate::ui::curve::Curve;
 
 #[derive(Props, Clone, PartialEq)]

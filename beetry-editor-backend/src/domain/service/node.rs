@@ -15,9 +15,13 @@ use std::collections::{HashMap, HashSet};
 use tracing::{debug, warn};
 
 use beetry_editor_types::{
-    NodeKind, NodePortConnection, NodePortState, NodePosition, NodeRecord, NodeSpec, NodeSpecKey,
-    NodeUiData, ParameterValue, PortsSpec, id::ChannelId, id::NodeId, id::NodePortId,
-    id::NodeSpecId, output::node::Parameters, spec::node::NodeName,
+    id::{ChannelId, NodeId, NodePortId, NodeSpecId},
+    output::{
+        node::{NodePortConnection, Parameters},
+        ui::{NodePosition, NodeUiData},
+    },
+    persistence::{NodePortState, NodeRecord, ParameterValue},
+    spec::node::{LeafKind, NodeKind, NodeName, NodeSpec, NodeSpecKey, PortsSpec},
 };
 
 pub struct NodeBorrowApi<'a, NRF>
@@ -339,8 +343,8 @@ where
     }
 
     pub fn leaf_nodes(&self) -> impl Iterator<Item = &NodeId> {
-        self.nodes_by_kind(NodeKind::Action)
-            .chain(self.nodes_by_kind(NodeKind::Condition))
+        self.nodes_by_kind(NodeKind::action())
+            .chain(self.nodes_by_kind(NodeKind::condition()))
     }
 
     pub fn spec_id(&self, id: NodeId) -> Result<NodeSpecId> {
@@ -592,6 +596,7 @@ impl NodeService {
         Ok(())
     }
 
+    //@todo this should be moved into Ui service
     pub(super) fn positions_by_kind<'a>(
         &self,
         repo: &'a impl UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,

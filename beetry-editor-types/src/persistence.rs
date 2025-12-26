@@ -2,8 +2,12 @@ use std::collections::{BTreeMap, HashMap};
 
 use crate::{
     id::{ChannelId, ChannelSpecId, NodeId, NodePortId, NodeSpecId},
-    models::{ChannelData, ChannelUiData, NodePortConnection, NodeSpecKey, NodeUiData},
-    spec::channel::ChannelSpec,
+    output::{
+        channel::ChannelData,
+        node::NodePortConnection,
+        ui::{ChannelUiData, NodeUiData},
+    },
+    spec::{channel::ChannelSpec, node::NodeSpecKey},
 };
 use getset::{CopyGetters, Getters};
 use indexmap::IndexSet;
