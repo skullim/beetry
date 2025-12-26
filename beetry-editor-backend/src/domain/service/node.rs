@@ -21,7 +21,7 @@ use beetry_editor_types::{
         ui::{NodePosition, NodeUiData},
     },
     persistence::{NodePortState, NodeRecord, ParameterValue},
-    spec::node::{LeafKind, NodeKind, NodeName, NodeSpec, NodeSpecKey, PortsSpec},
+    spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey, PortsSpec},
 };
 
 pub struct NodeBorrowApi<'a, NRF>
@@ -288,14 +288,13 @@ where
             spec,
         )?;
         Self::initialize_ports(self.node_facade_view.ports, id, &ports_spec)?;
-        //@todo should parameters also be initialized? Better if user provides already checked value
         Ok(id)
     }
 
     pub fn remove(&mut self, id: NodeId) -> Result<()> {
+        self.disconnect_ports(id)?;
         self.node_service.remove::<NRF>(self.node_facade_view, id)?;
         self.edge_removal_service_api.on_removal(id)?;
-        self.disconnect_ports(id)?;
         Ok(())
     }
 

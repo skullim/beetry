@@ -8,7 +8,7 @@ pub struct Handlers {
 }
 
 impl Handlers {
-    pub(crate) fn new(on_mouse_up: impl FnMut(NodeId) + 'static) -> Self {
+    pub(crate) fn new(on_mouse_up: impl FnMut(NodeId) -> Result<()> + 'static) -> Self {
         Self {
             on_mouse_up: EventHandler::new(on_mouse_up),
         }

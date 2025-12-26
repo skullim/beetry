@@ -26,8 +26,8 @@ pub struct Handlers {
 impl Handlers {
     pub(crate) fn new(
         on_drag_start: impl FnMut((ChannelId, Point)) + 'static,
-        on_receiver: impl FnMut(ChannelId) + 'static,
-        on_sender: impl FnMut(ChannelId) + 'static,
+        on_receiver: impl FnMut(ChannelId) -> Result<()> + 'static,
+        on_sender: impl FnMut(ChannelId) -> Result<()> + 'static,
     ) -> Self {
         Self {
             on_drag_start: EventHandler::new(on_drag_start),
