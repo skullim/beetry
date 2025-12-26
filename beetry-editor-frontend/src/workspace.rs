@@ -153,7 +153,7 @@ pub(crate) fn Workspace(
     });
 
     let workspace_handlers_ctx = use_context_provider(move || {
-        let on_mouse_move = move |evt: Event<MouseData>| {
+        let on_mouse_move = move |evt: Event<MouseData>| -> Result<()> {
             evt.stop_propagation();
             if let DragNodeState::Dragged { id, offset } = *drag_node_state.peek() {
                 let mouse_coords = evt.client_coordinates();
@@ -167,13 +167,12 @@ pub(crate) fn Workspace(
                 {
                     let mut write = service.service.write();
                     let mut ui_api = write.ui_api_mut();
-                    //@todo error handling
                     ui_api.node().update_position(
                         id,
                         NodePosition {
                             origin: updated_pos,
                         },
-                    );
+                    )?;
                 }
 
                 render_nodes.with_mut(|write| write.request());
@@ -200,18 +199,18 @@ pub(crate) fn Workspace(
                 let mut service = use_context::<ServiceContext>();
                 let mut write = service.service.write();
                 let mut ui_api = write.ui_api_mut();
-                //@todo error handling
                 ui_api.channel().update_position(
                     id,
                     ChannelPosition {
                         origin: updated_pos,
                     },
-                );
+                )?;
                 render_channels.with_mut(|write| write.request());
             }
 
             temp_edge_ctx.update_end_if_dragged(&evt);
             temp_channel_conn_ctx.update_end_if_dragged(&evt);
+            Ok(())
         };
 
         let on_mouse_up = move |evt: Event<MouseData>| {
@@ -296,18 +295,18 @@ fn input_port_handlers(
     mut temp_edge_ctx: edge::temporary::Context,
     mut render_edges: Signal<RequestRender>,
 ) -> node::InputPortHandlers {
-    let on_mouse_up = move |to: NodeId| {
+    let on_mouse_up = move |to: NodeId| -> Result<()> {
         if let Some(from) = temp_edge_ctx.take_dragged()
             && from != to
         {
             let mut service = use_context::<ServiceContext>();
             let mut write = service.service.write();
             let mut edge_api = write.edge_api_mut();
-            //@todo error handling
-            edge_api.create(NodeEdge { from, to }).unwrap();
+            edge_api.create(NodeEdge { from, to })?;
             render_edges.with_mut(|write| write.request());
             debug!("created edge from node {from}: to: {to}");
         }
+        Ok(())
     };
     node::InputPortHandlers::new(on_mouse_up)
 }
@@ -405,7 +404,7 @@ fn channel_handlers(
         drag_channel_state.set(DragChannelState::Dragged { id, offset });
     };
 
-    let receiver_on_mouse_up = move |id: ChannelId| {
+    let receiver_on_mouse_up = move |id: ChannelId| -> Result<()> {
         if let Some(data) = channel_temp_connection_ctx.take_dragged()
             && matches!(data.origin, ConnectionOrigin::Receiver)
         {
@@ -414,17 +413,17 @@ fn channel_handlers(
             let mut node_api_mut = write.node_api_mut();
             let mut port_connection = node_api_mut.port_connection();
             let input = PortConnectionInput::new(data.node_id, data.port_id, id);
-            //@todo error handling
-            port_connection.connect(input).unwrap();
+            port_connection.connect(input)?;
             render_channels.with_mut(|write| write.request());
             info!(
                 "connected channel {id} and node (id: {}, port_id: {})",
                 data.node_id, data.port_id
             );
         }
+        Ok(())
     };
 
-    let sender_on_mouse_up = move |id: ChannelId| {
+    let sender_on_mouse_up = move |id: ChannelId| -> Result<()> {
         if let Some(data) = channel_temp_connection_ctx.take_dragged()
             && matches!(data.origin, ConnectionOrigin::Sender)
         {
@@ -433,14 +432,14 @@ fn channel_handlers(
             let mut node_api_mut = write.node_api_mut();
             let mut port_connection = node_api_mut.port_connection();
             let input = PortConnectionInput::new(data.node_id, data.port_id, id);
-            //@todo error handling
-            port_connection.connect(input).unwrap();
+            port_connection.connect(input)?;
             render_channels.with_mut(|write| write.request());
             info!(
                 "connected channel {id} and node (id: {}, port_id: {})",
                 data.node_id, data.port_id
             );
         }
+        Ok(())
     };
 
     channel::Handlers::new(on_drag_start, receiver_on_mouse_up, sender_on_mouse_up)
@@ -451,23 +450,21 @@ fn node_context_menu_handlers(
     mut render_nodes: Signal<RequestRender>,
     mut render_edges: Signal<RequestRender>,
 ) -> node::ContextMenuHandlers {
-    let on_delete = move |node_id: NodeId| {
+    let on_delete = move |node_id: NodeId| -> Result<()> {
         let mut service = use_context::<ServiceContext>();
         let mut write = service.service.write();
         {
             let mut node_api = write.node_api_mut();
             let mut lifecycle = node_api.lifecycle();
-            //@todo error handling
-            lifecycle.remove(node_id);
+            lifecycle.remove(node_id)?;
         }
         let mut ui_api = write.ui_api_mut();
-        //let mut ui_node_api = ui_api.node();
         ui_api.node().remove(node_id);
 
         node_ctx_menu_state.with_mut(|state| state.is_visible = false);
         render_nodes.with_mut(|write| write.request());
         render_edges.with_mut(|write| write.request());
-        //@todo probably nodes should have been rerendered if nodes had present edges
+        Ok(())
     };
 
     let on_close = move |_| {
@@ -480,14 +477,14 @@ fn edge_context_menu_handlers(
     mut edge_ctx_menu_state: Signal<edge::ContextMenuState>,
     mut render_edges: Signal<RequestRender>,
 ) -> edge::ContextMenuHandlers {
-    let on_delete = move |edge_id: EdgeId| {
+    let on_delete = move |edge_id: EdgeId| -> Result<()> {
         let mut service = use_context::<ServiceContext>();
         let mut write = service.service.write();
         let mut edge_api = write.edge_api_mut();
-        //@todo error handling
-        edge_api.remove(edge_id).unwrap();
+        edge_api.remove(edge_id)?;
         edge_ctx_menu_state.with_mut(|state| state.is_visible = false);
         render_edges.with_mut(|write| write.request());
+        Ok(())
     };
 
     let on_close = move |()| {
