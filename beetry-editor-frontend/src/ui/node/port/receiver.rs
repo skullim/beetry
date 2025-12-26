@@ -1,8 +1,9 @@
+use crate::Point;
 use beetry_editor_types::spec::message::MessageSpec;
 use beetry_editor_types::{id::NodeId, id::NodePortId};
 use dioxus::prelude::*;
 
-use crate::definitions::{IndexedDragOffset, Point};
+use crate::definitions::IndexedDragOffset;
 use crate::ui::channel::temporary::ConnectionOrigin;
 use crate::ui::text::{self, text_width_from};
 

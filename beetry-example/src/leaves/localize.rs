@@ -1,18 +1,15 @@
-use std::time::Duration;
-
+use crate::Pose;
 use anyhow::{Result, anyhow};
 use beetry_channel::downcast;
 use beetry_core::{self, ActionBehavior, BoxActionBehavior, NodeTask, Task, TickStatus};
 use beetry_editor_types::spec::message::MessageSpec;
-use beetry_editor_types::spec::node::NodeName;
-use beetry_editor_types::{NodeSpecKey, PortsSpec};
+use beetry_editor_types::spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey, PortsSpec};
 use beetry_plugin::Plugin;
 use beetry_plugin::node::{ActionFactory, ActionReconstructionData};
+use std::time::Duration;
 use tokio::sync::mpsc::{Receiver, Sender, channel as mpsc_channel};
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
-
-use crate::Pose;
 
 #[derive(TypeHash)]
 pub struct Localize<S> {
@@ -111,12 +108,12 @@ impl Task for LocalizeTask {
 // }
 
 pub struct LocalizePlugin {
-    spec: beetry_editor_types::NodeSpec,
+    spec: NodeSpec,
     factory: ActionFactory,
 }
 
 impl Plugin for LocalizePlugin {
-    type Spec = beetry_editor_types::NodeSpec;
+    type Spec = NodeSpec;
     type Factory = ActionFactory;
 
     fn new() -> Self
@@ -129,10 +126,10 @@ impl Plugin for LocalizePlugin {
                 .map_err(|_| anyhow!("failed to obtain typed senders"))?;
             Ok(Box::new(Localize::new(senders.0)) as BoxActionBehavior)
         };
-        let spec = beetry_editor_types::NodeSpec::builder()
+        let spec = NodeSpec::builder()
             .key(NodeSpecKey::new(
                 NodeName::new("Localize"),
-                beetry_editor_types::NodeKind::Action,
+                NodeKind::action(),
             ))
             .ports(PortsSpec::new(
                 std::iter::once(MessageSpec::new::<Pose>("Localized pose")),

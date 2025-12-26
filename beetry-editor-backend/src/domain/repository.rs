@@ -1,16 +1,19 @@
-use std::{collections::HashMap, fmt::Display, hash::Hash, ops::AddAssign};
-
 use crate::id::IdProvider;
-
-use beetry_editor_types::{
-    ChannelData, ChannelUiData, NodeEdge, NodePortConnection, NodeSpec, NodeUiData, id::ChannelId,
-    id::ChannelSpecId, id::EdgeId, id::NodeId, id::NodePortId, id::NodeSpecId,
-    output::node::Parameters, spec::channel::ChannelSpec,
-};
-
 use anyhow::{Result, bail};
+use beetry_editor_types::{
+    id::{ChannelId, ChannelSpecId, EdgeId, NodeId, NodePortId, NodeSpecId},
+    output::{
+        channel::ChannelData,
+        edge::NodeEdge,
+        node::{NodePortConnection, Parameters},
+        ui::{ChannelUiData, NodeUiData},
+    },
+    spec::channel::ChannelSpec,
+    spec::node::NodeSpec,
+};
 use getset::{Getters, MutGetters};
 use num_traits::One;
+use std::{collections::HashMap, fmt::Display, hash::Hash, ops::AddAssign};
 
 #[derive(Debug, Default, Getters, MutGetters)]
 pub struct EditorRepository<NRF, ER, CRF, UR> {

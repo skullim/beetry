@@ -1,4 +1,4 @@
-use crate::definitions::Point;
+use crate::Point;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Curve;

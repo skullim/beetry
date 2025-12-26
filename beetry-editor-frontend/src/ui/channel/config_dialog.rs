@@ -1,11 +1,10 @@
+use crate::Point;
 use beetry_editor_types::{
     output::channel::{ChannelConfig, ChannelKind, TokioChannelKind},
     spec::channel::ChannelSpec,
 };
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
-
-use crate::definitions::Point;
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum State {

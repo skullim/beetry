@@ -18,7 +18,10 @@ use crate::{
     },
 };
 use anyhow::Result;
-use beetry_editor_types::{EditorStateStore, MaybeValidTree, NodeEdge, UiElementStore};
+use beetry_editor_types::{
+    output::edge::NodeEdge,
+    persistence::{EditorStateStore, MaybeValidTree, UiElementStore},
+};
 
 pub struct ImportApi<'a, NRF, ER, CRF, URF> {
     node_service: &'a mut NodeService,

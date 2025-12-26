@@ -2,7 +2,7 @@ use crate::{BoxPlugin, ConstructPlugin, Named, PluginConstructor, PluginError, u
 use anyhow::Result;
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
 use beetry_core::{BoxActionBehavior, BoxConditionBehavior, BoxNode, NonEmptyNodes};
-use beetry_editor_types::output::node::Parameters;
+use beetry_editor_types::{output::node::Parameters, spec::node::NodeSpec};
 use bon::Builder;
 use std::marker::PhantomData;
 
@@ -137,21 +137,19 @@ macro_rules! plugin2 {
     };
 }
 
-pub type BoxActionPlugin = BoxPlugin<beetry_editor_types::NodeSpec, ActionFactory>;
-pub type BoxConditionPlugin = BoxPlugin<beetry_editor_types::NodeSpec, ConditionFactory>;
-pub type BoxControlPlugin = BoxPlugin<beetry_editor_types::NodeSpec, ControlFactory>;
+pub type BoxActionPlugin = BoxPlugin<NodeSpec, ActionFactory>;
+pub type BoxConditionPlugin = BoxPlugin<NodeSpec, ConditionFactory>;
+pub type BoxControlPlugin = BoxPlugin<NodeSpec, ControlFactory>;
 
-impl Named for beetry_editor_types::NodeSpec {
+impl Named for NodeSpec {
     fn name(&self) -> &str {
         &self.name().0
     }
 }
 
-pub type ActionPluginConstructor = PluginConstructor<beetry_editor_types::NodeSpec, ActionFactory>;
-pub type ConditionPluginConstructor =
-    PluginConstructor<beetry_editor_types::NodeSpec, ConditionFactory>;
-pub type ControlPluginConstructor =
-    PluginConstructor<beetry_editor_types::NodeSpec, ControlFactory>;
+pub type ActionPluginConstructor = PluginConstructor<NodeSpec, ActionFactory>;
+pub type ConditionPluginConstructor = PluginConstructor<NodeSpec, ConditionFactory>;
+pub type ControlPluginConstructor = PluginConstructor<NodeSpec, ControlFactory>;
 
 impl ActionPluginConstructor {
     pub fn plugins() -> Result<Vec<BoxActionPlugin>, PluginError> {
@@ -183,7 +181,7 @@ mod tests {
     use crate::Plugin;
 
     use super::*;
-    use beetry_editor_types::{NodeSpec, NodeSpecKey, spec::node::NodeName};
+    use beetry_editor_types::spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey};
 
     struct TestPluginA {
         spec: NodeSpec,
@@ -199,7 +197,7 @@ mod tests {
                 spec: NodeSpec::builder()
                     .key(NodeSpecKey::new(
                         NodeName::new("TestPlugin"),
-                        beetry_editor_types::NodeKind::Action,
+                        NodeKind::action(),
                     ))
                     .build(),
                 factory: ActionFactory::new(Box::new(|_| {
@@ -235,7 +233,7 @@ mod tests {
                 spec: NodeSpec::builder()
                     .key(NodeSpecKey::new(
                         NodeName::new("TestPlugin"),
-                        beetry_editor_types::NodeKind::Action,
+                        NodeKind::action(),
                     ))
                     .build(),
                 factory: ActionFactory::new(Box::new(|_| {

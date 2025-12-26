@@ -15,6 +15,8 @@ use dioxus::logger::tracing::Level;
 use dioxus::prelude::*;
 use std::collections::HashMap;
 
+use beetry_editor_types::output::ui::Point;
+
 #[cfg(target_family = "wasm")]
 unsafe extern "C" {
     fn __wasm_call_ctors();

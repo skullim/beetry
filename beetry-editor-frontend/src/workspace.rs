@@ -1,11 +1,14 @@
 use beetry_editor_backend::node::PortConnectionInput;
-use beetry_editor_types::id::ChannelId;
-use beetry_editor_types::{ChannelPosition, NodePosition, id::EdgeId, id::NodeId, id::NodePortId};
+use beetry_editor_types::{
+    id::{ChannelId, EdgeId, NodeId, NodePortId},
+    output::edge::NodeEdge,
+    output::ui::{ChannelPosition, NodePosition, Point},
+};
 use bon::Builder;
 use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
 
-use crate::definitions::{EdgePos, IndexedDragOffset, Point};
+use crate::definitions::{EdgePos, IndexedDragOffset};
 use crate::editor::ServiceContext;
 use crate::signals::RequestRender;
 use crate::ui::channel::temporary::{ConnectionOrigin, DraggedData};
@@ -168,10 +171,7 @@ pub(crate) fn Workspace(
                     ui_api.node().update_position(
                         id,
                         NodePosition {
-                            origin: beetry_editor_types::Point {
-                                x: updated_pos.x,
-                                y: updated_pos.y,
-                            },
+                            origin: updated_pos,
                         },
                     );
                 }
@@ -204,10 +204,7 @@ pub(crate) fn Workspace(
                 ui_api.channel().update_position(
                     id,
                     ChannelPosition {
-                        origin: beetry_editor_types::Point {
-                            x: updated_pos.x,
-                            y: updated_pos.y,
-                        },
+                        origin: updated_pos,
                     },
                 );
                 render_channels.with_mut(|write| write.request());
@@ -307,9 +304,7 @@ fn input_port_handlers(
             let mut write = service.service.write();
             let mut edge_api = write.edge_api_mut();
             //@todo error handling
-            edge_api
-                .create(beetry_editor_types::NodeEdge { from, to })
-                .unwrap();
+            edge_api.create(NodeEdge { from, to }).unwrap();
             render_edges.with_mut(|write| write.request());
             debug!("created edge from node {from}: to: {to}");
         }
