@@ -1,5 +1,5 @@
 use beetry_editor_types::spec::message::MessageSpec;
-use beetry_editor_types::{NodeId, NodePortId};
+use beetry_editor_types::{id::NodeId, id::NodePortId};
 use dioxus::prelude::*;
 
 use crate::definitions::{IndexedDragOffset, Point};
@@ -38,7 +38,6 @@ pub fn Receiver(props: ReceiverProps) -> Element {
     let position = props.position;
     let node_id = props.id;
     let message_desc = props.msg_spec.as_str();
-    let port_id = props.port_id;
 
     let mut is_hovered = use_signal(|| false);
     let (fill_gradient, shadow_filter) = match (props.is_external, *is_hovered.peek()) {
@@ -53,11 +52,14 @@ pub fn Receiver(props: ReceiverProps) -> Element {
     let font_size = 10;
     let port_width = text_width_from(message_desc, font_size);
 
+    let port_id = props.port_id;
+    let port_id_as_f64 = port_id.raw_value() as f64;
+
     rsx! {
         g {
             rect {
                 x: "{position.x + 80.0 - port_width}",
-                y: "{position.y + 20.0 * port_id as f64}",
+                y: "{position.y + 20.0 * port_id_as_f64}",
                 width: "{port_width}",
                 height: "20",
                 rx: "4",
@@ -94,7 +96,7 @@ pub fn Receiver(props: ReceiverProps) -> Element {
             }
             text {
                 x: "{position.x + 80.0 - (port_width / 2.0)}",
-                y: "{position.y + 13.0 + 20.0 * port_id as f64}",
+                y: "{position.y + 13.0 + 20.0 * port_id_as_f64}",
                 fill: "white",
                 font_family: text::font_family(),
                 font_size: "{font_size}",

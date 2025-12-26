@@ -5,7 +5,7 @@ use beetry_editor_backend::repository::{
 };
 use beetry_editor_types::output::channel::ChannelConfig;
 use beetry_editor_types::output::node::Parameters;
-use beetry_editor_types::{ChannelUiData, NodeId, NodeSpecKey, NodeUiData, ParameterValue};
+use beetry_editor_types::{ChannelUiData, NodeSpecKey, NodeUiData, ParameterValue, id::NodeId};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 

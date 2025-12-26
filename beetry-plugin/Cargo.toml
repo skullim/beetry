@@ -7,7 +7,6 @@ edition = "2024"
 anyhow.workspace = true
 beetry-channel = { version = "0.1.0", path = "../beetry-channel" }
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
-beetry-reconstruction-types = { version = "0.1.0", path = "../beetry-reconstruction-types" }
 beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
 bon.workspace = true
 inventory = "0.3.21"

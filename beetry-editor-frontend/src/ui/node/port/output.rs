@@ -1,4 +1,4 @@
-use beetry_editor_types::NodeId;
+use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 
 use crate::definitions::{IndexedDragOffset, Point};

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::{Result, anyhow};
 use beetry_editor_types::{
-    ChannelPosition, ChannelUiData, NodeId, NodeKind, NodePosition, NodeUiData, id::ChannelId,
+    ChannelPosition, ChannelUiData, NodeKind, NodePosition, NodeUiData, id::ChannelId, id::NodeId,
 };
 
 use crate::domain::{

@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use anyhow::bail;
 use beetry_editor_types::{
-    NodeId, NodeSpec, NodeSpecKey,
+    id::NodeId,
     output::node::Parameters,
     spec::node::{Definition, Type},
 };
@@ -10,13 +10,10 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 use serde_value::Value;
 
-use crate::{Specs, definitions::Point, editor::ServiceContext};
+use crate::{definitions::Point, editor::ServiceContext};
 
 #[derive(Debug, Clone)]
 pub struct Handlers {
-    //@todo ideally it should be only Parameters that are passed
-    // right now if node has params then it is created by the on_confirm handler.
-    // However this component should not be responsible for that, but rather only for inserting valid params into repository
     pub(crate) on_confirm: EventHandler<(NodeId, Parameters)>,
     pub(crate) on_cancel: EventHandler<()>,
 }
@@ -84,27 +81,13 @@ pub fn Dialog(props: DialogProps) -> Element {
         values_map
     });
 
-    //let param_defs = params_schema.defs.clone();
-    // let has_validation_errors = use_memo(move || {
-    //     let values = parameter_values.read();
-
-    //     for param_def in &param_defs {
-    //         if validate_parameter(param_def, values.get(&param_def.name)).is_err() {
-    //             return true;
-    //         }
-    //     }
-    //     false
-    // });
-
     let handlers = use_context::<Handlers>();
     let on_confirm = move |_| {
         //@todo restore error validation
-        //if !has_validation_errors() {
         let values = parameter_values.read();
         let value_iter = values.iter().map(|(k, v)| (k.to_string(), v.clone()));
         let serialized_params = Parameters::from_iter(value_iter);
         handlers.on_confirm.call((id, serialized_params));
-        //}
     };
 
     let on_cancel = move |_| {

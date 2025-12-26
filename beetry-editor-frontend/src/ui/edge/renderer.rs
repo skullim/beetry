@@ -1,4 +1,4 @@
-use beetry_editor_types::EdgeId;
+use beetry_editor_types::id::EdgeId;
 use dioxus::prelude::*;
 
 use crate::definitions::{EdgePos, Point};

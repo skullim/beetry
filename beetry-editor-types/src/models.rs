@@ -7,19 +7,10 @@ use serde::{Deserialize, Serialize};
 use tracing::warn;
 
 use crate::{
-    id::ChannelId,
+    id::{ChannelId, ChannelSpecId, NodeId, NodePortId},
     output::channel::ChannelConfig,
     spec::{message::MessageSpec, node::NodeName},
 };
-
-pub type NodeId = usize;
-pub type NodeSpecId = usize;
-pub type NodePortId = u8;
-pub type EdgeId = usize;
-//@todo All Ids should be defined on the editor side, since that's the producing side
-// Interface types should be defined in beetry-editor-types crate
-
-pub type ChannelSpecId = usize;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Point {
@@ -166,7 +157,9 @@ impl PortsSpec {
                 msg_spec: spec,
             }))
             .collect();
-        let ids: Vec<_> = (0..spec.len()).map(|v| v as NodePortId).collect();
+        let ids: Vec<_> = (0..spec.len())
+            .map(|id| NodePortId::new(id.try_into().unwrap()))
+            .collect();
         Self { spec, ids }
     }
 
@@ -198,7 +191,7 @@ impl PortsSpec {
 
     pub fn spec(&self, id: NodePortId) -> Result<&NodePortSpec> {
         self.spec
-            .get(id as usize)
+            .get(id.raw_value() as usize)
             .ok_or_else(|| anyhow!("failed to obtain spec for port {id}"))
     }
 
