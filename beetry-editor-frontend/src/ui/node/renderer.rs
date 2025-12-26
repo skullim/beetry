@@ -7,7 +7,7 @@ use crate::signals::RequestRender;
 use crate::ui::node::control::Control;
 use crate::ui::node::leaf::Leaf;
 use crate::ui::node::root::Root;
-use beetry_editor_types::spec::node::{LeafKind, NodeKind};
+use beetry_editor_types::spec::node::NodeKind;
 
 // Conditions to re-render the nodes:
 // - new node created

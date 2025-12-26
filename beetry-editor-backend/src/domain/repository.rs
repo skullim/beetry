@@ -14,6 +14,7 @@ use beetry_editor_types::{
 use getset::{Getters, MutGetters};
 use num_traits::One;
 use std::{collections::HashMap, fmt::Display, hash::Hash, ops::AddAssign};
+use tracing::debug;
 
 #[derive(Debug, Default, Getters, MutGetters)]
 pub struct EditorRepository<NRF, ER, CRF, UR> {

@@ -153,7 +153,12 @@ where
             let spec_ids = nodes
                 .iter()
                 //@todo handle unwrap
-                .map(|id| tracker_api.spec_id(*id).unwrap())
+                .map(|id| {
+                    tracker_api
+                        .spec_id(*id)
+                        .with_context(|| anyhow!("expected spec id for node {id}"))
+                        .unwrap()
+                })
                 .unique();
 
             let spec_api = self.node_api.spec();

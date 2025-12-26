@@ -11,7 +11,7 @@ pub struct Handlers {
 
 impl Handlers {
     pub(crate) fn new(
-        on_delete: impl FnMut(EdgeId) + 'static,
+        on_delete: impl FnMut(EdgeId) -> Result<()> + 'static,
         on_close: impl FnMut(()) + 'static,
     ) -> Self {
         Self {

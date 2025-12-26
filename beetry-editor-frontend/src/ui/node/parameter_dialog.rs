@@ -47,7 +47,6 @@ pub struct DialogProps {
 
 #[component]
 pub fn Dialog(props: DialogProps) -> Element {
-    // rsx!()
     debug!("rendering parameter dialog");
     let state_read = props.state.read();
 

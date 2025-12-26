@@ -10,7 +10,7 @@ pub struct Handlers {
 
 impl Handlers {
     pub fn new(
-        on_delete: impl FnMut(NodeId) + 'static,
+        on_delete: impl FnMut(NodeId) -> Result<()> + 'static,
         on_close: impl FnMut(()) + 'static,
     ) -> Self {
         Self {
