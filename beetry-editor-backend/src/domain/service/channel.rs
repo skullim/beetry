@@ -6,9 +6,8 @@ use crate::domain::repository::{
 };
 use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{
-    ChannelData, ChannelRecord, ChannelSpecId, ChannelSpecRecord, NodeId, NodePortKind,
-    NodePortSpec, NodeSpecId,
-    id::ChannelId,
+    ChannelData, ChannelRecord, ChannelSpecRecord, NodePortKind, NodePortSpec,
+    id::{ChannelId, ChannelSpecId, NodeId},
     output::channel::{ChannelConfig, ChannelKind, TokioChannelKind},
     spec::channel::ChannelSpec,
 };
@@ -221,7 +220,7 @@ impl ChannelService {
         Ok(&mut Self::data_mut(repo, id)?.config)
     }
 
-    fn spec_id(repo: &impl ChannelRepositoryConcept, id: ChannelId) -> Result<NodeSpecId> {
+    fn spec_id(repo: &impl ChannelRepositoryConcept, id: ChannelId) -> Result<ChannelSpecId> {
         Ok(Self::data(repo, id)?.spec_id)
     }
 

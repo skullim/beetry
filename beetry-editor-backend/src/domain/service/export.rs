@@ -7,9 +7,9 @@ use tracing::warn;
 
 use beetry_editor_types::{
     ChannelDataStore, ChannelSpecStore, ChannelStore, ChannelUiRecord, EditorStateStore,
-    MaybeValidTree, NodeId, NodePortId, NodePortState, NodePortStore, NodeRecordStore,
-    NodeRecordValue, NodeSpecKey, NodeSpecStore, NodeStore, NodeUiRecord, ParameterValue,
-    ParameterValueStore, TreeStore, UiElementStore, ValidTree, id::ChannelId,
+    MaybeValidTree, NodePortState, NodePortStore, NodeRecordStore, NodeRecordValue, NodeSpecKey,
+    NodeSpecStore, NodeStore, NodeUiRecord, ParameterValue, ParameterValueStore, TreeStore,
+    UiElementStore, ValidTree, id::ChannelId, id::NodeId, id::NodePortId,
 };
 
 use crate::domain::{
@@ -287,8 +287,7 @@ where
     /// 2. All except leaf nodes have at least (or most for decorator) 1 child. Decorator having maximum one child is guaranteed at node connection API.
     /// 3. Each node port is not in Unconnected state
     /// 4. Optional: Gather list of unconnected channels (if any)
-    //@todo long term should be shared reference, but PortConnectionServiceApi requires exclusive reference
-    fn validate_tree(&mut self) -> TreeValidationResult {
+    fn validate_tree(&self) -> TreeValidationResult {
         let (root_id, leaf_nodes): (_, HashSet<_>) = {
             let tracker = self.node_api.tracker();
             (

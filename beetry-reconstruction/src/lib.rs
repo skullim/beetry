@@ -5,8 +5,8 @@ use beetry_core::{BoxNode, MessageHash, NonEmptyNodes, RegisterTask, Root, TaskH
 use beetry_editor_types::id::ChannelId;
 use beetry_editor_types::spec::node::{LeafKind, NodeName};
 use beetry_editor_types::{
-    ChannelStore, NodeId, NodeKind, NodePortConnection, NodePortKind, NodePortStore, NodeStore,
-    ParameterValueStore,
+    ChannelStore, NodeKind, NodePortConnection, NodePortKind, NodePortStore, NodeStore,
+    ParameterValueStore, id::NodeId,
 };
 use beetry_plugin::channel::{BoxChannelPlugin, ChannelPluginConstructor, TypeErasedChannel};
 use beetry_plugin::node::{
@@ -141,8 +141,9 @@ impl TreeReconstructor {
         port_store: &mut NodePortStore,
         node_plugins: &NodePluginRegistry,
     ) -> Result<NodeSnapshot> {
-        let kind = node_store.specs.get(&node_id).unwrap().kind();
-        let name = node_store.specs.get(&node_id).unwrap().name().clone();
+        let spec_id = node_store.nodes.get(&node_id).unwrap().spec_id();
+        let kind = node_store.specs.get(&spec_id).unwrap().kind();
+        let name = node_store.specs.get(&spec_id).unwrap().name().clone();
         match kind {
             NodeKind::Control => {
                 let children_id = node_store.nodes.get(&node_id).unwrap().children();

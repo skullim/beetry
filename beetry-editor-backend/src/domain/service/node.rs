@@ -15,9 +15,9 @@ use std::collections::{HashMap, HashSet};
 use tracing::{debug, warn};
 
 use beetry_editor_types::{
-    NodeId, NodeKind, NodePortConnection, NodePortId, NodePortState, NodePosition, NodeRecord,
-    NodeSpec, NodeSpecId, NodeSpecKey, NodeUiData, ParameterValue, PortsSpec, id::ChannelId,
-    output::node::Parameters, spec::node::NodeName,
+    NodeKind, NodePortConnection, NodePortState, NodePosition, NodeRecord, NodeSpec, NodeSpecKey,
+    NodeUiData, ParameterValue, PortsSpec, id::ChannelId, id::NodeId, id::NodePortId,
+    id::NodeSpecId, output::node::Parameters, spec::node::NodeName,
 };
 
 pub struct NodeBorrowApi<'a, NRF>

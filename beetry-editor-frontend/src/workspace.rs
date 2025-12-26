@@ -1,6 +1,6 @@
 use beetry_editor_backend::node::PortConnectionInput;
 use beetry_editor_types::id::ChannelId;
-use beetry_editor_types::{ChannelPosition, EdgeId, NodeId, NodePortId, NodePosition};
+use beetry_editor_types::{ChannelPosition, NodePosition, id::EdgeId, id::NodeId, id::NodePortId};
 use bon::Builder;
 use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;

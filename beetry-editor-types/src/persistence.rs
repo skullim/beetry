@@ -1,11 +1,8 @@
 use std::collections::{BTreeMap, HashMap};
 
 use crate::{
-    id::ChannelId,
-    models::{
-        ChannelData, ChannelSpecId, ChannelUiData, NodeId, NodePortConnection, NodePortId,
-        NodeSpecId, NodeSpecKey, NodeUiData,
-    },
+    id::{ChannelId, ChannelSpecId, NodeId, NodePortId, NodeSpecId},
+    models::{ChannelData, ChannelUiData, NodePortConnection, NodeSpecKey, NodeUiData},
     spec::channel::ChannelSpec,
 };
 use getset::{CopyGetters, Getters};
