@@ -4,7 +4,10 @@ pub mod signals;
 
 use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
-use beetry_editor_types::{NodeSpec, NodeSpecKey, spec::channel::ChannelSpec};
+use beetry_editor_types::{
+    spec::channel::ChannelSpec,
+    spec::node::{NodeSpec, NodeSpecKey},
+};
 
 pub use domain::service::editor::EditorService;
 use std::collections::HashMap;

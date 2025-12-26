@@ -1,13 +1,12 @@
-use std::rc::Rc;
-
+use crate::Point;
+use crate::definitions::IndexedDragOffset;
+use crate::ui::text;
+use crate::ui::viewport::{ViewportContext, ZoomLevel};
 use beetry_editor_types::id::NodeId;
 use bon::Builder;
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
-
-use crate::definitions::{IndexedDragOffset, Point};
-use crate::ui::text;
-use crate::ui::viewport::{ViewportContext, ZoomLevel};
+use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub struct Handlers {

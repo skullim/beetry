@@ -1,7 +1,6 @@
+use crate::Point;
 use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
-
-use crate::definitions::Point;
 
 #[derive(Debug, Clone)]
 pub struct Handlers {

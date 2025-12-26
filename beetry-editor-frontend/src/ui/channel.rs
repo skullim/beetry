@@ -2,21 +2,19 @@ pub mod config_dialog;
 mod renderer;
 pub mod temporary;
 
-use beetry_editor_types::ChannelPosition;
-use beetry_editor_types::id::ChannelId;
-use beetry_plugin::Named;
-pub use config_dialog::Dialog as ConfigDialog;
-pub use renderer::Renderer;
-pub use temporary::Temporary;
-
-use dioxus::html::input_data::MouseButton;
-use dioxus::prelude::*;
-
-use crate::definitions::{EdgePos, Point};
+use crate::Point;
+use crate::definitions::EdgePos;
 use crate::editor::ServiceContext;
 use crate::ui::curve::Curve;
 use crate::ui::text::{self, text_width_from};
 use crate::ui::viewport::{ViewportContext, ZoomLevel};
+use beetry_editor_types::{id::ChannelId, output::ui::ChannelPosition};
+use beetry_plugin::Named;
+pub use config_dialog::Dialog as ConfigDialog;
+use dioxus::html::input_data::MouseButton;
+use dioxus::prelude::*;
+pub use renderer::Renderer;
+pub use temporary::Temporary;
 
 #[derive(Debug, Clone)]
 pub struct Handlers {

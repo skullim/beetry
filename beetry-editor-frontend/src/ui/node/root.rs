@@ -4,7 +4,7 @@ use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::definitions::Point;
+use crate::Point;
 use crate::ui::node::base::{NodeBase, NodeStyle};
 use crate::ui::node::port::output;
 

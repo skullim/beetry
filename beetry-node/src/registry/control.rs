@@ -1,7 +1,6 @@
 use crate::Sequence;
 use beetry_core::BoxNode;
-use beetry_editor_types::spec::node::NodeName;
-use beetry_editor_types::{NodeSpec, NodeSpecKey};
+use beetry_editor_types::spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey};
 use beetry_plugin::Plugin;
 use beetry_plugin::node::{ControlFactory, ControlPluginConstructor, ControlReconstructionData};
 
@@ -21,7 +20,7 @@ impl Plugin for SequencePlugin {
             spec: NodeSpec::builder()
                 .key(NodeSpecKey::new(
                     NodeName::new("Sequence"),
-                    beetry_editor_types::NodeKind::Control,
+                    NodeKind::Control,
                 ))
                 .build(),
             factory: ControlFactory::new(Box::new(|data: ControlReconstructionData| {
@@ -59,7 +58,7 @@ impl Plugin for FallbackPlugin {
             spec: NodeSpec::builder()
                 .key(NodeSpecKey::new(
                     NodeName::new("Fallback"),
-                    beetry_editor_types::NodeKind::Control,
+                    NodeKind::Control,
                 ))
                 .build(),
             factory: ControlFactory::new(Box::new(|data: ControlReconstructionData| {
@@ -97,7 +96,7 @@ impl Plugin for ParallelPlugin {
             spec: NodeSpec::builder()
                 .key(NodeSpecKey::new(
                     NodeName::new("Parallel"),
-                    beetry_editor_types::NodeKind::Control,
+                    NodeKind::Control,
                 ))
                 .build(),
             factory: ControlFactory::new(Box::new(|data: ControlReconstructionData| {

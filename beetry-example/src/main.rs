@@ -1,6 +1,6 @@
 use beetry_channel::AnyBoxReceiver;
 use beetry_channel::external::ReceiverRegistry;
-use beetry_editor_types::ValidTree;
+use beetry_editor_types::persistence::ValidTree;
 use beetry_editor_types::spec::message::MessageHashProvider;
 use beetry_serialization::{Deserializer, JsonDeserializer};
 use rfd::FileHandle;

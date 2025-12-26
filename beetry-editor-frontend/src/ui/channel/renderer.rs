@@ -1,6 +1,7 @@
+use crate::Point;
 use dioxus::prelude::*;
 
-use crate::definitions::{EdgePos, Point};
+use crate::definitions::EdgePos;
 use crate::editor::ServiceContext;
 use crate::signals::RequestRender;
 use crate::ui::channel::{Channel, ReceiverConnection, SenderConnection};

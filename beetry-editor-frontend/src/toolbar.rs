@@ -2,7 +2,7 @@ use std::io::Read;
 use std::path::PathBuf;
 
 use anyhow::{Result, anyhow};
-use beetry_editor_types::{EditorStateStore, ValidTree};
+use beetry_editor_types::persistence::{EditorStateStore, ValidTree};
 use beetry_serialization::{Deserializer, JsonDeserializer, JsonSerializer, Serializer};
 use dioxus::prelude::*;
 use rfd::FileDialog;

@@ -1,14 +1,12 @@
-use std::rc::Rc;
-
+use crate::Point;
+use crate::editor::ServiceContext;
+use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithContextMenu};
+use crate::ui::node::port::{self, input};
 use beetry_editor_types::id::NodeId;
 use beetry_editor_types::spec::node::LeafKind;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
-
-use crate::definitions::Point;
-use crate::editor::ServiceContext;
-use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithContextMenu};
-use crate::ui::node::port::{self, input};
+use std::rc::Rc;
 
 fn style(kind: LeafKind, name: &str) -> NodeStyle {
     let (fill_color, hover_color) = match kind {
@@ -61,11 +59,7 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
     let node_api = read.node_api();
     let spec_api = node_api.spec();
     let name = spec_api.name(id).unwrap();
-    let kind = if spec_api.kind(id).unwrap() == beetry_editor_types::NodeKind::Action {
-        LeafKind::Action
-    } else {
-        LeafKind::Condition
-    };
+    let kind = spec_api.kind(id).unwrap().leaf().unwrap();
     let ports_spec = spec_api.ports(id).unwrap();
 
     let style = use_hook(|| Rc::new(style(kind, &name.0)));

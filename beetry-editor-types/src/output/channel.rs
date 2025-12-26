@@ -1,7 +1,20 @@
+use crate::id::ChannelSpecId;
 use anyhow::{Result, bail};
 use derive_more::From;
 use getset::{CopyGetters, MutGetters, Setters};
 use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChannelData {
+    pub spec_id: ChannelSpecId,
+    pub config: ChannelConfig,
+}
+
+impl ChannelData {
+    pub fn new(spec_id: ChannelSpecId, config: ChannelConfig) -> Self {
+        Self { spec_id, config }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, CopyGetters, Setters, MutGetters)]
 pub struct ChannelConfig {

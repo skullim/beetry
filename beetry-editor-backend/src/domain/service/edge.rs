@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::domain::repository::{EdgeRepositoryConcept, NodeRepositoryFacadeConcept};
 use crate::domain::service::node::{SpecApi, TrackerApi};
 use anyhow::{Result, anyhow, bail};
-use beetry_editor_types::{NodeEdge, NodeKind, id::EdgeId, id::NodeId};
+use beetry_editor_types::{id::EdgeId, id::NodeId, output::edge::NodeEdge, spec::node::NodeKind};
 use tracing::warn;
 
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
@@ -149,7 +149,7 @@ impl EdgeService {
 
         // validate parent
         let parent_kind = node_spec_api.kind(parent)?;
-        if matches!(parent_kind, NodeKind::Action | NodeKind::Condition) {
+        if matches!(parent_kind, NodeKind::Leaf(..)) {
             bail!("attempted to create invalid edge: leaf nodes must have no children");
         }
 

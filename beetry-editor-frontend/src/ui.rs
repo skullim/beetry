@@ -6,5 +6,3 @@ pub mod shadow;
 pub mod text;
 pub mod transfer;
 pub mod viewport;
-
-use crate::definitions::Point;
