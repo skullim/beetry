@@ -3,9 +3,9 @@ use std::{collections::HashMap, fmt::Display, hash::Hash, ops::AddAssign};
 use crate::id::IdProvider;
 
 use beetry_editor_types::{
-    ChannelData, ChannelSpecId, ChannelUiData, EdgeId, NodeEdge, NodeId, NodePortConnection,
-    NodePortId, NodeSpec, NodeSpecId, NodeUiData, id::ChannelId, output::node::Parameters,
-    spec::channel::ChannelSpec,
+    ChannelData, ChannelUiData, NodeEdge, NodePortConnection, NodeSpec, NodeUiData, id::ChannelId,
+    id::ChannelSpecId, id::EdgeId, id::NodeId, id::NodePortId, id::NodeSpecId,
+    output::node::Parameters, spec::channel::ChannelSpec,
 };
 
 use anyhow::{Result, bail};
@@ -288,11 +288,6 @@ impl UiRepositoryFacadeConcept for UiRepositoryFacade {
         }
     }
 }
-
-// @todo Right now all specs are duplicated,
-// spec needs to be split into key and value, and the key should be inserted into seen set.
-// Only if not seen insert the spec, otherwise give back the given spec id.
-// Also it would be good to change from value semantics to reference semantics, Self::Spec -> &Self::Spec
 
 /// Service layer should guarantee that no same Specs are stored
 pub trait SpecRepositoryConcept: Default {

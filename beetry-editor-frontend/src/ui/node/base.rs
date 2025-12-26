@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use beetry_editor_types::NodeId;
+use beetry_editor_types::id::NodeId;
 use bon::Builder;
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;

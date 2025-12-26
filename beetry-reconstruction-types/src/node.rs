@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
 use beetry_editor_types::{
-    id::ChannelId,
+    id::{ChannelId, NodeId},
     output::node::Parameters,
     spec::{
         message::MessageSpec,
@@ -106,8 +106,6 @@ impl LeafSnapshot {
     }
 }
 
-//@todo harmonize with beetry-editor backend type
-pub type NodeId = usize;
 pub type NodePortId = u8;
 /// Provides basic information regarding external communication endpoints.
 /// User should utilize it to provide missing endpoints such that the tree can be reconstructed.

@@ -2,7 +2,7 @@ mod context_menu;
 mod renderer;
 
 pub mod temporary;
-use beetry_editor_types::EdgeId;
+use beetry_editor_types::id::EdgeId;
 pub use context_menu::{ContextMenu, Handlers as ContextMenuHandlers, State as ContextMenuState};
 pub use renderer::Renderer;
 pub use temporary::Temporary;

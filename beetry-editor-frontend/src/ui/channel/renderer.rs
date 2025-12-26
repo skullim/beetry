@@ -48,7 +48,7 @@ pub fn Renderer(render_channels: Signal<RequestRender>) -> Element {
                 let start = Point {
                     x: node_pos.origin.x + 100.0 + port_width,
                     // @todo port_id should be changed here
-                    y: node_pos.origin.y + 10.0 + 10.0 + 20.0 * (port_id) as f64,
+                    y: node_pos.origin.y + 10.0 + 10.0 + 20.0 * (port_id.raw_value()) as f64,
                 };
                 let connected: Vec<_> = port_state.connected().copied().collect();
 
@@ -92,7 +92,7 @@ pub fn Renderer(render_channels: Signal<RequestRender>) -> Element {
                 let start = Point {
                     x: node_pos.origin.x,
                     // @todo port_id should be changed here
-                    y: node_pos.origin.y + 10.0 + 10.0 + 20.0 * (port_id) as f64, // Middle of port vertically
+                    y: node_pos.origin.y + 10.0 + 10.0 + 20.0 * (port_id.raw_value()) as f64, // Middle of port vertically
                 };
                 let connected: Vec<_> = port_state.connected().copied().collect();
 

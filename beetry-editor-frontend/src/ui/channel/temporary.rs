@@ -1,4 +1,4 @@
-use beetry_editor_types::{NodeId, NodePortId};
+use beetry_editor_types::{id::NodeId, id::NodePortId};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 

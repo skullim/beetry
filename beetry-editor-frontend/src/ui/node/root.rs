@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use beetry_editor_types::NodeId;
+use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 

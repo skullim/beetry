@@ -12,7 +12,6 @@ desktop = ["dioxus/desktop"]
 anyhow.workspace = true
 beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
 beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
-beetry-reconstruction-types = { version = "0.1.0", path = "../beetry-reconstruction-types" }
 beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }
 beetry-editor-backend = { version = "0.1.0", path = "../beetry-editor-backend" }
 bon.workspace = true
