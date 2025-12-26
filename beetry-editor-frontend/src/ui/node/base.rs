@@ -51,11 +51,21 @@ pub struct NodeBaseProps {
 #[component]
 pub fn NodeWithContextMenu(children: Element, id: NodeId) -> Element {
     let context_menu_handler = use_context::<Handlers>().on_context_menu;
-
     rsx! {
         g {
             oncontextmenu: move |evt| {
-                on_context_menu(evt, id, &context_menu_handler);
+                if evt.held_buttons().contains(MouseButton::Secondary) {
+                    evt.prevent_default();
+                    let mouse_coords = evt.client_coordinates();
+                    context_menu_handler
+                        .call((
+                            id,
+                            Point {
+                                x: mouse_coords.x,
+                                y: mouse_coords.y,
+                            },
+                        ));
+                }
             },
             {children}
         }
@@ -141,24 +151,5 @@ fn on_mouse_down(
             id,
             offset: drag_offset,
         });
-    }
-}
-
-fn on_context_menu(
-    evt: Event<MouseData>,
-    id: NodeId,
-    on_context_menu_cb: &Callback<(NodeId, Point)>,
-) {
-    if evt.held_buttons().contains(MouseButton::Secondary) {
-        evt.prevent_default();
-
-        let mouse_coords = evt.client_coordinates();
-        on_context_menu_cb.call((
-            id,
-            Point {
-                x: mouse_coords.x,
-                y: mouse_coords.y,
-            },
-        ));
     }
 }

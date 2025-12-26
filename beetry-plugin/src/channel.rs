@@ -1,6 +1,8 @@
 use anyhow::{Result, anyhow};
-use beetry_plugin_types::channel::ChannelSpec;
-use beetry_reconstruction_types::channel::{ChannelConfig, ChannelKind, TokioChannelKind};
+use beetry_editor_types::{
+    output::channel::{ChannelConfig, ChannelKind, TokioChannelKind},
+    spec::channel::ChannelSpec,
+};
 use bon::Builder;
 
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};

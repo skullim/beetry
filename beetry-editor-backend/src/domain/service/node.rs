@@ -11,14 +11,13 @@ use crate::domain::{
     },
 };
 use anyhow::{Context, Result, anyhow, bail};
-use beetry_plugin_types::node::NodeName;
-use beetry_reconstruction_types::parameter::Parameters;
 use std::collections::{HashMap, HashSet};
 use tracing::{debug, warn};
 
 use beetry_editor_types::{
-    ChannelId, NodeId, NodeKind, NodePortConnection, NodePortId, NodePortState, NodePosition,
-    NodeRecord, NodeSpec, NodeSpecId, NodeSpecKey, NodeUiData, ParameterValue, PortsSpec,
+    NodeId, NodeKind, NodePortConnection, NodePortId, NodePortState, NodePosition, NodeRecord,
+    NodeSpec, NodeSpecId, NodeSpecKey, NodeUiData, ParameterValue, PortsSpec, id::ChannelId,
+    output::node::Parameters, spec::node::NodeName,
 };
 
 pub struct NodeBorrowApi<'a, NRF>
@@ -168,7 +167,7 @@ where
         Ok(Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.ports())
     }
 
-    pub fn params(&self, id: NodeId) -> Result<&beetry_plugin_types::parameter::Schema> {
+    pub fn params(&self, id: NodeId) -> Result<&beetry_editor_types::spec::node::Schema> {
         Ok(Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.params())
     }
 

@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow.workspace = true
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
-beetry-plugin-types = { version = "0.1.0", path = "../beetry-plugin-types" }
+beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
 bon.workspace = true
 derive_more.workspace = true
 getset.workspace = true

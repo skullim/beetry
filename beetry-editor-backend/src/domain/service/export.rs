@@ -6,10 +6,10 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use tracing::warn;
 
 use beetry_editor_types::{
-    ChannelDataStore, ChannelId, ChannelSpecStore, ChannelStore, ChannelUiRecord, EditorStateStore,
+    ChannelDataStore, ChannelSpecStore, ChannelStore, ChannelUiRecord, EditorStateStore,
     MaybeValidTree, NodeId, NodePortId, NodePortState, NodePortStore, NodeRecordStore,
     NodeRecordValue, NodeSpecKey, NodeSpecStore, NodeStore, NodeUiRecord, ParameterValue,
-    ParameterValueStore, TreeStore, UiElementStore, ValidTree,
+    ParameterValueStore, TreeStore, UiElementStore, ValidTree, id::ChannelId,
 };
 
 use crate::domain::{

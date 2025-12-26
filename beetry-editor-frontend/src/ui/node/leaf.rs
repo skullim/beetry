@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use beetry_editor_types::NodeId;
-use beetry_plugin_types::node::LeafKind;
+use beetry_editor_types::spec::node::LeafKind;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 

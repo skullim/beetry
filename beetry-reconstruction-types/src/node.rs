@@ -2,19 +2,20 @@ use std::collections::BTreeSet;
 
 use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
+use beetry_editor_types::{
+    id::ChannelId,
+    output::node::Parameters,
+    spec::{
+        message::MessageSpec,
+        node::{LeafKind, NodeName},
+    },
+};
 use bon::Builder;
 use derive_more::From;
 use getset::{CopyGetters, Getters};
 use mitsein::iter1::FromIterator1;
 use mitsein::vec1::Vec1;
 use serde::{Deserialize, Serialize};
-
-use crate::channel::ChannelId;
-use crate::parameter::Parameters;
-use beetry_plugin_types::{
-    channel::MessageSpec,
-    node::{LeafKind, NodeName},
-};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RootSnapshot {

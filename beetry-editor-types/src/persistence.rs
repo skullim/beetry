@@ -1,11 +1,13 @@
 use std::collections::{BTreeMap, HashMap};
 
-use crate::models::{
-    ChannelData, ChannelSpecId, ChannelUiData, NodeId, NodePortConnection, NodePortId, NodeSpecId,
-    NodeSpecKey, NodeUiData,
+use crate::{
+    id::ChannelId,
+    models::{
+        ChannelData, ChannelSpecId, ChannelUiData, NodeId, NodePortConnection, NodePortId,
+        NodeSpecId, NodeSpecKey, NodeUiData,
+    },
+    spec::channel::ChannelSpec,
 };
-use beetry_plugin_types::channel::ChannelSpec;
-use beetry_reconstruction_types::{channel::ChannelId, parameter};
 use getset::{CopyGetters, Getters};
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
@@ -192,7 +194,7 @@ impl ParameterValueStore {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ParameterValue {
-    pub params: parameter::Parameters,
+    pub params: crate::output::node::Parameters,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

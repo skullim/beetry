@@ -1,5 +1,5 @@
+use beetry_editor_types::spec::message::MessageSpec;
 use beetry_editor_types::{NodeId, NodePortId};
-use beetry_plugin_types::channel::MessageSpec;
 use dioxus::prelude::*;
 
 use crate::definitions::{IndexedDragOffset, Point};
