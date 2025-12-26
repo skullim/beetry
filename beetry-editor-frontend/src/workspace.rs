@@ -1,6 +1,6 @@
 use beetry_editor_backend::node::PortConnectionInput;
+use beetry_editor_types::id::ChannelId;
 use beetry_editor_types::{ChannelPosition, EdgeId, NodeId, NodePortId, NodePosition};
-use beetry_reconstruction_types::channel::ChannelId;
 use bon::Builder;
 use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
@@ -126,7 +126,7 @@ pub(crate) fn Workspace(
     let mut render_edges = use_signal(RequestRender::new);
     let mut drag_node_state = workspace_ctx.drag_node_state;
     let mut drag_channel_state = workspace_ctx.drag_channel_state;
-    let context_menu_state = workspace_ctx.context_menu_state;
+    let node_context_menu_state = workspace_ctx.context_menu_state;
     let edge_context_menu_state = workspace_ctx.edge_context_menu_state;
     let mut dimensions_ctx = workspace_ctx.dimensions_ctx;
     let mut temp_channel_conn_ctx = workspace_ctx.channel_temp_conn_ctx;
@@ -135,10 +135,12 @@ pub(crate) fn Workspace(
     let mut viewport_ctx = use_context_provider(ViewportContext::new);
     let zoom_level = viewport_ctx.zoom_level;
 
-    use_context_provider(move || node_handlers(drag_node_state, context_menu_state));
+    use_context_provider(move || node_handlers(drag_node_state, node_context_menu_state));
     use_context_provider(move || input_port_handlers(temp_edge_ctx, render_edges));
     use_context_provider(move || output_port_handlers(temp_edge_ctx));
-    use_context_provider(move || node_context_menu_handlers(context_menu_state, render_nodes));
+    use_context_provider(move || {
+        node_context_menu_handlers(node_context_menu_state, render_nodes, render_edges)
+    });
     use_context_provider(move || edge_context_menu_handlers(edge_context_menu_state, render_edges));
 
     use_context_provider(move || sender_handlers(temp_channel_conn_ctx));
@@ -287,7 +289,7 @@ pub(crate) fn Workspace(
                 }
             }
 
-            node::ContextMenu { state: context_menu_state }
+            node::ContextMenu { state: node_context_menu_state }
             edge::ContextMenu { state: edge_context_menu_state }
         }
     }
@@ -450,8 +452,9 @@ fn channel_handlers(
 }
 
 fn node_context_menu_handlers(
-    mut ctx_menu_state: Signal<node::ContextMenuState>,
+    mut node_ctx_menu_state: Signal<node::ContextMenuState>,
     mut render_nodes: Signal<RequestRender>,
+    mut render_edges: Signal<RequestRender>,
 ) -> node::ContextMenuHandlers {
     let on_delete = move |node_id: NodeId| {
         let mut service = use_context::<ServiceContext>();
@@ -466,13 +469,14 @@ fn node_context_menu_handlers(
         //let mut ui_node_api = ui_api.node();
         ui_api.node().remove(node_id);
 
-        ctx_menu_state.with_mut(|state| state.is_visible = false);
+        node_ctx_menu_state.with_mut(|state| state.is_visible = false);
         render_nodes.with_mut(|write| write.request());
+        render_edges.with_mut(|write| write.request());
         //@todo probably nodes should have been rerendered if nodes had present edges
     };
 
     let on_close = move |_| {
-        ctx_menu_state.with_mut(|state| state.is_visible = false);
+        node_ctx_menu_state.with_mut(|state| state.is_visible = false);
     };
     node::ContextMenuHandlers::new(on_delete, on_close)
 }

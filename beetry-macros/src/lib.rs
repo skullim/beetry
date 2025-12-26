@@ -108,14 +108,14 @@ pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
                 match type_name.as_str() {
                     "f32" | "f64" => {
                         let bounds = generate_bounds();
-                        quote! { parameter::Type::Float { bounds: #bounds } }
+                        quote! { node::Type::Float { bounds: #bounds } }
                     }
                     "i32" | "i64" | "u32" | "u64" | "usize" => {
                         let bounds = generate_bounds();
-                        quote! { parameter::Type::Integer { bounds: #bounds } }
+                        quote! { node::Type::Integer { bounds: #bounds } }
                     }
-                    "bool" => quote! { parameter::Type::Boolean },
-                    "String" => quote! { parameter::Type::String { max_length: None } },
+                    "bool" => quote! { node::Type::Boolean },
+                    "String" => quote! { node::Type::String { max_length: None } },
                     unsupported => {
                         abort!(
                             unsupported,
@@ -131,7 +131,7 @@ pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
 
         // Build the definition with optional description
         let mut builder = quote! {
-            parameter::Definition::builder()
+            Definition::builder()
                 .name(#field_name_str)
                 .ty(#param_type)
         };
@@ -145,7 +145,7 @@ pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
 
     quote! {
         impl ProvideSchema for #name {
-            fn provide() -> parameter::Schema {
+            fn provide() -> Schema {
                 let definitions = vec![#(#definitions),*];
                 Schema::new(definitions.into_iter())
             }

@@ -52,39 +52,39 @@ pub(crate) fn Sidebar(channel_config_dialog_state: Signal<ChannelConfigDialogSta
     };
 
     rsx! {
+        div {
+            h3 { "Control Nodes" }
+            for spec in controls {
+                button { onclick: new_node_handler(spec.key().clone()), {format!("{}", spec.name())} }
+            }
+
+            h3 { "Action Nodes" }
+            for spec in actions {
+                button { onclick: new_node_handler(spec.key().clone()), {format!("{}", spec.name())} }
+            }
+
+            h3 { "Condition Nodes" }
+            for spec in conditions {
+                button { onclick: new_node_handler(spec.key().clone()), {format!("{}", spec.name())} }
+            }
+
+            h3 { "Channels" }
+            for spec in channel_specs.values().cloned() {
+                button {
+                    onclick: move |_| {
+                        channel_config_dialog_state
+                            .set(ChannelConfigDialogState::Visible {
+                                position: Point { x: 200.0, y: 100.0 },
+                                spec: spec.clone(),
+                            });
+                    },
+                    {spec.as_str()}
+                }
+            }
+
             div {
-                h3 { "Control Nodes" }
-                for spec in controls {
-                    button { onclick: new_node_handler(spec.key().clone()), {format!("{}", spec.name())} }
-                }
-
-                h3 { "Action Nodes" }
-                for spec in actions {
-                    button { onclick: new_node_handler(spec.key().clone()), {format!("{}", spec.name())} }
-                }
-
-                h3 { "Condition Nodes" }
-                for spec in conditions {
-                    button { onclick: new_node_handler(spec.key().clone()), {format!("{}", spec.name())} }
-                }
-
-                h3 { "Channels" }
-                for spec in channel_specs.values().cloned() {
-                    button {
-                        onclick: move |_| {
-                            channel_config_dialog_state
-                                .set(ChannelConfigDialogState::Visible {
-                                    position: Point { x: 200.0, y: 100.0 },
-                                    spec: spec.clone(),
-                                });
-                        },
-                        {spec.as_str()}
-                    }
-                }
-
-                div {
-                    channel::ConfigDialog { state: channel_config_dialog_state }
-                }
+                channel::ConfigDialog { state: channel_config_dialog_state }
+            }
         }
     }
 }

@@ -1,15 +1,17 @@
 use beetry_core::{BoxConditionBehavior, ConditionBehavior};
 use beetry_editor_types::NodeSpecKey;
+use beetry_editor_types::spec::node::Bounds;
+use beetry_editor_types::spec::node::{self, Definition};
+
+use beetry_editor_types::spec::node::NodeName;
+use beetry_editor_types::spec::node::ProvideSchema;
+use beetry_editor_types::spec::node::Schema;
 use beetry_macros::ProvideSchema;
 use beetry_plugin::{
     Plugin,
     node::{ConditionFactory, ConditionReconstructionData},
 };
 
-use beetry_plugin_types::{
-    node::NodeName,
-    parameter::{self, Bounds, ProvideSchema, Schema},
-};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 use type_hash::TypeHash;
@@ -86,7 +88,7 @@ impl Plugin for CheckBatteryPlugin {
     {
         let factory_fn = |data: ConditionReconstructionData| {
             Ok(Box::new(CheckBattery::new(
-                beetry_reconstruction_types::parameter::Deserializer::deserialize(data.parameters)?,
+                beetry_editor_types::output::node::Deserializer::deserialize(data.parameters)?,
             )) as BoxConditionBehavior)
         };
         let spec = beetry_editor_types::NodeSpec::builder()

@@ -3,8 +3,8 @@ mod renderer;
 pub mod temporary;
 
 use beetry_editor_types::ChannelPosition;
+use beetry_editor_types::id::ChannelId;
 use beetry_plugin::Named;
-use beetry_reconstruction_types::channel::ChannelId;
 pub use config_dialog::Dialog as ConfigDialog;
 pub use renderer::Renderer;
 pub use temporary::Temporary;

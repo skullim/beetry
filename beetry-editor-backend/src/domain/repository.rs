@@ -3,11 +3,10 @@ use std::{collections::HashMap, fmt::Display, hash::Hash, ops::AddAssign};
 use crate::id::IdProvider;
 
 use beetry_editor_types::{
-    ChannelData, ChannelId, ChannelSpecId, ChannelUiData, EdgeId, NodeEdge, NodeId,
-    NodePortConnection, NodePortId, NodeSpec, NodeSpecId, NodeUiData,
+    ChannelData, ChannelSpecId, ChannelUiData, EdgeId, NodeEdge, NodeId, NodePortConnection,
+    NodePortId, NodeSpec, NodeSpecId, NodeUiData, id::ChannelId, output::node::Parameters,
+    spec::channel::ChannelSpec,
 };
-use beetry_plugin_types::channel::ChannelSpec;
-use beetry_reconstruction_types::parameter::Parameters;
 
 use anyhow::{Result, bail};
 use getset::{Getters, MutGetters};

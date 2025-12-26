@@ -3,9 +3,9 @@ use beetry_editor_backend::EditorService;
 use beetry_editor_backend::repository::{
     ChannelRepositoryFacade, EdgeRepository, NodeRepositoryFacade, UiRepositoryFacade,
 };
+use beetry_editor_types::output::channel::ChannelConfig;
+use beetry_editor_types::output::node::Parameters;
 use beetry_editor_types::{ChannelUiData, NodeId, NodeSpecKey, NodeUiData, ParameterValue};
-use beetry_reconstruction_types::channel::ChannelConfig;
-use beetry_reconstruction_types::parameter::Parameters;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
