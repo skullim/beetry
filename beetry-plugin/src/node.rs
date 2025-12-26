@@ -2,7 +2,7 @@ use crate::{BoxPlugin, ConstructPlugin, Named, PluginConstructor, PluginError, u
 use anyhow::Result;
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
 use beetry_core::{BoxActionBehavior, BoxConditionBehavior, BoxNode, NonEmptyNodes};
-use beetry_reconstruction_types::parameter::Parameters;
+use beetry_editor_types::output::node::Parameters;
 use bon::Builder;
 use std::marker::PhantomData;
 
@@ -114,7 +114,7 @@ macro_rules! plugin2 {
                     Ok(Box::new(Drive::new(
                         DriveReceivers::builder().pose(receivers.0).build())) as BoxActionBehavior)
                 };
-                let spec = $crate::ActionSpec::builder().name($name).schema(beetry_plugin_types::schema!{kind = action, receivers = [$($receiver, desc = $desc),* ]}).build();
+                let spec = $crate::ActionSpec::builder().name($name).schema(beetry_editor_types::schema!{kind = action, receivers = [$($receiver, desc = $desc),* ]}).build();
 
                 Self {
                     spec,
@@ -183,8 +183,7 @@ mod tests {
     use crate::Plugin;
 
     use super::*;
-    use beetry_editor_types::{NodeSpec, NodeSpecKey};
-    use beetry_plugin_types::node::NodeName;
+    use beetry_editor_types::{NodeSpec, NodeSpecKey, spec::node::NodeName};
 
     struct TestPluginA {
         spec: NodeSpec,

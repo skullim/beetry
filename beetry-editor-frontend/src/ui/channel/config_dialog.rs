@@ -1,5 +1,7 @@
-use beetry_plugin_types::channel::ChannelSpec;
-use beetry_reconstruction_types::channel::{ChannelConfig, ChannelKind, TokioChannelKind};
+use beetry_editor_types::{
+    output::channel::{ChannelConfig, ChannelKind, TokioChannelKind},
+    spec::channel::ChannelSpec,
+};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 

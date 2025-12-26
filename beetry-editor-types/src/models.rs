@@ -1,12 +1,16 @@
 use std::collections::HashSet;
 
 use anyhow::{Result, anyhow, bail};
-use beetry_plugin_types::{channel::MessageSpec, node::NodeName, parameter};
-use beetry_reconstruction_types::channel::ChannelConfig;
 use bon::Builder;
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use tracing::warn;
+
+use crate::{
+    id::ChannelId,
+    output::channel::ChannelConfig,
+    spec::{message::MessageSpec, node::NodeName},
+};
 
 pub type NodeId = usize;
 pub type NodeSpecId = usize;
@@ -14,7 +18,7 @@ pub type NodePortId = u8;
 pub type EdgeId = usize;
 //@todo All Ids should be defined on the editor side, since that's the producing side
 // Interface types should be defined in beetry-editor-types crate
-pub type ChannelId = beetry_reconstruction_types::channel::ChannelId;
+
 pub type ChannelSpecId = usize;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -209,7 +213,7 @@ pub struct NodeSpec {
     //@todo value
     #[builder(default)]
     #[getset(get = "pub")]
-    params: parameter::Schema,
+    params: crate::spec::node::Schema,
     #[builder(default)]
     #[getset(get = "pub")]
     ports: PortsSpec,
@@ -237,7 +241,7 @@ impl NodeSpec {
 #[derive(Debug, Default, Builder, Clone)]
 pub struct NodeSpecValue {
     #[builder(default)]
-    pub params: parameter::Schema,
+    pub params: crate::spec::node::Schema,
     #[builder(default)]
     pub ports: PortsSpec,
 }
