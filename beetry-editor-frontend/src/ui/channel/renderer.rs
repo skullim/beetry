@@ -1,5 +1,7 @@
 use crate::Point;
-use beetry_editor_types::output::node::NodePortConnection;
+use beetry_editor_types::id::{ChannelId, NodeId, NodePortId};
+use beetry_editor_types::output::node::PortConnectionState;
+use beetry_editor_types::spec::node::NodePortKind;
 use dioxus::prelude::*;
 
 use crate::definitions::EdgePos;
@@ -26,141 +28,125 @@ pub fn Renderer(render_channels: Signal<RequestRender>) -> Element {
         }
     });
 
-    //@todo this api calls are messy and somethings are collected to satisfy borrow checker
+    let port_channel_conns = port_channel_conns(&service);
     let node_api = read.node_api();
-    let tracker = node_api.tracker();
+    let sender_conns = port_channel_conns.iter().filter(|conn| {
+        node_api
+            .spec()
+            .ports(conn.node_id)
+            .ok()
+            .is_some_and(|ports_spec| {
+                ports_spec
+                    .kind(conn.port_id)
+                    .is_some_and(|kind| kind == NodePortKind::Sender)
+            })
+    });
 
-    let spec_api = node_api.spec();
-    let sender_connections = tracker
-        .nodes()
-        .flat_map(|id| {
-            match spec_api.ports(*id) {
-                Ok(ports) => {
-                    let sender_ids: Vec<_> = ports.sender_ids().copied().collect();
-                    let port_state_api = node_api.port_state();
-
-                    Some(
-                        sender_ids
-                            .into_iter()
-                            .filter_map(move |port_id| {
-                                let conn = port_state_api.state(*id, port_id).ok()?;
-                                match conn {
-                                    NodePortConnection::Internal(internal) => {
-                                        Some((port_id, internal.clone()))
-                                    }
-                                    NodePortConnection::External => None,
-                                }
-                            })
-                            .flat_map(move |(port_id, internal_conns)| {
-                                // @todo get real port spec
-                                let spec_as_str = "port spec";
-                                let port_width = text::text_width_from(spec_as_str, 11);
-
-                                let read = service.service.read();
-                                let ui_api = read.ui_api();
-                                let ui_api_node = ui_api.node();
-                                let node_pos = ui_api_node.position(*id).unwrap();
-                                let start = Point {
-                                    x: node_pos.origin.x + 100.0 + port_width,
-                                    // @todo port_id should be changed here
-                                    y: node_pos.origin.y
-                                        + 10.0
-                                        + 10.0
-                                        + 20.0 * (port_id.raw_value()) as f64,
-                                };
-                                let connected: Vec<_> = internal_conns.iter().copied().collect();
-
-                                connected.into_iter().flat_map(move |channel_id| {
-                                    let read = service.service.read();
-                                    let ui_api = read.ui_api();
-                                    let channel_pos =
-                                        ui_api.channel().position(channel_id).unwrap().origin;
-
-                                    let end = Point {
-                                        x: channel_pos.x + 20.0,
-                                        y: channel_pos.y + 12.0,
-                                    };
-
-                                    let edge = EdgePos { start, end };
-
-                                    rsx! {
-                                        SenderConnection { edge }
-                                    }
-                                })
-                            }),
-                    )
-                }
-                Err(_) => None,
+    let sender_connections = sender_conns
+        .filter_map(|conn| sender_edge_pos(&service, conn).ok())
+        .map(|edge| {
+            rsx! {
+                SenderConnection { edge }
             }
-        })
-        .flatten();
+        });
 
-    let receiver_connections = tracker
-        .nodes()
-        .flat_map(|id| {
-            match spec_api.ports(*id) {
-                Ok(ports) => {
-                    let receiver_ids: Vec<_> = ports.receiver_ids().copied().collect();
-                    let port_state_api = node_api.port_state();
-                    Some(
-                        receiver_ids
-                            .into_iter()
-                            .filter_map(move |port_id| {
-                                let conn = port_state_api.state(*id, port_id).ok()?;
-                                match conn {
-                                    NodePortConnection::Internal(internal) => {
-                                        Some((port_id, internal.clone()))
-                                    }
-                                    NodePortConnection::External => None,
-                                }
-                            })
-                            .flat_map(move |(port_id, internal_conns)| {
-                                // @todo get real port spec
-                                let spec_as_str = "port spec";
-                                let port_width = text::text_width_from(spec_as_str, 11);
+    let receiver_conns = port_channel_conns.iter().filter(|conn| {
+        node_api
+            .spec()
+            .ports(conn.node_id)
+            .ok()
+            .is_some_and(|ports_spec| {
+                ports_spec
+                    .kind(conn.port_id)
+                    .is_some_and(|kind| kind == NodePortKind::Receiver)
+            })
+    });
 
-                                let read = service.service.read();
-                                let ui_api = read.ui_api();
-                                let ui_api_node = ui_api.node();
-                                let node_pos = ui_api_node.position(*id).unwrap();
-                                let start = Point {
-                                    x: node_pos.origin.x,
-                                    // @todo port_id should be changed here
-                                    y: node_pos.origin.y
-                                        + 10.0
-                                        + 10.0
-                                        + 20.0 * (port_id.raw_value()) as f64, // Middle of port vertically
-                                };
-                                let connected: Vec<_> = internal_conns.iter().copied().collect();
-
-                                connected.into_iter().flat_map(move |channel_id| {
-                                    let read = service.service.read();
-                                    let ui_api = read.ui_api();
-                                    let channel_pos =
-                                        ui_api.channel().position(channel_id).unwrap().origin;
-
-                                    let end = Point {
-                                        x: channel_pos.x + 20.0 + port_width + 20.0, // Offset to center of receiver port dot
-                                        y: channel_pos.y + 12.0, // Offset to center of channel vertically
-                                    };
-
-                                    let edge = EdgePos { start, end };
-
-                                    rsx! {
-                                        ReceiverConnection { edge }
-                                    }
-                                })
-                            }),
-                    )
-                }
-                Err(_) => None,
+    let receiver_connections = receiver_conns
+        .filter_map(|conn| receiver_edge_pos(&service, conn).ok())
+        .map(|edge| {
+            rsx! {
+                ReceiverConnection { edge }
             }
-        })
-        .flatten();
+        });
 
     rsx! {
         {sender_connections}
         {receiver_connections}
         {channels}
     }
+}
+
+struct PortChannelConnection {
+    node_id: NodeId,
+    port_id: NodePortId,
+    channel_id: ChannelId,
+}
+
+fn sender_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> Result<EdgePos> {
+    let read = service.service.read();
+    let ui_api = read.ui_api();
+
+    let node_pos = ui_api.node().position(conn.node_id)?.origin;
+    let channel_pos = ui_api.channel().position(conn.channel_id)?.origin;
+
+    //@todo get real port spec
+    let port_width = text::text_width_from("port spec", 11);
+
+    Ok(EdgePos {
+        start: Point {
+            x: node_pos.x + 100.0 + port_width,
+            // @todo port_id should be changed here
+            y: node_pos.y + 10.0 + 10.0 + 20.0 * conn.port_id.raw_value() as f64,
+        },
+        end: Point {
+            x: channel_pos.x + 20.0,
+            y: channel_pos.y + 12.0,
+        },
+    })
+}
+
+fn receiver_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> Result<EdgePos> {
+    let read = service.service.read();
+    let ui_api = read.ui_api();
+
+    let node_pos = ui_api.node().position(conn.node_id)?.origin;
+    let channel_pos = ui_api.channel().position(conn.channel_id)?.origin;
+
+    //@todo get real port spec
+    let port_width = text::text_width_from("port spec", 11);
+
+    Ok(EdgePos {
+        start: Point {
+            x: node_pos.x,
+            y: node_pos.y + 10.0 + 10.0 + 20.0 * conn.port_id.raw_value() as f64, // Middle of port vertically
+        },
+        end: Point {
+            x: channel_pos.x + 20.0 + port_width + 20.0, // Offset to center of receiver port dot
+            y: channel_pos.y + 12.0,                     // Offset to center of channel vertically
+        },
+    })
+}
+
+//@todo would be nice to do without allocations
+fn port_channel_conns(service: &ServiceContext) -> Vec<PortChannelConnection> {
+    let read = service.service.read();
+    let node_api = read.node_api();
+    let port_state = node_api.port_state();
+    port_state
+        .iter()
+        .flat_map(|(id, port_conns_iter)| {
+            port_conns_iter.flat_map(|(port_id, state)| match state {
+                PortConnectionState::Internal(conns) => conns
+                    .iter()
+                    .map(|channel_id| PortChannelConnection {
+                        node_id: *id,
+                        port_id: *port_id,
+                        channel_id: *channel_id,
+                    })
+                    .collect::<Vec<_>>(),
+                PortConnectionState::External => Vec::new(),
+            })
+        })
+        .collect::<Vec<_>>()
 }
