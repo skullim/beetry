@@ -55,7 +55,6 @@ where
     }
 
     pub fn import_project(&mut self, store: EditorStateStore) -> Result<()> {
-        self.reset_editor_state();
         self.import_tree(store.tree)?;
         self.import_ui(store.ui_elements)
     }

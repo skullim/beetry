@@ -60,7 +60,6 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
     let spec_api = node_api.spec();
     let name = spec_api.name(id).unwrap();
     let kind = spec_api.kind(id).unwrap().leaf().unwrap();
-    let ports_spec = spec_api.ports(id).unwrap();
 
     let style = use_hook(|| Rc::new(style(kind, &name.0)));
     let position = props.position;
@@ -82,7 +81,7 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
         }
 
         g { transform: "translate(-80, 10)",
-            for (port_id , port_spec) in ports_spec.receivers() {
+            for (port_id , port_spec) in spec_api.ports(id).iter().flat_map(|ports_spec| ports_spec.receivers()) {
                 port::Receiver {
                     key: "{port_id}",
                     id,
@@ -96,7 +95,7 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
         }
 
         g { transform: "translate({width}, 10)",
-            for (port_id , port_spec) in ports_spec.senders() {
+            for (port_id , port_spec) in spec_api.ports(id).iter().flat_map(|ports_spec| ports_spec.senders()) {
                 port::Sender {
                     key: "{port_id}",
                     id,

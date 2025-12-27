@@ -22,10 +22,9 @@ pub struct NodeSpecMap {
 
 impl FromIterator<(NodeSpecKey, NodeSpec)> for NodeSpecMap {
     fn from_iter<T: IntoIterator<Item = (NodeSpecKey, NodeSpec)>>(iter: T) -> Self {
-        let mut map: HashMap<_, _> = iter.into_iter().collect();
-        //@todo probably not idiomatic to insert random stuff
-        map.insert(NodeSpecKey::root(), NodeSpec::root());
-        Self { map }
+        Self {
+            map: iter.into_iter().collect(),
+        }
     }
 }
 
@@ -46,12 +45,15 @@ pub struct ChannelSpecMap {
     map: HashMap<MessageHash, ChannelSpec>,
 }
 
-impl ChannelSpecMap {
-    //@todo refine
-    pub fn new(map: HashMap<MessageHash, ChannelSpec>) -> Self {
-        Self { map }
+impl FromIterator<(MessageHash, ChannelSpec)> for ChannelSpecMap {
+    fn from_iter<T: IntoIterator<Item = (MessageHash, ChannelSpec)>>(iter: T) -> Self {
+        Self {
+            map: iter.into_iter().collect(),
+        }
     }
+}
 
+impl ChannelSpecMap {
     pub fn spec(&self, key: &MessageHash) -> Result<&ChannelSpec> {
         self.map
             .get(key)

@@ -21,7 +21,7 @@ use beetry_editor_types::{
         ui::{NodePosition, NodeUiData},
     },
     persistence::{NodePortState, NodeRecord, ParameterValue},
-    spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey, PortsSpec},
+    spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey, ParamsSpec, PortsSpec},
 };
 
 pub struct NodeBorrowApi<'a, NRF>
@@ -120,14 +120,12 @@ where
     }
 
     pub fn port_connection(
-        &mut self,
-    ) -> PortConnectionApi<'_, NRF::PortStateRepo, NRF::SpecRepo, NRF::NodeRepo, CRF> {
+        &'a mut self,
+        ports_spec: &'a PortsSpec,
+    ) -> PortConnectionApi<'a, NRF::PortStateRepo, CRF> {
         PortConnectionApi {
             repo: self.facade_view.ports,
-            spec_service_api: SpecApi {
-                spec_repo: self.facade_view.specs,
-                node_repo: self.facade_view.nodes,
-            },
+            ports_spec,
             channel_service_api: ChannelBorrowMutApi::new(
                 self.channel_facade.view_mut(),
                 self.channel_service,
@@ -137,6 +135,31 @@ where
 
     pub fn parameters(&mut self) -> ParameterValueBorrowMutApi<'_, NRF::ParamValuesRepo> {
         ParameterValueBorrowMutApi {
+            repo: self.facade_view.parameters,
+        }
+    }
+
+    // borrow mut has also access to borrow api
+    pub fn spec(&self) -> SpecApi<'_, NRF::SpecRepo, NRF::NodeRepo> {
+        SpecApi {
+            spec_repo: self.facade_view.specs,
+            node_repo: self.facade_view.nodes,
+        }
+    }
+
+    pub fn tracker(&self) -> TrackerApi<'_, NRF::NodeRepo> {
+        TrackerApi {
+            service: self.node_service,
+            repo: self.facade_view.nodes,
+        }
+    }
+
+    pub fn port_state(&self) -> PortStateApi<'_, NRF::PortStateRepo> {
+        PortStateApi::new(self.facade_view.ports)
+    }
+
+    pub fn parameter(&self) -> ParameterValueBorrowApi<'_, NRF::ParamValuesRepo> {
+        ParameterValueBorrowApi {
             repo: self.facade_view.parameters,
         }
     }
@@ -168,11 +191,17 @@ where
     }
 
     pub fn ports(&self, id: NodeId) -> Result<&PortsSpec> {
-        Ok(Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.ports())
+        Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?
+            .ports()
+            .as_ref()
+            .ok_or_else(|| anyhow!("expected port specification for node {id}"))
     }
 
-    pub fn params(&self, id: NodeId) -> Result<&beetry_editor_types::spec::node::Schema> {
-        Ok(Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.params())
+    pub fn params(&self, id: NodeId) -> Result<&ParamsSpec> {
+        Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?
+            .params()
+            .as_ref()
+            .ok_or_else(|| anyhow!("expected parameters specification for node {id}"))
     }
 
     pub fn name_by_spec_id(&self, spec_id: NodeSpecId) -> Result<&NodeName> {
@@ -183,13 +212,17 @@ where
         Ok(Self::spec_by_spec_id(self.spec_repo, spec_id)?.kind())
     }
 
+    pub fn spec_by_node_id_pub(&self, id: NodeId) -> Result<&NodeSpec> {
+        Self::spec_by_node_id(self.spec_repo, self.node_repo, id)
+    }
+
     fn spec_by_node_id<'s>(spec_repo: &'s SR, node_repo: &NR, id: NodeId) -> Result<&'s NodeSpec> {
         let spec_id = *Self::spec_id(node_repo, id)?;
         Self::spec_by_spec_id(spec_repo, spec_id)
             .with_context(|| format!("spec for node id {id} not found"))
     }
 
-    fn spec_by_spec_id(spec_repo: &SR, spec_id: NodeSpecId) -> Result<&NodeSpec> {
+    pub fn spec_by_spec_id(spec_repo: &SR, spec_id: NodeSpecId) -> Result<&NodeSpec> {
         spec_repo
             .spec(spec_id)
             .ok_or_else(|| anyhow!("failed to obtain spec {spec_id}"))
@@ -202,6 +235,9 @@ where
     }
 }
 
+/// API used to load the given record from the storage. It is assumed that valid entities are loaded, i.e.
+/// entities that have been created only using the provided interface. Therefore no further validation is implemented (as opposed to
+/// the interface that is used to create the entities).
 pub(super) struct LoadNodeApi<'a, NRF>
 where
     NRF: NodeRepositoryFacadeConcept,
@@ -241,16 +277,16 @@ where
         }
 
         if let Some(value) = param_value {
-            let mut params_service_api = ParameterValueBorrowMutApi {
-                repo: self.node_facade_view.parameters,
-            };
-            params_service_api.load(node.id, value)?;
+            self.load_parameters(node.id, value)?;
         }
         Ok(())
     }
 
+    fn load_parameters(&mut self, id: NodeId, value: ParameterValue) -> Result<()> {
+        self.node_facade_view.parameters.create(id, value.params)
+    }
+
     fn load_ports(&mut self, id: NodeId, state: NodePortState) -> Result<()> {
-        //@todo should there be a validation that given channels exist?
         for (port_id, conn) in state.conns {
             self.node_facade_view.ports.create(id, port_id, conn)?;
         }
@@ -280,21 +316,27 @@ where
     CRF: ChannelRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
 {
-    pub fn create(&mut self, spec: NodeSpec) -> Result<NodeId> {
-        let ports_spec = spec.ports().clone();
+    pub fn create(&mut self, spec: &NodeSpec) -> Result<NodeId> {
         let id = self.node_service.create(
             self.node_facade_view.specs,
             self.node_facade_view.nodes,
             spec,
         )?;
-        Self::initialize_ports(self.node_facade_view.ports, id, &ports_spec)?;
+        if let Some(ports_spec) = spec.ports() {
+            Self::initialize_ports(self.node_facade_view.ports, id, ports_spec)?;
+        }
         Ok(id)
     }
 
-    pub fn remove(&mut self, id: NodeId) -> Result<()> {
-        self.disconnect_ports(id)?;
-        self.node_service.remove::<NRF>(self.node_facade_view, id)?;
+    pub fn remove(&mut self, spec: &NodeSpec, id: NodeId) -> Result<()> {
+        self.node_service
+            .remove::<NRF>(self.node_facade_view, spec, id)?;
         self.edge_removal_service_api.on_removal(id)?;
+        if let Some(ports_spec) = spec.ports() {
+            self.disconnect_ports(ports_spec, id)?;
+        }
+        //@todo also channel connections have to be decremented
+
         Ok(())
     }
 
@@ -309,16 +351,11 @@ where
         Ok(())
     }
 
-    fn disconnect_ports(&mut self, id: NodeId) -> Result<()> {
-        let spec_service_api =
-            SpecApi::new(self.node_facade_view.specs, self.node_facade_view.nodes);
+    fn disconnect_ports(&mut self, ports_spec: &PortsSpec, id: NodeId) -> Result<()> {
         let channel_service_api =
             ChannelBorrowMutApi::new(self.channel_facade.view_mut(), self.channel_service);
-        let mut port_connection_service_api = PortConnectionApi::new(
-            self.node_facade_view.ports,
-            spec_service_api,
-            channel_service_api,
-        );
+        let mut port_connection_service_api =
+            PortConnectionApi::new(self.node_facade_view.ports, ports_spec, channel_service_api);
 
         port_connection_service_api.disconnect_all(id)
     }
@@ -395,12 +432,10 @@ impl<'a, PVR> ParameterValueBorrowMutApi<'a, PVR>
 where
     PVR: ParamValueRepositoryConcept,
 {
-    //@todo move to LoadNodeApi
-    pub fn load(&mut self, id: NodeId, value: ParameterValue) -> Result<()> {
+    pub fn create(&mut self, id: NodeId, value: ParameterValue) -> Result<()> {
+        //@todo validate against schema here
         self.repo.create(id, value.params)
     }
-
-    //@todo add API to set parameters, also validate against schema here
 }
 
 pub struct PortConnectionInput {
@@ -445,36 +480,34 @@ where
     }
 }
 
-pub struct PortConnectionApi<'a, PR, SR, NR, CRF>
+pub struct PortConnectionApi<'a, PR, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
     repo: &'a mut PR,
-    spec_service_api: SpecApi<'a, SR, NR>,
+    ports_spec: &'a PortsSpec,
     channel_service_api: ChannelBorrowMutApi<'a, CRF>,
 }
 
-impl<'a, PR, SR, NR, CRF> PortConnectionApi<'a, PR, SR, NR, CRF>
+impl<'a, PR, CRF> PortConnectionApi<'a, PR, CRF>
 where
     PR: PortStateRepositoryConcept,
-    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
-    NR: NodeRepositoryConcept,
     CRF: ChannelRepositoryFacadeConcept,
 {
     pub(super) fn new(
         repo: &'a mut PR,
-        spec_service_api: SpecApi<'a, SR, NR>,
+        ports_spec: &'a PortsSpec,
         channel_service_api: ChannelBorrowMutApi<'a, CRF>,
     ) -> Self {
         Self {
             repo,
-            spec_service_api,
+            ports_spec,
             channel_service_api,
         }
     }
 
     pub fn connect(&mut self, input: PortConnectionInput) -> Result<()> {
-        let spec = self.spec_service_api.ports(input.node)?.spec(input.port)?;
+        let spec = self.ports_spec.spec(input.port)?;
         let ctx = ConnectionContext {
             channel: input.channel,
             node: input.node,
@@ -486,7 +519,7 @@ where
     }
 
     pub fn disconnect(&mut self, input: PortConnectionInput) -> Result<()> {
-        let spec = self.spec_service_api.ports(input.node)?.spec(input.port)?;
+        let spec = self.ports_spec.spec(input.port)?;
         self.channel_service_api
             .disconnect(input.channel, spec.kind)?;
         self.state_mut(input.node, input.port)?
@@ -494,12 +527,11 @@ where
     }
 
     pub fn disconnect_all(&mut self, id: NodeId) -> Result<()> {
-        let ports_spec = self.spec_service_api.ports(id)?.clone();
-        for port_id in ports_spec.ids() {
+        for port_id in self.ports_spec.ids() {
             let channels = self.state_mut(id, *port_id)?.disconnect_all();
             for channel in channels {
                 self.channel_service_api
-                    .disconnect(channel, ports_spec.spec(*port_id)?.kind)?;
+                    .disconnect(channel, self.ports_spec.spec(*port_id)?.kind)?;
             }
         }
         Ok(())
@@ -527,11 +559,13 @@ impl NodeService {
         Self::default()
     }
 
+    // @todo might consider Cow for NodeSpec at some point, reference semantics better than value
+    // as there might be multiple nodes created of the same type
     fn create(
         &mut self,
         spec_repo: &mut impl SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
         node_repo: &mut impl NodeRepositoryConcept,
-        spec: NodeSpec,
+        spec: &NodeSpec,
     ) -> Result<NodeId> {
         let kind = spec.kind();
         self.validate_creation(kind)?;
@@ -540,7 +574,7 @@ impl NodeService {
             None => {
                 debug!("inserting new spec into spec repo");
                 let spec_id = spec_repo.create(spec.clone())?;
-                self.spec_cache.insert(spec.key, spec_id);
+                self.spec_cache.insert(spec.key.clone(), spec_id);
                 spec_id
             }
         };
@@ -612,19 +646,18 @@ impl NodeService {
     fn remove<NRF>(
         &mut self,
         view: &mut NodeRepositoryFacadeViewMut<'_, NRF>,
+        spec: &NodeSpec,
         id: NodeId,
     ) -> Result<()>
     where
         NRF: NodeRepositoryFacadeConcept,
     {
-        let spec = SpecApi::spec_by_node_id(view.specs, view.nodes, id)?;
         self.node_cache
             .get_mut(&spec.kind())
             .map(|nodes| nodes.remove(&id));
 
         view.nodes.remove(id);
         view.parameters.remove(id);
-        //@todo also channel connections have to be decremented
         Ok(())
     }
 

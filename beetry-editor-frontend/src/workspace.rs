@@ -411,14 +411,21 @@ fn channel_handlers(
             let mut service = use_context::<ServiceContext>();
             let mut write = service.service.write();
             let mut node_api_mut = write.node_api_mut();
-            let mut port_connection = node_api_mut.port_connection();
-            let input = PortConnectionInput::new(data.node_id, data.port_id, id);
-            port_connection.connect(input)?;
-            render_channels.with_mut(|write| write.request());
-            info!(
-                "connected channel {id} and node (id: {}, port_id: {})",
-                data.node_id, data.port_id
-            );
+            //@todo try to get rid of clone here
+            let node_spec = node_api_mut
+                .spec()
+                .spec_by_node_id_pub(data.node_id)?
+                .clone();
+            if let Some(ports_spec) = node_spec.ports() {
+                let mut port_connection = node_api_mut.port_connection(ports_spec);
+                let input = PortConnectionInput::new(data.node_id, data.port_id, id);
+                port_connection.connect(input)?;
+                render_channels.with_mut(|write| write.request());
+                info!(
+                    "connected channel {id} and node (id: {}, port_id: {})",
+                    data.node_id, data.port_id
+                );
+            }
         }
         Ok(())
     };
@@ -430,14 +437,21 @@ fn channel_handlers(
             let mut service = use_context::<ServiceContext>();
             let mut write = service.service.write();
             let mut node_api_mut = write.node_api_mut();
-            let mut port_connection = node_api_mut.port_connection();
-            let input = PortConnectionInput::new(data.node_id, data.port_id, id);
-            port_connection.connect(input)?;
-            render_channels.with_mut(|write| write.request());
-            info!(
-                "connected channel {id} and node (id: {}, port_id: {})",
-                data.node_id, data.port_id
-            );
+            //@todo try to get rid of clone here
+            let node_spec = node_api_mut
+                .spec()
+                .spec_by_node_id_pub(data.node_id)?
+                .clone();
+            if let Some(ports_spec) = node_spec.ports() {
+                let mut port_connection = node_api_mut.port_connection(ports_spec);
+                let input = PortConnectionInput::new(data.node_id, data.port_id, id);
+                port_connection.connect(input)?;
+                render_channels.with_mut(|write| write.request());
+                info!(
+                    "connected channel {id} and node (id: {}, port_id: {})",
+                    data.node_id, data.port_id
+                );
+            }
         }
         Ok(())
     };
@@ -455,8 +469,14 @@ fn node_context_menu_handlers(
         let mut write = service.service.write();
         {
             let mut node_api = write.node_api_mut();
+            //@todo temporary solution to satisfy borrow checker
+            let spec = {
+                let spec_api = node_api.spec();
+                spec_api.spec_by_node_id_pub(node_id)?.clone()
+            };
+
             let mut lifecycle = node_api.lifecycle();
-            lifecycle.remove(node_id)?;
+            lifecycle.remove(&spec, node_id)?;
         }
         let mut ui_api = write.ui_api_mut();
         ui_api.node().remove(node_id);

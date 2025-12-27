@@ -3,7 +3,7 @@ use beetry_builder::Builder as BehaviorTreeBuilder;
 use beetry_channel::external;
 use beetry_core::{BoxNode, MessageHash, NonEmptyNodes, RegisterTask, Root, TaskHandle, Tree};
 use beetry_editor_types::id::ChannelId;
-use beetry_editor_types::output::node::NodePortConnection;
+use beetry_editor_types::output::node::{NodePortConnection, Parameters};
 use beetry_editor_types::spec::node::{LeafKind, NodeKind, NodeName, NodePortKind};
 use beetry_editor_types::{
     id::NodeId,
@@ -18,7 +18,8 @@ use beetry_plugin::node::{
 use beetry_plugin::{BoxPlugin, Named, Plugin};
 use beetry_reconstruction_types::node::{ControlSnapshot, LeafSnapshot, RootSnapshot};
 use beetry_reconstruction_types::node::{NodeSnapshot, NodeSnapshotData};
-use std::collections::{BTreeSet, HashMap};
+use serde::Deserialize;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use tracing::debug;
 
 pub struct TreeReconstructor {
@@ -178,11 +179,14 @@ impl TreeReconstructor {
                 {
                     match conn {
                         //@todo create new type to convert NodePortConnection into ValidNodePortConnection
+                        // then copy pasted code in both branches can be harmonized
                         NodePortConnection::Unconnected => panic!("invalid state"),
                         NodePortConnection::External => {
                             let plugin = node_plugins.action.get(&name)?;
                             let spec = plugin.spec();
-                            let ports_spec = spec.ports();
+                            let ports_spec = spec.ports().as_ref().ok_or_else(|| {
+                                anyhow!("expected port specification for node {name}")
+                            })?;
                             let port_spec = ports_spec.spec(port_id)?;
                             match port_spec.kind {
                                 NodePortKind::Receiver => {
@@ -196,7 +200,9 @@ impl TreeReconstructor {
                         NodePortConnection::Internal(connections) => {
                             let plugin = node_plugins.action.get(&name)?;
                             let spec = plugin.spec();
-                            let ports_spec = spec.ports();
+                            let ports_spec = spec.ports().as_ref().ok_or_else(|| {
+                                anyhow!("expected port specification for node {name}")
+                            })?;
                             let port_spec = ports_spec.spec(port_id)?;
                             match port_spec.kind {
                                 NodePortKind::Receiver => receivers.extend(connections),
@@ -412,3 +418,21 @@ impl<P> NodeNameToPluginMap<P> {
 }
 
 type ChannelIdToChannelMap = HashMap<ChannelId, TypeErasedChannel>;
+
+pub struct ParamsReconstructor;
+
+impl ParamsReconstructor {
+    pub fn reconstruct<T>(params: Parameters) -> Result<T>
+    where
+        T: for<'de> Deserialize<'de>,
+    {
+        let deserializer = serde_value::ValueDeserializer::<serde_value::DeserializerError>::new(
+            serde_value::Value::Map(BTreeMap::from_iter(
+                params
+                    .into_iter()
+                    .map(|(k, v)| (serde_value::Value::String(k), v)),
+            )),
+        );
+        Ok(T::deserialize(deserializer)?)
+    }
+}

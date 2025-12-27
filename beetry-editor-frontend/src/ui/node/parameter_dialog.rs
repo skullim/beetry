@@ -20,7 +20,7 @@ pub struct Handlers {
 
 impl Handlers {
     pub(crate) fn new(
-        on_confirm: impl FnMut((NodeId, Parameters)) + 'static,
+        on_confirm: impl FnMut((NodeId, Parameters)) -> Result<()> + 'static,
         on_cancel: impl FnMut(()) + 'static,
     ) -> Self {
         Self {
