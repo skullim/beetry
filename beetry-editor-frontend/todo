@@ -6,6 +6,7 @@ Features:
 - resize nodes
 - show selected params
 - allow to change params
+- add error component that collects error messages and displays it 
 
 
 Improvements:

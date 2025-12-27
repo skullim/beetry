@@ -23,6 +23,7 @@ use beetry_editor_types::{
     persistence::{NodePortState, NodeRecord, ParameterValue},
     spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey, ParamsSpec, PortsSpec},
 };
+use mitsein::iter1::FromIterator1;
 
 pub struct NodeBorrowApi<'a, NRF>
 where
@@ -288,7 +289,7 @@ where
 
     fn load_ports(&mut self, id: NodeId, state: NodePortState) -> Result<()> {
         for (port_id, conn) in state.conns {
-            self.node_facade_view.ports.create(id, port_id, conn)?;
+            self.node_facade_view.ports.insert(id, port_id, conn)?;
         }
         Ok(())
     }
@@ -322,9 +323,6 @@ where
             self.node_facade_view.nodes,
             spec,
         )?;
-        if let Some(ports_spec) = spec.ports() {
-            Self::initialize_ports(self.node_facade_view.ports, id, ports_spec)?;
-        }
         Ok(id)
     }
 
@@ -333,31 +331,20 @@ where
             .remove::<NRF>(self.node_facade_view, spec, id)?;
         self.edge_removal_service_api.on_removal(id)?;
         if let Some(ports_spec) = spec.ports() {
-            self.disconnect_ports(ports_spec, id)?;
+            let channel_service_api =
+                ChannelBorrowMutApi::new(self.channel_facade.view_mut(), self.channel_service);
+            let mut port_connection_service_api = PortConnectionApi::new(
+                self.node_facade_view.ports,
+                ports_spec,
+                channel_service_api,
+            );
+
+            port_connection_service_api.disconnect_all(id)?;
         }
-        //@todo also channel connections have to be decremented
-
-        Ok(())
-    }
-
-    fn initialize_ports(
-        repo: &mut impl PortStateRepositoryConcept,
-        id: NodeId,
-        ports_spec: &PortsSpec,
-    ) -> Result<()> {
-        for port_id in ports_spec.ids() {
-            repo.create(id, *port_id, NodePortConnection::default())?;
+        if spec.params().is_some() {
+            self.node_facade_view.parameters.remove(id);
         }
         Ok(())
-    }
-
-    fn disconnect_ports(&mut self, ports_spec: &PortsSpec, id: NodeId) -> Result<()> {
-        let channel_service_api =
-            ChannelBorrowMutApi::new(self.channel_facade.view_mut(), self.channel_service);
-        let mut port_connection_service_api =
-            PortConnectionApi::new(self.node_facade_view.ports, ports_spec, channel_service_api);
-
-        port_connection_service_api.disconnect_all(id)
     }
 }
 
@@ -514,24 +501,44 @@ where
             spec,
         };
         self.channel_service_api.connect(ctx)?;
-        self.state_mut(input.node, input.port)?
-            .connect(input.channel)
+        if let Some(conn) = self.state_mut(input.node, input.port) {
+            conn.connect(input.channel)?;
+        } else {
+            self.repo.insert(
+                input.node,
+                input.port,
+                NodePortConnection::Internal(<_>::try_from_iter(std::iter::once(input.channel))?),
+            )?;
+        }
+        Ok(())
+    }
+
+    pub fn set_external(&mut self, id: NodeId, port: NodePortId) -> Result<()> {
+        self.disconnect_all(id)?;
+        self.repo.insert(id, port, NodePortConnection::External)
     }
 
     pub fn disconnect(&mut self, input: PortConnectionInput) -> Result<()> {
         let spec = self.ports_spec.spec(input.port)?;
         self.channel_service_api
             .disconnect(input.channel, spec.kind)?;
-        self.state_mut(input.node, input.port)?
-            .disconnect(input.channel)
+        if let Some(conn) = self.repo.remove(input.node, input.port)
+            && let Some(still_valid_conn) = conn.disconnect(input.channel)?
+        {
+            self.repo.insert(input.node, input.port, still_valid_conn)?;
+        }
+
+        Ok(())
     }
 
     pub fn disconnect_all(&mut self, id: NodeId) -> Result<()> {
         for port_id in self.ports_spec.ids() {
-            let channels = self.state_mut(id, *port_id)?.disconnect_all();
-            for channel in channels {
-                self.channel_service_api
-                    .disconnect(channel, self.ports_spec.spec(*port_id)?.kind)?;
+            if let Some(conn) = self.repo.remove(id, *port_id) {
+                let channels = conn.disconnect_all();
+                for channel in channels {
+                    self.channel_service_api
+                        .disconnect(channel, self.ports_spec.spec(*port_id)?.kind)?;
+                }
             }
         }
         Ok(())
@@ -541,10 +548,8 @@ where
         &mut self,
         node_id: NodeId,
         port_id: NodePortId,
-    ) -> Result<&mut NodePortConnection> {
-        self.repo.state_mut(node_id, port_id).ok_or_else(|| {
-            anyhow!("unable to retrieve node's (id: {node_id}) port (id: {port_id}) state")
-        })
+    ) -> Option<&mut NodePortConnection> {
+        self.repo.state_mut(node_id, port_id)
     }
 }
 
@@ -655,9 +660,7 @@ impl NodeService {
         self.node_cache
             .get_mut(&spec.kind())
             .map(|nodes| nodes.remove(&id));
-
         view.nodes.remove(id);
-        view.parameters.remove(id);
         Ok(())
     }
 

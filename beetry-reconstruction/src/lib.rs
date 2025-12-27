@@ -150,7 +150,6 @@ impl TreeReconstructor {
         match kind {
             NodeKind::Control => {
                 let children_id = node_store.nodes.get(&node_id).unwrap().children();
-                //@todo should it also be IndexSet or BTreeSet?
                 let mut children = vec![];
                 for child_id in children_id {
                     children.push(Self::try_create_node_snapshot(
@@ -177,40 +176,26 @@ impl TreeReconstructor {
                     .into_iter()
                     .flat_map(|state| state.conns.into_iter())
                 {
+                    let plugin = node_plugins.action.get(&name)?;
+                    let spec = plugin.spec();
+                    let ports_spec = spec
+                        .ports()
+                        .as_ref()
+                        .ok_or_else(|| anyhow!("expected port specification for node {name}"))?;
+                    let port_spec = ports_spec.spec(port_id)?;
                     match conn {
-                        //@todo create new type to convert NodePortConnection into ValidNodePortConnection
-                        // then copy pasted code in both branches can be harmonized
-                        NodePortConnection::Unconnected => panic!("invalid state"),
-                        NodePortConnection::External => {
-                            let plugin = node_plugins.action.get(&name)?;
-                            let spec = plugin.spec();
-                            let ports_spec = spec.ports().as_ref().ok_or_else(|| {
-                                anyhow!("expected port specification for node {name}")
-                            })?;
-                            let port_spec = ports_spec.spec(port_id)?;
-                            match port_spec.kind {
-                                NodePortKind::Receiver => {
-                                    ext_receivers.push(port_spec.msg_spec.hash())
-                                }
-                                NodePortKind::Sender => {
-                                    ext_senders.push(port_spec.msg_spec.hash());
-                                }
+                        NodePortConnection::External => match port_spec.kind {
+                            NodePortKind::Receiver => ext_receivers.push(port_spec.msg_spec.hash()),
+                            NodePortKind::Sender => {
+                                ext_senders.push(port_spec.msg_spec.hash());
                             }
-                        }
-                        NodePortConnection::Internal(connections) => {
-                            let plugin = node_plugins.action.get(&name)?;
-                            let spec = plugin.spec();
-                            let ports_spec = spec.ports().as_ref().ok_or_else(|| {
-                                anyhow!("expected port specification for node {name}")
-                            })?;
-                            let port_spec = ports_spec.spec(port_id)?;
-                            match port_spec.kind {
-                                NodePortKind::Receiver => receivers.extend(connections),
-                                NodePortKind::Sender => {
-                                    senders.extend(connections);
-                                }
+                        },
+                        NodePortConnection::Internal(connections) => match port_spec.kind {
+                            NodePortKind::Receiver => receivers.extend(connections.iter()),
+                            NodePortKind::Sender => {
+                                senders.extend(connections.iter());
                             }
-                        }
+                        },
                     }
                 }
 

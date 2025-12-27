@@ -193,7 +193,6 @@ impl ChannelService {
         Ok(())
     }
 
-    //@todo also on_node_removal should remove connections to removed node
     fn remove(
         channel_repo: &mut impl ChannelRepositoryConcept,
         id: ChannelId,

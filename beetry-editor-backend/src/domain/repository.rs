@@ -435,7 +435,7 @@ impl NodeRepositoryConcept for NodeRepository {
 }
 
 pub trait PortStateRepositoryConcept: Default {
-    fn create(&mut self, node: NodeId, port: NodePortId, conn: NodePortConnection) -> Result<()>;
+    fn insert(&mut self, node: NodeId, port: NodePortId, conn: NodePortConnection) -> Result<()>;
 
     fn remove(&mut self, node: NodeId, port: NodePortId) -> Option<NodePortConnection>;
 
@@ -451,7 +451,7 @@ pub struct PortStateRepository {
 }
 
 impl PortStateRepositoryConcept for PortStateRepository {
-    fn create(&mut self, node: NodeId, port: NodePortId, conn: NodePortConnection) -> Result<()> {
+    fn insert(&mut self, node: NodeId, port: NodePortId, conn: NodePortConnection) -> Result<()> {
         self.connections.insert((node, port), conn);
         Ok(())
     }
