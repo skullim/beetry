@@ -1,5 +1,5 @@
 use crate::id::ChannelSpecId;
-use anyhow::{Result, bail};
+use anyhow::{Result, anyhow};
 use derive_more::From;
 use getset::{CopyGetters, MutGetters, Setters};
 use serde::{Deserialize, Serialize};
@@ -35,9 +35,9 @@ impl ChannelConfig {
         }
     }
 
-    pub fn set_kind(&mut self, kind: ChannelKind) -> Result<()> {
-        // validate if kind is valid, e.g. if there are multiple receivers and one tries to change to mpsc
-        todo!()
+    // service layer has to guarantee that invalid connections are handled when changing the channel kind
+    pub fn set_kind(&mut self, kind: ChannelKind) {
+        self.kind = kind
     }
 }
 
@@ -67,12 +67,9 @@ impl SenderReceiverCount {
     }
 
     pub fn decrease_sender_count(&mut self) -> Result<()> {
-        match self.sender.checked_sub(1) {
-            Some(count) => self.sender = count,
-            None => {
-                bail!("cannot decrease sender count below 0");
-            }
-        }
+        self.receiver
+            .checked_sub(1)
+            .ok_or_else(|| anyhow!("cannot decrease sender count below 0"))?;
         Ok(())
     }
 
@@ -81,12 +78,9 @@ impl SenderReceiverCount {
     }
 
     pub fn decrease_receiver_count(&mut self) -> Result<()> {
-        match self.receiver.checked_sub(1) {
-            Some(count) => self.receiver = count,
-            None => {
-                bail!("cannot decrease receiver count below 0");
-            }
-        }
+        self.receiver
+            .checked_sub(1)
+            .ok_or_else(|| anyhow!("cannot decrease receiver count below 0"))?;
         Ok(())
     }
 }

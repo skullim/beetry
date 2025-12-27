@@ -3,7 +3,7 @@ use anyhow::{Result, anyhow};
 use bon::Builder;
 use derive_more::{Display, From};
 use getset::{CopyGetters, Getters};
-use mitsein::{btree_map1::BTreeMap1, iter1::FromIterator1};
+use mitsein::{btree_map1::BTreeMap1, iter1::FromIterator1, vec1::Vec1};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Builder, Clone, Getters)]
@@ -106,15 +106,18 @@ pub enum LeafKind {
     Condition,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ParamsSpec {
-    pub defs: Vec<Definition>,
+    pub defs: Vec1<Definition>,
 }
 
-impl ParamsSpec {
-    pub fn new(defs: impl IntoIterator<Item = Definition>) -> Self {
+impl FromIterator1<Definition> for ParamsSpec {
+    fn from_iter1<I>(items: I) -> Self
+    where
+        I: mitsein::prelude::IntoIterator1<Item = Definition>,
+    {
         Self {
-            defs: defs.into_iter().collect(),
+            defs: items.into_iter1().collect1(),
         }
     }
 }
@@ -144,6 +147,10 @@ impl FromIterator1<NodePortSpec> for PortsSpec {
 impl PortsSpec {
     pub fn ids(&self) -> impl Iterator<Item = &NodePortId> {
         self.map.keys1().into_iter()
+    }
+
+    pub fn kind(&self, id: NodePortId) -> Option<NodePortKind> {
+        self.map.get(&id).map(|spec| spec.kind)
     }
 
     pub fn sender_ids(&self) -> impl Iterator<Item = &NodePortId> {

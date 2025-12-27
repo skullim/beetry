@@ -147,7 +147,7 @@ pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
         impl ProvideSchema for #name {
             fn provide() -> ParamsSpec {
                 let definitions = vec![#(#definitions),*];
-                ParamsSpec::new(definitions.into_iter())
+                ParamsSpec::try_from_iter(definitions.into_iter()).unwrap()
             }
         }
     }

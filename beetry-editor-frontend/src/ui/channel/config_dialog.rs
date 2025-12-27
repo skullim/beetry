@@ -44,15 +44,15 @@ pub fn Dialog(props: DialogProps) -> Element {
     let handlers = use_context::<Handlers>();
 
     let on_confirm = move |_| {
-        let capacity_val = *capacity.read();
-        let type_val = *channel_type.read();
-        let impl_kind = match type_val {
+        let capacity = *capacity.read();
+        let ty = *channel_type.read();
+        let channel_kind = match ty {
             ChannelType::Mpsc => ChannelKind::Tokio(TokioChannelKind::Mpsc),
             ChannelType::Broadcast => ChannelKind::Tokio(TokioChannelKind::Broadcast),
         };
 
-        let channel_metadata = ChannelConfig::new(capacity_val, impl_kind);
-        handlers.on_confirm.call(channel_metadata);
+        let channel_config = ChannelConfig::new(capacity, channel_kind);
+        handlers.on_confirm.call(channel_config);
     };
 
     let on_cancel = move |_| {
@@ -101,7 +101,7 @@ pub fn Dialog(props: DialogProps) -> Element {
                         border: "1px solid #ddd",
                         border_radius: "4px",
                         oninput: move |evt| {
-                            if let Ok(val) = evt.value().parse::<usize>() && val > 0 {
+                            if let Ok(val) = evt.value().parse::<usize>() {
                                 capacity.set(val);
                             }
                         },

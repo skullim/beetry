@@ -3,11 +3,11 @@ use beetry_builder::Builder as BehaviorTreeBuilder;
 use beetry_channel::external;
 use beetry_core::{BoxNode, MessageHash, NonEmptyNodes, RegisterTask, Root, TaskHandle, Tree};
 use beetry_editor_types::id::ChannelId;
-use beetry_editor_types::output::node::{NodePortConnection, Parameters};
+use beetry_editor_types::output::node::{Parameters, PortConnectionState};
 use beetry_editor_types::spec::node::{LeafKind, NodeKind, NodeName, NodePortKind};
 use beetry_editor_types::{
     id::NodeId,
-    persistence::{ChannelStore, NodePortStore, NodeStore, ParameterValueStore, ValidTree},
+    persistence::{ChannelStore, NodeStore, ParameterValueStore, PortStateStore, ValidTree},
 };
 use beetry_plugin::channel::{BoxChannelPlugin, ChannelPluginConstructor, TypeErasedChannel};
 use beetry_plugin::node::{
@@ -98,7 +98,7 @@ impl TreeReconstructor {
     fn try_create_root_snapshot(
         node_store: NodeStore,
         mut param_store: ParameterValueStore,
-        mut port_store: NodePortStore,
+        mut port_store: PortStateStore,
         node_plugins: &NodePluginRegistry,
     ) -> Result<RootSnapshot> {
         let root_id = node_store
@@ -141,7 +141,7 @@ impl TreeReconstructor {
         node_id: NodeId,
         node_store: &NodeStore,
         param_store: &mut ParameterValueStore,
-        port_store: &mut NodePortStore,
+        port_store: &mut PortStateStore,
         node_plugins: &NodePluginRegistry,
     ) -> Result<NodeSnapshot> {
         let spec_id = node_store.nodes.get(&node_id).unwrap().spec_id();
@@ -171,7 +171,7 @@ impl TreeReconstructor {
                 let mut ext_receivers = Vec::new();
                 let mut ext_senders = Vec::new();
 
-                for (port_id, conn) in port_store
+                for conn_record in port_store
                     .take(&node_id)
                     .into_iter()
                     .flat_map(|state| state.conns.into_iter())
@@ -182,15 +182,15 @@ impl TreeReconstructor {
                         .ports()
                         .as_ref()
                         .ok_or_else(|| anyhow!("expected port specification for node {name}"))?;
-                    let port_spec = ports_spec.spec(port_id)?;
-                    match conn {
-                        NodePortConnection::External => match port_spec.kind {
+                    let port_spec = ports_spec.spec(conn_record.port_id)?;
+                    match conn_record.conn {
+                        PortConnectionState::External => match port_spec.kind {
                             NodePortKind::Receiver => ext_receivers.push(port_spec.msg_spec.hash()),
                             NodePortKind::Sender => {
                                 ext_senders.push(port_spec.msg_spec.hash());
                             }
                         },
-                        NodePortConnection::Internal(connections) => match port_spec.kind {
+                        PortConnectionState::Internal(connections) => match port_spec.kind {
                             NodePortKind::Receiver => receivers.extend(connections.iter()),
                             NodePortKind::Sender => {
                                 senders.extend(connections.iter());

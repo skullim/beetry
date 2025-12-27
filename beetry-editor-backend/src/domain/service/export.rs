@@ -9,9 +9,9 @@ use beetry_editor_types::{
     id::{ChannelId, NodeId, NodePortId},
     persistence::{
         ChannelDataStore, ChannelSpecStore, ChannelStore, ChannelUiRecord, EditorStateStore,
-        MaybeValidTree, NodePortState, NodePortStore, NodeRecordStore, NodeRecordValue,
-        NodeSpecStore, NodeStore, NodeUiRecord, ParameterValue, ParameterValueStore, TreeStore,
-        UiElementStore, ValidTree,
+        MaybeValidTree, NodeRecordStore, NodeRecordValue, NodeSpecStore, NodeStore, NodeUiRecord,
+        ParameterValue, ParameterValueStore, PortConnectionCollection, PortConnectionRecord,
+        PortStateStore, TreeStore, UiElementStore, ValidTree,
     },
     spec::node::NodeSpecKey,
 };
@@ -230,19 +230,19 @@ where
         Ok(ParameterValueStore::new(store))
     }
 
-    fn export_port_store(&mut self, nodes: &[NodeId]) -> Result<NodePortStore> {
+    fn export_port_store(&mut self, nodes: &[NodeId]) -> Result<PortStateStore> {
         let ports_api = self.node_api.port_state();
         let port_state_iter = nodes.iter().copied().map(|id| {
             (
                 id,
-                NodePortState::new(
+                PortConnectionCollection::new(
                     ports_api
-                        .port_iter(id)
-                        .map(|(id, conn)| (*id, conn.clone())),
+                        .node_conns(id)
+                        .map(|(id, conn)| PortConnectionRecord::new(*id, conn.clone())),
                 ),
             )
         });
-        Ok(NodePortStore::new(port_state_iter))
+        Ok(PortStateStore::new(port_state_iter))
     }
 
     fn export_channel_store(&mut self, channels: &[ChannelId]) -> Result<ChannelStore> {
