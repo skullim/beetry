@@ -10,6 +10,7 @@ bon.workspace = true
 derive_more.workspace = true
 getset.workspace = true
 indexmap.workspace = true
+mitsein.workspace = true
 num-traits.workspace = true
 serde.workspace = true
 serde-value.workspace = true

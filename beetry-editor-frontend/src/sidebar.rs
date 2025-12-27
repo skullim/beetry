@@ -1,5 +1,5 @@
 use crate::Point;
-use beetry_editor_types::spec::node::{LeafKind, NodeKind, NodeSpecKey};
+use beetry_editor_types::spec::node::{NodeKind, NodeSpecKey};
 use dioxus::logger::tracing::info;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;

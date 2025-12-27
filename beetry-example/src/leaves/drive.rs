@@ -5,11 +5,14 @@ use anyhow::{Result, anyhow};
 use beetry_channel::downcast;
 use beetry_core::{ActionBehavior, BoxActionBehavior, NodeTask, Receiver, Task, TickStatus};
 use beetry_editor_types::spec::message::MessageSpec;
-use beetry_editor_types::spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey, PortsSpec};
+use beetry_editor_types::spec::node::{
+    NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey,
+};
 use beetry_macros::receivers;
 use beetry_plugin::Plugin;
 use beetry_plugin::node::ActionFactory;
 use beetry_plugin::node::ActionReconstructionData;
+use mitsein::iter1::IntoIterator1;
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
 
@@ -128,10 +131,14 @@ impl Plugin for DrivePlugin {
         };
         let spec = NodeSpec::builder()
             .key(NodeSpecKey::new(NodeName::new("Drive"), NodeKind::action()))
-            .ports(PortsSpec::new(
-                std::iter::empty(),
-                std::iter::once(MessageSpec::new::<Pose>("Drive pose")),
-            ))
+            .ports(
+                [NodePortSpec {
+                    kind: NodePortKind::Receiver,
+                    msg_spec: MessageSpec::new::<Pose>("Drive pose"),
+                }]
+                .into_iter1()
+                .collect1(),
+            )
             .build();
 
         Self {

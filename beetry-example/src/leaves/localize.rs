@@ -3,9 +3,12 @@ use anyhow::{Result, anyhow};
 use beetry_channel::downcast;
 use beetry_core::{self, ActionBehavior, BoxActionBehavior, NodeTask, Task, TickStatus};
 use beetry_editor_types::spec::message::MessageSpec;
-use beetry_editor_types::spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey, PortsSpec};
+use beetry_editor_types::spec::node::{
+    NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey,
+};
 use beetry_plugin::Plugin;
 use beetry_plugin::node::{ActionFactory, ActionReconstructionData};
+use mitsein::iter1::IntoIterator1;
 use std::time::Duration;
 use tokio::sync::mpsc::{Receiver, Sender, channel as mpsc_channel};
 use tracing::{debug, instrument};
@@ -131,10 +134,14 @@ impl Plugin for LocalizePlugin {
                 NodeName::new("Localize"),
                 NodeKind::action(),
             ))
-            .ports(PortsSpec::new(
-                std::iter::once(MessageSpec::new::<Pose>("Localized pose")),
-                std::iter::empty(),
-            ))
+            .ports(
+                [NodePortSpec {
+                    kind: NodePortKind::Sender,
+                    msg_spec: MessageSpec::new::<Pose>("Drive pose"),
+                }]
+                .into_iter1()
+                .collect1(),
+            )
             .build();
 
         Self {
