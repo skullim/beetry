@@ -14,7 +14,6 @@ use beetry_editor_types::{
 use getset::{Getters, MutGetters};
 use num_traits::One;
 use std::{collections::HashMap, fmt::Display, hash::Hash, ops::AddAssign};
-use tracing::debug;
 
 #[derive(Debug, Default, Getters, MutGetters)]
 pub struct EditorRepository<NRF, ER, CRF, UR> {
@@ -293,7 +292,7 @@ impl UiRepositoryFacadeConcept for UiRepositoryFacade {
     }
 }
 
-/// Service layer should guarantee that no same Specs are stored
+/// Service layer should guarantee that unique specs are stored
 pub trait SpecRepositoryConcept: Default {
     type Spec;
     type SpecId;
@@ -618,7 +617,7 @@ impl ChannelRepositoryConcept for ChannelRepository {
     }
 }
 
-//@todo harmonize with other repo types to provide the ID by the repo
+//UI components are always backed up by other "real" entities, therefore no need to use new identifiers
 pub trait UiRepositoryConcept: Default {
     type Id;
     type Data;

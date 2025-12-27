@@ -1,28 +1,39 @@
-use std::collections::{BTreeMap, HashSet};
-
-use anyhow::{Result, anyhow, bail};
+use crate::id::ChannelId;
+use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
 use serde_value::Value;
+use std::collections::{BTreeMap, HashSet};
 use tracing::warn;
-
-use crate::id::ChannelId;
-
-// Param Value
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Parameters {
     field_value_map: BTreeMap<String, Value>,
 }
 
+impl IntoIterator for Parameters {
+    type Item = (String, Value);
+    type IntoIter = std::collections::btree_map::IntoIter<String, Value>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.field_value_map.into_iter()
+    }
+}
+
 impl Parameters {
     /// caller has to assure that new value is valid w.r.t. schema and validation logic
-    pub fn update(&mut self, field: &str, new: Value) -> Result<()> {
-        let old = self
-            .field_value_map
-            .get_mut(field)
-            .ok_or_else(|| anyhow!("no field named: {field} found for given parameters"))?;
-        *old = new;
-        Ok(())
+    pub fn set(&mut self, field: &str, value: Value) {
+        //@todo in case no value for given field
+        match self.field_value_map.get_mut(field) {
+            Some(old) => {
+                *old = value;
+            }
+            None => {
+                self.field_value_map.insert(field.into(), value);
+            }
+        }
+    }
+
+    pub fn value(&self, field: &str) -> Option<&Value> {
+        self.field_value_map.get(field)
     }
 }
 
@@ -33,28 +44,6 @@ impl FromIterator<(String, Value)> for Parameters {
         }
     }
 }
-
-//@todo this should be moved somewhere else
-pub struct Deserializer;
-
-impl Deserializer {
-    pub fn deserialize<T>(params: Parameters) -> Result<T>
-    where
-        T: for<'de> Deserialize<'de>,
-    {
-        let deserializer = serde_value::ValueDeserializer::<serde_value::DeserializerError>::new(
-            Value::Map(BTreeMap::from_iter(
-                params
-                    .field_value_map
-                    .into_iter()
-                    .map(|(k, v)| (Value::String(k), v)),
-            )),
-        );
-        Ok(T::deserialize(deserializer)?)
-    }
-}
-
-// Port State
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NodePortConnection {

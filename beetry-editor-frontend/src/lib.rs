@@ -13,9 +13,8 @@ use beetry_plugin::{
 };
 use dioxus::logger::tracing::Level;
 use dioxus::prelude::*;
-use std::collections::HashMap;
 
-use beetry_editor_types::output::ui::Point;
+use beetry_editor_types::{output::ui::Point, spec::node::NodeSpec};
 
 #[cfg(target_family = "wasm")]
 unsafe extern "C" {
@@ -65,19 +64,20 @@ pub fn SpecsProvider(children: Element) -> Element {
             let spec = p.into_parts().0;
             (spec.key().clone(), spec)
         }));
+        let root_spec = NodeSpec::root();
+        let iter = iter.chain(std::iter::once((root_spec.key().clone(), root_spec)));
         NodeSpecMap::from_iter(iter)
     };
 
     let channels = {
         let plugins = ChannelPluginConstructor::plugins()?;
-        let map = plugins
+        plugins
             .into_iter()
             .map(|p| {
                 let spec = p.into_parts().0;
                 (spec.msg_hash(), spec)
             })
-            .collect::<HashMap<_, _>>();
-        ChannelSpecMap::new(map)
+            .collect::<ChannelSpecMap>()
     };
 
     use_context_provider(move || Specs { nodes, channels });

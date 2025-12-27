@@ -3,6 +3,7 @@ use anyhow::{Result, anyhow};
 use bon::Builder;
 use derive_more::{Display, From};
 use getset::{CopyGetters, Getters};
+use mitsein::{btree_map1::BTreeMap1, iter1::FromIterator1};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Builder, Clone, Getters)]
@@ -10,12 +11,10 @@ pub struct NodeSpec {
     #[getset(get = "pub")]
     pub key: NodeSpecKey,
     //@todo value
-    #[builder(default)]
     #[getset(get = "pub")]
-    params: crate::spec::node::Schema,
-    #[builder(default)]
+    params: Option<ParamsSpec>,
     #[getset(get = "pub")]
-    ports: PortsSpec,
+    ports: Option<PortsSpec>,
 }
 
 impl NodeSpec {
@@ -24,11 +23,11 @@ impl NodeSpec {
     }
 
     pub fn name(&self) -> &NodeName {
-        &self.key.name
+        self.key.name()
     }
 
     pub fn kind(&self) -> NodeKind {
-        self.key.kind
+        self.key.kind()
     }
 }
 
@@ -53,12 +52,10 @@ impl NodeSpecKey {
     }
 }
 
-#[derive(Debug, Default, Builder, Clone)]
+#[derive(Debug, Default, Builder, Clone, Getters)]
 pub struct NodeSpecValue {
-    #[builder(default)]
-    pub params: crate::spec::node::Schema,
-    #[builder(default)]
-    pub ports: PortsSpec,
+    pub params: Option<ParamsSpec>,
+    pub ports: Option<PortsSpec>,
 }
 
 #[derive(
@@ -110,11 +107,11 @@ pub enum LeafKind {
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Schema {
+pub struct ParamsSpec {
     pub defs: Vec<Definition>,
 }
 
-impl Schema {
+impl ParamsSpec {
     pub fn new(defs: impl IntoIterator<Item = Definition>) -> Self {
         Self {
             defs: defs.into_iter().collect(),
@@ -124,38 +121,29 @@ impl Schema {
 
 // Ports
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PortsSpec {
-    spec: Vec<NodePortSpec>,
-    ids: Vec<NodePortId>,
+    map: BTreeMap1<NodePortId, NodePortSpec>,
+}
+
+impl FromIterator1<NodePortSpec> for PortsSpec {
+    fn from_iter1<I>(items: I) -> Self
+    where
+        I: mitsein::prelude::IntoIterator1<Item = NodePortSpec>,
+    {
+        Self {
+            map: items
+                .into_iter1()
+                .enumerate()
+                .map(|(id, spec)| (NodePortId::new(id as u8), spec))
+                .collect1(),
+        }
+    }
 }
 
 impl PortsSpec {
-    //@todo tedious to use, sometimes only senders or receivers are present
-    // also order matters here, much better to define builder
-    pub fn new(
-        senders: impl IntoIterator<Item = MessageSpec>,
-        receivers: impl IntoIterator<Item = MessageSpec>,
-    ) -> Self {
-        let spec: Vec<_> = senders
-            .into_iter()
-            .map(|spec| NodePortSpec {
-                kind: NodePortKind::Sender,
-                msg_spec: spec,
-            })
-            .chain(receivers.into_iter().map(|spec| NodePortSpec {
-                kind: NodePortKind::Receiver,
-                msg_spec: spec,
-            }))
-            .collect();
-        let ids: Vec<_> = (0..spec.len())
-            .map(|id| NodePortId::new(id.try_into().unwrap()))
-            .collect();
-        Self { spec, ids }
-    }
-
-    pub fn ids(&self) -> &[NodePortId] {
-        &self.ids
+    pub fn ids(&self) -> impl Iterator<Item = &NodePortId> {
+        self.map.keys1().into_iter()
     }
 
     pub fn sender_ids(&self) -> impl Iterator<Item = &NodePortId> {
@@ -177,17 +165,17 @@ impl PortsSpec {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&NodePortId, &NodePortSpec)> {
-        self.ids().iter().zip(self.specs())
+        self.ids().zip(self.specs())
     }
 
     pub fn spec(&self, id: NodePortId) -> Result<&NodePortSpec> {
-        self.spec
-            .get(id.raw_value() as usize)
+        self.map
+            .get(&id)
             .ok_or_else(|| anyhow!("failed to obtain spec for port {id}"))
     }
 
-    pub fn specs(&self) -> &[NodePortSpec] {
-        &self.spec
+    pub fn specs(&self) -> impl Iterator<Item = &NodePortSpec> {
+        self.map.values1().into_iter()
     }
 }
 
@@ -206,7 +194,7 @@ pub enum NodePortKind {
 // Parameters
 
 pub trait ProvideSchema {
-    fn provide() -> Schema;
+    fn provide() -> ParamsSpec;
 }
 
 #[derive(Debug, Clone, Builder, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -269,6 +257,8 @@ pub enum Type2 {
     Float(FloatValidationFn),
     String(StringValidationFn),
 }
+
+//@todo probably need param id that is static regarding given node
 
 #[derive(Builder)]
 pub struct Definition2 {

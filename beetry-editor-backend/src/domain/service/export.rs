@@ -28,6 +28,8 @@ use crate::domain::{
 
 #[derive(Debug, Builder)]
 pub struct TreeValidationResult {
+    #[builder(default)]
+    pub missing_root: bool,
     pub child_free_non_leaf_node: Option<NodeId>,
     pub unconnected_port: Option<(NodeId, NodePortId)>,
     // nodes that are not connected to root
@@ -288,10 +290,8 @@ where
         UiElementStore::new(nodes, channels)
     }
 
-    /// Preconditions:
-    /// 1. There is one and only root node
-    ///
     /// Validation rules:
+    /// 0. Root node exists
     /// 1. Each node is connected to root
     /// 2. All except leaf nodes have at least (or most for decorator) 1 child. Decorator having maximum one child is guaranteed at node connection API.
     /// 3. Each node port is not in Unconnected state
@@ -299,13 +299,12 @@ where
     fn validate_tree(&self) -> TreeValidationResult {
         let (root_id, leaf_nodes): (_, HashSet<_>) = {
             let tracker = self.node_api.tracker();
-            (
-                tracker
-                    .root_id()
-                    .context("precondition that root exists not met")
-                    .unwrap(),
-                tracker.leaf_nodes().copied().collect(),
-            )
+            match tracker.root_id() {
+                Ok(root_id) => (root_id, tracker.leaf_nodes().copied().collect()),
+                Err(_) => {
+                    return TreeValidationResult::builder().missing_root(true).build();
+                }
+            }
         };
 
         let mut valid_nodes = HashSet::new();

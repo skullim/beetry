@@ -72,10 +72,10 @@ pub(crate) fn Editor() -> Element {
 
             //@todo handle unwraps
             let node_spec = specs_map.nodes.spec(&node_spec_key).unwrap();
-            let id = lifecycle_api.create(node_spec.clone()).unwrap();
+            let id = lifecycle_api.create(node_spec).unwrap();
 
             // make param state visible if params expected for this node spec
-            if !node_spec.params().defs.is_empty() {
+            if node_spec.params().is_some() {
                 debug!("setting parameter dialog state");
                 parameter_dialog_state.set(ParameterDialogState::Visible {
                     position: Point { x: 300.0, y: 200.0 },
@@ -144,15 +144,14 @@ pub(crate) fn Editor() -> Element {
 }
 
 fn parameter_dialog_handlers(mut state: Signal<ParameterDialogState>) -> ParameterDialogHandlers {
-    let on_confirm = move |(node_id, params): (NodeId, Parameters)| {
+    let on_confirm = move |(node_id, params): (NodeId, Parameters)| -> Result<()> {
         let mut service_ctx = use_context::<ServiceContext>();
         let mut write = service_ctx.service.write();
         let mut node_api = write.node_api_mut();
         let mut node_api_params = node_api.parameters();
-        node_api_params
-            .load(node_id, ParameterValue { params })
-            .unwrap();
+        node_api_params.create(node_id, ParameterValue { params })?;
         state.take();
+        Ok(())
     };
 
     let on_cancel = move |_| {
