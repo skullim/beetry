@@ -5,7 +5,7 @@ use beetry_editor_types::{
     output::{
         channel::ChannelData,
         edge::NodeEdge,
-        node::{NodePortConnection, Parameters},
+        node::{Parameters, PortConnectionState},
         ui::{ChannelUiData, NodeUiData},
     },
     spec::channel::ChannelSpec,
@@ -435,44 +435,71 @@ impl NodeRepositoryConcept for NodeRepository {
 }
 
 pub trait PortStateRepositoryConcept: Default {
-    fn insert(&mut self, node: NodeId, port: NodePortId, conn: NodePortConnection) -> Result<()>;
+    fn insert(&mut self, node: NodeId, port: NodePortId, state: PortConnectionState) -> Result<()>;
 
-    fn remove(&mut self, node: NodeId, port: NodePortId) -> Option<NodePortConnection>;
+    fn remove(&mut self, node: NodeId, port: NodePortId) -> Option<PortConnectionState>;
 
-    fn state(&self, node: NodeId, port: NodePortId) -> Option<&NodePortConnection>;
-    fn state_mut(&mut self, node: NodeId, port: NodePortId) -> Option<&mut NodePortConnection>;
+    fn state(&self, node: NodeId, port: NodePortId) -> Option<&PortConnectionState>;
+    fn state_mut(&mut self, node: NodeId, port: NodePortId) -> Option<&mut PortConnectionState>;
 
-    fn port_iter(&self, node: NodeId) -> impl Iterator<Item = (&NodePortId, &NodePortConnection)>;
+    fn node_conns(&self, node: NodeId)
+    -> impl Iterator<Item = (&NodePortId, &PortConnectionState)>;
+
+    fn iter(
+        &self,
+    ) -> impl Iterator<
+        Item = (
+            &NodeId,
+            impl Iterator<Item = (&NodePortId, &PortConnectionState)>,
+        ),
+    >;
 }
 
 #[derive(Default)]
 pub struct PortStateRepository {
-    connections: HashMap<(NodeId, NodePortId), NodePortConnection>,
+    connections: HashMap<NodeId, HashMap<NodePortId, PortConnectionState>>,
 }
 
 impl PortStateRepositoryConcept for PortStateRepository {
-    fn insert(&mut self, node: NodeId, port: NodePortId, conn: NodePortConnection) -> Result<()> {
-        self.connections.insert((node, port), conn);
+    fn insert(&mut self, node: NodeId, port: NodePortId, state: PortConnectionState) -> Result<()> {
+        self.connections
+            .entry(node)
+            .or_default()
+            .insert(port, state);
         Ok(())
     }
 
-    fn remove(&mut self, node: NodeId, port: NodePortId) -> Option<NodePortConnection> {
-        self.connections.remove(&(node, port))
+    fn remove(&mut self, node: NodeId, port: NodePortId) -> Option<PortConnectionState> {
+        self.connections.get_mut(&node).map(|hm| hm.remove(&port))?
     }
 
-    fn state(&self, node: NodeId, port: NodePortId) -> Option<&NodePortConnection> {
-        self.connections.get(&(node, port))
+    fn state(&self, node: NodeId, port: NodePortId) -> Option<&PortConnectionState> {
+        self.connections.get(&node)?.get(&port)
     }
 
-    fn state_mut(&mut self, node: NodeId, port: NodePortId) -> Option<&mut NodePortConnection> {
-        self.connections.get_mut(&(node, port))
+    fn state_mut(&mut self, node: NodeId, port: NodePortId) -> Option<&mut PortConnectionState> {
+        self.connections.get_mut(&node)?.get_mut(&port)
     }
 
-    fn port_iter(&self, node: NodeId) -> impl Iterator<Item = (&NodePortId, &NodePortConnection)> {
+    fn node_conns(
+        &self,
+        node: NodeId,
+    ) -> impl Iterator<Item = (&NodePortId, &PortConnectionState)> {
         self.connections
-            .iter()
-            .filter(move |((node_id, _), _)| *node_id == node)
-            .map(|((_, port_id), v)| (port_id, v))
+            .get(&node)
+            .into_iter()
+            .flat_map(|hm| hm.iter())
+    }
+
+    fn iter(
+        &self,
+    ) -> impl Iterator<
+        Item = (
+            &NodeId,
+            impl Iterator<Item = (&NodePortId, &PortConnectionState)>,
+        ),
+    > {
+        self.connections.iter().map(|(k, v)| (k, v.iter()))
     }
 }
 

@@ -62,6 +62,14 @@ impl FromIterator1<ChannelId> for InternalPortConnections {
     }
 }
 
+impl IntoIterator for InternalPortConnections {
+    type IntoIter = std::collections::btree_set::IntoIter<ChannelId>;
+    type Item = ChannelId;
+    fn into_iter(self) -> Self::IntoIter {
+        self.conns.into_iter()
+    }
+}
+
 impl InternalPortConnections {
     pub fn iter(&self) -> impl Iterator<Item = &ChannelId> {
         self.conns.iter1().into_iter()
@@ -69,12 +77,12 @@ impl InternalPortConnections {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum NodePortConnection {
+pub enum PortConnectionState {
     Internal(InternalPortConnections),
     External,
 }
 
-impl NodePortConnection {
+impl PortConnectionState {
     pub fn is_external(&self) -> bool {
         matches!(self, Self::External)
     }

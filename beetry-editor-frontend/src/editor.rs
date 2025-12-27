@@ -125,7 +125,7 @@ pub(crate) fn Editor() -> Element {
         channel::config_dialog::Handlers::new(on_new_channel, on_cancel)
     });
 
-    use_context_provider(move || parameter_dialog_handlers(parameter_dialog_state));
+    use_context_provider(move || parameter_dialog_handlers(parameter_dialog_state, render_nodes));
 
     rsx! {
         div { style: "display: flex; flex-direction: row; gap: 10px;",
@@ -143,7 +143,10 @@ pub(crate) fn Editor() -> Element {
     }
 }
 
-fn parameter_dialog_handlers(mut state: Signal<ParameterDialogState>) -> ParameterDialogHandlers {
+fn parameter_dialog_handlers(
+    mut state: Signal<ParameterDialogState>,
+    mut render_nodes: Signal<RequestRender>,
+) -> ParameterDialogHandlers {
     let on_confirm = move |(node_id, params): (NodeId, Parameters)| -> Result<()> {
         let mut service_ctx = use_context::<ServiceContext>();
         let mut write = service_ctx.service.write();
@@ -155,7 +158,23 @@ fn parameter_dialog_handlers(mut state: Signal<ParameterDialogState>) -> Paramet
     };
 
     let on_cancel = move |_| {
-        state.take();
+        let state = state.take();
+        if let ParameterDialogState::Visible { id, .. } = state {
+            let mut service_ctx = use_context::<ServiceContext>();
+            let mut write = service_ctx.service.write();
+            let mut node_api = write.node_api_mut();
+            let spec = {
+                let spec_api = node_api.spec();
+                spec_api.spec_by_node_id_pub(id).unwrap().clone()
+            };
+
+            node_api.lifecycle().remove(&spec, id).unwrap();
+
+            let mut ui_api = write.ui_api_mut();
+            ui_api.node().remove(id).unwrap();
+
+            render_nodes.with_mut(|write| write.request());
+        }
     };
 
     ParameterDialogHandlers::new(on_confirm, on_cancel)

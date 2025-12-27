@@ -7,6 +7,7 @@ use beetry_plugin::{
     Plugin,
     node::{ConditionFactory, ConditionReconstructionData},
 };
+use mitsein::iter1::FromIterator1;
 
 use beetry_reconstruction::ParamsReconstructor;
 use serde::{Deserialize, Serialize};

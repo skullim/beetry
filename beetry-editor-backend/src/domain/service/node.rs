@@ -17,10 +17,10 @@ use tracing::{debug, warn};
 use beetry_editor_types::{
     id::{ChannelId, NodeId, NodePortId, NodeSpecId},
     output::{
-        node::{NodePortConnection, Parameters},
+        node::{Parameters, PortConnectionState},
         ui::{NodePosition, NodeUiData},
     },
-    persistence::{NodePortState, NodeRecord, ParameterValue},
+    persistence::{NodeRecord, ParameterValue, PortConnectionCollection},
     spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey, ParamsSpec, PortsSpec},
 };
 use mitsein::iter1::FromIterator1;
@@ -265,7 +265,7 @@ where
         &mut self,
         node: NodeRecord,
         param_value: Option<ParameterValue>,
-        port_state: Option<NodePortState>,
+        port_state: Option<PortConnectionCollection>,
     ) -> Result<()> {
         self.node_service.load_node(
             self.node_facade_view.specs,
@@ -287,9 +287,11 @@ where
         self.node_facade_view.parameters.create(id, value.params)
     }
 
-    fn load_ports(&mut self, id: NodeId, state: NodePortState) -> Result<()> {
-        for (port_id, conn) in state.conns {
-            self.node_facade_view.ports.insert(id, port_id, conn)?;
+    fn load_ports(&mut self, id: NodeId, state: PortConnectionCollection) -> Result<()> {
+        for conn_record in state.conns {
+            self.node_facade_view
+                .ports
+                .insert(id, conn_record.port_id, conn_record.conn)?;
         }
         Ok(())
     }
@@ -453,17 +455,28 @@ where
         Self { repo }
     }
 
-    pub fn port_iter(
-        &self,
-        node_id: NodeId,
-    ) -> impl Iterator<Item = (&NodePortId, &NodePortConnection)> {
-        self.repo.port_iter(node_id)
-    }
-
-    pub fn state(&self, node_id: NodeId, port_id: NodePortId) -> Result<&NodePortConnection> {
+    pub fn state(&self, node_id: NodeId, port_id: NodePortId) -> Result<&PortConnectionState> {
         self.repo.state(node_id, port_id).ok_or_else(|| {
             anyhow!("unable to retrieve node's (id: {node_id}) port (id: {port_id}) state")
         })
+    }
+
+    pub fn node_conns(
+        &self,
+        node_id: NodeId,
+    ) -> impl Iterator<Item = (&NodePortId, &PortConnectionState)> {
+        self.repo.node_conns(node_id)
+    }
+
+    pub fn iter(
+        &self,
+    ) -> impl Iterator<
+        Item = (
+            &NodeId,
+            impl Iterator<Item = (&NodePortId, &PortConnectionState)>,
+        ),
+    > {
+        self.repo.iter()
     }
 }
 
@@ -507,7 +520,7 @@ where
             self.repo.insert(
                 input.node,
                 input.port,
-                NodePortConnection::Internal(<_>::try_from_iter(std::iter::once(input.channel))?),
+                PortConnectionState::Internal(<_>::try_from_iter(std::iter::once(input.channel))?),
             )?;
         }
         Ok(())
@@ -515,7 +528,7 @@ where
 
     pub fn set_external(&mut self, id: NodeId, port: NodePortId) -> Result<()> {
         self.disconnect_all(id)?;
-        self.repo.insert(id, port, NodePortConnection::External)
+        self.repo.insert(id, port, PortConnectionState::External)
     }
 
     pub fn disconnect(&mut self, input: PortConnectionInput) -> Result<()> {
@@ -548,7 +561,7 @@ where
         &mut self,
         node_id: NodeId,
         port_id: NodePortId,
-    ) -> Option<&mut NodePortConnection> {
+    ) -> Option<&mut PortConnectionState> {
         self.repo.state_mut(node_id, port_id)
     }
 }

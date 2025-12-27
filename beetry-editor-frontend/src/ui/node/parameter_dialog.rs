@@ -84,8 +84,10 @@ pub fn Dialog(props: DialogProps) -> Element {
     let on_confirm = move |_| {
         //@todo restore error validation
         let values = parameter_values.read();
-        let value_iter = values.iter().map(|(k, v)| (k.to_string(), v.clone()));
-        let serialized_params = Parameters::from_iter(value_iter);
+        let serialized_params = values
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.clone()))
+            .collect();
         handlers.on_confirm.call((id, serialized_params));
     };
 
@@ -185,28 +187,26 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
     };
 
     rsx! {
-        label { display: "block", margin_bottom: "4px", font_weight: "bold", {def.name.clone()} }
+        label { display: "block", margin_bottom: "4px", font_weight: "bold", {def.name.as_str()} }
 
         if let Some(desc) = &def.description {
-            div { font_size: "12px", color: "#666", margin_bottom: "4px", {desc.clone()} }
+            div { font_size: "12px", color: "#666", margin_bottom: "4px", {desc.as_str()} }
         }
 
         match &def.ty {
             Type::Boolean => {
-                let def_name = def.name.clone();
                 rsx! {
                     input {
                         r#type: "checkbox",
-                        checked: false, //values.read().get(&def.name).and_then(|v| v.as_bool()).unwrap_or(false),
+                        checked: false,
                         onchange: move |evt| {
                             let mut vals = values.write();
-                            vals.insert(def_name.clone(), Value::Bool(evt.checked()));
+                            vals.insert(def.name.clone(), Value::Bool(evt.checked()));
                         },
                     }
                 }
             }
             Type::Integer { bounds } => {
-                let def_name = def.name.clone();
                 let error = validation_error();
                 let border_color = if error.is_err() { "#ff0000" } else { "#ddd" };
                 rsx! {
@@ -214,14 +214,14 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                         r#type: "number",
                         min: bounds.as_ref().map(|b| b.min().to_string()),
                         max: bounds.as_ref().map(|b| b.max().to_string()),
-                        value: 0i64, //values.read().get(&def.name).and_then(|v| v.as_i64()).unwrap_or(0).to_string(),
+                        value: 0i64,
                         width: "100%",
                         padding: "4px 8px",
                         border: "1px solid {border_color}",
                         border_radius: "4px",
                         oninput: move |evt| {
                             if let Ok(val) = evt.value().parse::<i64>() {
-                                values.with_mut(|write| write.insert(def_name.clone(), Value::I64(val)));
+                                values.with_mut(|write| write.insert(def.name.clone(), Value::I64(val)));
                             }
                         },
                     }
@@ -231,7 +231,6 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                 }
             }
             Type::Float { bounds } => {
-                let def_name = def.name.clone();
                 let error = validation_error();
                 let border_color = if error.is_err() { "#ff0000" } else { "#ddd" };
                 rsx! {
@@ -240,14 +239,14 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                         step: "1.00",
                         min: bounds.as_ref().map(|b| b.min().to_string()),
                         max: bounds.as_ref().map(|b| b.max().to_string()),
-                        value: 0.0, //values.read().get(&def.name).and_then(|v| v.as_f64()).unwrap_or(0.0).to_string(),
+                        value: 0.0,
                         width: "100%",
                         padding: "4px 8px",
                         border: "1px solid {border_color}",
                         border_radius: "4px",
                         oninput: move |evt| {
                             if let Ok(val) = evt.value().parse::<f64>() {
-                                values.with_mut(|write| write.insert(def_name.clone(), Value::F64(val)));
+                                values.with_mut(|write| write.insert(def.name.clone(), Value::F64(val)));
                             }
                         },
                     }
@@ -257,14 +256,13 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                 }
             }
             Type::String { max_length } => {
-                let def_name = def.name.clone();
                 let error = validation_error();
                 let border_color = if error.is_err() { "#ff0000" } else { "#ddd" };
                 rsx! {
                     input {
                         r#type: "text",
                         maxlength: max_length.map(|len| len.to_string()),
-                        value: "", //values.read().get(&def.name).and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        value: "",
                         width: "100%",
                         padding: "4px 8px",
                         border: "1px solid {border_color}",
@@ -272,7 +270,7 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                         oninput: move |evt| {
                             let value = evt.value();
                             let mut vals = values.write();
-                            vals.insert(def_name.clone(), Value::String(value));
+                            vals.insert(def.name.clone(), Value::String(value));
                         },
                     }
                     if let Err(error_msg) = error {
