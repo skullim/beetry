@@ -1,4 +1,5 @@
 use crate::Point;
+use beetry_editor_types::output::node::NodePortConnection;
 use dioxus::prelude::*;
 
 use crate::definitions::EdgePos;
@@ -41,10 +42,16 @@ pub fn Renderer(render_channels: Signal<RequestRender>) -> Element {
                     Some(
                         sender_ids
                             .into_iter()
-                            .map(move |port_id| {
-                                (port_id, port_state_api.state(*id, port_id).unwrap().clone())
+                            .filter_map(move |port_id| {
+                                let conn = port_state_api.state(*id, port_id).ok()?;
+                                match conn {
+                                    NodePortConnection::Internal(internal) => {
+                                        Some((port_id, internal.clone()))
+                                    }
+                                    NodePortConnection::External => None,
+                                }
                             })
-                            .flat_map(move |(port_id, port_state)| {
+                            .flat_map(move |(port_id, internal_conns)| {
                                 // @todo get real port spec
                                 let spec_as_str = "port spec";
                                 let port_width = text::text_width_from(spec_as_str, 11);
@@ -61,7 +68,7 @@ pub fn Renderer(render_channels: Signal<RequestRender>) -> Element {
                                         + 10.0
                                         + 20.0 * (port_id.raw_value()) as f64,
                                 };
-                                let connected: Vec<_> = port_state.connected().copied().collect();
+                                let connected: Vec<_> = internal_conns.iter().copied().collect();
 
                                 connected.into_iter().flat_map(move |channel_id| {
                                     let read = service.service.read();
@@ -98,10 +105,16 @@ pub fn Renderer(render_channels: Signal<RequestRender>) -> Element {
                     Some(
                         receiver_ids
                             .into_iter()
-                            .map(move |port_id| {
-                                (port_id, port_state_api.state(*id, port_id).unwrap().clone())
+                            .filter_map(move |port_id| {
+                                let conn = port_state_api.state(*id, port_id).ok()?;
+                                match conn {
+                                    NodePortConnection::Internal(internal) => {
+                                        Some((port_id, internal.clone()))
+                                    }
+                                    NodePortConnection::External => None,
+                                }
                             })
-                            .flat_map(move |(port_id, port_state)| {
+                            .flat_map(move |(port_id, internal_conns)| {
                                 // @todo get real port spec
                                 let spec_as_str = "port spec";
                                 let port_width = text::text_width_from(spec_as_str, 11);
@@ -118,7 +131,7 @@ pub fn Renderer(render_channels: Signal<RequestRender>) -> Element {
                                         + 10.0
                                         + 20.0 * (port_id.raw_value()) as f64, // Middle of port vertically
                                 };
-                                let connected: Vec<_> = port_state.connected().copied().collect();
+                                let connected: Vec<_> = internal_conns.iter().copied().collect();
 
                                 connected.into_iter().flat_map(move |channel_id| {
                                     let read = service.service.read();

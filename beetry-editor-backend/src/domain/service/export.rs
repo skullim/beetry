@@ -290,6 +290,7 @@ where
         UiElementStore::new(nodes, channels)
     }
 
+    //@todo check if channel ports are connected to nodes that are part of the graph
     /// Validation rules:
     /// 0. Root node exists
     /// 1. Each node is connected to root
@@ -311,28 +312,36 @@ where
         let mut to_visit = BTreeSet::from_iter(std::iter::once(root_id));
 
         while let Some(parent) = to_visit.pop_first() {
-            let children: Vec<_> = self.edge_api.children_of(parent).copied().collect();
-            if children.is_empty() {
+            let mut children = self.edge_api.children_of(parent).copied().peekable();
+            if children.peek().is_none() {
                 return TreeValidationResult::builder()
                     .child_free_non_leaf_node(parent)
                     .build();
             }
+            let spec_api = self.node_api.spec();
             for child in children {
-                if leaf_nodes.contains(&child) {
-                    if let Some(unconnected) = self
-                        .node_api
-                        .port_state()
-                        .port_iter(child)
-                        .find(|(_, conn)| !conn.is_valid())
-                    {
-                        return TreeValidationResult::builder()
-                            .unconnected_port((child, *unconnected.0))
-                            .build();
-                    } else {
+                if !leaf_nodes.contains(&child) {
+                    to_visit.insert(child);
+                    continue;
+                }
+
+                match spec_api
+                    .spec_by_node_id_pub(child)
+                    .expect("leaf node must have a spec")
+                    .ports()
+                {
+                    Some(ports_spec) => {
+                        for port_id in ports_spec.ids() {
+                            if self.node_api.port_state().state(child, *port_id).is_err() {
+                                return TreeValidationResult::builder()
+                                    .unconnected_port((child, *port_id))
+                                    .build();
+                            }
+                        }
+                    }
+                    None => {
                         valid_nodes.insert(child);
                     }
-                } else {
-                    to_visit.insert(child);
                 }
             }
             valid_nodes.insert(parent);
