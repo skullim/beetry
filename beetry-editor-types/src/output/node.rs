@@ -1,51 +1,54 @@
-use crate::id::ChannelId;
+use crate::{id::ChannelId, spec::node::FieldName};
 use anyhow::{Result, bail};
 use mitsein::{
     btree_set1::BTreeSet1,
     iter1::{FromIterator1, IntoIterator1},
 };
 use serde::{Deserialize, Serialize};
-use serde_value::Value;
 use std::collections::BTreeMap;
 use tracing::warn;
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Parameters {
-    field_value_map: BTreeMap<String, Value>,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ParameterValue {
+    Bool(bool),
+    U64(u64),
+    I64(i64),
+    F64(f64),
+    String(String),
 }
 
-impl IntoIterator for Parameters {
-    type Item = (String, Value);
-    type IntoIter = std::collections::btree_map::IntoIter<String, Value>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.field_value_map.into_iter()
-    }
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct Parameters {
+    map: BTreeMap<FieldName, ParameterValue>,
 }
 
 impl Parameters {
-    /// caller has to assure that new value is valid w.r.t. schema and validation logic
-    pub fn set(&mut self, field: &str, value: Value) {
-        //@todo in case no value for given field
-        match self.field_value_map.get_mut(field) {
-            Some(old) => {
-                *old = value;
-            }
-            None => {
-                self.field_value_map.insert(field.into(), value);
-            }
-        }
+    pub fn insert(&mut self, name: FieldName, value: ParameterValue) {
+        self.map.insert(name, value);
     }
 
-    pub fn value(&self, field: &str) -> Option<&Value> {
-        self.field_value_map.get(field)
+    pub fn get_mut(&mut self, name: &FieldName) -> Option<&mut ParameterValue> {
+        self.map.get_mut(name)
+    }
+
+    pub fn get(&self, name: &FieldName) -> Option<&ParameterValue> {
+        self.map.get(name)
     }
 }
 
-impl FromIterator<(String, Value)> for Parameters {
-    fn from_iter<T: IntoIterator<Item = (String, Value)>>(iter: T) -> Self {
+impl FromIterator<(FieldName, ParameterValue)> for Parameters {
+    fn from_iter<T: IntoIterator<Item = (FieldName, ParameterValue)>>(iter: T) -> Self {
         Self {
-            field_value_map: iter.into_iter().collect(),
+            map: iter.into_iter().collect(),
         }
+    }
+}
+
+impl IntoIterator for Parameters {
+    type Item = (FieldName, ParameterValue);
+    type IntoIter = std::collections::btree_map::IntoIter<FieldName, ParameterValue>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.map.into_iter()
     }
 }
 

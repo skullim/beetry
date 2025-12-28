@@ -1,6 +1,7 @@
 use anyhow::{Context, Result, anyhow, bail};
 use bon::Builder;
 use itertools::Itertools;
+use mitsein::iter1::FromIterator1;
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use tracing::warn;
@@ -10,7 +11,7 @@ use beetry_editor_types::{
     persistence::{
         ChannelDataStore, ChannelSpecStore, ChannelStore, ChannelUiRecord, EditorStateStore,
         MaybeValidTree, NodeRecordStore, NodeRecordValue, NodeSpecStore, NodeStore, NodeUiRecord,
-        ParameterValue, ParameterValueStore, PortConnectionCollection, PortConnectionRecord,
+        ParameterStore, ParameterValues, PortConnectionCollection, PortConnectionRecord,
         PortStateStore, TreeStore, UiElementStore, ValidTree,
     },
     spec::node::NodeSpecKey,
@@ -203,46 +204,41 @@ where
         Ok(NodeStore { specs, nodes })
     }
 
-    fn export_parameter_store(&mut self, nodes: &[NodeId]) -> Result<ParameterValueStore> {
+    fn export_parameter_store(&mut self, nodes: &[NodeId]) -> Result<ParameterStore> {
         let parameter_api = self.node_api.parameter();
         let spec_api = self.node_api.spec();
-        let nodes = nodes.iter().filter(|id| {
-            if let Ok(param) = spec_api.params(**id)
-                && !param.defs.is_empty()
-            {
-                true
-            } else {
-                false
-            }
-        });
+        let nodes = nodes.iter().filter(|id| spec_api.params(**id).is_ok());
         let store = nodes
             .copied()
             .map(|id| {
                 Ok((
                     id,
-                    ParameterValue {
+                    ParameterValues {
                         params: parameter_api.parameters(id)?.clone(),
                     },
                 ))
             })
             .collect::<Result<HashMap<_, _>>>()
             .with_context(|| anyhow!("failed to export parameters"))?;
-        Ok(ParameterValueStore::new(store))
+        Ok(ParameterStore::new(store))
     }
 
     fn export_port_store(&mut self, nodes: &[NodeId]) -> Result<PortStateStore> {
         let ports_api = self.node_api.port_state();
-        let port_state_iter = nodes.iter().copied().map(|id| {
-            (
-                id,
-                PortConnectionCollection::new(
+        Ok(nodes
+            .iter()
+            .copied()
+            .filter_map(|id| {
+                PortConnectionCollection::try_from_iter(
                     ports_api
                         .node_conns(id)
                         .map(|(id, conn)| PortConnectionRecord::new(*id, conn.clone())),
-                ),
-            )
-        });
-        Ok(PortStateStore::new(port_state_iter))
+                )
+                // filter collections that actually have any ports
+                .ok()
+                .map(|collection| (id, collection))
+            })
+            .collect())
     }
 
     fn export_channel_store(&mut self, channels: &[ChannelId]) -> Result<ChannelStore> {
@@ -325,24 +321,20 @@ where
                     continue;
                 }
 
-                match spec_api
+                if let Some(ports_spec) = spec_api
                     .spec_by_node_id_pub(child)
                     .expect("leaf node must have a spec")
                     .ports()
                 {
-                    Some(ports_spec) => {
-                        for port_id in ports_spec.ids() {
-                            if self.node_api.port_state().state(child, *port_id).is_err() {
-                                return TreeValidationResult::builder()
-                                    .unconnected_port((child, *port_id))
-                                    .build();
-                            }
+                    for port_id in ports_spec.ids() {
+                        if self.node_api.port_state().state(child, *port_id).is_err() {
+                            return TreeValidationResult::builder()
+                                .unconnected_port((child, *port_id))
+                                .build();
                         }
                     }
-                    None => {
-                        valid_nodes.insert(child);
-                    }
                 }
+                valid_nodes.insert(child);
             }
             valid_nodes.insert(parent);
         }

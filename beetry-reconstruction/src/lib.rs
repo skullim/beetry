@@ -3,11 +3,11 @@ use beetry_builder::Builder as BehaviorTreeBuilder;
 use beetry_channel::external;
 use beetry_core::{BoxNode, MessageHash, NonEmptyNodes, RegisterTask, Root, TaskHandle, Tree};
 use beetry_editor_types::id::ChannelId;
-use beetry_editor_types::output::node::{Parameters, PortConnectionState};
+use beetry_editor_types::output::node::{ParameterValue, Parameters, PortConnectionState};
 use beetry_editor_types::spec::node::{LeafKind, NodeKind, NodeName, NodePortKind};
 use beetry_editor_types::{
     id::NodeId,
-    persistence::{ChannelStore, NodeStore, ParameterValueStore, PortStateStore, ValidTree},
+    persistence::{ChannelStore, NodeStore, ParameterStore, PortStateStore, ValidTree},
 };
 use beetry_plugin::channel::{BoxChannelPlugin, ChannelPluginConstructor, TypeErasedChannel};
 use beetry_plugin::node::{
@@ -97,7 +97,7 @@ impl TreeReconstructor {
 
     fn try_create_root_snapshot(
         node_store: NodeStore,
-        mut param_store: ParameterValueStore,
+        mut param_store: ParameterStore,
         mut port_store: PortStateStore,
         node_plugins: &NodePluginRegistry,
     ) -> Result<RootSnapshot> {
@@ -140,7 +140,7 @@ impl TreeReconstructor {
     fn try_create_node_snapshot(
         node_id: NodeId,
         node_store: &NodeStore,
-        param_store: &mut ParameterValueStore,
+        param_store: &mut ParameterStore,
         port_store: &mut PortStateStore,
         node_plugins: &NodePluginRegistry,
     ) -> Result<NodeSnapshot> {
@@ -412,11 +412,18 @@ impl ParamsReconstructor {
         T: for<'de> Deserialize<'de>,
     {
         let deserializer = serde_value::ValueDeserializer::<serde_value::DeserializerError>::new(
-            serde_value::Value::Map(BTreeMap::from_iter(
-                params
-                    .into_iter()
-                    .map(|(k, v)| (serde_value::Value::String(k), v)),
-            )),
+            serde_value::Value::Map(BTreeMap::from_iter(params.into_iter().map(
+                |(name, value)| {
+                    let value = match value {
+                        ParameterValue::Bool(b) => serde_value::Value::Bool(b),
+                        ParameterValue::U64(u) => serde_value::Value::U64(u),
+                        ParameterValue::I64(i) => serde_value::Value::I64(i),
+                        ParameterValue::F64(f) => serde_value::Value::F64(f),
+                        ParameterValue::String(s) => serde_value::Value::String(s),
+                    };
+                    (serde_value::Value::String(name), value)
+                },
+            ))),
         );
         Ok(T::deserialize(deserializer)?)
     }

@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use crate::{id::NodePortId, spec::message::MessageSpec};
 use anyhow::{Result, anyhow};
 use bon::Builder;
 use derive_more::{Display, From};
 use getset::{CopyGetters, Getters};
-use mitsein::{btree_map1::BTreeMap1, iter1::FromIterator1, vec1::Vec1};
+use mitsein::{btree_map1::BTreeMap1, iter1::FromIterator1};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Builder, Clone, Getters)]
@@ -106,22 +108,6 @@ pub enum LeafKind {
     Condition,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct ParamsSpec {
-    pub defs: Vec1<Definition>,
-}
-
-impl FromIterator1<Definition> for ParamsSpec {
-    fn from_iter1<I>(items: I) -> Self
-    where
-        I: mitsein::prelude::IntoIterator1<Item = Definition>,
-    {
-        Self {
-            defs: items.into_iter1().collect1(),
-        }
-    }
-}
-
 // Ports
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -200,78 +186,82 @@ pub enum NodePortKind {
 
 // Parameters
 
-pub trait ProvideSchema {
+pub trait ProvideParamSpec {
     fn provide() -> ParamsSpec;
 }
 
-#[derive(Debug, Clone, Builder, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Definition {
-    #[builder(into)]
-    pub name: String,
-    pub ty: Type,
-    #[builder(into)]
-    pub description: Option<String>,
+#[derive(Debug, Clone)]
+pub struct ParamsSpec {
+    map: BTreeMap1<FieldName, FieldDefinition>,
 }
 
-#[derive(Debug, Clone, Builder, PartialEq, Eq, Hash, Serialize, Deserialize, CopyGetters)]
-#[get_copy = "pub"]
-pub struct Bounds {
-    min: i64,
-    max: i64,
+impl ParamsSpec {
+    pub fn get(&self, name: &FieldName) -> Option<&FieldDefinition> {
+        self.map.get(name)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&FieldName, &FieldDefinition)> {
+        self.map.iter1().into_iter()
+    }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Type {
-    Boolean,
-    Integer { bounds: Option<Bounds> },
-    Float { bounds: Option<Bounds> },
-    String { max_length: Option<usize> },
-}
-
-//@todo: Switch to Schema2
-
-pub struct Schema2 {
-    pub defs: Vec<Definition2>,
-}
-
-impl Schema2 {
-    pub fn new(defs: impl IntoIterator<Item = Definition2>) -> Self {
+impl FromIterator1<(FieldName, FieldDefinition)> for ParamsSpec {
+    fn from_iter1<I>(items: I) -> Self
+    where
+        I: mitsein::prelude::IntoIterator1<Item = (FieldName, FieldDefinition)>,
+    {
         Self {
-            defs: defs.into_iter().collect(),
+            map: items.into_iter1().collect1(),
         }
     }
 }
 
-type BoxValidationFn<T> = Box<dyn Fn(&T) -> Result<()>>;
-type BoolValidationFn = BoxValidationFn<bool>;
-type IntegerValidationFn = BoxValidationFn<i32>;
-type FloatValidationFn = BoxValidationFn<f32>;
-type StringValidationFn = BoxValidationFn<String>;
+//@todo check if this or function pointer are better options
+type SharedValidationFn<T> = Arc<dyn Fn(&T) -> Result<()>>;
 
-pub struct ValidationFns<T> {
-    fns: Vec<BoxValidationFn<T>>,
+#[derive(Default, Clone)]
+pub struct FieldMetadata<T> {
+    validation_fn: Option<SharedValidationFn<T>>,
 }
 
-impl<T> ValidationFns<T> {
-    pub fn validate(&self, value: T) -> bool {
-        self.fns.iter().all(|func| (func)(&value).is_err())
+impl<T> FieldMetadata<T> {
+    pub fn validate(&self, val: &T) -> Result<()> {
+        self.validation_fn
+            .as_ref()
+            .map(|func| (func)(val))
+            .unwrap_or(Ok(()))
     }
 }
 
-pub enum Type2 {
-    Boolean(BoolValidationFn),
-    Integer(IntegerValidationFn),
-    Float(FloatValidationFn),
-    String(StringValidationFn),
+impl<T> std::fmt::Debug for FieldMetadata<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FieldMetadata")
+            .field("validation_fn", &"{...}")
+            .finish()
+    }
 }
 
-//@todo probably need param id that is static regarding given node
+pub type BoolFieldMetadata = FieldMetadata<bool>;
+pub type U64FieldMetadata = FieldMetadata<u64>;
+pub type I64FieldMetadata = FieldMetadata<i64>;
+pub type F64FieldMetadata = FieldMetadata<f64>;
+pub type StringFieldMetadata = FieldMetadata<String>;
 
-#[derive(Builder)]
-pub struct Definition2 {
-    #[builder(into)]
-    pub name: String,
-    pub ty: Type2,
+//@todo add support for compound parameters in next release
+#[derive(Debug, Clone)]
+pub enum FieldTypeSpec {
+    Bool(BoolFieldMetadata),
+    U64(U64FieldMetadata),
+    I64(I64FieldMetadata),
+    F64(F64FieldMetadata),
+    String(StringFieldMetadata),
+}
+
+pub type FieldName = String;
+
+#[derive(Debug, Clone, Builder)]
+pub struct FieldDefinition {
+    pub type_spec: FieldTypeSpec,
     #[builder(into)]
     pub description: Option<String>,
 }

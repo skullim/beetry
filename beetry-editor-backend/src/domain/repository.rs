@@ -5,11 +5,13 @@ use beetry_editor_types::{
     output::{
         channel::ChannelData,
         edge::NodeEdge,
-        node::{Parameters, PortConnectionState},
+        node::{ParameterValue, Parameters, PortConnectionState},
         ui::{ChannelUiData, NodeUiData},
     },
-    spec::channel::ChannelSpec,
-    spec::node::NodeSpec,
+    spec::{
+        channel::ChannelSpec,
+        node::{FieldName, NodeSpec},
+    },
 };
 use getset::{Getters, MutGetters};
 use num_traits::One;
@@ -505,34 +507,49 @@ impl PortStateRepositoryConcept for PortStateRepository {
 
 /// caller (service layer) has to assure that params are valid w.r.t. schema
 pub trait ParamValueRepositoryConcept: Default {
-    fn create(&mut self, id: NodeId, params: Parameters) -> Result<()>;
+    fn create(&mut self, id: NodeId, value: Parameters);
+
     fn remove(&mut self, id: NodeId) -> Option<Parameters>;
 
-    fn value(&self, id: NodeId) -> Option<&Parameters>;
-    fn value_mut(&mut self, id: NodeId) -> Option<&mut Parameters>;
+    fn param_value_mut(
+        &mut self,
+        id: NodeId,
+        field_name: &FieldName,
+    ) -> Option<&mut ParameterValue>;
+
+    fn params(&self, id: NodeId) -> Option<&Parameters>;
+
+    fn iter(&self) -> impl Iterator<Item = (&NodeId, &Parameters)>;
 }
 
 #[derive(Default)]
 pub struct ParamValuesRepository {
-    params: HashMap<NodeId, Parameters>,
+    map: HashMap<NodeId, Parameters>,
 }
 
 impl ParamValueRepositoryConcept for ParamValuesRepository {
-    fn create(&mut self, id: NodeId, params: Parameters) -> Result<()> {
-        self.params.insert(id, params);
-        Ok(())
+    fn create(&mut self, id: NodeId, value: Parameters) {
+        self.map.insert(id, value);
     }
 
     fn remove(&mut self, id: NodeId) -> Option<Parameters> {
-        self.params.remove(&id)
+        self.map.remove(&id)
     }
 
-    fn value(&self, id: NodeId) -> Option<&Parameters> {
-        self.params.get(&id)
+    fn param_value_mut(
+        &mut self,
+        id: NodeId,
+        field_name: &FieldName,
+    ) -> Option<&mut ParameterValue> {
+        self.map.get_mut(&id)?.get_mut(field_name)
     }
 
-    fn value_mut(&mut self, id: NodeId) -> Option<&mut Parameters> {
-        self.params.get_mut(&id)
+    fn params(&self, id: NodeId) -> Option<&Parameters> {
+        self.map.get(&id)
+    }
+
+    fn iter(&self) -> impl Iterator<Item = (&NodeId, &Parameters)> {
+        self.map.iter()
     }
 }
 

@@ -48,11 +48,10 @@ pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
     let definitions = fields.iter().map(|field| {
         let field_name = field.ident.as_ref().unwrap();
         let field_name_str = field_name.to_string();
-        let field_type = &field.ty;
 
         let mut description: Option<LitStr> = None;
-        let mut min_bound: Option<i64> = None;
-        let mut max_bound: Option<i64> = None;
+        let mut min_bound: Option<f64> = None;
+        let mut max_bound: Option<f64> = None;
 
         for attr in &field.attrs {
             if attr.path().is_ident("param")
@@ -65,10 +64,10 @@ pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
                             let value: Lit = meta.value()?.parse()?;
                             match value {
                                 Lit::Int(lit_int) => {
-                                    min_bound = Some(lit_int.base10_parse::<i64>()?);
+                                    min_bound = Some(lit_int.base10_parse::<f64>()?);
                                 }
                                 Lit::Float(lit_float) => {
-                                    min_bound = Some(lit_float.base10_parse::<f32>()? as i64);
+                                    min_bound = Some(lit_float.base10_parse::<f64>()?);
                                 }
                                 _ => {}
                             }
@@ -76,10 +75,10 @@ pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
                             let value: Lit = meta.value()?.parse()?;
                             match value {
                                 Lit::Int(lit_int) => {
-                                    max_bound = Some(lit_int.base10_parse::<i64>()?);
+                                    max_bound = Some(lit_int.base10_parse::<f64>()?);
                                 }
                                 Lit::Float(lit_float) => {
-                                    max_bound = Some(lit_float.base10_parse::<f32>()? as i64);
+                                    max_bound = Some(lit_float.base10_parse::<f64>()?);
                                 }
                                 _ => {}
                             }
@@ -90,50 +89,10 @@ pub fn derive_provide_schema(input: TokenStream) -> TokenStream {
             {}
         }
 
-        let generate_bounds = || match (min_bound, max_bound) {
-            (Some(min), Some(max)) => {
-                quote! { Some(Bounds::builder().min(#min).max(#max).build()) }
-            }
-            _ => quote! { None },
-        };
-
-        let param_type = match field_type {
-            syn::Type::Path(type_path) => {
-                let type_name = type_path
-                    .path
-                    .get_ident()
-                    .map(|ident| ident.to_string())
-                    .unwrap_or_default();
-
-                match type_name.as_str() {
-                    "f32" | "f64" => {
-                        let bounds = generate_bounds();
-                        quote! { node::Type::Float { bounds: #bounds } }
-                    }
-                    "i32" | "i64" | "u32" | "u64" | "usize" => {
-                        let bounds = generate_bounds();
-                        quote! { node::Type::Integer { bounds: #bounds } }
-                    }
-                    "bool" => quote! { node::Type::Boolean },
-                    "String" => quote! { node::Type::String { max_length: None } },
-                    unsupported => {
-                        abort!(
-                            unsupported,
-                            "unsupported parameter type: {}: {}",
-                            field_name,
-                            unsupported
-                        )
-                    }
-                }
-            }
-            unsupported => abort!(unsupported, "expected field type"),
-        };
-
         // Build the definition with optional description
         let mut builder = quote! {
             Definition::builder()
                 .name(#field_name_str)
-                .ty(#param_type)
         };
 
         if let Some(desc) = description {
