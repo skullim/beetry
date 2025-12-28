@@ -17,11 +17,14 @@ use tracing::{debug, warn};
 use beetry_editor_types::{
     id::{ChannelId, NodeId, NodePortId, NodeSpecId},
     output::{
-        node::{Parameters, PortConnectionState},
+        node::{ParameterValue, Parameters, PortConnectionState},
         ui::{NodePosition, NodeUiData},
     },
-    persistence::{NodeRecord, ParameterValue, PortConnectionCollection},
-    spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey, ParamsSpec, PortsSpec},
+    persistence::{NodeRecord, ParameterValues, PortConnectionCollection},
+    spec::node::{
+        FieldDefinition, FieldTypeSpec, NodeKind, NodeName, NodeSpec, NodeSpecKey, ParamsSpec,
+        PortsSpec,
+    },
 };
 use mitsein::iter1::FromIterator1;
 
@@ -264,7 +267,7 @@ where
     pub(super) fn load_node(
         &mut self,
         node: NodeRecord,
-        param_value: Option<ParameterValue>,
+        param_value: Option<ParameterValues>,
         port_state: Option<PortConnectionCollection>,
     ) -> Result<()> {
         self.node_service.load_node(
@@ -278,12 +281,12 @@ where
         }
 
         if let Some(value) = param_value {
-            self.load_parameters(node.id, value)?;
+            self.load_parameters(node.id, value);
         }
         Ok(())
     }
 
-    fn load_parameters(&mut self, id: NodeId, value: ParameterValue) -> Result<()> {
+    fn load_parameters(&mut self, id: NodeId, value: ParameterValues) {
         self.node_facade_view.parameters.create(id, value.params)
     }
 
@@ -408,8 +411,41 @@ where
 {
     pub fn parameters(&self, id: NodeId) -> Result<&Parameters> {
         self.repo
-            .value(id)
+            .params(id)
             .ok_or_else(|| anyhow!("failed to obtain parameters for node {id}"))
+    }
+}
+
+pub struct ParameterValueParser;
+
+impl ParameterValueParser {
+    pub fn parse(type_spec: &FieldTypeSpec, raw_value: String) -> Result<ParameterValue> {
+        Ok(match &type_spec {
+            FieldTypeSpec::Bool(meta) => {
+                let parsed = raw_value.parse()?;
+                meta.validate(&parsed)?;
+                ParameterValue::Bool(parsed)
+            }
+            FieldTypeSpec::F64(meta) => {
+                let parsed = raw_value.parse()?;
+                meta.validate(&parsed)?;
+                ParameterValue::F64(parsed)
+            }
+            FieldTypeSpec::I64(meta) => {
+                let parsed = raw_value.parse()?;
+                meta.validate(&parsed)?;
+                ParameterValue::I64(parsed)
+            }
+            FieldTypeSpec::U64(meta) => {
+                let parsed = raw_value.parse()?;
+                meta.validate(&parsed)?;
+                ParameterValue::U64(parsed)
+            }
+            FieldTypeSpec::String(meta) => {
+                meta.validate(&raw_value)?;
+                ParameterValue::String(raw_value)
+            }
+        })
     }
 }
 
@@ -421,9 +457,8 @@ impl<'a, PVR> ParameterValueBorrowMutApi<'a, PVR>
 where
     PVR: ParamValueRepositoryConcept,
 {
-    pub fn create(&mut self, id: NodeId, value: ParameterValue) -> Result<()> {
-        //@todo validate against schema here
-        self.repo.create(id, value.params)
+    pub fn create(&mut self, id: NodeId, params: Parameters) {
+        self.repo.create(id, params);
     }
 }
 

@@ -1,13 +1,13 @@
 use beetry_core::{BoxConditionBehavior, ConditionBehavior};
 use beetry_editor_types::spec::node::{
-    self, Bounds, Definition, NodeKind, NodeName, NodeSpec, NodeSpecKey, ParamsSpec, ProvideSchema,
+    FieldDefinition, FieldName, FieldTypeSpec, NodeKind, NodeName, NodeSpec, NodeSpecKey,
+    ParamsSpec, ProvideParamSpec,
 };
-use beetry_macros::ProvideSchema;
 use beetry_plugin::{
     Plugin,
     node::{ConditionFactory, ConditionReconstructionData},
 };
-use mitsein::iter1::FromIterator1;
+use mitsein::iter1::IntoIterator1;
 
 use beetry_reconstruction::ParamsReconstructor;
 use serde::{Deserialize, Serialize};
@@ -19,13 +19,8 @@ pub struct CheckBattery {
     params: CheckBatteryParams,
 }
 
-#[derive(Serialize, Deserialize, ProvideSchema, TypeHash)]
+#[derive(Serialize, Deserialize, TypeHash)]
 pub struct CheckBatteryParams {
-    #[param(
-        description = "charged battery level in percentage",
-        min = 0,
-        max = 100
-    )]
     level: f32,
 }
 
@@ -70,6 +65,20 @@ impl ConditionBehavior for CheckBattery {
 //     }
 //   }
 // }
+
+impl ProvideParamSpec for CheckBatteryParams {
+    fn provide() -> ParamsSpec {
+        [(
+            FieldName::from("level"),
+            FieldDefinition {
+                type_spec: FieldTypeSpec::F64(<_>::default()),
+                description: Some("charged battery level in percentage".into()),
+            },
+        )]
+        .into_iter1()
+        .collect1()
+    }
+}
 
 pub struct CheckBatteryPlugin {
     spec: NodeSpec,

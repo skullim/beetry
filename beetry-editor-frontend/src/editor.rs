@@ -9,7 +9,7 @@ use beetry_editor_types::output::{
     node::Parameters,
     ui::{ChannelUiData, NodeUiData},
 };
-use beetry_editor_types::{id::NodeId, persistence::ParameterValue, spec::node::NodeSpecKey};
+use beetry_editor_types::{id::NodeId, spec::node::NodeSpecKey};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
@@ -152,7 +152,7 @@ fn parameter_dialog_handlers(
         let mut write = service_ctx.service.write();
         let mut node_api = write.node_api_mut();
         let mut node_api_params = node_api.parameters();
-        node_api_params.create(node_id, ParameterValue { params })?;
+        node_api_params.create(node_id, params);
         state.take();
         Ok(())
     };

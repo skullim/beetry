@@ -11,6 +11,7 @@ use crate::{
 };
 use getset::{CopyGetters, Getters};
 use indexmap::IndexSet;
+use mitsein::{iter1::FromIterator1, vec1::Vec1};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -48,7 +49,7 @@ impl ValidTree {
 pub struct TreeStore {
     pub node: NodeStore,
     pub ports: PortStateStore,
-    pub parameter: ParameterValueStore,
+    pub parameter: ParameterStore,
     pub channel: ChannelStore,
 }
 
@@ -56,7 +57,7 @@ impl TreeStore {
     pub fn new(
         node: NodeStore,
         ports: PortStateStore,
-        parameter: ParameterValueStore,
+        parameter: ParameterStore,
         channel: ChannelStore,
     ) -> Self {
         Self {
@@ -177,24 +178,24 @@ impl NodeRecordValue {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ParameterValueStore {
-    parameters: HashMap<NodeId, ParameterValue>,
+pub struct ParameterStore {
+    parameters: HashMap<NodeId, ParameterValues>,
 }
 
-impl ParameterValueStore {
-    pub fn new(parameters: impl IntoIterator<Item = (NodeId, ParameterValue)>) -> Self {
+impl ParameterStore {
+    pub fn new(parameters: impl IntoIterator<Item = (NodeId, ParameterValues)>) -> Self {
         Self {
             parameters: parameters.into_iter().collect(),
         }
     }
 
-    pub fn take(&mut self, id: &NodeId) -> Option<ParameterValue> {
+    pub fn take(&mut self, id: &NodeId) -> Option<ParameterValues> {
         self.parameters.remove(id)
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ParameterValue {
+pub struct ParameterValues {
     pub params: Parameters,
 }
 
@@ -203,32 +204,37 @@ pub struct PortStateStore {
     ports: BTreeMap<NodeId, PortConnectionCollection>,
 }
 
-impl PortStateStore {
-    pub fn new(iter: impl IntoIterator<Item = (NodeId, PortConnectionCollection)>) -> Self {
+impl FromIterator<(NodeId, PortConnectionCollection)> for PortStateStore {
+    fn from_iter<T: IntoIterator<Item = (NodeId, PortConnectionCollection)>>(iter: T) -> Self {
         Self {
             ports: iter.into_iter().collect(),
         }
     }
+}
 
+impl PortStateStore {
     pub fn take(&mut self, id: &NodeId) -> Option<PortConnectionCollection> {
         self.ports.remove(id)
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortConnectionCollection {
-    pub conns: Vec<PortConnectionRecord>,
+    pub conns: Vec1<PortConnectionRecord>,
 }
 
-impl PortConnectionCollection {
-    pub fn new(conns: impl IntoIterator<Item = PortConnectionRecord>) -> Self {
+impl FromIterator1<PortConnectionRecord> for PortConnectionCollection {
+    fn from_iter1<I>(items: I) -> Self
+    where
+        I: mitsein::prelude::IntoIterator1<Item = PortConnectionRecord>,
+    {
         Self {
-            conns: conns.into_iter().collect(),
+            conns: items.into_iter1().collect1(),
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortConnectionRecord {
     pub port_id: NodePortId,
     pub conn: PortConnectionState,
