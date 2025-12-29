@@ -1,6 +1,5 @@
 mod domain;
 mod id;
-pub mod signals;
 
 use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
@@ -15,7 +14,7 @@ use std::collections::HashMap;
 //@todo hide
 pub use crate::domain::*;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct NodeSpecMap {
     map: HashMap<NodeSpecKey, NodeSpec>,
 }
@@ -40,7 +39,7 @@ impl NodeSpecMap {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ChannelSpecMap {
     map: HashMap<MessageHash, ChannelSpec>,
 }

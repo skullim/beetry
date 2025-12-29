@@ -2,7 +2,7 @@ use beetry_editor_backend::node::PortConnectionInput;
 use beetry_editor_types::{
     id::{ChannelId, EdgeId, NodeId, NodePortId},
     output::edge::NodeEdge,
-    output::ui::{ChannelPosition, NodePosition, Point},
+    output::ui::Point,
 };
 use bon::Builder;
 use dioxus::logger::tracing::debug;
@@ -42,9 +42,9 @@ impl DimensionsContext {
         *self.height.read()
     }
 
-    fn resize_if_needed<'a>(&mut self, positions: impl Iterator<Item = &'a NodePosition>) {
+    fn resize_if_needed<'a>(&mut self, positions: impl Iterator<Item = &'a Point>) {
         let (new_width, new_height) = positions
-            .map(|node| (node.origin.x + Self::MARGIN, node.origin.y + Self::MARGIN))
+            .map(|node_pos| (node_pos.x + Self::MARGIN, node_pos.y + Self::MARGIN))
             .fold(
                 (Self::DEFAULT_SIZE, Self::DEFAULT_SIZE),
                 |(width, height), (x, y)| (width.max(x), height.max(y)),
@@ -121,12 +121,12 @@ impl WorkspaceContext {
 pub(crate) fn Workspace(
     render_nodes: Signal<RequestRender>,
     render_channels: Signal<RequestRender>,
+    render_edges: Signal<RequestRender>,
+    top_left_point: Signal<Point>,
 ) -> Element {
     debug!("rendering workspace");
 
     let workspace_ctx = use_context_provider(WorkspaceContext::new);
-
-    let mut render_edges = use_signal(RequestRender::new);
     let mut drag_node_state = workspace_ctx.drag_node_state;
     let mut drag_channel_state = workspace_ctx.drag_channel_state;
     let node_context_menu_state = workspace_ctx.context_menu_state;
@@ -167,17 +167,11 @@ pub(crate) fn Workspace(
                 {
                     let mut write = service.service.write();
                     let mut ui_api = write.ui_api_mut();
-                    ui_api.node().update_position(
-                        id,
-                        NodePosition {
-                            origin: updated_pos,
-                        },
-                    )?;
+                    ui_api.node().update_position(id, updated_pos)?;
                 }
 
                 render_nodes.with_mut(|write| write.request());
                 render_edges.with_mut(|write| write.request());
-                //@todo actually just channel edges if they are separated
                 render_channels.with_mut(|write| write.request());
 
                 let read = service.service.read();
@@ -199,12 +193,7 @@ pub(crate) fn Workspace(
                 let mut service = use_context::<ServiceContext>();
                 let mut write = service.service.write();
                 let mut ui_api = write.ui_api_mut();
-                ui_api.channel().update_position(
-                    id,
-                    ChannelPosition {
-                        origin: updated_pos,
-                    },
-                )?;
+                ui_api.channel().update_position(id, updated_pos)?;
                 render_channels.with_mut(|write| write.request());
             }
 
@@ -242,6 +231,12 @@ pub(crate) fn Workspace(
         div {
             style: "overflow: auto; border: 1px solid black; width: 800px; height: 800px;",
             onwheel: workspace_handlers_ctx.on_wheel,
+            onscroll: move |evt| {
+                let zoom = zoom_level.read().get();
+                let x = evt.scroll_left() / zoom;
+                let y = evt.scroll_top() / zoom;
+                top_left_point.set(Point{x, y});
+            },
 
             svg {
                 style: "transform: scale({zoom_level.read().get()}); transform-origin: 0 0;",

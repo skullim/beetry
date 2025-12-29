@@ -5,12 +5,17 @@ edition = "2024"
 
 [features]
 default = ["registry"]
-registry = ["dep:beetry-plugin", "dep:beetry-editor-types"]
+registry = [
+    "dep:beetry-plugin",
+    "dep:beetry-editor-types",
+    "dep:beetry-reconstruction-types",
+]
 
 [dependencies]
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
 beetry-plugin = { version = "0.1.0", path = "../beetry-plugin", optional = true }
 beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types", optional = true }
+beetry-reconstruction-types = { version = "0.1.0", path = "../beetry-reconstruction-types", optional = true }
 
 [dev-dependencies]
 beetry-core = { version = "0.1.0", features = [

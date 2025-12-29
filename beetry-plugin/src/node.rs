@@ -3,61 +3,22 @@ use anyhow::Result;
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
 use beetry_core::{BoxActionBehavior, BoxConditionBehavior, BoxNode, NonEmptyNodes};
 use beetry_editor_types::{output::node::Parameters, spec::node::NodeSpec};
+use beetry_reconstruction_types::node::{
+    ActionReconstructionData, ConditionReconstructionData, ControlReconstructionData,
+};
 use bon::Builder;
 use std::marker::PhantomData;
 
-//@todo move those types to beetry-reconstruction-types crate
-pub type LeafReconstructionData = NodeReconstructionData<LeafMetadata>;
-pub type ActionReconstructionData = LeafReconstructionData;
-pub type ConditionReconstructionData = LeafReconstructionData;
-pub type ControlReconstructionData = NodeReconstructionData<ControlMetadata>;
-
-#[derive(Debug, Builder)]
-pub struct NodeReconstructionData<D> {
-    pub inner: D,
-    #[builder(default)]
-    pub parameters: Parameters,
-}
-
-pub enum NodeMetadata {
-    Leaf(LeafMetadata),
-    Control(ControlMetadata),
-}
-
-#[derive(Debug, Default, Builder)]
-pub struct LeafMetadata {
-    #[builder(default, into)]
-    pub receivers: Vec<AnyBoxReceiver>,
-    #[builder(default, into)]
-    pub senders: Vec<AnyBoxSender>,
-}
-
-impl LeafMetadata {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
-pub struct ControlMetadata {
-    pub children: NonEmptyNodes,
-}
-
-impl ControlMetadata {
-    pub fn new(children: NonEmptyNodes) -> Self {
-        Self { children }
-    }
-}
-
-pub type ActionFactory = Factory<BoxActionFactoryFn, ActionReconstructionData, BoxActionBehavior>;
 type BoxActionFactoryFn = Box<dyn Fn(ActionReconstructionData) -> Result<BoxActionBehavior>>;
 
+pub type ActionFactory = Factory<BoxActionFactoryFn, ActionReconstructionData, BoxActionBehavior>;
 pub type ConditionFactory =
     Factory<BoxConditionFactoryFn, ConditionReconstructionData, BoxConditionBehavior>;
 type BoxConditionFactoryFn =
     Box<dyn Fn(ConditionReconstructionData) -> Result<BoxConditionBehavior>>;
 
-pub type ControlFactory = Factory<BoxControlFactoryFn, ControlReconstructionData, BoxNode>;
 type BoxControlFactoryFn = Box<dyn Fn(ControlReconstructionData) -> Result<BoxNode>>;
+pub type ControlFactory = Factory<BoxControlFactoryFn, ControlReconstructionData, BoxNode>;
 
 pub struct Factory<F, I, O> {
     func: F,

@@ -16,7 +16,6 @@ impl Handlers {
     }
 }
 
-//@todo add signals to render ui elements
 #[component]
 pub fn Import(result: ReadSignal<OperationResult>) -> Element {
     rsx! {

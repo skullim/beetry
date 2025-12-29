@@ -131,7 +131,6 @@ where
             }
             State::Running(task_handle) => {
                 task_handle.abort();
-                //@todo caution: blocking call, long term refactor into strategy to choose for how long the status is polled on abort request
                 loop {
                     let status = task_handle.query();
                     debug!("aborted task terminal status: {status:?}");

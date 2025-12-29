@@ -253,7 +253,6 @@ pub type I64FieldMetadata = FieldMetadata<i64>;
 pub type F64FieldMetadata = FieldMetadata<f64>;
 pub type StringFieldMetadata = FieldMetadata<String>;
 
-//@todo add support for compound parameters in next release
 #[derive(Debug, Clone)]
 pub enum FieldTypeSpec {
     Bool(BoolFieldMetadata),

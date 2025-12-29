@@ -8,6 +8,7 @@ use dioxus::prelude::*;
 use rfd::FileDialog;
 
 use crate::editor::ServiceContext;
+use crate::signals::RequestRender;
 use crate::ui::transfer;
 
 fn select_export_file() -> Result<PathBuf> {
@@ -29,7 +30,11 @@ fn select_import_file() -> Result<PathBuf> {
 }
 
 #[component]
-pub(crate) fn Toolbar() -> Element {
+pub(crate) fn Toolbar(
+    render_nodes: Signal<RequestRender>,
+    render_channels: Signal<RequestRender>,
+    render_edges: Signal<RequestRender>,
+) -> Element {
     let mut export_result = use_signal(transfer::OperationResult::default);
     let mut valid_tree_export_result = use_signal(transfer::OperationResult::default);
     let mut import_result = use_signal(transfer::OperationResult::default);
@@ -106,6 +111,9 @@ pub(crate) fn Toolbar() -> Element {
                                 "Import successful",
                                 transfer::OperationStatus::Success,
                             ));
+                            render_nodes.with_mut(|write| write.request());
+                            render_edges.with_mut(|write| write.request());
+                            render_channels.with_mut(|write| write.request());
                         }
                         Err(e) => {
                             import_result.set(transfer::OperationResult::new(

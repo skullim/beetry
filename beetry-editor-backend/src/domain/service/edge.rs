@@ -113,8 +113,6 @@ where
 #[derive(Debug, Default)]
 pub(super) struct EdgeService {
     // not strictly necessary, but good for performance to cache the tree hierarchy
-    // @todo replace value type to https://docs.rs/mitsein/latest/mitsein/btree_set1/type.BTreeSet1.html.
-    // Rationale: entry should exist only if there is any present child otherwise the entry should be removed
     // Here the exact order is not kept, as it can change dynamically based on the position of any child
     parent_children_map: HashMap<NodeId, HashSet<NodeId>>,
     child_parent_map: HashMap<NodeId, NodeId>,
@@ -203,7 +201,6 @@ impl EdgeService {
             children.remove(&removed.to);
 
             // If the parent has no more children, remove it from the map entirely
-            // @todo: check if this can be avoided
             if children.is_empty() {
                 self.parent_children_map.remove(&removed.from);
             }
