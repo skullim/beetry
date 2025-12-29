@@ -27,6 +27,10 @@ impl Parameters {
         self.map.insert(name, value);
     }
 
+    pub fn remove(&mut self, name: &FieldName) {
+        self.map.remove(name);
+    }
+
     pub fn get_mut(&mut self, name: &FieldName) -> Option<&mut ParameterValue> {
         self.map.get_mut(name)
     }
