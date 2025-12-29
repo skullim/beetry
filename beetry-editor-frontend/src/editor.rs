@@ -1,5 +1,5 @@
-use crate::Point;
 use crate::ui::node::ParameterDialog;
+use crate::{Point, SharedSpecs};
 use beetry_editor_backend::EditorService;
 use beetry_editor_backend::repository::{
     ChannelRepositoryFacade, EdgeRepository, NodeRepositoryFacade, UiRepositoryFacade,
@@ -13,10 +13,10 @@ use beetry_editor_types::{id::NodeId, spec::node::NodeSpecKey};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
+use crate::sidebar::Sidebar;
 use crate::ui::node::{ParameterDialogHandlers, ParameterDialogState};
 use crate::workspace::Workspace;
 use crate::{NodeSpecMap, toolbar::Toolbar};
-use crate::{Specs, sidebar::Sidebar};
 use crate::{
     sidebar::SidebarEventHandlers, ui::channel::config_dialog::State as ChannelConfigDialogState,
 };
@@ -37,6 +37,19 @@ pub struct ServiceContext {
     pub service: CopyValue<EditorServiceImpl>,
 }
 
+impl std::ops::Deref for ServiceContext {
+    type Target = CopyValue<EditorServiceImpl>;
+    fn deref(&self) -> &Self::Target {
+        &self.service
+    }
+}
+
+impl std::ops::DerefMut for ServiceContext {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.service
+    }
+}
+
 impl ServiceContext {
     fn new(node_specs: NodeSpecMap) -> Self {
         Self {
@@ -49,8 +62,8 @@ impl ServiceContext {
 pub(crate) fn Editor() -> Element {
     debug!("rendering editor");
 
-    let specs = use_context::<Specs>();
-    use_context_provider(|| ServiceContext::new(specs.nodes));
+    let specs = use_context::<SharedSpecs>();
+    use_context_provider(|| ServiceContext::new(specs.nodes.clone()));
 
     let mut channel_config_dialog_state: Signal<ChannelConfigDialogState> =
         use_signal(ChannelConfigDialogState::default);
@@ -58,65 +71,63 @@ pub(crate) fn Editor() -> Element {
         use_signal(ParameterDialogState::default);
 
     let mut render_nodes = use_signal(RequestRender::new);
+    let render_edges = use_signal(RequestRender::new);
     let mut render_channels = use_signal(RequestRender::new);
 
+    let top_left_point = use_signal(Point::default);
+
     use_context_provider(move || {
-        let on_new_node = move |node_spec_key: NodeSpecKey| {
-            //@todo improve ergonomics
-            let mut service_ctx = use_context::<ServiceContext>();
-            let mut write = service_ctx.service.write();
-            let mut node_api_mut = write.node_api_mut();
-            let mut lifecycle_api = node_api_mut.lifecycle();
-            //@todo this should be returned as reference
-            let specs_map = use_context::<Specs>();
+        let on_new_node = move |node_spec_key: NodeSpecKey| -> Result<()> {
+            let specs = use_context::<SharedSpecs>();
+            let node_spec = specs.nodes.spec(&node_spec_key)?;
 
-            //@todo handle unwraps
-            let node_spec = specs_map.nodes.spec(&node_spec_key).unwrap();
-            let id = lifecycle_api.create(node_spec).unwrap();
+            let spawn_point_read = top_left_point.read();
+            let ui_data = NodeUiData {
+                position: *spawn_point_read,
+            };
 
-            // make param state visible if params expected for this node spec
+            let mut service = use_context::<ServiceContext>();
+            let id = service.with_mut(|s| s.create_node(node_spec, ui_data))?;
+
             if node_spec.params().is_some() {
-                debug!("setting parameter dialog state");
                 parameter_dialog_state.set(ParameterDialogState::Visible {
                     position: Point { x: 300.0, y: 200.0 },
                     id,
                 });
             }
 
-            //@todo improve default position
-            let data = NodeUiData::default();
-            let mut ui_api = write.ui_api_mut();
-            ui_api.node().create(id, data).unwrap();
             info!(
                 "created node {id} with name {} and {:?} kind",
                 node_spec_key.name(),
                 node_spec_key.kind()
             );
             render_nodes.with_mut(|write| write.request());
+            Ok(())
         };
 
         SidebarEventHandlers::new(on_new_node)
     });
 
     use_context_provider(move || {
-        let on_new_channel = move |config: ChannelConfig| {
+        let on_new_channel = move |config: ChannelConfig| -> Result<()> {
             if let ChannelConfigDialogState::Visible { spec, .. } =
                 channel_config_dialog_state.take()
             {
-                let mut service_ctx = use_context::<ServiceContext>();
-                let mut write = service_ctx.service.write();
-                let id = {
-                    let mut channel_api = write.channel_api_mut();
-                    channel_api.create(spec, config).unwrap()
+                let spawn_point_read = top_left_point.read();
+                let ui_data = ChannelUiData {
+                    position: *spawn_point_read,
                 };
-                {
-                    //@todo improve default position
-                    let data = ChannelUiData::default();
-                    let mut ui_api = write.ui_api_mut();
-                    ui_api.channel().create(id, data).unwrap();
-                }
+
+                let mut service = use_context::<ServiceContext>();
+                let id = service.with_mut(|s| s.create_channel(&spec, config, ui_data))?;
+
+                info!(
+                    "created channel {id} with message type {}",
+                    spec.msg_type_name(),
+                );
                 render_channels.with_mut(|write| write.request());
             }
+            Ok(())
         };
 
         let on_cancel = move |_| {
@@ -133,12 +144,14 @@ pub(crate) fn Editor() -> Element {
                 Sidebar { channel_config_dialog_state }
             }
             div { style: "flex: 0 1 80%;",
-                Workspace { render_nodes, render_channels }
+                Workspace { render_nodes, render_channels, render_edges, top_left_point }
             }
             div {
                 ParameterDialog { state: parameter_dialog_state }
             }
-            div { style: "flex: 0 1 10%;", Toolbar {} }
+            div { style: "flex: 0 1 10%;",
+                Toolbar { render_nodes, render_channels, render_edges }
+            }
         }
     }
 }

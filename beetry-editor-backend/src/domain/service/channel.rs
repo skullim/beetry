@@ -78,7 +78,7 @@ where
         }
     }
 
-    pub fn create(&mut self, spec: ChannelSpec, config: ChannelConfig) -> Result<ChannelId> {
+    pub fn create(&mut self, spec: &ChannelSpec, config: ChannelConfig) -> Result<ChannelId> {
         self.channel.create(
             self.facade_view.spec,
             self.facade_view.channel,
@@ -160,14 +160,14 @@ impl ChannelService {
         &mut self,
         spec_repo: &mut impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
         channel_repo: &mut impl ChannelRepositoryConcept,
-        spec: ChannelSpec,
+        spec: &ChannelSpec,
         config: ChannelConfig,
     ) -> Result<ChannelId> {
-        let spec_id = match self.spec_cache.get(&spec) {
+        let spec_id = match self.spec_cache.get(spec) {
             Some(id) => *id,
             None => {
                 let spec_id = spec_repo.create(spec.clone())?;
-                self.spec_cache.insert(spec, spec_id);
+                self.spec_cache.insert(spec.clone(), spec_id);
                 spec_id
             }
         };

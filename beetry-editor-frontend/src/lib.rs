@@ -6,6 +6,8 @@ mod toolbar;
 mod ui;
 mod workspace;
 
+use std::rc::Rc;
+
 use beetry_editor_backend::{ChannelSpecMap, NodeSpecMap};
 use beetry_plugin::{
     channel::ChannelPluginConstructor,
@@ -39,10 +41,22 @@ fn app() -> Element {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Specs {
     pub nodes: NodeSpecMap,
     pub channels: ChannelSpecMap,
+}
+
+#[derive(Debug, Clone)]
+pub struct SharedSpecs {
+    pub specs: Rc<Specs>,
+}
+
+impl std::ops::Deref for SharedSpecs {
+    type Target = Specs;
+    fn deref(&self) -> &Self::Target {
+        &self.specs
+    }
 }
 
 #[component]
@@ -80,6 +94,8 @@ pub fn SpecsProvider(children: Element) -> Element {
             .collect::<ChannelSpecMap>()
     };
 
-    use_context_provider(move || Specs { nodes, channels });
+    use_context_provider(move || SharedSpecs {
+        specs: Rc::new(Specs { nodes, channels }),
+    });
     children
 }

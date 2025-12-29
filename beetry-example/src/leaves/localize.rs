@@ -7,7 +7,8 @@ use beetry_editor_types::spec::node::{
     NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey,
 };
 use beetry_plugin::Plugin;
-use beetry_plugin::node::{ActionFactory, ActionReconstructionData};
+use beetry_plugin::node::ActionFactory;
+use beetry_reconstruction_types::node::ActionReconstructionData;
 use mitsein::iter1::IntoIterator1;
 use std::time::Duration;
 use tokio::sync::mpsc::{Receiver, Sender, channel as mpsc_channel};

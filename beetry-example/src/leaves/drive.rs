@@ -11,7 +11,7 @@ use beetry_editor_types::spec::node::{
 use beetry_macros::receivers;
 use beetry_plugin::Plugin;
 use beetry_plugin::node::ActionFactory;
-use beetry_plugin::node::ActionReconstructionData;
+use beetry_reconstruction_types::node::ActionReconstructionData;
 use mitsein::iter1::IntoIterator1;
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
@@ -165,7 +165,7 @@ mod tests {
     use beetry_channel::tokio;
     use beetry_core::BoxReceiver;
     use beetry_plugin::Plugin;
-    use beetry_plugin::node::{ActionReconstructionData, LeafMetadata};
+    use beetry_reconstruction_types::node::{ActionReconstructionData, LeafMetadata};
 
     use crate::Pose;
     use crate::leaves::drive::DrivePlugin;

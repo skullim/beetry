@@ -86,9 +86,11 @@ struct PortChannelConnection {
 fn sender_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> Result<EdgePos> {
     let read = service.service.read();
     let ui_api = read.ui_api();
+    let ui_api_node = ui_api.node();
+    let ui_api_channel = ui_api.channel();
 
-    let node_pos = ui_api.node().position(conn.node_id)?.origin;
-    let channel_pos = ui_api.channel().position(conn.channel_id)?.origin;
+    let node_pos = ui_api_node.position(conn.node_id)?;
+    let channel_pos = ui_api_channel.position(conn.channel_id)?;
 
     //@todo get real port spec
     let port_width = text::text_width_from("port spec", 11);
@@ -109,9 +111,11 @@ fn sender_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> Re
 fn receiver_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> Result<EdgePos> {
     let read = service.service.read();
     let ui_api = read.ui_api();
+    let ui_api_node = ui_api.node();
+    let ui_api_channel = ui_api.channel();
 
-    let node_pos = ui_api.node().position(conn.node_id)?.origin;
-    let channel_pos = ui_api.channel().position(conn.channel_id)?.origin;
+    let node_pos = ui_api_node.position(conn.node_id)?;
+    let channel_pos = ui_api_channel.position(conn.channel_id)?;
 
     //@todo get real port spec
     let port_width = text::text_width_from("port spec", 11);

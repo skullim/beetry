@@ -28,8 +28,8 @@ pub fn Renderer(render_nodes: Signal<RequestRender>) -> Element {
                     key: "{id}",
                     id,
                     position: Point {
-                        x: pos.origin.x,
-                        y: pos.origin.y,
+                        x: pos.x,
+                        y: pos.y,
                     },
                 }
             }
@@ -42,8 +42,8 @@ pub fn Renderer(render_nodes: Signal<RequestRender>) -> Element {
                     key: "{id}",
                     id,
                     position: Point {
-                        x: pos.origin.x,
-                        y: pos.origin.y,
+                        x: pos.x,
+                        y: pos.y,
                     },
                 }
             }
@@ -57,8 +57,8 @@ pub fn Renderer(render_nodes: Signal<RequestRender>) -> Element {
                     key: "{id}",
                     id,
                     position: Point {
-                        x: pos.origin.x,
-                        y: pos.origin.y,
+                        x: pos.x,
+                        y: pos.y,
                     },
                 }
             }
@@ -72,8 +72,8 @@ pub fn Renderer(render_nodes: Signal<RequestRender>) -> Element {
                     key: "{id}",
                     id,
                     position: Point {
-                        x: pos.origin.x,
-                        y: pos.origin.y,
+                        x: pos.x,
+                        y: pos.y,
                     },
                 }
             }

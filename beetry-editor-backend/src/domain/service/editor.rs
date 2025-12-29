@@ -20,6 +20,15 @@ use crate::{
         ui::UiBorrowApi,
     },
 };
+use anyhow::Result;
+use beetry_editor_types::{
+    id::{ChannelId, NodeId},
+    output::{
+        channel::ChannelConfig,
+        ui::{ChannelUiData, NodeUiData},
+    },
+    spec::{channel::ChannelSpec, node::NodeSpec},
+};
 
 pub struct EditorService<NRF, ER, CRF, URF> {
     node_service: NodeService,
@@ -67,6 +76,37 @@ where
             channel,
             &mut self.channel_service,
         )
+    }
+
+    pub fn create_node(&mut self, spec: &NodeSpec, ui_data: NodeUiData) -> Result<NodeId> {
+        let id = {
+            let mut node_api = self.node_api_mut();
+            node_api.lifecycle().create(spec)
+        }?;
+        let mut ui_api = self.ui_api_mut();
+        if ui_api.node().create(id, ui_data).is_err() {
+            let mut node_api = self.node_api_mut();
+            node_api.lifecycle().remove(spec, id)?;
+        }
+        Ok(id)
+    }
+
+    pub fn create_channel(
+        &mut self,
+        spec: &ChannelSpec,
+        config: ChannelConfig,
+        ui_data: ChannelUiData,
+    ) -> Result<ChannelId> {
+        let id = {
+            let mut channel_api = self.channel_api_mut();
+            channel_api.create(spec, config)
+        }?;
+        let mut ui_api = self.ui_api_mut();
+        if ui_api.channel().create(id, ui_data).is_err() {
+            let mut channel_api = self.channel_api_mut();
+            channel_api.remove(id);
+        }
+        Ok(id)
     }
 
     pub fn edge_api(&self) -> EdgeBorrowApi<'_, ER> {

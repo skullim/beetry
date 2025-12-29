@@ -180,7 +180,7 @@ pub struct Handlers {
 
 impl Handlers {
     pub(crate) fn new(
-        on_confirm: impl FnMut(ChannelConfig) + 'static,
+        on_confirm: impl FnMut(ChannelConfig) -> Result<()> + 'static,
         on_cancel: impl FnMut(()) + 'static,
     ) -> Self {
         Self {

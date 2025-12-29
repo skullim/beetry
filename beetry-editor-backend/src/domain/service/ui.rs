@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::{Result, anyhow};
 use beetry_editor_types::{
     id::{ChannelId, NodeId},
-    output::ui::{ChannelPosition, ChannelUiData, NodePosition, NodeUiData},
+    output::ui::{ChannelUiData, NodeUiData, Point},
     spec::node::NodeKind,
 };
 
@@ -94,11 +94,11 @@ where
             .ok_or_else(|| anyhow!("unable to retrieve node {id} data"))
     }
 
-    pub fn position(&self, id: NodeId) -> Result<&NodePosition> {
+    pub fn position(&self, id: NodeId) -> Result<&Point> {
         Ok(&self.data(id)?.position)
     }
 
-    pub fn positions(&self) -> impl Iterator<Item = &NodePosition> {
+    pub fn positions(&self) -> impl Iterator<Item = &Point> {
         self.repo.data_iter().map(|data| &data.position)
     }
 
@@ -125,10 +125,7 @@ where
     }
 
     //@todo maybe should be pulled up, something like node cache service?
-    pub fn positions_by_kind(
-        &self,
-        kind: NodeKind,
-    ) -> impl Iterator<Item = (NodeId, &NodePosition)> {
+    pub fn positions_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = (NodeId, &Point)> {
         self.service.positions_by_kind(self.repo, kind)
     }
 }
@@ -149,7 +146,7 @@ where
         self.repo.remove(id)
     }
 
-    pub fn update_position(&mut self, id: NodeId, position: NodePosition) -> Result<()> {
+    pub fn update_position(&mut self, id: NodeId, position: Point) -> Result<()> {
         let data = self
             .repo
             .data_mut(id)
@@ -167,7 +164,7 @@ impl<'a, UR> ChannelUiBorrowApi<'a, UR>
 where
     UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
 {
-    pub fn position(&self, id: ChannelId) -> Result<&ChannelPosition> {
+    pub fn position(&self, id: ChannelId) -> Result<&Point> {
         Ok(&self
             .repo
             .data(id)
@@ -175,7 +172,7 @@ where
             .position)
     }
 
-    pub fn positions(&self) -> impl Iterator<Item = &ChannelPosition> {
+    pub fn positions(&self) -> impl Iterator<Item = &Point> {
         self.repo.data_iter().map(|data| &data.position)
     }
 
@@ -196,7 +193,7 @@ where
         self.repo.create(id, data)
     }
 
-    pub fn update_position(&mut self, id: ChannelId, position: ChannelPosition) -> Result<()> {
+    pub fn update_position(&mut self, id: ChannelId, position: Point) -> Result<()> {
         let data = self
             .repo
             .data_mut(id)
