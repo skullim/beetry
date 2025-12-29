@@ -225,6 +225,12 @@ pub struct FieldMetadata<T> {
 }
 
 impl<T> FieldMetadata<T> {
+    pub fn new(validation_fn: SharedValidationFn<T>) -> Self {
+        Self {
+            validation_fn: Some(validation_fn),
+        }
+    }
+
     pub fn validate(&self, val: &T) -> Result<()> {
         self.validation_fn
             .as_ref()
