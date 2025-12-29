@@ -4,10 +4,8 @@ use beetry_editor_types::spec::node::{
     FieldDefinition, FieldMetadata, FieldName, FieldTypeSpec, NodeKind, NodeName, NodeSpec,
     NodeSpecKey, ParamsSpec, ProvideParamSpec,
 };
-use beetry_plugin::{
-    Plugin,
-    node::{ConditionFactory, ConditionReconstructionData},
-};
+use beetry_plugin::{Plugin, node::ConditionFactory};
+use beetry_reconstruction_types::node::ConditionReconstructionData;
 use mitsein::iter1::IntoIterator1;
 use std::sync::Arc;
 

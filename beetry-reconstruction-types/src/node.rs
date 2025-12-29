@@ -1,9 +1,10 @@
 use std::collections::BTreeSet;
 
 use anyhow::{Result, anyhow};
-use beetry_core::MessageHash;
+use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
+use beetry_core::{MessageHash, NonEmptyNodes};
 use beetry_editor_types::{
-    id::{ChannelId, NodeId},
+    id::{ChannelId, NodeId, NodePortId},
     output::node::Parameters,
     spec::{
         message::MessageSpec,
@@ -106,7 +107,42 @@ impl LeafSnapshot {
     }
 }
 
-pub type NodePortId = u8;
+pub type LeafReconstructionData = NodeReconstructionData<LeafMetadata>;
+pub type ActionReconstructionData = LeafReconstructionData;
+pub type ConditionReconstructionData = LeafReconstructionData;
+pub type ControlReconstructionData = NodeReconstructionData<ControlMetadata>;
+
+#[derive(Debug, Builder)]
+pub struct NodeReconstructionData<D> {
+    pub inner: D,
+    #[builder(default)]
+    pub parameters: Parameters,
+}
+
+#[derive(Debug, Default, Builder)]
+pub struct LeafMetadata {
+    #[builder(default, into)]
+    pub receivers: Vec<AnyBoxReceiver>,
+    #[builder(default, into)]
+    pub senders: Vec<AnyBoxSender>,
+}
+
+impl LeafMetadata {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+pub struct ControlMetadata {
+    pub children: NonEmptyNodes,
+}
+
+impl ControlMetadata {
+    pub fn new(children: NonEmptyNodes) -> Self {
+        Self { children }
+    }
+}
+
 /// Provides basic information regarding external communication endpoints.
 /// User should utilize it to provide missing endpoints such that the tree can be reconstructed.
 #[derive(Default, Builder)]

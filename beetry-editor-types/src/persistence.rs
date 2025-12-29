@@ -75,8 +75,6 @@ pub struct NodeStore {
     pub nodes: NodeRecordStore,
 }
 
-//@todo Store structs could be created from generic struct
-
 //The remaining parts of spec are to be loaded by the appropriate plugin
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NodeSpecStore {
@@ -93,7 +91,6 @@ impl FromIterator<(NodeSpecId, NodeSpecKey)> for NodeSpecStore {
 }
 
 impl NodeSpecStore {
-    //@todo consider using delegate crate
     pub fn get(&self, id: &NodeSpecId) -> Option<&NodeSpecKey> {
         self.store.get(id)
     }

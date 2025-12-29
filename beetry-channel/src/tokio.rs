@@ -120,5 +120,3 @@ pub mod broadcast {
         (Sender(send), Receiver(recv))
     }
 }
-
-//@todo add support for watch channel

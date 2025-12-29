@@ -186,7 +186,7 @@ where
                 .map(|id| {
                     let mut children: Vec<_> = self.edge_api.children_of(id).copied().collect();
                     self.ui_api.node().sort_children(&mut children, |l, r| {
-                        l.position.origin.x.total_cmp(&r.position.origin.x)
+                        l.position.x.total_cmp(&r.position.x)
                     })?;
 
                     Ok((

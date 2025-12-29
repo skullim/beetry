@@ -23,8 +23,8 @@ pub fn Renderer(
     let edges = edge_api.edges().map(|(id, edge)| {
         //@todo refine on service layer to get position of the port and not node
         //@todo error handling
-        let edge_start = ui_node_api.node().data(edge.from).unwrap().position.origin;
-        let edge_end = ui_node_api.node().data(edge.to).unwrap().position.origin;
+        let edge_start = ui_node_api.node().data(edge.from).unwrap().position;
+        let edge_end = ui_node_api.node().data(edge.to).unwrap().position;
         let edge_pos = EdgePos {
             start: edge_start,
             end: edge_end,

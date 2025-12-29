@@ -8,7 +8,7 @@ use crate::editor::ServiceContext;
 use crate::ui::curve::Curve;
 use crate::ui::text::{self, text_width_from};
 use crate::ui::viewport::{ViewportContext, ZoomLevel};
-use beetry_editor_types::{id::ChannelId, output::ui::ChannelPosition};
+use beetry_editor_types::id::ChannelId;
 use beetry_plugin::Named;
 pub use config_dialog::Dialog as ConfigDialog;
 use dioxus::html::input_data::MouseButton;
@@ -124,14 +124,14 @@ pub(crate) fn ReceiverConnection(edge: EdgePos) -> Element {
 #[derive(Props, PartialEq, Clone)]
 pub struct ChannelProps {
     id: ChannelId,
-    position: ChannelPosition,
+    position: Point,
 }
 
 #[component]
 pub(crate) fn Channel(props: ChannelProps) -> Element {
     let id = props.id;
     debug!("rendering channel {id}");
-    let position = props.position.origin;
+    let position = props.position;
 
     let service = use_context::<ServiceContext>();
     let read = service.service.read();

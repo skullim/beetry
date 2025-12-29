@@ -18,13 +18,10 @@ use beetry_editor_types::{
     id::{ChannelId, NodeId, NodePortId, NodeSpecId},
     output::{
         node::{ParameterValue, Parameters, PortConnectionState},
-        ui::{NodePosition, NodeUiData},
+        ui::{NodeUiData, Point},
     },
     persistence::{NodeRecord, ParameterValues, PortConnectionCollection},
-    spec::node::{
-        FieldDefinition, FieldTypeSpec, NodeKind, NodeName, NodeSpec, NodeSpecKey, ParamsSpec,
-        PortsSpec,
-    },
+    spec::node::{FieldTypeSpec, NodeKind, NodeName, NodeSpec, NodeSpecKey, ParamsSpec, PortsSpec},
 };
 use mitsein::iter1::FromIterator1;
 
@@ -216,6 +213,7 @@ where
         Ok(Self::spec_by_spec_id(self.spec_repo, spec_id)?.kind())
     }
 
+    //@todo refine name and remove the other ones
     pub fn spec_by_node_id_pub(&self, id: NodeId) -> Result<&NodeSpec> {
         Self::spec_by_node_id(self.spec_repo, self.node_repo, id)
     }
@@ -612,8 +610,6 @@ impl NodeService {
         Self::default()
     }
 
-    // @todo might consider Cow for NodeSpec at some point, reference semantics better than value
-    // as there might be multiple nodes created of the same type
     fn create(
         &mut self,
         spec_repo: &mut impl SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
@@ -687,7 +683,7 @@ impl NodeService {
         &self,
         repo: &'a impl UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
         kind: NodeKind,
-    ) -> impl Iterator<Item = (NodeId, &'a NodePosition)> {
+    ) -> impl Iterator<Item = (NodeId, &'a Point)> {
         let position_ids = self
             .node_cache
             .get(&kind)
