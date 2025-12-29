@@ -1,13 +1,15 @@
+use anyhow::anyhow;
 use beetry_core::{BoxConditionBehavior, ConditionBehavior};
 use beetry_editor_types::spec::node::{
-    FieldDefinition, FieldName, FieldTypeSpec, NodeKind, NodeName, NodeSpec, NodeSpecKey,
-    ParamsSpec, ProvideParamSpec,
+    FieldDefinition, FieldMetadata, FieldName, FieldTypeSpec, NodeKind, NodeName, NodeSpec,
+    NodeSpecKey, ParamsSpec, ProvideParamSpec,
 };
 use beetry_plugin::{
     Plugin,
     node::{ConditionFactory, ConditionReconstructionData},
 };
 use mitsein::iter1::IntoIterator1;
+use std::sync::Arc;
 
 use beetry_reconstruction::ParamsReconstructor;
 use serde::{Deserialize, Serialize};
@@ -71,7 +73,13 @@ impl ProvideParamSpec for CheckBatteryParams {
         [(
             FieldName::from("level"),
             FieldDefinition {
-                type_spec: FieldTypeSpec::F64(<_>::default()),
+                type_spec: FieldTypeSpec::F64(FieldMetadata::new(Arc::new(|level| {
+                    if *level > 100.0 {
+                        Err(anyhow!("level must be lower than 100%"))
+                    } else {
+                        Ok(())
+                    }
+                }))),
                 description: Some("charged battery level in percentage".into()),
             },
         )]

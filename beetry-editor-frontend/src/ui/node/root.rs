@@ -25,8 +25,6 @@ pub(crate) fn Root(props: RootProps) -> Element {
     let height = style.height;
 
     rsx! {
-
-
         g {
             NodeBase { id, position, style }
         }

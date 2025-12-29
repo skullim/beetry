@@ -8,6 +8,7 @@ use beetry_editor_types::{
 };
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
+use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub struct Handlers {
@@ -45,9 +46,7 @@ pub struct DialogProps {
 #[component]
 pub fn Dialog(props: DialogProps) -> Element {
     debug!("rendering parameter dialog");
-    let state_read = props.state.read();
-
-    let (id, position, params_spec, node_name) = match state_read.clone() {
+    let (id, position, params_spec, node_name) = match *props.state.read() {
         State::Idle => return rsx! {},
         State::Visible { position, id } => {
             let service = use_context::<ServiceContext>();
@@ -58,15 +57,20 @@ pub fn Dialog(props: DialogProps) -> Element {
             (
                 id,
                 position,
-                spec_api.params(id).unwrap().clone(),
-                spec_api.name(id).unwrap().clone(),
+                Rc::new(spec_api.params(id).unwrap().clone()),
+                Rc::new(spec_api.name(id).unwrap().clone()),
             )
         }
     };
-    let parameters = use_signal(Parameters::default);
 
+    let parameters = use_signal(Parameters::default);
     let handlers = use_context::<Handlers>();
+    let spec = Rc::clone(&params_spec);
     let on_confirm = move |_| {
+        if !are_param_values_set(&spec, &parameters.read()) {
+            return;
+        }
+
         let values = parameters.read();
         handlers.on_confirm.call((id, values.cloned()));
     };
@@ -129,13 +133,10 @@ pub fn Dialog(props: DialogProps) -> Element {
 
                     button {
                         padding: "8px 16px",
-                        //border: if has_validation_errors() { "1px solid #ccc" } else { "1px solid #007acc" },
                         border: "1px solid #007acc",
                         border_radius: "4px",
-                        //background: if has_validation_errors() { "#ccc" } else { "#007acc" },
                         background: "#007acc",
                         color: "white",
-                        cursor: if all_param_values_present(&params_spec, parameters) { "not-allowed" } else { "pointer" },
                         cursor: "pointer",
                         onclick: on_confirm,
                         "Confirm"
@@ -146,8 +147,7 @@ pub fn Dialog(props: DialogProps) -> Element {
     }
 }
 
-fn all_param_values_present(spec: &ParamsSpec, values: Signal<Parameters>) -> bool {
-    let values = values.read();
+fn are_param_values_set(spec: &ParamsSpec, values: &Parameters) -> bool {
     spec.iter()
         .map(|(name, _)| values.get(name))
         .all(|o_val| o_val.is_some())
@@ -162,7 +162,7 @@ struct ParameterFieldProps2 {
 
 #[component]
 fn ParameterField(props: ParameterFieldProps2) -> Element {
-    let mut paramters = props.parameters;
+    let mut parameters = props.parameters;
 
     let service = use_context::<ServiceContext>();
     let read = service.service.read();
@@ -173,12 +173,16 @@ fn ParameterField(props: ParameterFieldProps2) -> Element {
     let params_spec = spec.params().as_ref().unwrap();
     let field_def = params_spec.get(&props.name).unwrap();
 
+    let mut error_msg = use_signal::<Option<String>>(|| None);
+
     rsx! {
         label { display: "block", margin_bottom: "4px", font_weight: "bold", {props.name.as_str()} }
 
         if let Some(desc) = &field_def.description {
             div { font_size: "12px", color: "#666", margin_bottom: "4px", {desc.as_str()} }
         }
+
+
 
         //@todo avoid clone later
         match field_def.type_spec.clone() {
@@ -188,11 +192,18 @@ fn ParameterField(props: ParameterFieldProps2) -> Element {
                         r#type: "checkbox",
                         checked: false,
                         onchange: move |evt| {
-                            if let Ok(val) = ParameterValueParser::parse(
+                            match ParameterValueParser::parse(
                                 &FieldTypeSpec::Bool(meta.clone()),
                                 evt.value(),
                             ) {
-                                paramters.with_mut(|write| write.insert(props.name.clone(), val))
+                                Ok(val) => {
+                                    parameters.with_mut(|write| write.insert(props.name.clone(), val));
+                                    error_msg.set(None);
+                                }
+                                Err(e) => {
+                                    parameters.with_mut(|write| write.remove(&props.name));
+                                    error_msg.set(Some(e.to_string()));
+                                }
                             }
                         },
                     }
@@ -207,11 +218,18 @@ fn ParameterField(props: ParameterFieldProps2) -> Element {
                         padding: "4px 8px",
                         border_radius: "4px",
                         oninput: move |evt| {
-                            if let Ok(val) = ParameterValueParser::parse(
+                            match ParameterValueParser::parse(
                                 &FieldTypeSpec::I64(meta.clone()),
                                 evt.value(),
                             ) {
-                                paramters.with_mut(|write| write.insert(props.name.clone(), val))
+                                Ok(val) => {
+                                    parameters.with_mut(|write| write.insert(props.name.clone(), val));
+                                    error_msg.set(None);
+                                }
+                                Err(e) => {
+                                    parameters.with_mut(|write| write.remove(&props.name));
+                                    error_msg.set(Some(e.to_string()));
+                                }
                             }
                         },
                     }
@@ -226,11 +244,18 @@ fn ParameterField(props: ParameterFieldProps2) -> Element {
                         padding: "4px 8px",
                         border_radius: "4px",
                         oninput: move |evt| {
-                            if let Ok(val) = ParameterValueParser::parse(
+                            match ParameterValueParser::parse(
                                 &FieldTypeSpec::U64(meta.clone()),
                                 evt.value(),
                             ) {
-                                paramters.with_mut(|write| write.insert(props.name.clone(), val))
+                                Ok(val) => {
+                                    parameters.with_mut(|write| write.insert(props.name.clone(), val));
+                                    error_msg.set(None);
+                                }
+                                Err(e) => {
+                                    parameters.with_mut(|write| write.remove(&props.name));
+                                    error_msg.set(Some(e.to_string()));
+                                }
                             }
                         },
                     }
@@ -246,11 +271,18 @@ fn ParameterField(props: ParameterFieldProps2) -> Element {
                         padding: "4px 8px",
                         border_radius: "4px",
                         oninput: move |evt| {
-                            if let Ok(val) = ParameterValueParser::parse(
+                            match ParameterValueParser::parse(
                                 &FieldTypeSpec::F64(meta.clone()),
                                 evt.value(),
                             ) {
-                                paramters.with_mut(|write| write.insert(props.name.clone(), val))
+                                Ok(val) => {
+                                    parameters.with_mut(|write| write.insert(props.name.clone(), val));
+                                    error_msg.set(None);
+                                }
+                                Err(e) => {
+                                    parameters.with_mut(|write| write.remove(&props.name));
+                                    error_msg.set(Some(e.to_string()));
+                                }
                             }
                         },
                     }
@@ -265,16 +297,38 @@ fn ParameterField(props: ParameterFieldProps2) -> Element {
                         padding: "4px 8px",
                         border_radius: "4px",
                         oninput: move |evt| {
-                            if let Ok(val) = ParameterValueParser::parse(
+                            match ParameterValueParser::parse(
                                 &FieldTypeSpec::String(meta.clone()),
                                 evt.value(),
                             ) {
-                                paramters.with_mut(|write| write.insert(props.name.clone(), val))
+                                Ok(val) => {
+                                    parameters.with_mut(|write| write.insert(props.name.clone(), val));
+                                    error_msg.set(None);
+                                }
+                                Err(e) => {
+                                    parameters.with_mut(|write| write.remove(&props.name));
+                                    error_msg.set(Some(e.to_string()));
+                                }
                             }
                         },
                     }
                 }
             }
         }
+        ParameterErrorDialog { error_msg }
+    }
+}
+
+#[component]
+fn ParameterErrorDialog(error_msg: Signal<Option<String>>) -> Element {
+    let read = error_msg.read();
+    let dialog = read.iter().map(|msg| {
+        rsx! {
+            p { color: "red", font_size: "0.8rem", margin_top: "4px", "{msg:?}" }
+        }
+    });
+
+    rsx! {
+        {dialog}
     }
 }
