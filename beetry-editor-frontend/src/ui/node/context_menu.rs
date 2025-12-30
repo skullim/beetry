@@ -23,7 +23,7 @@ impl Handlers {
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct State {
     pub position: Point,
-    pub target_node: NodeId,
+    pub node_id: NodeId,
     pub is_visible: bool,
 }
 
@@ -38,7 +38,7 @@ pub fn ContextMenu(props: ContextMenuProps) -> Element {
     let state_read = props.state.read();
 
     let position = &state_read.position;
-    let target_node = state_read.target_node;
+    let node_id = state_read.node_id;
     let is_visible = state_read.is_visible;
 
     let context_menu_handlers = use_context::<Handlers>();
@@ -70,7 +70,7 @@ pub fn ContextMenu(props: ContextMenuProps) -> Element {
                         padding: "8px 16px",
                         cursor: "pointer",
                         onclick: move |_| {
-                            context_menu_handlers.on_delete.call(target_node);
+                            context_menu_handlers.on_delete.call(node_id);
                             context_menu_handlers.on_close.call(());
                         },
                         "Delete Node"

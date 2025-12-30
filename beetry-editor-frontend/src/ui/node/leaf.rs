@@ -88,8 +88,6 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
                     position,
                     msg_spec: port_spec.msg_spec.clone(),
                     port_id: *port_id,
-                    //@todo provide from connection state store
-                    is_external: false,
                 }
             }
         }

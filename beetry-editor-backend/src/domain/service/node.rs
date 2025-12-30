@@ -107,7 +107,7 @@ where
         }
     }
 
-    pub fn lifecycle(&'a mut self) -> NodeLifecycleApi<'a, NRF, CRF, ER> {
+    pub(crate) fn lifecycle(&'a mut self) -> NodeLifecycleApi<'a, NRF, CRF, ER> {
         NodeLifecycleApi {
             node_service: self.node_service,
             channel_facade: self.channel_facade,
@@ -303,7 +303,7 @@ where
     }
 }
 
-pub struct NodeLifecycleApi<'a, NRF, CRF, ER>
+pub(crate) struct NodeLifecycleApi<'a, NRF, CRF, ER>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
@@ -330,8 +330,8 @@ where
     }
 
     pub fn remove(&mut self, spec: &NodeSpec, id: NodeId) -> Result<()> {
-        self.node_service
-            .remove::<NRF>(self.node_facade_view, spec, id)?;
+        self.node_service.remove(spec, id)?;
+        self.node_facade_view.nodes.remove(id);
         self.edge_removal_service_api.on_removal(id)?;
         if let Some(ports_spec) = spec.ports() {
             let channel_service_api =
@@ -560,6 +560,7 @@ where
     }
 
     pub fn set_external(&mut self, id: NodeId, port: NodePortId) -> Result<()> {
+        //@todo rework https://github.com/users/skullim/projects/4?pane=issue&itemId=147248522
         self.disconnect_all(id)?;
         self.repo.insert(id, port, PortConnectionState::External)
     }
@@ -692,19 +693,10 @@ impl NodeService {
         position_ids.flat_map(|id| repo.data(id).map(|data| (id, &data.position)))
     }
 
-    fn remove<NRF>(
-        &mut self,
-        view: &mut NodeRepositoryFacadeViewMut<'_, NRF>,
-        spec: &NodeSpec,
-        id: NodeId,
-    ) -> Result<()>
-    where
-        NRF: NodeRepositoryFacadeConcept,
-    {
+    fn remove(&mut self, spec: &NodeSpec, id: NodeId) -> Result<()> {
         self.node_cache
             .get_mut(&spec.kind())
             .map(|nodes| nodes.remove(&id));
-        view.nodes.remove(id);
         Ok(())
     }
 

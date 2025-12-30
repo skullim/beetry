@@ -20,7 +20,7 @@ impl Handlers {
 pub fn Import(result: ReadSignal<OperationResult>) -> Element {
     rsx! {
         button { onclick: move |_| { use_context::<ToolbarHandlers>().import.on_click.call(()) },
-            "Import"
+            "Import project"
         }
 
         match result.read().status {

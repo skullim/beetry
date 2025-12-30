@@ -15,6 +15,7 @@ pub use parameter_dialog::{
 };
 pub use port::input::Handlers as InputPortHandlers;
 pub use port::output::Handlers as OutputPortHandlers;
+pub(crate) use port::popup::Handlers as PortPopupHandlers;
 pub use port::receiver::Handlers as ReceiverPortHandlers;
 pub use port::sender::Handlers as SenderPortHandlers;
 pub use renderer::Renderer;

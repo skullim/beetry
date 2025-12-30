@@ -243,13 +243,7 @@ impl ChannelService {
         context: ConnectionContext,
     ) -> Result<()> {
         Self::ensure_exists(channel_repo, context.channel)?;
-        Self::validate_connection(
-            channel_spec_repo,
-            channel_repo,
-            context.channel,
-            context.node,
-            context.spec,
-        )?;
+        Self::validate_connection(channel_spec_repo, channel_repo, &context)?;
         let count_mut = Self::config_mut(channel_repo, context.channel)?.count_mut();
         match context.spec.kind {
             NodePortKind::Receiver => {
@@ -277,20 +271,21 @@ impl ChannelService {
     fn validate_connection(
         channel_spec_repo: &impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
         channel_repo: &impl ChannelRepositoryConcept,
-        id: ChannelId,
-        from: NodeId,
-        port_spec: &NodePortSpec,
+        conn_ctx: &ConnectionContext,
     ) -> Result<()> {
-        let channel_spec = Self::spec(channel_spec_repo, channel_repo, id)?;
-        if port_spec.msg_spec.hash() != channel_spec.msg_hash() {
+        let channel_spec = Self::spec(channel_spec_repo, channel_repo, conn_ctx.channel)?;
+        if conn_ctx.spec.msg_spec.hash() != channel_spec.msg_hash() {
             bail!(
-                "attempted to connect mismatched channel {id} and node {from} of port name {}",
-                port_spec.msg_spec.desc()
+                "attempted to connect mismatched channel {} and node {} of port name {}",
+                conn_ctx.channel,
+                conn_ctx.node,
+                conn_ctx.spec.msg_spec.desc()
             );
         }
         //@todo this check should be moved somewhere else, rationale: might want to hide different channels behind a feature gate at some point
-        let channel_params = Self::config(channel_repo, id)?;
+        let channel_params = Self::config(channel_repo, conn_ctx.channel)?;
         if let ChannelKind::Tokio(TokioChannelKind::Mpsc) = channel_params.kind()
+            && conn_ctx.spec.kind == NodePortKind::Receiver
             && channel_params.count().receiver() == 1
         {
             bail!("attempted to create more than 1 receiver of mpsc channel");

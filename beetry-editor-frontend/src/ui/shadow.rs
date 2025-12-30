@@ -25,3 +25,10 @@ pub fn style_defs() -> Element {
         }
     }
 }
+
+pub struct FilterUrl;
+
+impl FilterUrl {
+    pub const SHADOW: &'static str = "url(#shadow)";
+    pub const SHADOW_HOVER: &'static str = "url(#shadow-hover)";
+}

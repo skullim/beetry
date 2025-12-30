@@ -1,7 +1,7 @@
 use crate::Point;
 use crate::definitions::IndexedDragOffset;
-use crate::ui::text;
 use crate::ui::viewport::{ViewportContext, ZoomLevel};
+use crate::ui::{shadow, text};
 use beetry_editor_types::id::NodeId;
 use bon::Builder;
 use dioxus::html::input_data::MouseButton;
@@ -103,7 +103,7 @@ pub fn NodeBase(props: NodeBaseProps) -> Element {
                 width: "{style.width}",
                 height: "{style.height}",
                 fill: "{fill_color}",
-                filter: if *is_hovered.read() { "url(#shadow-hover)" } else { "url(#shadow)" },
+                filter: if *is_hovered.read() { shadow::FilterUrl::SHADOW_HOVER } else { shadow::FilterUrl::SHADOW },
                 stroke: "rgba(255,255,255,0.2)",
                 stroke_width: "1.5",
                 rx: "12",

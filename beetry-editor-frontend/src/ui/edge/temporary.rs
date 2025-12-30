@@ -47,10 +47,8 @@ impl Context {
         }
     }
 
-    pub(crate) fn update_edge(&mut self, mut pos: EdgePos) {
-        self.edge.with_mut(|p| {
-            std::mem::swap(p, &mut pos);
-        })
+    pub(crate) fn update_edge(&mut self, pos: EdgePos) {
+        self.edge.set(pos);
     }
 
     pub(crate) fn edge(&self) -> EdgePos {
