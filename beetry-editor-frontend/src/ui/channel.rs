@@ -6,6 +6,7 @@ use crate::Point;
 use crate::definitions::EdgePos;
 use crate::editor::ServiceContext;
 use crate::ui::curve::Curve;
+use crate::ui::shadow;
 use crate::ui::text::{self, text_width_from};
 use crate::ui::viewport::{ViewportContext, ZoomLevel};
 use beetry_editor_types::id::ChannelId;
@@ -69,6 +70,11 @@ pub fn style_defs() -> Element {
                 stop { offset: "95%", stop_color: "#059669" }
             }
 
+            linearGradient { id: "channel-external-sender-gradient",
+                stop { offset: "5%", stop_color: "#095038ff" }
+                stop { offset: "95%", stop_color: "#033d2bff" }
+            }
+
             linearGradient { id: "channel-body-gradient",
                 stop { offset: "5%", stop_color: "#3B82F6" }
                 stop { offset: "95%", stop_color: "#1D4ED8" }
@@ -79,9 +85,19 @@ pub fn style_defs() -> Element {
                 stop { offset: "95%", stop_color: "#374151" }
             }
 
+            linearGradient { id: "channel-external-receiver-gradient",
+                stop { offset: "5%", stop_color: "#24272cff" }
+                stop { offset: "95%", stop_color: "#0a0c0fff" }
+            }
+
             linearGradient { id: "channel-sender-gradient-hover",
                 stop { offset: "5%", stop_color: "#34D399" }
                 stop { offset: "95%", stop_color: "#10B981" }
+            }
+
+            linearGradient { id: "channel-external-sender-gradient-hover",
+                stop { offset: "5%", stop_color: "#21966bff" }
+                stop { offset: "95%", stop_color: "#058d60ff" }
             }
 
             linearGradient { id: "channel-body-gradient-hover",
@@ -93,8 +109,33 @@ pub fn style_defs() -> Element {
                 stop { offset: "5%", stop_color: "#9CA3AF" }
                 stop { offset: "95%", stop_color: "#6B7280" }
             }
+
+            linearGradient { id: "channel-external-receiver-gradient-hover",
+                stop { offset: "5%", stop_color: "#393d44ff" }
+                stop { offset: "95%", stop_color: "#14171bff" }
+            }
         }
     }
+}
+
+pub struct GradientUrl;
+
+impl GradientUrl {
+    pub const SENDER: &'static str = "url(#channel-sender-gradient)";
+    pub const SENDER_EXTERNAL: &'static str = "url(#channel-external-sender-gradient)";
+    pub const BODY: &'static str = "url(#channel-body-gradient)";
+    pub const RECEIVER: &'static str = "url(#channel-receiver-gradient)";
+    pub const RECEIVER_EXTERNAL: &'static str = "url(#channel-external-receiver-gradient)";
+}
+
+pub struct GradientHoverUrl;
+
+impl GradientHoverUrl {
+    pub const SENDER: &'static str = "url(#channel-sender-gradient-hover)";
+    pub const SENDER_EXTERNAL: &'static str = "url(#channel-external-sender-gradient-hover)";
+    pub const BODY: &'static str = "url(#channel-body-gradient-hover)";
+    pub const RECEIVER: &'static str = "url(#channel-receiver-gradient-hover)";
+    pub const RECEIVER_EXTERNAL: &'static str = "url(#channel-external-receiver-gradient-hover)";
 }
 
 #[component]
@@ -153,16 +194,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
     rsx! {
         g {
             onmousedown: move |evt| {
-                on_mouse_down(
-                    evt,
-                    Point {
-                        x: position.x,
-                        y: position.y,
-                    },
-                    id,
-                    zoom_level.into(),
-                    &handlers.on_drag_start,
-                );
+                on_mouse_down(evt, position, id, zoom_level.into(), &handlers.on_drag_start);
             },
 
             // Sender port (left side)
@@ -176,10 +208,10 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
                 height: "25",
                 rx: "10",
                 ry: "10",
-                fill: if *sender_hovered.read() { "url(#channel-sender-gradient-hover)" } else { "url(#channel-sender-gradient)" },
+                fill: if *sender_hovered.read() { GradientHoverUrl::SENDER } else { GradientUrl::SENDER },
+                filter: if *sender_hovered.read() { shadow::FilterUrl::SHADOW_HOVER } else { shadow::FilterUrl::SHADOW },
                 stroke: "rgba(255,255,255,0.3)",
                 stroke_width: "1",
-                filter: if *sender_hovered.read() { "url(#shadow-hover)" } else { "url(#shadow)" },
                 style: "cursor: grab;",
             }
 
@@ -199,10 +231,10 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
                 height: "25",
                 rx: "10",
                 ry: "10",
-                fill: if *body_hovered.peek() { "url(#channel-body-gradient-hover)" } else { "url(#channel-body-gradient)" },
+                fill: if *body_hovered.read() { GradientHoverUrl::BODY } else { GradientUrl::BODY },
+                filter: if *body_hovered.read() { shadow::FilterUrl::SHADOW_HOVER } else { shadow::FilterUrl::SHADOW },
                 stroke: "rgba(255,255,255,0.3)",
                 stroke_width: "1",
-                filter: "url(#shadow)",
                 style: "cursor: grab;",
             }
 
@@ -217,10 +249,10 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
                 height: "25",
                 rx: "10",
                 ry: "10",
-                fill: if *receiver_hovered.peek() { "url(#channel-receiver-gradient-hover)" } else { "url(#channel-receiver-gradient)" },
+                fill: if *receiver_hovered.read() { GradientHoverUrl::RECEIVER } else { GradientUrl::RECEIVER },
+                filter: if *receiver_hovered.read() { shadow::FilterUrl::SHADOW_HOVER } else { shadow::FilterUrl::SHADOW },
                 stroke: "rgba(255,255,255,0.3)",
                 stroke_width: "1",
-                filter: if *receiver_hovered.peek() { "url(#shadow-hover)" } else { "url(#shadow)" },
                 style: "cursor: grab;",
             }
 

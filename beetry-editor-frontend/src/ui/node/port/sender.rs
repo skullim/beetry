@@ -2,6 +2,7 @@ use crate::Point;
 use crate::definitions::IndexedDragOffset;
 use crate::ui::channel::temporary::ConnectionOrigin;
 use crate::ui::text::{self, text_width_from};
+use crate::ui::{channel, shadow};
 use beetry_editor_types::spec::message::MessageSpec;
 use beetry_editor_types::{id::NodeId, id::NodePortId};
 use dioxus::prelude::*;
@@ -9,14 +10,17 @@ use dioxus::prelude::*;
 #[derive(Debug, Clone)]
 pub struct Handlers {
     on_mouse_down: EventHandler<(ConnectionOrigin, IndexedDragOffset, NodePortId)>,
+    on_context_menu: EventHandler<(NodeId, NodePortId)>,
 }
 
 impl Handlers {
     pub(crate) fn new(
         on_mouse_down: impl FnMut((ConnectionOrigin, IndexedDragOffset, NodePortId)) + 'static,
+        on_context_menu: impl FnMut((NodeId, NodePortId)) + 'static,
     ) -> Self {
         Self {
             on_mouse_down: EventHandler::new(on_mouse_down),
+            on_context_menu: EventHandler::new(on_context_menu),
         }
     }
 }
@@ -31,22 +35,27 @@ pub struct SenderProps {
 
 #[component]
 pub fn Sender(props: SenderProps) -> Element {
+    debug!("rendering sender port");
+
     let position = props.position;
+    let node_id = props.id;
     let message_desc = props.msg_spec.as_str();
 
-    let mut is_hovered = use_signal(|| false);
-    let (fill_gradient, shadow_filter) = if *is_hovered.peek() {
-        ("url(#channel-sender-gradient-hover)", "url(#shadow-hover)")
-    } else {
-        ("url(#channel-sender-gradient)", "url(#shadow)")
-    };
-
-    let font_size = 10;
-    let port_width = text_width_from(message_desc, font_size);
+    static FONT_SIZE: u8 = 10;
+    let port_width = text_width_from(message_desc, FONT_SIZE);
 
     let port_id = props.port_id;
     let port_id_as_f64 = port_id.raw_value() as f64;
 
+    let mut is_hovered = use_signal(|| false);
+    let mut is_external = use_signal(|| false);
+
+    let fill = match (is_hovered(), is_external()) {
+        (true, true) => channel::GradientHoverUrl::SENDER_EXTERNAL,
+        (true, false) => channel::GradientHoverUrl::SENDER,
+        (false, true) => channel::GradientUrl::SENDER_EXTERNAL,
+        (false, false) => channel::GradientUrl::SENDER,
+    };
     rsx! {
         g {
             rect {
@@ -56,8 +65,8 @@ pub fn Sender(props: SenderProps) -> Element {
                 height: "20",
                 rx: "4",
                 ry: "4",
-                fill: "{fill_gradient}",
-                filter: "{shadow_filter}",
+                fill,
+                filter: if *is_hovered.read() { shadow::FilterUrl::SHADOW_HOVER } else { shadow::FilterUrl::SHADOW },
                 stroke: "rgba(255,255,255,0.2)",
                 stroke_width: "1",
                 onmouseenter: move |_| is_hovered.set(true),
@@ -80,13 +89,19 @@ pub fn Sender(props: SenderProps) -> Element {
                             port_id,
                         ))
                 },
+                oncontextmenu: move |evt| {
+                    evt.prevent_default();
+                    evt.stop_propagation();
+                    is_external.set(!is_external());
+                    use_context::<Handlers>().on_context_menu.call((node_id, port_id))
+                },
             }
             text {
                 x: "{position.x + (port_width / 2.0)}",
                 y: "{position.y + 13.0 + 20.0 * port_id_as_f64}",
                 fill: "white",
                 font_family: text::font_family(),
-                font_size: "{font_size}",
+                font_size: "{FONT_SIZE}",
                 font_weight: "medium",
                 text_anchor: "middle",
                 pointer_events: "none",

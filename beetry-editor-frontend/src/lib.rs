@@ -13,8 +13,8 @@ use beetry_plugin::{
     channel::ChannelPluginConstructor,
     node::{ActionPluginConstructor, ConditionPluginConstructor, ControlPluginConstructor},
 };
-use dioxus::logger::tracing::Level;
 use dioxus::prelude::*;
+use dioxus::{desktop::WindowBuilder, logger::tracing::Level};
 
 use beetry_editor_types::{output::ui::Point, spec::node::NodeSpec};
 
@@ -31,7 +31,12 @@ pub fn launch() {
         __wasm_call_ctors();
     }
     dioxus_logger::init(Level::DEBUG).expect("failed to init logger");
-    dioxus::launch(app);
+    let cfg = dioxus::desktop::Config::default().with_window(
+        WindowBuilder::new()
+            .with_always_on_top(false)
+            .with_title("Beetry Editor 🌳"),
+    );
+    dioxus::LaunchBuilder::desktop().with_cfg(cfg).launch(app);
 }
 
 #[component]

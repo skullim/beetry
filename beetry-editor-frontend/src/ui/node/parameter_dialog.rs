@@ -18,8 +18,8 @@ pub struct Handlers {
 
 impl Handlers {
     pub(crate) fn new(
-        on_confirm: impl FnMut((NodeId, Parameters)) -> Result<()> + 'static,
-        on_cancel: impl FnMut(()) + 'static,
+        on_confirm: impl FnMut((NodeId, Parameters)) + 'static,
+        on_cancel: impl FnMut(()) -> Result<()> + 'static,
     ) -> Self {
         Self {
             on_confirm: EventHandler::new(on_confirm),

@@ -11,24 +11,6 @@ use crate::editor::ServiceContext;
 use crate::signals::RequestRender;
 use crate::ui::transfer;
 
-fn select_export_file() -> Result<PathBuf> {
-    FileDialog::new()
-        .add_filter("JSON files", &["json"])
-        .set_title("Save behavior tree project as...")
-        .set_file_name("behavior_tree.json")
-        .save_file()
-        .ok_or_else(|| anyhow!("No file selected"))
-}
-
-fn select_import_file() -> Result<PathBuf> {
-    FileDialog::new()
-        .add_filter("JSON files", &["json"])
-        .add_filter("All files", &["*"])
-        .set_title("Select file to import")
-        .pick_file()
-        .ok_or_else(|| anyhow!("No file selected"))
-}
-
 #[component]
 pub(crate) fn Toolbar(
     render_nodes: Signal<RequestRender>,
@@ -36,113 +18,86 @@ pub(crate) fn Toolbar(
     render_edges: Signal<RequestRender>,
 ) -> Element {
     let mut export_result = use_signal(transfer::OperationResult::default);
+    let on_project_export = move |()| match do_export_project() {
+        Ok(()) => {
+            export_result.set(transfer::OperationResult::new(
+                "Export successful",
+                transfer::OperationStatus::Success,
+            ));
+        }
+        Err(e) => {
+            export_result.set(transfer::OperationResult::new(
+                format!("Export failed:\n{e}"),
+                transfer::OperationStatus::Error,
+            ));
+        }
+    };
+
     let mut valid_tree_export_result = use_signal(transfer::OperationResult::default);
+    let on_valid_tree_export = move |()| match do_export_valid_tree() {
+        Ok(()) => {
+            valid_tree_export_result.set(transfer::OperationResult::new(
+                "Valid tree export successful",
+                transfer::OperationStatus::Success,
+            ));
+        }
+        Err(e) => {
+            valid_tree_export_result.set(transfer::OperationResult::new(
+                format!("Export failed:\n{e}"),
+                transfer::OperationStatus::Error,
+            ));
+        }
+    };
+
     let mut import_result = use_signal(transfer::OperationResult::default);
+    let on_import = move |()| match do_import() {
+        Ok(()) => {
+            import_result.set(transfer::OperationResult::new(
+                "Import successful",
+                transfer::OperationStatus::Success,
+            ));
+            render_nodes.with_mut(|w| w.request());
+            render_edges.with_mut(|w| w.request());
+            render_channels.with_mut(|w| w.request());
+        }
+        Err(e) => {
+            import_result.set(transfer::OperationResult::new(
+                format!("Import failed:\n{e}"),
+                transfer::OperationStatus::Error,
+            ));
+        }
+    };
 
-    {
-        let on_project_export = move |()| {
-            let service = use_context::<ServiceContext>();
-            let read = service.service.read();
-
-            let export_project_result = read.export_api().export_project();
-            match export_project_result {
-                Ok(state) => match export_project_to_file(state) {
-                    Ok(()) => {
-                        export_result.set(transfer::OperationResult::new(
-                            "Export successful",
-                            transfer::OperationStatus::Success,
-                        ));
-                    }
-                    Err(e) => {
-                        export_result.set(transfer::OperationResult::new(
-                            format!("Export failed:\n{e}"),
-                            transfer::OperationStatus::Error,
-                        ));
-                    }
-                },
-                Err(e) => {
-                    export_result.set(transfer::OperationResult::new(
-                        format!("Export failed:\n{e}"),
-                        transfer::OperationStatus::Error,
-                    ));
-                }
-            };
-        };
-
-        let on_valid_tree_export = move |()| {
-            let service = use_context::<ServiceContext>();
-            let read = service.service.read();
-
-            let export_valid_tree_result = read.export_api().export_valid_tree();
-            match export_valid_tree_result {
-                Ok(tree) => match export_valid_tree_to_file(tree) {
-                    Ok(()) => {
-                        valid_tree_export_result.set(transfer::OperationResult::new(
-                            "Valid tree export successful",
-                            transfer::OperationStatus::Success,
-                        ));
-                    }
-                    Err(e) => {
-                        valid_tree_export_result.set(transfer::OperationResult::new(
-                            format!("Export failed:\n{e}"),
-                            transfer::OperationStatus::Error,
-                        ));
-                    }
-                },
-                Err(e) => {
-                    valid_tree_export_result.set(transfer::OperationResult::new(
-                        format!("Export failed:\n{e}"),
-                        transfer::OperationStatus::Error,
-                    ));
-                }
-            };
-        };
-
-        let on_import = move |()| {
-            let result = import_project_from_file();
-
-            match result {
-                Ok(state) => {
-                    let mut service = use_context::<ServiceContext>();
-                    let mut write = service.service.write();
-                    match write.import_api().import_project(state) {
-                        Ok(()) => {
-                            import_result.set(transfer::OperationResult::new(
-                                "Import successful",
-                                transfer::OperationStatus::Success,
-                            ));
-                            render_nodes.with_mut(|write| write.request());
-                            render_edges.with_mut(|write| write.request());
-                            render_channels.with_mut(|write| write.request());
-                        }
-                        Err(e) => {
-                            import_result.set(transfer::OperationResult::new(
-                                format!("Import failed:\n{e}"),
-                                transfer::OperationStatus::Error,
-                            ));
-                        }
-                    }
-                }
-                Err(e) => {
-                    import_result.set(transfer::OperationResult::new(
-                        format!("Import failed:\n{e}"),
-                        transfer::OperationStatus::Error,
-                    ));
-                }
-            }
-        };
-
-        use_context_provider(move || ToolbarHandlers {
-            import: transfer::ImportHandlers::new(on_import),
-            export: transfer::ExportHandlers::new(on_project_export, on_valid_tree_export),
-        });
-    }
+    use_context_provider(move || ToolbarHandlers {
+        import: transfer::ImportHandlers::new(on_import),
+        export: transfer::ExportHandlers::new(on_project_export, on_valid_tree_export),
+    });
 
     rsx! {
         transfer::ExportProject { result: export_result }
         transfer::ExportValidTree { result: valid_tree_export_result }
         transfer::Import { result: import_result }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct ToolbarHandlers {
+    pub(crate) import: transfer::ImportHandlers,
+    pub(crate) export: transfer::ExportHandlers,
+}
+
+fn do_export_project() -> Result<()> {
+    let service = use_context::<ServiceContext>();
+    let state = service.with(|s| s.export_api().export_project())?;
+    export_project_to_file(state)?;
+    Ok(())
+}
+
+fn do_export_valid_tree() -> Result<()> {
+    let service = use_context::<ServiceContext>();
+    let tree = service.with(|s| s.export_api().export_valid_tree())?;
+    export_valid_tree_to_file(tree)?;
+    Ok(())
 }
 
 fn export_project_to_file(editor_state: EditorStateStore) -> Result<()> {
@@ -159,6 +114,13 @@ fn export_valid_tree_to_file(valid_tree: ValidTree) -> Result<()> {
 
     std::fs::write(&file_path, serialized)
         .map_err(|e| anyhow!("Failed to save file '{}': {}", file_path.display(), e))
+}
+
+fn do_import() -> Result<()> {
+    let state = import_project_from_file()?;
+    let mut service = use_context::<ServiceContext>();
+    service.with_mut(|s| s.import_api().import_project(state))?;
+    Ok(())
 }
 
 pub(crate) fn import_project_from_file() -> Result<EditorStateStore> {
@@ -178,8 +140,20 @@ pub(crate) fn import_project_from_file() -> Result<EditorStateStore> {
     Ok(store)
 }
 
-#[derive(Debug, Clone)]
-pub struct ToolbarHandlers {
-    pub(crate) import: transfer::ImportHandlers,
-    pub(crate) export: transfer::ExportHandlers,
+fn select_export_file() -> Result<PathBuf> {
+    FileDialog::new()
+        .add_filter("JSON files", &["json"])
+        .set_title("Save behavior tree project as...")
+        .set_file_name("behavior_tree.json")
+        .save_file()
+        .ok_or_else(|| anyhow!("No file selected"))
+}
+
+fn select_import_file() -> Result<PathBuf> {
+    FileDialog::new()
+        .add_filter("JSON files", &["json"])
+        .add_filter("All files", &["*"])
+        .set_title("Select file to import")
+        .pick_file()
+        .ok_or_else(|| anyhow!("No file selected"))
 }
