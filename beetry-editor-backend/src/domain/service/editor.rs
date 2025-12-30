@@ -91,6 +91,14 @@ where
         Ok(id)
     }
 
+    pub fn remove_node(&mut self, id: NodeId) -> Result<()> {
+        //@todo needs refactoring to do without cloning
+        let spec = self.node_api().spec().spec_by_node_id_pub(id)?.clone();
+        self.node_api_mut().lifecycle().remove(&spec, id)?;
+        self.ui_api_mut().node().remove(id);
+        Ok(())
+    }
+
     pub fn create_channel(
         &mut self,
         spec: &ChannelSpec,

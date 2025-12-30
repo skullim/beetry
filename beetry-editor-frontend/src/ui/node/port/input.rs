@@ -1,4 +1,4 @@
-use crate::Point;
+use crate::{Point, ui::node::port::IoPortStyleUrl};
 use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 
@@ -24,22 +24,16 @@ pub struct PortProps {
 #[component]
 pub(crate) fn Port(props: PortProps) -> Element {
     let position = props.position;
+    static PORT_RADIUS: f64 = 7.0;
 
     let mut is_hovered = use_signal(|| false);
-    let fill_gradient = if *is_hovered.peek() {
-        "url(#io-port-hover)"
-    } else {
-        "url(#io-port-gradient)"
-    };
-    let port_radius = 7.0;
-
     rsx! {
         g {
             circle {
                 cx: "{position.x}",
-                cy: "{position.y - port_radius}",
-                r: "{port_radius}",
-                fill: "{fill_gradient}",
+                cy: "{position.y - PORT_RADIUS}",
+                r: "{PORT_RADIUS}",
+                fill: if *is_hovered.read() { IoPortStyleUrl::HOVER } else { IoPortStyleUrl::GRADIENT },
                 stroke: "rgba(255,255,255,0.3)",
                 stroke_width: "1.5",
                 onmouseenter: move |_| is_hovered.set(true),
@@ -49,26 +43,10 @@ pub(crate) fn Port(props: PortProps) -> Element {
 
             circle {
                 cx: "{position.x}",
-                cy: "{position.y - port_radius}",
+                cy: "{position.y - PORT_RADIUS}",
                 r: "2.5",
                 fill: "rgba(255,255,255,0.4)",
                 pointer_events: "none",
-            }
-        }
-    }
-}
-
-pub(super) fn style_defs() -> Element {
-    rsx! {
-        defs {
-            linearGradient { id: "io-port-gradient",
-                stop { offset: "0%", stop_color: "#8B5CF6" }
-                stop { offset: "100%", stop_color: "#7C3AED" }
-            }
-
-            linearGradient { id: "io-port-hover",
-                stop { offset: "0%", stop_color: "#A78BFA" }
-                stop { offset: "100%", stop_color: "#8B5CF6" }
             }
         }
     }

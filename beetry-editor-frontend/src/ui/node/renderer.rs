@@ -27,10 +27,7 @@ pub fn Renderer(render_nodes: Signal<RequestRender>) -> Element {
                 Control {
                     key: "{id}",
                     id,
-                    position: Point {
-                        x: pos.x,
-                        y: pos.y,
-                    },
+                    position: Point { x: pos.x, y: pos.y },
                 }
             }
         });
@@ -41,10 +38,7 @@ pub fn Renderer(render_nodes: Signal<RequestRender>) -> Element {
                 Leaf {
                     key: "{id}",
                     id,
-                    position: Point {
-                        x: pos.x,
-                        y: pos.y,
-                    },
+                    position: Point { x: pos.x, y: pos.y },
                 }
             }
         });
@@ -56,10 +50,7 @@ pub fn Renderer(render_nodes: Signal<RequestRender>) -> Element {
                 Leaf {
                     key: "{id}",
                     id,
-                    position: Point {
-                        x: pos.x,
-                        y: pos.y,
-                    },
+                    position: Point { x: pos.x, y: pos.y },
                 }
             }
         });
@@ -71,10 +62,7 @@ pub fn Renderer(render_nodes: Signal<RequestRender>) -> Element {
                 Root {
                     key: "{id}",
                     id,
-                    position: Point {
-                        x: pos.x,
-                        y: pos.y,
-                    },
+                    position: Point { x: pos.x, y: pos.y },
                 }
             }
         });

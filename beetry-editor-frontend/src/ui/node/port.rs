@@ -1,5 +1,6 @@
 pub mod input;
 pub mod output;
+pub mod popup;
 pub mod receiver;
 pub mod sender;
 
@@ -10,7 +11,22 @@ use dioxus::prelude::*;
 
 pub(super) fn style_defs() -> Element {
     rsx! {
-        {input::style_defs()}
-        {output::style_defs()}
+        defs {
+            linearGradient { id: "io-port-gradient",
+                stop { offset: "0%", stop_color: "#8B5CF6" }
+                stop { offset: "100%", stop_color: "#7C3AED" }
+            }
+
+            linearGradient { id: "io-port-hover",
+                stop { offset: "0%", stop_color: "#A78BFA" }
+                stop { offset: "100%", stop_color: "#8B5CF6" }
+            }
+        }
     }
+}
+
+pub(super) struct IoPortStyleUrl;
+impl IoPortStyleUrl {
+    pub const GRADIENT: &'static str = "url(#io-port-gradient)";
+    pub const HOVER: &'static str = "url(#io-port-hover)";
 }

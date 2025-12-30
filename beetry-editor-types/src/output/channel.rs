@@ -67,7 +67,8 @@ impl SenderReceiverCount {
     }
 
     pub fn decrease_sender_count(&mut self) -> Result<()> {
-        self.receiver
+        self.sender = self
+            .sender
             .checked_sub(1)
             .ok_or_else(|| anyhow!("cannot decrease sender count below 0"))?;
         Ok(())
@@ -78,7 +79,8 @@ impl SenderReceiverCount {
     }
 
     pub fn decrease_receiver_count(&mut self) -> Result<()> {
-        self.receiver
+        self.receiver = self
+            .receiver
             .checked_sub(1)
             .ok_or_else(|| anyhow!("cannot decrease receiver count below 0"))?;
         Ok(())

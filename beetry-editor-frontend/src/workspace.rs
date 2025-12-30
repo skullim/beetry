@@ -8,7 +8,6 @@ use bon::Builder;
 use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
 
-use crate::definitions::{EdgePos, IndexedDragOffset};
 use crate::editor::ServiceContext;
 use crate::signals::RequestRender;
 use crate::ui::channel::temporary::{ConnectionOrigin, DraggedData};
@@ -16,6 +15,10 @@ use crate::ui::channel::{self};
 use crate::ui::node::{self, ContextMenuState, ReceiverPortHandlers, SenderPortHandlers};
 use crate::ui::viewport::ViewportContext;
 use crate::ui::{self, edge};
+use crate::{
+    definitions::{EdgePos, IndexedDragOffset},
+    ui::node::PortPopupHandlers,
+};
 
 #[derive(Debug, Clone, Copy)]
 struct DimensionsContext {
@@ -122,7 +125,7 @@ pub(crate) fn Workspace(
     render_nodes: Signal<RequestRender>,
     render_channels: Signal<RequestRender>,
     render_edges: Signal<RequestRender>,
-    top_left_point: Signal<Point>,
+    ui_spawn_point: Signal<Point>,
 ) -> Element {
     debug!("rendering workspace");
 
@@ -142,12 +145,19 @@ pub(crate) fn Workspace(
     use_context_provider(move || input_port_handlers(temp_edge_ctx, render_edges));
     use_context_provider(move || output_port_handlers(temp_edge_ctx));
     use_context_provider(move || {
-        node_context_menu_handlers(node_context_menu_state, render_nodes, render_edges)
+        node_context_menu_handlers(
+            node_context_menu_state,
+            render_nodes,
+            render_edges,
+            render_channels,
+        )
     });
     use_context_provider(move || edge_context_menu_handlers(edge_context_menu_state, render_edges));
 
     use_context_provider(move || sender_handlers(temp_channel_conn_ctx));
-    use_context_provider(move || receiver_handlers(temp_channel_conn_ctx));
+    use_context_provider(move || receiver_port_handlers(temp_channel_conn_ctx));
+    use_context_provider(port_popup_handlers);
+
     use_context_provider(move || {
         channel_handlers(drag_channel_state, temp_channel_conn_ctx, render_channels)
     });
@@ -164,17 +174,13 @@ pub(crate) fn Workspace(
                     y: (mouse_coords.y / zoom - offset.y),
                 };
                 let mut service = use_context::<ServiceContext>();
-                {
-                    let mut write = service.service.write();
-                    let mut ui_api = write.ui_api_mut();
-                    ui_api.node().update_position(id, updated_pos)?;
-                }
+                service.with_mut(|s| s.ui_api_mut().node().update_position(id, updated_pos))?;
 
                 render_nodes.with_mut(|write| write.request());
                 render_edges.with_mut(|write| write.request());
                 render_channels.with_mut(|write| write.request());
 
-                let read = service.service.read();
+                let read = service.read();
                 let ui_api = read.ui_api();
                 let ui_node_api = ui_api.node();
                 let positions_iter = ui_node_api.positions();
@@ -191,9 +197,8 @@ pub(crate) fn Workspace(
                 };
 
                 let mut service = use_context::<ServiceContext>();
-                let mut write = service.service.write();
-                let mut ui_api = write.ui_api_mut();
-                ui_api.channel().update_position(id, updated_pos)?;
+                service.with_mut(|s| s.ui_api_mut().channel().update_position(id, updated_pos))?;
+
                 render_channels.with_mut(|write| write.request());
             }
 
@@ -235,7 +240,7 @@ pub(crate) fn Workspace(
                 let zoom = zoom_level.read().get();
                 let x = evt.scroll_left() / zoom;
                 let y = evt.scroll_top() / zoom;
-                top_left_point.set(Point{x, y});
+                ui_spawn_point.set(Point { x, y });
             },
 
             svg {
@@ -295,9 +300,7 @@ fn input_port_handlers(
             && from != to
         {
             let mut service = use_context::<ServiceContext>();
-            let mut write = service.service.write();
-            let mut edge_api = write.edge_api_mut();
-            edge_api.create(NodeEdge { from, to })?;
+            service.with_mut(|s| s.edge_api_mut().create(NodeEdge { from, to }))?;
             render_edges.with_mut(|write| write.request());
             debug!("created edge from node {from}: to: {to}");
         }
@@ -332,7 +335,7 @@ fn node_handlers(
     let on_context_menu = move |(node_id, position): (NodeId, Point)| {
         ctx_menu_state.set(node::ContextMenuState {
             position,
-            target_node: node_id,
+            node_id,
             is_visible: true,
         });
     };
@@ -359,10 +362,30 @@ fn sender_handlers(
             end: offset,
         });
     };
-    SenderPortHandlers::new(on_mouse_down)
+    let on_context_menu = move |(node_id, port_id): (NodeId, NodePortId)| {
+        let mut service_ctx = use_context::<ServiceContext>();
+        let port_spec = service_ctx.with(|s| {
+            let mut spec = s
+                .node_api()
+                .spec()
+                .spec_by_node_id_pub(node_id)
+                .unwrap()
+                .clone();
+            spec.ports_mut().take().unwrap()
+        });
+        service_ctx
+            .with_mut(|s| {
+                s.node_api_mut()
+                    .port_connection(&port_spec)
+                    .set_external(node_id, port_id)
+            })
+            .unwrap();
+    };
+
+    SenderPortHandlers::new(on_mouse_down, on_context_menu)
 }
 
-fn receiver_handlers(
+fn receiver_port_handlers(
     mut channel_temp_connection_ctx: channel::temporary::Context,
 ) -> ReceiverPortHandlers {
     let on_mouse_down = move |(origin, indexed_drag_offset, port_id): (
@@ -382,12 +405,52 @@ fn receiver_handlers(
             end: offset,
         });
     };
+    ReceiverPortHandlers::new(on_mouse_down)
+}
 
-    let on_context_menu = move |(node_id, port_id): (NodeId, NodePortId)| {
-        //@todo enable setting external port. Service layer has to provide such API
+fn port_popup_handlers() -> PortPopupHandlers {
+    let on_checked = move |(node_id, port_id): (NodeId, NodePortId)| {
+        let mut service_ctx = use_context::<ServiceContext>();
+        let port_spec = service_ctx.with(|s| {
+            let mut spec = s
+                .node_api()
+                .spec()
+                .spec_by_node_id_pub(node_id)
+                .unwrap()
+                .clone();
+            spec.ports_mut().take().unwrap()
+        });
+        service_ctx
+            .with_mut(|s| {
+                s.node_api_mut()
+                    .port_connection(&port_spec)
+                    .set_external(node_id, port_id)
+            })
+            .unwrap();
     };
 
-    ReceiverPortHandlers::new(on_mouse_down, on_context_menu)
+    let on_unchecked = move |(node_id, port_id): (NodeId, NodePortId)| {
+        let mut service_ctx = use_context::<ServiceContext>();
+        let port_spec = service_ctx.with(|s| {
+            let mut spec = s
+                .node_api()
+                .spec()
+                .spec_by_node_id_pub(node_id)
+                .unwrap()
+                .clone();
+            spec.ports_mut().take().unwrap()
+        });
+        service_ctx
+            .with_mut(|s| {
+                s.node_api_mut().port_connection(&port_spec).disconnect(
+                    //@todo rework https://github.com/users/skullim/projects/4/views/2?pane=issue&itemId=147248522
+                    PortConnectionInput::new(node_id, port_id, ChannelId::new(0)),
+                )
+            })
+            .unwrap();
+    };
+
+    PortPopupHandlers::new(on_checked, on_unchecked)
 }
 
 fn channel_handlers(
@@ -406,7 +469,6 @@ fn channel_handlers(
             let mut service = use_context::<ServiceContext>();
             let mut write = service.service.write();
             let mut node_api_mut = write.node_api_mut();
-            //@todo try to get rid of clone here
             let node_spec = node_api_mut
                 .spec()
                 .spec_by_node_id_pub(data.node_id)?
@@ -432,7 +494,6 @@ fn channel_handlers(
             let mut service = use_context::<ServiceContext>();
             let mut write = service.service.write();
             let mut node_api_mut = write.node_api_mut();
-            //@todo try to get rid of clone here
             let node_spec = node_api_mut
                 .spec()
                 .spec_by_node_id_pub(data.node_id)?
@@ -458,27 +519,16 @@ fn node_context_menu_handlers(
     mut node_ctx_menu_state: Signal<node::ContextMenuState>,
     mut render_nodes: Signal<RequestRender>,
     mut render_edges: Signal<RequestRender>,
+    mut render_channels: Signal<RequestRender>,
 ) -> node::ContextMenuHandlers {
     let on_delete = move |node_id: NodeId| -> Result<()> {
         let mut service = use_context::<ServiceContext>();
-        let mut write = service.service.write();
-        {
-            let mut node_api = write.node_api_mut();
-            //@todo temporary solution to satisfy borrow checker
-            let spec = {
-                let spec_api = node_api.spec();
-                spec_api.spec_by_node_id_pub(node_id)?.clone()
-            };
-
-            let mut lifecycle = node_api.lifecycle();
-            lifecycle.remove(&spec, node_id)?;
-        }
-        let mut ui_api = write.ui_api_mut();
-        ui_api.node().remove(node_id);
+        service.with_mut(|s| s.remove_node(node_id))?;
 
         node_ctx_menu_state.with_mut(|state| state.is_visible = false);
         render_nodes.with_mut(|write| write.request());
         render_edges.with_mut(|write| write.request());
+        render_channels.with_mut(|write| write.request());
         Ok(())
     };
 

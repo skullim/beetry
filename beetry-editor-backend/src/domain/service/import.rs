@@ -135,7 +135,3 @@ where
         *self.repo = EditorRepository::default();
     }
 }
-
-//@todo implement in next release
-#[allow(unused)]
-struct SubtreeImporter;

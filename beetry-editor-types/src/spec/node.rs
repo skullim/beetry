@@ -4,18 +4,18 @@ use crate::{id::NodePortId, spec::message::MessageSpec};
 use anyhow::{Result, anyhow};
 use bon::Builder;
 use derive_more::{Display, From};
-use getset::{CopyGetters, Getters};
+use getset::{CopyGetters, Getters, MutGetters};
 use mitsein::{btree_map1::BTreeMap1, iter1::FromIterator1};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Builder, Clone, Getters)]
+#[derive(Debug, Builder, Clone, Getters, MutGetters)]
 pub struct NodeSpec {
     #[getset(get = "pub")]
     pub key: NodeSpecKey,
     //@todo value
     #[getset(get = "pub")]
     params: Option<ParamsSpec>,
-    #[getset(get = "pub")]
+    #[getset(get = "pub", get_mut = "pub")]
     ports: Option<PortsSpec>,
 }
 

@@ -74,14 +74,14 @@ pub(crate) fn Editor() -> Element {
     let render_edges = use_signal(RequestRender::new);
     let mut render_channels = use_signal(RequestRender::new);
 
-    let top_left_point = use_signal(Point::default);
+    let ui_spawn_point = use_signal(Point::default);
 
     use_context_provider(move || {
         let on_new_node = move |node_spec_key: NodeSpecKey| -> Result<()> {
             let specs = use_context::<SharedSpecs>();
             let node_spec = specs.nodes.spec(&node_spec_key)?;
 
-            let spawn_point_read = top_left_point.read();
+            let spawn_point_read = ui_spawn_point.read();
             let ui_data = NodeUiData {
                 position: *spawn_point_read,
             };
@@ -113,7 +113,7 @@ pub(crate) fn Editor() -> Element {
             if let ChannelConfigDialogState::Visible { spec, .. } =
                 channel_config_dialog_state.take()
             {
-                let spawn_point_read = top_left_point.read();
+                let spawn_point_read = ui_spawn_point.read();
                 let ui_data = ChannelUiData {
                     position: *spawn_point_read,
                 };
@@ -144,7 +144,12 @@ pub(crate) fn Editor() -> Element {
                 Sidebar { channel_config_dialog_state }
             }
             div { style: "flex: 0 1 80%;",
-                Workspace { render_nodes, render_channels, render_edges, top_left_point }
+                Workspace {
+                    render_nodes,
+                    render_channels,
+                    render_edges,
+                    ui_spawn_point,
+                }
             }
             div {
                 ParameterDialog { state: parameter_dialog_state }
@@ -160,34 +165,21 @@ fn parameter_dialog_handlers(
     mut state: Signal<ParameterDialogState>,
     mut render_nodes: Signal<RequestRender>,
 ) -> ParameterDialogHandlers {
-    let on_confirm = move |(node_id, params): (NodeId, Parameters)| -> Result<()> {
+    let on_confirm = move |(node_id, params): (NodeId, Parameters)| {
         let mut service_ctx = use_context::<ServiceContext>();
-        let mut write = service_ctx.service.write();
-        let mut node_api = write.node_api_mut();
-        let mut node_api_params = node_api.parameters();
-        node_api_params.create(node_id, params);
+        service_ctx.with_mut(|s| s.node_api_mut().parameters().create(node_id, params));
         state.take();
-        Ok(())
     };
 
-    let on_cancel = move |_| {
+    let on_cancel = move |_| -> Result<()> {
         let state = state.take();
         if let ParameterDialogState::Visible { id, .. } = state {
             let mut service_ctx = use_context::<ServiceContext>();
-            let mut write = service_ctx.service.write();
-            let mut node_api = write.node_api_mut();
-            let spec = {
-                let spec_api = node_api.spec();
-                spec_api.spec_by_node_id_pub(id).unwrap().clone()
-            };
-
-            node_api.lifecycle().remove(&spec, id).unwrap();
-
-            let mut ui_api = write.ui_api_mut();
-            ui_api.node().remove(id).unwrap();
+            service_ctx.with_mut(|s| s.remove_node(id))?;
 
             render_nodes.with_mut(|write| write.request());
         }
+        Ok(())
     };
 
     ParameterDialogHandlers::new(on_confirm, on_cancel)

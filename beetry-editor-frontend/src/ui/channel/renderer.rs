@@ -84,7 +84,7 @@ struct PortChannelConnection {
 }
 
 fn sender_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> Result<EdgePos> {
-    let read = service.service.read();
+    let read = service.read();
     let ui_api = read.ui_api();
     let ui_api_node = ui_api.node();
     let ui_api_channel = ui_api.channel();
@@ -92,8 +92,12 @@ fn sender_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> Re
     let node_pos = ui_api_node.position(conn.node_id)?;
     let channel_pos = ui_api_channel.position(conn.channel_id)?;
 
-    //@todo get real port spec
-    let port_width = text::text_width_from("port spec", 11);
+    let node_api = read.node_api();
+    let spec_api = node_api.spec();
+    let spec = spec_api.spec_by_node_id_pub(conn.node_id)?;
+    let ports_spec = spec.ports().as_ref().unwrap();
+    let msg_desc = ports_spec.spec(conn.port_id).unwrap().msg_spec.as_str();
+    let port_width = text::text_width_from(msg_desc, 11);
 
     Ok(EdgePos {
         start: Point {
@@ -109,7 +113,7 @@ fn sender_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> Re
 }
 
 fn receiver_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> Result<EdgePos> {
-    let read = service.service.read();
+    let read = service.read();
     let ui_api = read.ui_api();
     let ui_api_node = ui_api.node();
     let ui_api_channel = ui_api.channel();
@@ -117,8 +121,13 @@ fn receiver_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> 
     let node_pos = ui_api_node.position(conn.node_id)?;
     let channel_pos = ui_api_channel.position(conn.channel_id)?;
 
-    //@todo get real port spec
-    let port_width = text::text_width_from("port spec", 11);
+    let node_api = read.node_api();
+    let spec_api = node_api.spec();
+    let spec = spec_api.spec_by_node_id_pub(conn.node_id)?;
+    let ports_spec = spec.ports().as_ref().unwrap();
+    let msg_desc = ports_spec.spec(conn.port_id).unwrap().msg_spec.as_str();
+
+    let port_width = text::text_width_from(msg_desc, 11);
 
     Ok(EdgePos {
         start: Point {
@@ -134,7 +143,7 @@ fn receiver_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> 
 
 //@todo would be nice to do without allocations
 fn port_channel_conns(service: &ServiceContext) -> Vec<PortChannelConnection> {
-    let read = service.service.read();
+    let read = service.read();
     let node_api = read.node_api();
     let port_state = node_api.port_state();
     port_state
