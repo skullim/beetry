@@ -6,7 +6,7 @@ use mitsein::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use tracing::warn;
+use tracing::error;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ParameterValue {
@@ -100,8 +100,9 @@ impl PortConnectionState {
                 connected.conns.insert(id);
             }
             Self::External => {
-                warn!("attempted to connect {id} to external port, switching port to internal");
-                *self = Self::Internal(<_>::try_from_iter(std::iter::once(id))?);
+                error!(
+                    "attempted to connect {id} to external port, mark the port internal to allow it"
+                );
             }
         }
         Ok(())
