@@ -1,20 +1,23 @@
 use beetry_editor_types::id::{NodeId, NodePortId};
+use bon::bon;
 use dioxus::prelude::*;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Handlers {
-    on_checked: EventHandler<(NodeId, NodePortId)>,
-    on_unchecked: EventHandler<(NodeId, NodePortId)>,
+    on_internal: EventHandler<(NodeId, NodePortId)>,
+    on_external: EventHandler<(NodeId, NodePortId)>,
 }
 
+#[bon]
 impl Handlers {
+    #[builder]
     pub(crate) fn new(
-        on_checked: impl FnMut((NodeId, NodePortId)) + 'static,
-        on_unchecked: impl FnMut((NodeId, NodePortId)) + 'static,
+        on_internal: impl FnMut((NodeId, NodePortId)) + 'static,
+        on_external: impl FnMut((NodeId, NodePortId)) + 'static,
     ) -> Self {
         Self {
-            on_checked: EventHandler::new(on_checked),
-            on_unchecked: EventHandler::new(on_unchecked),
+            on_internal: EventHandler::new(on_internal),
+            on_external: EventHandler::new(on_external),
         }
     }
 }
@@ -70,10 +73,10 @@ pub(super) fn PortSettingsPopup(state: Signal<State>, is_external: Signal<bool>)
                                 onchange: move |evt| {
                                     if evt.checked() {
                                         is_external.set(true);
-                                        use_context::<Handlers>().on_checked.call((id, port_id));
+                                        use_context::<Handlers>().on_internal.call((id, port_id));
                                     } else {
                                         is_external.set(false);
-                                        use_context::<Handlers>().on_unchecked.call((id, port_id));
+                                        use_context::<Handlers>().on_external.call((id, port_id));
                                     }
                                 },
                             }

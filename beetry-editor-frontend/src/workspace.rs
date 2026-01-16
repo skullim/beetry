@@ -409,7 +409,7 @@ fn receiver_port_handlers(
 }
 
 fn port_popup_handlers() -> PortPopupHandlers {
-    let on_checked = move |(node_id, port_id): (NodeId, NodePortId)| {
+    let on_external = move |(node_id, port_id): (NodeId, NodePortId)| {
         let mut service_ctx = use_context::<ServiceContext>();
         let port_spec = service_ctx.with(|s| {
             let mut spec = s
@@ -429,7 +429,7 @@ fn port_popup_handlers() -> PortPopupHandlers {
             .unwrap();
     };
 
-    let on_unchecked = move |(node_id, port_id): (NodeId, NodePortId)| {
+    let on_internal = move |(node_id, port_id): (NodeId, NodePortId)| {
         let mut service_ctx = use_context::<ServiceContext>();
         let port_spec = service_ctx.with(|s| {
             let mut spec = s
@@ -442,15 +442,17 @@ fn port_popup_handlers() -> PortPopupHandlers {
         });
         service_ctx
             .with_mut(|s| {
-                s.node_api_mut().port_connection(&port_spec).disconnect(
-                    //@todo rework https://github.com/users/skullim/projects/4/views/2?pane=issue&itemId=147248522
-                    PortConnectionInput::new(node_id, port_id, ChannelId::new(0)),
-                )
+                s.node_api_mut()
+                    .port_connection(&port_spec)
+                    .disconnect_port(node_id, port_id)
             })
             .unwrap();
     };
 
-    PortPopupHandlers::new(on_checked, on_unchecked)
+    PortPopupHandlers::builder()
+        .on_external(on_external)
+        .on_internal(on_internal)
+        .build()
 }
 
 fn channel_handlers(
@@ -473,7 +475,15 @@ fn channel_handlers(
                 .spec()
                 .spec_by_node_id_pub(data.node_id)?
                 .clone();
+
             if let Some(ports_spec) = node_spec.ports() {
+                if let Ok(state) = node_api_mut.port_state().state(data.node_id, data.port_id)
+                    && state.is_external()
+                {
+                    error!("attempted to connect port that is marked as external");
+                    return Ok(());
+                }
+
                 let mut port_connection = node_api_mut.port_connection(ports_spec);
                 let input = PortConnectionInput::new(data.node_id, data.port_id, id);
                 port_connection.connect(input)?;
@@ -498,7 +508,15 @@ fn channel_handlers(
                 .spec()
                 .spec_by_node_id_pub(data.node_id)?
                 .clone();
+
             if let Some(ports_spec) = node_spec.ports() {
+                if let Ok(state) = node_api_mut.port_state().state(data.node_id, data.port_id)
+                    && state.is_external()
+                {
+                    error!("attempted to connect port that is marked as external");
+                    return Ok(());
+                }
+
                 let mut port_connection = node_api_mut.port_connection(ports_spec);
                 let input = PortConnectionInput::new(data.node_id, data.port_id, id);
                 port_connection.connect(input)?;
