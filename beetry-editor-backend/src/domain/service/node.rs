@@ -342,7 +342,7 @@ where
                 channel_service_api,
             );
 
-            port_connection_service_api.disconnect_all(id)?;
+            port_connection_service_api.disconnect_all_ports(id)?;
         }
         if spec.params().is_some() {
             self.node_facade_view.parameters.remove(id);
@@ -560,8 +560,7 @@ where
     }
 
     pub fn set_external(&mut self, id: NodeId, port: NodePortId) -> Result<()> {
-        //@todo rework https://github.com/users/skullim/projects/4?pane=issue&itemId=147248522
-        self.disconnect_all(id)?;
+        self.disconnect_port(id, port)?;
         self.repo.insert(id, port, PortConnectionState::External)
     }
 
@@ -578,14 +577,19 @@ where
         Ok(())
     }
 
-    pub fn disconnect_all(&mut self, id: NodeId) -> Result<()> {
-        for port_id in self.ports_spec.ids() {
-            if let Some(conn) = self.repo.remove(id, *port_id) {
-                let channels = conn.disconnect_all();
-                for channel in channels {
-                    self.channel_service_api
-                        .disconnect(channel, self.ports_spec.spec(*port_id)?.kind)?;
-                }
+    pub fn disconnect_all_ports(&mut self, id: NodeId) -> Result<()> {
+        for port in self.ports_spec.ids() {
+            self.disconnect_port(id, *port)?;
+        }
+        Ok(())
+    }
+
+    pub fn disconnect_port(&mut self, id: NodeId, port: NodePortId) -> Result<()> {
+        if let Some(conn) = self.repo.remove(id, port) {
+            let channels = conn.disconnect_all();
+            for channel in channels {
+                self.channel_service_api
+                    .disconnect(channel, self.ports_spec.spec(port)?.kind)?;
             }
         }
         Ok(())
