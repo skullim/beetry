@@ -53,7 +53,7 @@ pub struct LeafProps {
 #[component]
 pub(crate) fn Leaf(props: LeafProps) -> Element {
     let id = props.id;
-    debug!("rendering leaf component: {id}");
+    debug!("rendering (node id: {id})");
     let service = use_context::<ServiceContext>();
     let read = service.service.read();
     let node_api = read.node_api();

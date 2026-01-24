@@ -132,8 +132,8 @@ pub(crate) fn Workspace(
     let workspace_ctx = use_context_provider(WorkspaceContext::new);
     let mut drag_node_state = workspace_ctx.drag_node_state;
     let mut drag_channel_state = workspace_ctx.drag_channel_state;
-    let node_context_menu_state = workspace_ctx.context_menu_state;
-    let edge_context_menu_state = workspace_ctx.edge_context_menu_state;
+    let mut node_context_menu_state = workspace_ctx.context_menu_state;
+    let mut edge_context_menu_state = workspace_ctx.edge_context_menu_state;
     let mut dimensions_ctx = workspace_ctx.dimensions_ctx;
     let mut temp_channel_conn_ctx = workspace_ctx.channel_temp_conn_ctx;
 
@@ -152,6 +152,8 @@ pub(crate) fn Workspace(
             render_channels,
         )
     });
+
+    use_context_provider(move || edge_handlers(edge_context_menu_state));
     use_context_provider(move || edge_context_menu_handlers(edge_context_menu_state, render_edges));
 
     use_context_provider(move || sender_handlers(temp_channel_conn_ctx));
@@ -211,6 +213,8 @@ pub(crate) fn Workspace(
             evt.stop_propagation();
             drag_node_state.set(DragNodeState::Idle);
             drag_channel_state.set(DragChannelState::Idle);
+            node_context_menu_state.set(node::ContextMenuState::Idle);
+            edge_context_menu_state.set(edge::ContextMenuState::Idle);
             temp_edge_ctx.reset();
             temp_channel_conn_ctx.reset();
         };
@@ -272,7 +276,7 @@ pub(crate) fn Workspace(
                     fill: "url(#grid)",
                 }
 
-                edge::Renderer { render_edges, edge_context_menu_state }
+                edge::Renderer { render_edges }
                 channel::Renderer { render_channels }
                 node::Renderer { render_nodes }
 
@@ -283,10 +287,10 @@ pub(crate) fn Workspace(
                 if temp_channel_conn_ctx.is_dragged() {
                     channel::Temporary { edge: temp_channel_conn_ctx.edge() }
                 }
-            }
 
-            node::ContextMenu { state: node_context_menu_state }
-            edge::ContextMenu { state: edge_context_menu_state }
+                node::ContextMenu { state: node_context_menu_state }
+                edge::ContextMenu { state: edge_context_menu_state }
+            }
         }
     }
 }
@@ -333,13 +337,16 @@ fn node_handlers(
     };
 
     let on_context_menu = move |(node_id, position): (NodeId, Point)| {
-        ctx_menu_state.set(node::ContextMenuState {
-            position,
-            node_id,
-            is_visible: true,
-        });
+        ctx_menu_state.set(node::ContextMenuState::Visible { position, node_id });
     };
     node::Handlers::new(on_drag_start, on_context_menu)
+}
+
+fn edge_handlers(mut ctx_menu_state: Signal<edge::ContextMenuState>) -> edge::Handlers {
+    let on_context_menu = move |(edge_id, position): (EdgeId, Point)| {
+        ctx_menu_state.set(edge::ContextMenuState::Visible { position, edge_id });
+    };
+    edge::Handlers::new(on_context_menu)
 }
 
 fn sender_handlers(
@@ -543,7 +550,7 @@ fn node_context_menu_handlers(
         let mut service = use_context::<ServiceContext>();
         service.with_mut(|s| s.remove_node(node_id))?;
 
-        node_ctx_menu_state.with_mut(|state| state.is_visible = false);
+        node_ctx_menu_state.set(ContextMenuState::Idle);
         render_nodes.with_mut(|write| write.request());
         render_edges.with_mut(|write| write.request());
         render_channels.with_mut(|write| write.request());
@@ -551,7 +558,7 @@ fn node_context_menu_handlers(
     };
 
     let on_close = move |_| {
-        node_ctx_menu_state.with_mut(|state| state.is_visible = false);
+        node_ctx_menu_state.set(ContextMenuState::Idle);
     };
     node::ContextMenuHandlers::new(on_delete, on_close)
 }
@@ -565,13 +572,13 @@ fn edge_context_menu_handlers(
         let mut write = service.service.write();
         let mut edge_api = write.edge_api_mut();
         edge_api.remove(edge_id)?;
-        edge_ctx_menu_state.with_mut(|state| state.is_visible = false);
+        edge_ctx_menu_state.set(edge::ContextMenuState::Idle);
         render_edges.with_mut(|write| write.request());
         Ok(())
     };
 
     let on_close = move |()| {
-        edge_ctx_menu_state.with_mut(|state| state.is_visible = false);
+        edge_ctx_menu_state.set(edge::ContextMenuState::Idle);
     };
 
     edge::ContextMenuHandlers::new(on_delete, on_close)

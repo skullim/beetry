@@ -30,7 +30,7 @@ pub struct DialogProps {
 
 #[component]
 pub fn Dialog(props: DialogProps) -> Element {
-    debug!("rendering channel config dialog");
+    debug!("rendering");
     let state_read = props.state.read();
 
     let position = match *state_read {

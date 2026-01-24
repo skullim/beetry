@@ -14,7 +14,7 @@ pub enum ConnectionOrigin {
 
 #[component]
 pub fn Temporary(edge: ReadSignal<EdgePos>) -> Element {
-    debug!("rendering temp channel connection with data: {edge:?}");
+    debug!("rendering (data: {edge:?})");
     let edge = edge.read();
 
     rsx! {

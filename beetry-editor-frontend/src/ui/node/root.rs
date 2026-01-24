@@ -16,7 +16,7 @@ pub struct RootProps {
 
 #[component]
 pub(crate) fn Root(props: RootProps) -> Element {
-    debug!("rendering root: {}", props.id);
+    debug!("rendering (root id: {})", props.id);
 
     let style = use_hook(|| Rc::new(style()));
     let id = props.id;
