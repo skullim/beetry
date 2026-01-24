@@ -45,7 +45,7 @@ pub struct DialogProps {
 
 #[component]
 pub fn Dialog(props: DialogProps) -> Element {
-    debug!("rendering parameter dialog");
+    debug!("rendering");
     let (id, position, params_spec, node_name) = match *props.state.read() {
         State::Idle => return rsx! {},
         State::Visible { position, id } => {

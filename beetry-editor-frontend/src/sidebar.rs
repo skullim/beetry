@@ -22,7 +22,7 @@ impl SidebarEventHandlers {
 
 #[component]
 pub(crate) fn Sidebar(channel_config_dialog_state: Signal<ChannelConfigDialogState>) -> Element {
-    debug!("rendering sidebar");
+    debug!("rendering");
 
     let on_new_node = use_context::<SidebarEventHandlers>().on_new_node;
     use_hook(|| on_new_node.call(NodeSpecKey::root()));

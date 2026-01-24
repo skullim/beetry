@@ -13,11 +13,23 @@ use crate::Point;
 use crate::definitions::EdgePos;
 use crate::ui::curve::Curve;
 
+#[derive(Debug, Clone)]
+pub struct Handlers {
+    on_context_menu: EventHandler<(EdgeId, Point)>,
+}
+
+impl Handlers {
+    pub(crate) fn new(on_context_menu: impl FnMut((EdgeId, Point)) + 'static) -> Self {
+        Self {
+            on_context_menu: EventHandler::new(on_context_menu),
+        }
+    }
+}
+
 #[derive(Props, Clone, PartialEq)]
 pub struct EdgeProps {
     pos: EdgePos,
     edge_id: EdgeId,
-    on_context_menu: EventHandler<(EdgeId, Point)>,
 }
 
 #[component]
@@ -39,6 +51,8 @@ pub(crate) fn Edge(props: EdgeProps) -> Element {
     let stroke_color = "#8B5CF6"; // matches output ports
     let stroke_width = "3";
 
+    let context_menu_handler = use_context::<Handlers>().on_context_menu;
+
     rsx! {
         path {
             d: "{Curve::calculate_vertical(&curve_start, &curve_end)}",
@@ -49,10 +63,10 @@ pub(crate) fn Edge(props: EdgeProps) -> Element {
             oncontextmenu: move |evt| {
                 evt.prevent_default();
                 let click_point = Point {
-                    x: evt.page_coordinates().x,
-                    y: evt.page_coordinates().y,
+                    x: evt.element_coordinates().x,
+                    y: evt.element_coordinates().y,
                 };
-                props.on_context_menu.call((edge_id, click_point));
+                context_menu_handler.call((edge_id, click_point));
             },
         }
     }

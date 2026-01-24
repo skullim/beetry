@@ -35,7 +35,7 @@ pub struct SenderProps {
 
 #[component]
 pub fn Sender(props: SenderProps) -> Element {
-    debug!("rendering sender port");
+    debug!("rendering");
 
     let position = props.position;
     let node_id = props.id;

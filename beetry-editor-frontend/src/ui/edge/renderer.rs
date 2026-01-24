@@ -1,20 +1,15 @@
-use crate::Point;
 use crate::definitions::EdgePos;
 use crate::editor::ServiceContext;
 use crate::signals::RequestRender;
-use crate::ui::edge::{ContextMenuState, Edge};
-use beetry_editor_types::id::EdgeId;
+use crate::ui::edge::Edge;
 use dioxus::prelude::*;
 
 // Conditions to re-render the edges:
 // - new edge created
 // - node position updated
 #[component]
-pub fn Renderer(
-    render_edges: Signal<RequestRender>,
-    mut edge_context_menu_state: Signal<ContextMenuState>,
-) -> Element {
-    debug!("rendering edges");
+pub fn Renderer(render_edges: Signal<RequestRender>) -> Element {
+    debug!("rendering");
     let _read = render_edges.read();
     let service = use_context::<ServiceContext>();
     let read = service.service.read();
@@ -30,19 +25,7 @@ pub fn Renderer(
             end: edge_end,
         };
         rsx! {
-            Edge {
-                key: "{id}",
-                pos: edge_pos,
-                edge_id: *id,
-                on_context_menu: move |(id, point): (EdgeId, Point)| {
-                    edge_context_menu_state
-                        .with_mut(|state| {
-                            state.position = point;
-                            state.edge_id = id;
-                            state.is_visible = true;
-                        });
-                },
-            }
+            Edge { key: "{id}", pos: edge_pos, edge_id: *id }
         }
     });
 
