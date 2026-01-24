@@ -15,7 +15,7 @@ use crate::ui::text;
 // - node/channel position updated
 #[component]
 pub fn Renderer(render_channels: Signal<RequestRender>) -> Element {
-    debug!("rendering channels");
+    debug!("rendering");
     let _read = render_channels.read();
 
     let service = use_context::<ServiceContext>();

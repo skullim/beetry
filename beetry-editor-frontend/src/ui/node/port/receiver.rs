@@ -34,7 +34,10 @@ pub struct ReceiverProps {
 
 #[component]
 pub fn Receiver(props: ReceiverProps) -> Element {
-    debug!("rendering receiver port");
+    debug!(
+        "rendering (node id: {}, port id: {})",
+        props.id, props.port_id
+    );
 
     let position = props.position;
     let node_id = props.id;
@@ -92,6 +95,7 @@ pub fn Receiver(props: ReceiverProps) -> Element {
                         ))
                 },
                 oncontextmenu: move |evt| {
+                    debug!("receiver on context menu");
                     evt.prevent_default();
                     evt.stop_propagation();
                     port_popup_state

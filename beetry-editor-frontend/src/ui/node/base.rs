@@ -55,7 +55,7 @@ pub fn NodeWithContextMenu(children: Element, id: NodeId) -> Element {
             oncontextmenu: move |evt| {
                 if evt.held_buttons().contains(MouseButton::Secondary) {
                     evt.prevent_default();
-                    let mouse_coords = evt.client_coordinates();
+                    let mouse_coords = evt.element_coordinates();
                     context_menu_handler
                         .call((
                             id,

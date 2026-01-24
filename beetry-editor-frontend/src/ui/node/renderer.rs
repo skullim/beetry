@@ -14,7 +14,7 @@ use beetry_editor_types::spec::node::NodeKind;
 // - node position updated
 #[component]
 pub fn Renderer(render_nodes: Signal<RequestRender>) -> Element {
-    debug!("rendering nodes renderer");
+    debug!("rendering");
     let _read = render_nodes.read();
     let service = use_context::<ServiceContext>();
     let read = service.service.read();

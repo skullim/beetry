@@ -40,7 +40,7 @@ pub struct ControlProps {
 #[component]
 pub fn Control(props: ControlProps) -> Element {
     let id = props.id;
-    debug!("rendering control component: {id}");
+    debug!("rendering (node id: {id})");
     let service = use_context::<ServiceContext>();
     let read = service.service.read();
     let node_api = read.node_api();

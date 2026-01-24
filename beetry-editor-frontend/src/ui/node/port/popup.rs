@@ -34,7 +34,7 @@ pub(super) enum State {
 
 #[component]
 pub(super) fn PortSettingsPopup(state: Signal<State>, is_external: Signal<bool>) -> Element {
-    debug!("rendering port settings popup");
+    debug!("rendering");
     debug!("{state:?}");
     match state() {
         State::Idle => {
@@ -43,7 +43,6 @@ pub(super) fn PortSettingsPopup(state: Signal<State>, is_external: Signal<bool>)
         State::Visible { id, port_id } => {
             rsx! {
                 div {
-
                     position: "fixed",
                     top: "0",
                     left: "0",

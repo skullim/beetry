@@ -21,10 +21,13 @@ impl Handlers {
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub struct State {
-    pub position: Point,
-    pub node_id: NodeId,
-    pub is_visible: bool,
+pub enum State {
+    #[default]
+    Idle,
+    Visible {
+        position: Point,
+        node_id: NodeId,
+    },
 }
 
 #[derive(Debug, Props, PartialEq, Clone)]
@@ -34,48 +37,44 @@ pub struct ContextMenuProps {
 
 #[component]
 pub fn ContextMenu(props: ContextMenuProps) -> Element {
-    debug!("rendering context menu");
+    debug!("rendering");
     let state_read = props.state.read();
-
-    let position = &state_read.position;
-    let node_id = state_read.node_id;
-    let is_visible = state_read.is_visible;
+    let (position, node_id) = match *state_read {
+        State::Idle => return rsx!(),
+        State::Visible { position, node_id } => (position, node_id),
+    };
 
     let context_menu_handlers = use_context::<Handlers>();
 
+    let menu_width = 160;
+    let menu_height = 36;
+
     rsx! {
-        if is_visible {
-            div {
-                position: "fixed",
-                top: "0",
-                left: "0",
-                width: "100vw",
-                height: "100vh",
-                z_index: "1000",
-                onclick: move |_| context_menu_handlers.on_close.call(()),
+        g { transform: "translate({position.x} {position.y})",
+            rect {
+                x: "0",
+                y: "0",
+                width: "{menu_width}",
+                height: "{menu_height}",
+                fill: "white",
+                stroke: "#ccc",
+                style: "cursor: pointer;",
+                onclick: move |evt| {
+                    evt.stop_propagation();
+                    context_menu_handlers.on_delete.call(node_id);
+                    context_menu_handlers.on_close.call(());
+                },
+                onmouseup: move |evt| {
+                    evt.stop_propagation();
+                },
+            }
 
-                div {
-                    position: "absolute",
-                    left: "{position.x}px",
-                    top: "{position.y}px",
-                    background: "white",
-                    border: "1px solid #ccc",
-                    border_radius: "4px",
-                    box_shadow: "0 2px 8px rgba(0,0,0,0.2)",
-                    min_width: "120px",
-                    z_index: "1001",
-                    onclick: move |evt| evt.stop_propagation(),
-
-                    div {
-                        padding: "8px 16px",
-                        cursor: "pointer",
-                        onclick: move |_| {
-                            context_menu_handlers.on_delete.call(node_id);
-                            context_menu_handlers.on_close.call(());
-                        },
-                        "Delete Node"
-                    }
-                }
+            text {
+                x: "12",
+                y: "24",
+                fill: "#111",
+                style: "pointer-events: none;",
+                "Delete Node"
             }
         }
     }

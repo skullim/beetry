@@ -60,7 +60,7 @@ impl ServiceContext {
 
 #[component]
 pub(crate) fn Editor() -> Element {
-    debug!("rendering editor");
+    debug!("rendering");
 
     let specs = use_context::<SharedSpecs>();
     use_context_provider(|| ServiceContext::new(specs.nodes.clone()));
@@ -176,7 +176,6 @@ fn parameter_dialog_handlers(
         if let ParameterDialogState::Visible { id, .. } = state {
             let mut service_ctx = use_context::<ServiceContext>();
             service_ctx.with_mut(|s| s.remove_node(id))?;
-
             render_nodes.with_mut(|write| write.request());
         }
         Ok(())

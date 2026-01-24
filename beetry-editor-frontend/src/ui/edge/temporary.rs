@@ -71,7 +71,7 @@ pub enum ConnectionState {
 
 #[component]
 pub fn Temporary(edge: ReadSignal<EdgePos>) -> Element {
-    debug!("rendering temp edge component with data: {edge:?}");
+    debug!("rendering (data: {edge:?})");
     let edge = edge.read();
 
     rsx! {
