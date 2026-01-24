@@ -1,8 +1,8 @@
 use crate::Point;
-use crate::ui::node::port::popup;
 use crate::ui::{channel, shadow};
 use beetry_editor_types::spec::message::MessageSpec;
 use beetry_editor_types::{id::NodeId, id::NodePortId};
+use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 
 use crate::definitions::IndexedDragOffset;
@@ -12,14 +12,17 @@ use crate::ui::text::{self, text_width_from};
 #[derive(Debug, Clone)]
 pub struct Handlers {
     on_mouse_down: EventHandler<(ConnectionOrigin, IndexedDragOffset, NodePortId)>,
+    on_context_menu: EventHandler<(Point, NodeId, NodePortId)>,
 }
 
 impl Handlers {
     pub(crate) fn new(
         on_mouse_down: impl FnMut((ConnectionOrigin, IndexedDragOffset, NodePortId)) + 'static,
+        on_context_menu: impl FnMut((Point, NodeId, NodePortId)) + 'static,
     ) -> Self {
         Self {
             on_mouse_down: EventHandler::new(on_mouse_down),
+            on_context_menu: EventHandler::new(on_context_menu),
         }
     }
 }
@@ -50,15 +53,11 @@ pub fn Receiver(props: ReceiverProps) -> Element {
     let port_id_as_f64 = port_id.raw_value() as f64;
 
     let mut is_hovered = use_signal(|| false);
-    let is_external = use_signal(|| false);
+    let on_context_menu = use_context::<Handlers>().on_context_menu;
 
-    let mut port_popup_state = use_signal(popup::State::default);
-
-    let fill = match (is_hovered(), is_external()) {
-        (true, true) => channel::GradientHoverUrl::RECEIVER_EXTERNAL,
-        (true, false) => channel::GradientHoverUrl::RECEIVER,
-        (false, true) => channel::GradientUrl::RECEIVER_EXTERNAL,
-        (false, false) => channel::GradientUrl::RECEIVER,
+    let fill = match is_hovered() {
+        true => channel::GradientHoverUrl::RECEIVER,
+        false => channel::GradientUrl::RECEIVER,
     };
 
     rsx! {
@@ -78,31 +77,32 @@ pub fn Receiver(props: ReceiverProps) -> Element {
                 onmouseleave: move |_| is_hovered.set(false),
                 onmousedown: move |evt| {
                     evt.stop_propagation();
-                    let mouse_coords = evt.element_coordinates();
-                    let offset = Point {
-                        x: mouse_coords.x,
-                        y: mouse_coords.y,
-                    };
-                    use_context::<Handlers>()
-                        .on_mouse_down
-                        .call((
-                            ConnectionOrigin::Receiver,
-                            IndexedDragOffset {
-                                id: props.id,
-                                offset,
-                            },
-                            port_id,
-                        ))
+                    if evt.held_buttons().contains(MouseButton::Primary) {
+                        let mouse_coords = evt.element_coordinates();
+                        let offset = Point {
+                            x: mouse_coords.x,
+                            y: mouse_coords.y,
+                        };
+                        use_context::<Handlers>()
+                            .on_mouse_down
+                            .call((
+                                ConnectionOrigin::Receiver,
+                                IndexedDragOffset {
+                                    id: props.id,
+                                    offset,
+                                },
+                                port_id,
+                            ))
+                    }
                 },
                 oncontextmenu: move |evt| {
-                    debug!("receiver on context menu");
                     evt.prevent_default();
                     evt.stop_propagation();
-                    port_popup_state
-                        .set(popup::State::Visible {
-                            id: node_id,
-                            port_id,
-                        });
+                    let click_point = Point {
+                        x: evt.element_coordinates().x,
+                        y: evt.element_coordinates().y,
+                    };
+                    on_context_menu.call((click_point, node_id, port_id))
                 },
             }
             text {
@@ -117,6 +117,5 @@ pub fn Receiver(props: ReceiverProps) -> Element {
                 "{message_desc}"
             }
         }
-        popup::PortSettingsPopup { state: port_popup_state, is_external }
     }
 }

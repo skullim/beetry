@@ -17,7 +17,7 @@ use crate::ui::viewport::ViewportContext;
 use crate::ui::{self, edge};
 use crate::{
     definitions::{EdgePos, IndexedDragOffset},
-    ui::node::PortPopupHandlers,
+    ui::node::PortContextMenuHandlers,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -104,6 +104,7 @@ pub struct WorkspaceContext {
     drag_channel_state: Signal<DragChannelState>,
     context_menu_state: Signal<ContextMenuState>,
     edge_context_menu_state: Signal<edge::ContextMenuState>,
+    port_context_menu_state: Signal<node::port_context_menu::State>,
     channel_temp_conn_ctx: channel::temporary::Context,
 }
 
@@ -115,6 +116,7 @@ impl WorkspaceContext {
             drag_channel_state: Signal::new(DragChannelState::Idle),
             context_menu_state: Signal::new(node::ContextMenuState::default()),
             edge_context_menu_state: Signal::new(edge::ContextMenuState::default()),
+            port_context_menu_state: Signal::new(node::port_context_menu::State::default()),
             channel_temp_conn_ctx: channel::temporary::Context::new(),
         }
     }
@@ -132,8 +134,11 @@ pub(crate) fn Workspace(
     let workspace_ctx = use_context_provider(WorkspaceContext::new);
     let mut drag_node_state = workspace_ctx.drag_node_state;
     let mut drag_channel_state = workspace_ctx.drag_channel_state;
+
     let mut node_context_menu_state = workspace_ctx.context_menu_state;
     let mut edge_context_menu_state = workspace_ctx.edge_context_menu_state;
+    let mut port_context_menu_state = workspace_ctx.port_context_menu_state;
+
     let mut dimensions_ctx = workspace_ctx.dimensions_ctx;
     let mut temp_channel_conn_ctx = workspace_ctx.channel_temp_conn_ctx;
 
@@ -157,8 +162,10 @@ pub(crate) fn Workspace(
     use_context_provider(move || edge_context_menu_handlers(edge_context_menu_state, render_edges));
 
     use_context_provider(move || sender_handlers(temp_channel_conn_ctx));
-    use_context_provider(move || receiver_port_handlers(temp_channel_conn_ctx));
-    use_context_provider(port_popup_handlers);
+    use_context_provider(move || {
+        receiver_port_handlers(temp_channel_conn_ctx, port_context_menu_state)
+    });
+    use_context_provider(port_context_menu_handlers);
 
     use_context_provider(move || {
         channel_handlers(drag_channel_state, temp_channel_conn_ctx, render_channels)
@@ -210,11 +217,15 @@ pub(crate) fn Workspace(
         };
 
         let on_mouse_up = move |evt: Event<MouseData>| {
+            debug!("detected mouse up in workspace");
             evt.stop_propagation();
             drag_node_state.set(DragNodeState::Idle);
             drag_channel_state.set(DragChannelState::Idle);
+
             node_context_menu_state.set(node::ContextMenuState::Idle);
             edge_context_menu_state.set(edge::ContextMenuState::Idle);
+            port_context_menu_state.set(node::port_context_menu::State::Idle);
+
             temp_edge_ctx.reset();
             temp_channel_conn_ctx.reset();
         };
@@ -290,6 +301,7 @@ pub(crate) fn Workspace(
 
                 node::ContextMenu { state: node_context_menu_state }
                 edge::ContextMenu { state: edge_context_menu_state }
+                node::port_context_menu::PortContextMenu { state: port_context_menu_state }
             }
         }
     }
@@ -394,6 +406,7 @@ fn sender_handlers(
 
 fn receiver_port_handlers(
     mut channel_temp_connection_ctx: channel::temporary::Context,
+    mut port_ctx_menu_state: Signal<node::port_context_menu::State>,
 ) -> ReceiverPortHandlers {
     let on_mouse_down = move |(origin, indexed_drag_offset, port_id): (
         ConnectionOrigin,
@@ -412,10 +425,18 @@ fn receiver_port_handlers(
             end: offset,
         });
     };
-    ReceiverPortHandlers::new(on_mouse_down)
+    let on_context_menu = move |(position, node_id, port_id): (Point, NodeId, NodePortId)| {
+        port_ctx_menu_state.set(node::port_context_menu::State::Visible {
+            position,
+            id: node_id,
+            port_id,
+        });
+    };
+
+    ReceiverPortHandlers::new(on_mouse_down, on_context_menu)
 }
 
-fn port_popup_handlers() -> PortPopupHandlers {
+fn port_context_menu_handlers() -> PortContextMenuHandlers {
     let on_external = move |(node_id, port_id): (NodeId, NodePortId)| {
         let mut service_ctx = use_context::<ServiceContext>();
         let port_spec = service_ctx.with(|s| {
@@ -434,6 +455,7 @@ fn port_popup_handlers() -> PortPopupHandlers {
                     .set_external(node_id, port_id)
             })
             .unwrap();
+        debug!("set port (node id: {node_id}, port id: {port_id}) as external")
     };
 
     let on_internal = move |(node_id, port_id): (NodeId, NodePortId)| {
@@ -454,9 +476,10 @@ fn port_popup_handlers() -> PortPopupHandlers {
                     .disconnect_port(node_id, port_id)
             })
             .unwrap();
+        debug!("set port (node id: {node_id}, port id: {port_id}) as internal")
     };
 
-    PortPopupHandlers::builder()
+    PortContextMenuHandlers::builder()
         .on_external(on_external)
         .on_internal(on_internal)
         .build()
