@@ -14,8 +14,8 @@ use crate::{
             edge::EdgeService,
             node::{LoadNodeApi, NodeService},
         },
-        ui::UiBorrowMutApi,
     },
+    ui::{ChannelUiBorrowMutApi, NodeUiBorrowMutApi},
 };
 use anyhow::Result;
 use beetry_editor_types::{
@@ -113,18 +113,16 @@ where
     }
 
     pub fn import_ui(&mut self, ui: UiElementStore) -> Result<()> {
-        let mut ui_mut_api = UiBorrowMutApi::new(self.repo.ui_mut().view_mut());
-        {
-            let mut node_mut_api = ui_mut_api.node();
-            for node in ui.nodes {
-                node_mut_api.create(node.id, node.data)?;
-            }
-
-            let mut channel_mut_api = ui_mut_api.channel();
-            for channel in ui.channels {
-                channel_mut_api.create(channel.id, channel.data)?;
-            }
+        let mut node_mut_api = NodeUiBorrowMutApi::new(self.repo.ui_mut().view_mut().node);
+        for node in ui.nodes {
+            node_mut_api.create(node.id, node.data)?;
         }
+
+        let mut channel_mut_api = ChannelUiBorrowMutApi::new(self.repo.ui_mut().view_mut().channel);
+        for channel in ui.channels {
+            channel_mut_api.create(channel.id, channel.data)?;
+        }
+
         Ok(())
     }
 

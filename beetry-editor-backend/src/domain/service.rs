@@ -1,3 +1,4 @@
+pub mod api;
 pub mod channel;
 pub mod edge;
 pub mod editor;

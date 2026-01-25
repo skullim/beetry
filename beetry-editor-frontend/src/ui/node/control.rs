@@ -2,6 +2,7 @@ use crate::Point;
 use crate::editor::ServiceContext;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithContextMenu};
 use crate::ui::node::port::{input, output};
+use beetry_editor_backend::node::SpecByNodeIdQueryApi;
 use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
@@ -42,10 +43,9 @@ pub fn Control(props: ControlProps) -> Element {
     let id = props.id;
     debug!("rendering (node id: {id})");
     let service = use_context::<ServiceContext>();
-    let read = service.service.read();
-    let node_api = read.node_api();
-    let spec_api = node_api.spec();
-    let name = spec_api.name(id).unwrap();
+    let read = service.read();
+    let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
+    let name = spec_query.name(id).unwrap();
 
     let style = use_hook(|| Rc::new(style(&name.0)));
     let position = props.position;
