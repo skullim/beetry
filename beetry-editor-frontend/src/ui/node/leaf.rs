@@ -2,6 +2,7 @@ use crate::Point;
 use crate::editor::ServiceContext;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithContextMenu};
 use crate::ui::node::port::{self, input};
+use beetry_editor_backend::node::SpecByNodeIdQueryApi;
 use beetry_editor_types::id::NodeId;
 use beetry_editor_types::spec::node::LeafKind;
 use dioxus::prelude::*;
@@ -55,11 +56,10 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
     let id = props.id;
     debug!("rendering (node id: {id})");
     let service = use_context::<ServiceContext>();
-    let read = service.service.read();
-    let node_api = read.node_api();
-    let spec_api = node_api.spec();
-    let name = spec_api.name(id).unwrap();
-    let kind = spec_api.kind(id).unwrap().leaf().unwrap();
+    let read = service.read();
+    let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
+    let name = spec_query.name(id).unwrap();
+    let kind = spec_query.kind(id).unwrap().leaf().unwrap();
 
     let style = use_hook(|| Rc::new(style(kind, &name.0)));
     let position = props.position;
@@ -81,7 +81,7 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
         }
 
         g { transform: "translate(-80, 10)",
-            for (port_id , port_spec) in spec_api.ports(id).iter().flat_map(|ports_spec| ports_spec.receivers()) {
+            for (port_id , port_spec) in spec_query.ports(id).iter().flat_map(|ports_spec| ports_spec.receivers()) {
                 port::Receiver {
                     key: "{port_id}",
                     id,
@@ -93,7 +93,7 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
         }
 
         g { transform: "translate({width}, 10)",
-            for (port_id , port_spec) in spec_api.ports(id).iter().flat_map(|ports_spec| ports_spec.senders()) {
+            for (port_id , port_spec) in spec_query.ports(id).iter().flat_map(|ports_spec| ports_spec.senders()) {
                 port::Sender {
                     key: "{port_id}",
                     id,

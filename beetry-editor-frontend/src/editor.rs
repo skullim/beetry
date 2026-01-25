@@ -87,7 +87,9 @@ pub(crate) fn Editor() -> Element {
             };
 
             let mut service = use_context::<ServiceContext>();
-            let id = service.with_mut(|s| s.create_node(node_spec, ui_data))?;
+            let id = service.with_mut(|s| {
+                beetry_editor_backend::service::api::node::create(s, node_spec, ui_data)
+            })?;
 
             if node_spec.params().is_some() {
                 parameter_dialog_state.set(ParameterDialogState::Visible {
@@ -119,7 +121,9 @@ pub(crate) fn Editor() -> Element {
                 };
 
                 let mut service = use_context::<ServiceContext>();
-                let id = service.with_mut(|s| s.create_channel(&spec, config, ui_data))?;
+                let id = service.with_mut(|s| {
+                    beetry_editor_backend::api::channel::create(s, &spec, config, ui_data)
+                })?;
 
                 info!(
                     "created channel {id} with message type {}",
@@ -175,7 +179,7 @@ fn parameter_dialog_handlers(
         let state = state.take();
         if let ParameterDialogState::Visible { id, .. } = state {
             let mut service_ctx = use_context::<ServiceContext>();
-            service_ctx.with_mut(|s| s.remove_node(id))?;
+            service_ctx.with_mut(|s| beetry_editor_backend::service::api::node::remove(s, id))?;
             render_nodes.with_mut(|write| write.request());
         }
         Ok(())

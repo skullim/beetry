@@ -12,6 +12,12 @@ pub struct EdgeBorrowApi<'a, ER> {
     edge_service: &'a EdgeService,
 }
 
+pub trait EdgeQueryApi {
+    fn parent_of(&self, id: NodeId) -> Option<&NodeId>;
+    fn children_of(&self, id: NodeId) -> impl Iterator<Item = &NodeId>;
+    fn edges(&self) -> impl Iterator<Item = (&EdgeId, &NodeEdge)>;
+}
+
 impl<'a, ER> EdgeBorrowApi<'a, ER>
 where
     ER: EdgeRepositoryConcept,
@@ -22,20 +28,26 @@ where
             edge_service,
         }
     }
-    pub fn parent_of(&self, id: NodeId) -> Option<&NodeId> {
+}
+
+impl<ER> EdgeQueryApi for EdgeBorrowApi<'_, ER>
+where
+    ER: EdgeRepositoryConcept,
+{
+    fn parent_of(&self, id: NodeId) -> Option<&NodeId> {
         self.edge_service.parent_of(id)
     }
 
-    pub fn children_of(&self, id: NodeId) -> impl Iterator<Item = &NodeId> {
+    fn children_of(&self, id: NodeId) -> impl Iterator<Item = &NodeId> {
         self.edge_service.children_of(id)
     }
 
-    pub fn edges(&self) -> impl Iterator<Item = (&EdgeId, &NodeEdge)> {
+    fn edges(&self) -> impl Iterator<Item = (&EdgeId, &NodeEdge)> {
         EdgeService::edges(self.edge_repo)
     }
 }
 
-pub struct EdgeBorrowMutApi<'a, ER, NRF>
+pub(super) struct EdgeBorrowMutApi<'a, ER, NRF>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
@@ -64,7 +76,7 @@ where
         }
     }
 
-    pub fn create(&mut self, edge: NodeEdge) -> Result<()> {
+    pub(super) fn create(&mut self, edge: NodeEdge) -> Result<EdgeId> {
         self.edge_service.create::<NRF>(
             self.edge_repo,
             &self.node_tracker_api,
@@ -73,7 +85,7 @@ where
         )
     }
 
-    pub fn remove(&mut self, id: EdgeId) -> Result<()> {
+    pub(super) fn remove(&mut self, id: EdgeId) -> Result<()> {
         self.edge_service.remove(self.edge_repo, id)
     }
 }
@@ -129,7 +141,7 @@ impl EdgeService {
         node_tracker_api: &TrackerApi<'_, NRF::NodeRepo>,
         node_spec_api: &SpecApi<'_, NRF::SpecRepo, NRF::NodeRepo>,
         edge: NodeEdge,
-    ) -> Result<()>
+    ) -> Result<EdgeId>
     where
         NRF: NodeRepositoryFacadeConcept,
     {
@@ -182,13 +194,13 @@ impl EdgeService {
             }
         }
 
-        edge_repo.create(edge)?;
+        let id = edge_repo.create(edge)?;
         self.child_parent_map.insert(child, parent);
         self.parent_children_map
             .entry(parent)
             .or_default()
             .insert(child);
-        Ok(())
+        Ok(id)
     }
 
     // All edges are *always* removed by Id
