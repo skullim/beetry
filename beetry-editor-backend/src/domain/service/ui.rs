@@ -1,118 +1,76 @@
-use std::collections::HashMap;
-
+use crate::domain::repository::UiRepositoryConcept;
 use anyhow::{Result, anyhow};
 use beetry_editor_types::{
     id::{ChannelId, NodeId},
     output::ui::{ChannelUiData, NodeUiData, Point},
-    spec::node::NodeKind,
 };
-
-use crate::domain::{
-    repository::{
-        UiRepositoryConcept, UiRepositoryFacadeConcept, UiRepositoryFacadeView,
-        UiRepositoryFacadeViewMut,
-    },
-    service::node::NodeService,
-};
-
-pub struct UiBorrowApi<'a, URF>
-where
-    URF: UiRepositoryFacadeConcept,
-{
-    facade_view: UiRepositoryFacadeView<'a, URF>,
-    service: &'a NodeService,
-}
-
-impl<'a, URF> UiBorrowApi<'a, URF>
-where
-    URF: UiRepositoryFacadeConcept,
-{
-    pub(super) fn new(
-        facade_view: UiRepositoryFacadeView<'a, URF>,
-        service: &'a NodeService,
-    ) -> Self {
-        Self {
-            facade_view,
-            service,
-        }
-    }
-
-    pub fn node(&self) -> NodeUiBorrowApi<'_, URF::UiNodeRepo> {
-        NodeUiBorrowApi {
-            repo: self.facade_view.node,
-            service: self.service,
-        }
-    }
-
-    pub fn channel(&self) -> ChannelUiBorrowApi<'_, URF::UiChannelRepo> {
-        ChannelUiBorrowApi {
-            repo: self.facade_view.channel,
-        }
-    }
-}
-
-pub struct UiBorrowMutApi<'a, URF>
-where
-    URF: UiRepositoryFacadeConcept,
-{
-    facade_view: UiRepositoryFacadeViewMut<'a, URF>,
-}
-
-impl<'a, URF> UiBorrowMutApi<'a, URF>
-where
-    URF: UiRepositoryFacadeConcept,
-{
-    pub(super) fn new(facade_view: UiRepositoryFacadeViewMut<'a, URF>) -> Self {
-        Self { facade_view }
-    }
-
-    pub fn node(&mut self) -> NodeUiBorrowMutApi<'_, URF::UiNodeRepo> {
-        NodeUiBorrowMutApi {
-            repo: self.facade_view.node,
-        }
-    }
-
-    pub fn channel(&mut self) -> ChannelUiBorrowMutApi<'_, URF::UiChannelRepo> {
-        ChannelUiBorrowMutApi {
-            repo: self.facade_view.channel,
-        }
-    }
-}
+use std::collections::HashMap;
 
 pub struct NodeUiBorrowApi<'a, UR> {
-    service: &'a NodeService,
     repo: &'a UR,
+}
+
+pub trait NodeUiQueryApi {
+    fn data(&self, id: NodeId) -> Result<&NodeUiData>;
+    fn position(&self, id: NodeId) -> Result<&Point>;
+    fn positions(&self) -> impl Iterator<Item = &Point>;
+    fn iter(&self) -> impl Iterator<Item = (&NodeId, &NodeUiData)>;
 }
 
 impl<'a, UR> NodeUiBorrowApi<'a, UR>
 where
     UR: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
 {
-    pub fn data(&self, id: NodeId) -> Result<&NodeUiData> {
+    pub(super) fn new(repo: &'a UR) -> Self {
+        Self { repo }
+    }
+}
+
+impl<'a, UR> NodeUiQueryApi for NodeUiBorrowApi<'a, UR>
+where
+    UR: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
+{
+    fn data(&self, id: NodeId) -> Result<&NodeUiData> {
         self.repo
             .data(id)
             .ok_or_else(|| anyhow!("unable to retrieve node {id} data"))
     }
 
-    pub fn position(&self, id: NodeId) -> Result<&Point> {
+    fn position(&self, id: NodeId) -> Result<&Point> {
         Ok(&self.data(id)?.position)
     }
 
-    pub fn positions(&self) -> impl Iterator<Item = &Point> {
+    fn positions(&self) -> impl Iterator<Item = &Point> {
         self.repo.data_iter().map(|data| &data.position)
     }
 
-    pub fn sort_children(
+    fn iter(&self) -> impl Iterator<Item = (&NodeId, &NodeUiData)> {
+        self.repo.iter()
+    }
+}
+
+pub struct NodeUiQueryProcessor<'a, Q> {
+    query: &'a Q,
+}
+
+impl<'a, Q> NodeUiQueryProcessor<'a, Q>
+where
+    Q: NodeUiQueryApi,
+{
+    pub fn new(query: &'a Q) -> Self {
+        Self { query }
+    }
+
+    pub fn sort_nodes(
         &self,
         ids: &mut [NodeId],
         sort_by: impl Fn(&NodeUiData, &NodeUiData) -> std::cmp::Ordering,
     ) -> Result<()> {
         let data_map = ids
             .iter()
-            .map(|id| Ok((*id, self.data(*id)?)))
+            .map(|id| Ok((*id, self.query.data(*id)?)))
             .collect::<Result<HashMap<_, _>>>()?;
         ids.sort_by(|l, r| {
-            // safe to access by index, data_map has to contain all the keys at this point
             let l_data = data_map[l];
             let r_data = data_map[r];
             sort_by(l_data, r_data)
@@ -120,13 +78,11 @@ where
         Ok(())
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&NodeId, &NodeUiData)> {
-        self.repo.iter()
-    }
-
-    //@todo maybe should be pulled up, something like node cache service?
-    pub fn positions_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = (NodeId, &Point)> {
-        self.service.positions_by_kind(self.repo, kind)
+    pub fn map_to_positions(
+        &self,
+        id_iter: impl Iterator<Item = NodeId>,
+    ) -> impl Iterator<Item = Result<(NodeId, &Point)>> {
+        id_iter.map(move |id| self.query.position(id).map(|p| (id, p)))
     }
 }
 
@@ -138,6 +94,10 @@ impl<'a, UR> NodeUiBorrowMutApi<'a, UR>
 where
     UR: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
 {
+    pub(super) fn new(repo: &'a mut UR) -> Self {
+        Self { repo }
+    }
+
     pub fn create(&mut self, id: NodeId, data: NodeUiData) -> Result<()> {
         self.repo.create(id, data)
     }
@@ -164,19 +124,32 @@ impl<'a, UR> ChannelUiBorrowApi<'a, UR>
 where
     UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
 {
-    pub fn position(&self, id: ChannelId) -> Result<&Point> {
+    pub(super) fn new(repo: &'a UR) -> Self {
+        Self { repo }
+    }
+}
+
+pub trait ChannelUiQueryApi {
+    fn position(&self, id: ChannelId) -> Result<&Point>;
+    fn positions(&self) -> impl Iterator<Item = &Point>;
+    fn iter(&self) -> impl Iterator<Item = (&ChannelId, &ChannelUiData)>;
+}
+
+impl<'a, UR> ChannelUiQueryApi for ChannelUiBorrowApi<'a, UR>
+where
+    UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
+{
+    fn position(&self, id: ChannelId) -> Result<&Point> {
         Ok(&self
             .repo
             .data(id)
             .ok_or_else(|| anyhow!("failed to get channel {id} position"))?
             .position)
     }
-
-    pub fn positions(&self) -> impl Iterator<Item = &Point> {
+    fn positions(&self) -> impl Iterator<Item = &Point> {
         self.repo.data_iter().map(|data| &data.position)
     }
-
-    pub fn iter(&self) -> impl Iterator<Item = (&ChannelId, &ChannelUiData)> {
+    fn iter(&self) -> impl Iterator<Item = (&ChannelId, &ChannelUiData)> {
         self.repo.iter()
     }
 }
@@ -189,8 +162,16 @@ impl<'a, UR> ChannelUiBorrowMutApi<'a, UR>
 where
     UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
 {
+    pub(super) fn new(repo: &'a mut UR) -> Self {
+        Self { repo }
+    }
+
     pub fn create(&mut self, id: ChannelId, data: ChannelUiData) -> Result<()> {
         self.repo.create(id, data)
+    }
+
+    pub fn remove(&mut self, id: ChannelId) -> Option<ChannelUiData> {
+        self.repo.remove(id)
     }
 
     pub fn update_position(&mut self, id: ChannelId, position: Point) -> Result<()> {

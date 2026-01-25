@@ -9,6 +9,7 @@ use crate::ui::curve::Curve;
 use crate::ui::shadow;
 use crate::ui::text::{self, text_width_from};
 use crate::ui::viewport::{ViewportContext, ZoomLevel};
+use beetry_editor_backend::channel::ChannelQueryApi;
 use beetry_editor_types::id::ChannelId;
 use beetry_plugin::Named;
 pub use config_dialog::Dialog as ConfigDialog;
@@ -175,10 +176,10 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
     let position = props.position;
 
     let service = use_context::<ServiceContext>();
-    let read = service.service.read();
-    let channel_api = read.channel_api();
+    let read = service.read();
+    let channel_query_api = beetry_editor_backend::api::channel::borrow(&(*read));
 
-    let name = channel_api.spec(id).unwrap().name();
+    let name = channel_query_api.spec(id).unwrap().name();
 
     let zoom_level = use_context::<ViewportContext>().zoom_level;
     let handlers = use_context::<Handlers>();

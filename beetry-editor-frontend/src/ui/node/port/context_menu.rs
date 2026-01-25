@@ -111,7 +111,6 @@ pub fn PortContextMenu(state: Signal<State>) -> Element {
                         dominant_baseline: "middle",
                         "External port"
                     }
-
                 }
             }
         }

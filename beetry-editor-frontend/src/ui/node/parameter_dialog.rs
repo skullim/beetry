@@ -1,6 +1,6 @@
 use crate::Point;
 use crate::editor::ServiceContext;
-use beetry_editor_backend::node::ParameterValueParser;
+use beetry_editor_backend::node::{ParameterValueParser, SpecByNodeIdQueryApi};
 use beetry_editor_types::{
     id::NodeId,
     output::node::Parameters,
@@ -50,15 +50,14 @@ pub fn Dialog(props: DialogProps) -> Element {
         State::Idle => return rsx! {},
         State::Visible { position, id } => {
             let service = use_context::<ServiceContext>();
-            let read = service.service.read();
-            let node_api = read.node_api();
-            let spec_api = node_api.spec();
+            let read = service.read();
+            let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
 
             (
                 id,
                 position,
-                Rc::new(spec_api.params(id).unwrap().clone()),
-                Rc::new(spec_api.name(id).unwrap().clone()),
+                Rc::new(spec_query.params(id).unwrap().clone()),
+                Rc::new(spec_query.name(id).unwrap().clone()),
             )
         }
     };
@@ -165,11 +164,10 @@ fn ParameterField(props: ParameterFieldProps2) -> Element {
     let mut parameters = props.parameters;
 
     let service = use_context::<ServiceContext>();
-    let read = service.service.read();
-    let node_api = read.node_api();
-    let spec_api = node_api.spec();
+    let read = service.read();
 
-    let spec = spec_api.spec_by_node_id_pub(props.id).unwrap();
+    let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
+    let spec = spec_query.spec(props.id).unwrap();
     let params_spec = spec.params().as_ref().unwrap();
     let field_def = params_spec.get(&props.name).unwrap();
 

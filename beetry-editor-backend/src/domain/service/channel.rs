@@ -27,6 +27,14 @@ where
     facade_view: ChannelRepositoryFacadeView<'a, CRF>,
 }
 
+pub trait ChannelQueryApi {
+    fn data(&self, id: ChannelId) -> Result<&ChannelData>;
+    fn config(&self, id: ChannelId) -> Result<&ChannelConfig>;
+    fn channels(&self) -> impl Iterator<Item = &ChannelId>;
+    fn spec_id(&self, id: ChannelId) -> Result<ChannelSpecId>;
+    fn spec(&self, id: ChannelId) -> Result<&ChannelSpec>;
+}
+
 impl<'a, CRF> ChannelBorrowApi<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
@@ -34,24 +42,29 @@ where
     pub(super) fn new(facade_view: ChannelRepositoryFacadeView<'a, CRF>) -> Self {
         Self { facade_view }
     }
+}
 
-    pub fn data(&self, id: ChannelId) -> Result<&ChannelData> {
+impl<'a, CRF> ChannelQueryApi for ChannelBorrowApi<'a, CRF>
+where
+    CRF: ChannelRepositoryFacadeConcept,
+{
+    fn data(&self, id: ChannelId) -> Result<&ChannelData> {
         ChannelService::data(self.facade_view.channel, id)
     }
 
-    pub fn config(&self, id: ChannelId) -> Result<&ChannelConfig> {
+    fn config(&self, id: ChannelId) -> Result<&ChannelConfig> {
         ChannelService::config(self.facade_view.channel, id)
     }
 
-    pub fn channels(&self) -> impl Iterator<Item = &ChannelId> {
+    fn channels(&self) -> impl Iterator<Item = &ChannelId> {
         ChannelService::channels(self.facade_view.channel)
     }
 
-    pub fn spec_id(&self, id: ChannelId) -> Result<ChannelSpecId> {
+    fn spec_id(&self, id: ChannelId) -> Result<ChannelSpecId> {
         ChannelService::spec_id(self.facade_view.channel, id)
     }
 
-    pub fn spec(&self, id: ChannelId) -> Result<&ChannelSpec> {
+    fn spec(&self, id: ChannelId) -> Result<&ChannelSpec> {
         ChannelService::spec(self.facade_view.spec, self.facade_view.channel, id)
     }
 }

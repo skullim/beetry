@@ -1,5 +1,6 @@
 use crate::{
     NodeSpecMap,
+    channel::ChannelQueryApi,
     domain::{
         channel::ChannelBorrowApi,
         edge::EdgeBorrowApi,
@@ -15,17 +16,22 @@ use crate::{
             channel::{ChannelBorrowMutApi, ChannelService},
             edge::{EdgeBorrowMutApi, EdgeService},
             node::{self, NodeBorrowMutApi, NodeService},
-            ui::UiBorrowMutApi,
         },
-        ui::UiBorrowApi,
+    },
+    edge::EdgeQueryApi,
+    node::{SpecByNodeIdQuery, SpecByNodeIdQueryApi, SpecBySpecIdQuery, SpecBySpecIdQueryApi},
+    ui::{
+        ChannelUiBorrowApi, ChannelUiBorrowMutApi, ChannelUiQueryApi, NodeUiBorrowApi,
+        NodeUiBorrowMutApi, NodeUiQueryApi,
     },
 };
 use anyhow::Result;
 use beetry_editor_types::{
-    id::{ChannelId, NodeId},
+    id::{ChannelId, EdgeId, NodeId},
     output::{
-        channel::ChannelConfig,
-        ui::{ChannelUiData, NodeUiData},
+        channel::{ChannelConfig, ChannelData},
+        edge::NodeEdge,
+        ui::{ChannelUiData, NodeUiData, Point},
     },
     spec::{channel::ChannelSpec, node::NodeSpec},
 };
@@ -45,13 +51,13 @@ where
     CRF: ChannelRepositoryFacadeConcept,
     URF: UiRepositoryFacadeConcept,
 {
-    pub fn new(spec_plugins: NodeSpecMap) -> Self {
+    pub fn new(spec_map: NodeSpecMap) -> Self {
         Self {
             node_service: NodeService::new(),
             edge_service: EdgeService::new(),
             channel_service: ChannelService::new(),
             repo: EditorRepository::<NRF, ER, CRF, URF>::new(),
-            spec_map: spec_plugins,
+            spec_map,
         }
     }
 
@@ -78,51 +84,7 @@ where
         )
     }
 
-    pub fn create_node(&mut self, spec: &NodeSpec, ui_data: NodeUiData) -> Result<NodeId> {
-        let id = {
-            let mut node_api = self.node_api_mut();
-            node_api.lifecycle().create(spec)
-        }?;
-        let mut ui_api = self.ui_api_mut();
-        if ui_api.node().create(id, ui_data).is_err() {
-            let mut node_api = self.node_api_mut();
-            node_api.lifecycle().remove(spec, id)?;
-        }
-        Ok(id)
-    }
-
-    pub fn remove_node(&mut self, id: NodeId) -> Result<()> {
-        //@todo needs refactoring to do without cloning
-        let spec = self.node_api().spec().spec_by_node_id_pub(id)?.clone();
-        self.node_api_mut().lifecycle().remove(&spec, id)?;
-        self.ui_api_mut().node().remove(id);
-        Ok(())
-    }
-
-    pub fn create_channel(
-        &mut self,
-        spec: &ChannelSpec,
-        config: ChannelConfig,
-        ui_data: ChannelUiData,
-    ) -> Result<ChannelId> {
-        let id = {
-            let mut channel_api = self.channel_api_mut();
-            channel_api.create(spec, config)
-        }?;
-        let mut ui_api = self.ui_api_mut();
-        if ui_api.channel().create(id, ui_data).is_err() {
-            let mut channel_api = self.channel_api_mut();
-            channel_api.remove(id);
-        }
-        Ok(id)
-    }
-
-    pub fn edge_api(&self) -> EdgeBorrowApi<'_, ER> {
-        let EditorRepositoryView { edge, .. } = self.repo.view();
-        EdgeBorrowApi::new(edge, &self.edge_service)
-    }
-
-    pub fn edge_api_mut(&mut self) -> EdgeBorrowMutApi<'_, ER, NRF> {
+    fn edge_api_mut(&mut self) -> EdgeBorrowMutApi<'_, ER, NRF> {
         let EditorRepositoryViewMut { node, edge, .. } = self.repo.view_mut();
         let NodeRepositoryFacadeView { nodes, specs, .. } = node.view();
         let tracker_api = node::TrackerApi::new(&self.node_service, nodes);
@@ -130,24 +92,19 @@ where
         EdgeBorrowMutApi::new(edge, &mut self.edge_service, tracker_api, spec_api)
     }
 
-    pub fn channel_api(&self) -> ChannelBorrowApi<'_, CRF> {
-        let EditorRepositoryView { channel, .. } = self.repo.view();
-        ChannelBorrowApi::new(channel.view())
-    }
-
-    pub fn channel_api_mut(&mut self) -> ChannelBorrowMutApi<'_, CRF> {
+    fn channel_api_mut(&mut self) -> ChannelBorrowMutApi<'_, CRF> {
         let EditorRepositoryViewMut { channel, .. } = self.repo.view_mut();
         ChannelBorrowMutApi::new(channel.view_mut(), &mut self.channel_service)
     }
 
-    pub fn ui_api_mut(&mut self) -> UiBorrowMutApi<'_, URF> {
+    fn node_ui_api_mut(&mut self) -> NodeUiBorrowMutApi<'_, URF::UiNodeRepo> {
         let EditorRepositoryViewMut { ui, .. } = self.repo.view_mut();
-        UiBorrowMutApi::new(ui.view_mut())
+        NodeUiBorrowMutApi::new(ui.view_mut().node)
     }
 
-    pub fn ui_api(&self) -> UiBorrowApi<'_, URF> {
-        let EditorRepositoryView { ui, .. } = self.repo.view();
-        UiBorrowApi::new(ui.view(), &self.node_service)
+    fn channel_ui_api_mut(&mut self) -> ChannelUiBorrowMutApi<'_, URF::UiChannelRepo> {
+        let EditorRepositoryViewMut { ui, .. } = self.repo.view_mut();
+        ChannelUiBorrowMutApi::new(ui.view_mut().channel)
     }
 
     pub fn import_api(&mut self) -> ImportApi<'_, NRF, ER, CRF, URF> {
@@ -160,12 +117,198 @@ where
         )
     }
 
-    pub fn export_api(&self) -> ExportApi<'_, NRF, ER, CRF, URF> {
+    pub fn export_api(
+        &self,
+    ) -> ExportApi<
+        '_,
+        NRF,
+        impl SpecByNodeIdQueryApi,
+        impl EdgeQueryApi,
+        impl ChannelQueryApi,
+        impl NodeUiQueryApi,
+        impl ChannelUiQueryApi,
+    > {
         ExportApi::new(
-            self.channel_api(),
+            ChannelExtApi::borrow(self),
             self.node_api(),
-            self.edge_api(),
-            self.ui_api(),
+            NodeExtApi::spec_by_node_id(self),
+            EdgeExtApi::borrow(self),
+            NodeUiExtApi::borrow(self),
+            ChannelUiExtApi::borrow(self),
         )
     }
+}
+
+pub trait NodeExtApi {
+    fn create(&mut self, spec: &NodeSpec) -> Result<NodeId>;
+    fn remove(&mut self, id: NodeId) -> Result<()>;
+
+    fn spec_by_spec_id(&self) -> impl SpecBySpecIdQueryApi;
+    fn spec_by_node_id(&self) -> impl SpecByNodeIdQueryApi;
+}
+
+impl<NRF, ER, CRF, URF> NodeExtApi for EditorService<NRF, ER, CRF, URF>
+where
+    NRF: NodeRepositoryFacadeConcept,
+    ER: EdgeRepositoryConcept,
+    CRF: ChannelRepositoryFacadeConcept,
+    URF: UiRepositoryFacadeConcept,
+{
+    fn create(&mut self, spec: &NodeSpec) -> Result<NodeId> {
+        self.node_api_mut().lifecycle().create(spec)
+    }
+
+    fn remove(&mut self, id: NodeId) -> Result<()> {
+        //@todo needs refactoring to do without cloning
+        let spec = self.spec_by_node_id().spec(id)?.clone();
+        self.node_api_mut().lifecycle().remove(&spec, id)
+    }
+
+    fn spec_by_spec_id(&self) -> impl SpecBySpecIdQueryApi {
+        let EditorRepositoryView { node, .. } = self.repo.view();
+        SpecBySpecIdQuery::new(node.view().specs)
+    }
+
+    fn spec_by_node_id(&self) -> impl SpecByNodeIdQueryApi {
+        let EditorRepositoryView { node, .. } = self.repo.view();
+        SpecByNodeIdQuery::new(SpecBySpecIdQuery::new(node.view().specs), node.view().nodes)
+    }
+}
+
+pub trait EdgeExtApi {
+    fn create(&mut self, edge: NodeEdge) -> Result<EdgeId>;
+    fn remove(&mut self, id: EdgeId) -> Result<()>;
+
+    fn borrow(&self) -> impl EdgeQueryApi;
+}
+
+impl<NRF, ER, CRF, URF> EdgeExtApi for EditorService<NRF, ER, CRF, URF>
+where
+    NRF: NodeRepositoryFacadeConcept,
+    ER: EdgeRepositoryConcept,
+    CRF: ChannelRepositoryFacadeConcept,
+    URF: UiRepositoryFacadeConcept,
+{
+    fn create(&mut self, edge: NodeEdge) -> Result<EdgeId> {
+        self.edge_api_mut().create(edge)
+    }
+
+    fn remove(&mut self, id: EdgeId) -> Result<()> {
+        self.edge_api_mut().remove(id)
+    }
+
+    fn borrow(&self) -> impl EdgeQueryApi {
+        let EditorRepositoryView { edge, .. } = self.repo.view();
+        EdgeBorrowApi::new(edge, &self.edge_service)
+    }
+}
+
+pub trait NodeUiExtApi {
+    fn create(&mut self, id: NodeId, data: NodeUiData) -> Result<()>;
+    fn remove(&mut self, id: NodeId) -> Option<NodeUiData>;
+
+    fn update_position(&mut self, id: NodeId, position: Point) -> Result<()>;
+
+    fn borrow(&self) -> impl NodeUiQueryApi;
+}
+
+impl<NRF, ER, CRF, URF> NodeUiExtApi for EditorService<NRF, ER, CRF, URF>
+where
+    NRF: NodeRepositoryFacadeConcept,
+    ER: EdgeRepositoryConcept,
+    CRF: ChannelRepositoryFacadeConcept,
+    URF: UiRepositoryFacadeConcept,
+{
+    fn create(&mut self, id: NodeId, data: NodeUiData) -> Result<()> {
+        self.node_ui_api_mut().create(id, data)
+    }
+
+    fn remove(&mut self, id: NodeId) -> Option<NodeUiData> {
+        self.node_ui_api_mut().remove(id)
+    }
+
+    fn update_position(&mut self, id: NodeId, position: Point) -> Result<()> {
+        self.node_ui_api_mut().update_position(id, position)
+    }
+
+    fn borrow(&self) -> impl NodeUiQueryApi {
+        let EditorRepositoryView { ui, .. } = self.repo.view();
+        NodeUiBorrowApi::new(ui.view().node)
+    }
+}
+
+pub trait ChannelExtApi {
+    fn create(&mut self, spec: &ChannelSpec, config: ChannelConfig) -> Result<ChannelId>;
+    fn remove(&mut self, id: ChannelId) -> Option<ChannelData>;
+
+    fn borrow(&self) -> impl ChannelQueryApi;
+}
+
+impl<NRF, ER, CRF, URF> ChannelExtApi for EditorService<NRF, ER, CRF, URF>
+where
+    NRF: NodeRepositoryFacadeConcept,
+    ER: EdgeRepositoryConcept,
+    CRF: ChannelRepositoryFacadeConcept,
+    URF: UiRepositoryFacadeConcept,
+{
+    fn create(&mut self, spec: &ChannelSpec, config: ChannelConfig) -> Result<ChannelId> {
+        self.channel_api_mut().create(spec, config)
+    }
+
+    fn remove(&mut self, id: ChannelId) -> Option<ChannelData> {
+        self.channel_api_mut().remove(id)
+    }
+
+    fn borrow(&self) -> impl ChannelQueryApi {
+        let EditorRepositoryView { channel, .. } = self.repo.view();
+        ChannelBorrowApi::new(channel.view())
+    }
+}
+
+pub trait ChannelUiExtApi {
+    fn create(&mut self, id: ChannelId, data: ChannelUiData) -> Result<()>;
+    fn remove(&mut self, id: ChannelId) -> Option<ChannelUiData>;
+
+    fn update_position(&mut self, id: ChannelId, position: Point) -> Result<()>;
+
+    fn borrow(&self) -> impl ChannelUiQueryApi;
+}
+
+impl<NRF, ER, CRF, URF> ChannelUiExtApi for EditorService<NRF, ER, CRF, URF>
+where
+    NRF: NodeRepositoryFacadeConcept,
+    ER: EdgeRepositoryConcept,
+    CRF: ChannelRepositoryFacadeConcept,
+    URF: UiRepositoryFacadeConcept,
+{
+    fn create(&mut self, id: ChannelId, data: ChannelUiData) -> Result<()> {
+        self.channel_ui_api_mut().create(id, data)
+    }
+
+    fn remove(&mut self, id: ChannelId) -> Option<ChannelUiData> {
+        self.channel_ui_api_mut().remove(id)
+    }
+
+    fn update_position(&mut self, id: ChannelId, position: Point) -> Result<()> {
+        self.channel_ui_api_mut().update_position(id, position)
+    }
+
+    fn borrow(&self) -> impl ChannelUiQueryApi {
+        let EditorRepositoryView { ui, .. } = self.repo.view();
+        ChannelUiBorrowApi::new(ui.view().channel)
+    }
+}
+
+pub trait EditorServiceApi:
+    NodeExtApi + NodeUiExtApi + EdgeExtApi + ChannelExtApi + ChannelUiExtApi
+{
+}
+
+impl<NRF, ER, CRF, URF> EditorServiceApi for EditorService<NRF, ER, CRF, URF>
+where
+    NRF: NodeRepositoryFacadeConcept,
+    ER: EdgeRepositoryConcept,
+    CRF: ChannelRepositoryFacadeConcept,
+    URF: UiRepositoryFacadeConcept,
+{
 }

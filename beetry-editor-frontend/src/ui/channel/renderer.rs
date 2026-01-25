@@ -1,4 +1,7 @@
 use crate::Point;
+use beetry_editor_backend::node::SpecByNodeIdQueryApi;
+use beetry_editor_backend::ui::ChannelUiQueryApi;
+use beetry_editor_backend::ui::NodeUiQueryApi;
 use beetry_editor_types::id::{ChannelId, NodeId, NodePortId};
 use beetry_editor_types::output::node::PortConnectionState;
 use beetry_editor_types::spec::node::NodePortKind;
@@ -19,20 +22,20 @@ pub fn Renderer(render_channels: Signal<RequestRender>) -> Element {
     let _read = render_channels.read();
 
     let service = use_context::<ServiceContext>();
-    let read = service.service.read();
-    let ui_api = read.ui_api();
-    let channel_api = ui_api.channel();
-    let channels = channel_api.iter().map(|(id, data)| {
+    let read = service.read();
+    let query_api = beetry_editor_backend::api::ui::channel::borrow(&(*read));
+
+    let channels = query_api.iter().map(|(id, data)| {
         rsx! {
             Channel { key: "{id}", id: *id, position: data.position }
         }
     });
 
     let port_channel_conns = port_channel_conns(&service);
-    let node_api = read.node_api();
+    let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
+
     let sender_conns = port_channel_conns.iter().filter(|conn| {
-        node_api
-            .spec()
+        spec_query
             .ports(conn.node_id)
             .ok()
             .is_some_and(|ports_spec| {
@@ -51,8 +54,7 @@ pub fn Renderer(render_channels: Signal<RequestRender>) -> Element {
         });
 
     let receiver_conns = port_channel_conns.iter().filter(|conn| {
-        node_api
-            .spec()
+        spec_query
             .ports(conn.node_id)
             .ok()
             .is_some_and(|ports_spec| {
@@ -85,16 +87,14 @@ struct PortChannelConnection {
 
 fn sender_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> Result<EdgePos> {
     let read = service.read();
-    let ui_api = read.ui_api();
-    let ui_api_node = ui_api.node();
-    let ui_api_channel = ui_api.channel();
+    let channel_query_api = beetry_editor_backend::api::ui::channel::borrow(&(*read));
+    let node_query_api = beetry_editor_backend::api::ui::node::borrow(&(*read));
 
-    let node_pos = ui_api_node.position(conn.node_id)?;
-    let channel_pos = ui_api_channel.position(conn.channel_id)?;
+    let node_pos = node_query_api.position(conn.node_id)?;
+    let channel_pos = channel_query_api.position(conn.channel_id)?;
 
-    let node_api = read.node_api();
-    let spec_api = node_api.spec();
-    let spec = spec_api.spec_by_node_id_pub(conn.node_id)?;
+    let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
+    let spec = spec_query.spec(conn.node_id)?;
     let ports_spec = spec.ports().as_ref().unwrap();
     let msg_desc = ports_spec.spec(conn.port_id).unwrap().msg_spec.as_str();
     let port_width = text::text_width_from(msg_desc, 11);
@@ -114,16 +114,14 @@ fn sender_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> Re
 
 fn receiver_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> Result<EdgePos> {
     let read = service.read();
-    let ui_api = read.ui_api();
-    let ui_api_node = ui_api.node();
-    let ui_api_channel = ui_api.channel();
+    let node_query_api = beetry_editor_backend::api::ui::node::borrow(&(*read));
+    let channel_query_api = beetry_editor_backend::api::ui::channel::borrow(&(*read));
 
-    let node_pos = ui_api_node.position(conn.node_id)?;
-    let channel_pos = ui_api_channel.position(conn.channel_id)?;
+    let node_pos = node_query_api.position(conn.node_id)?;
+    let channel_pos = channel_query_api.position(conn.channel_id)?;
 
-    let node_api = read.node_api();
-    let spec_api = node_api.spec();
-    let spec = spec_api.spec_by_node_id_pub(conn.node_id)?;
+    let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
+    let spec = spec_query.spec(conn.node_id)?;
     let ports_spec = spec.ports().as_ref().unwrap();
     let msg_desc = ports_spec.spec(conn.port_id).unwrap().msg_spec.as_str();
 

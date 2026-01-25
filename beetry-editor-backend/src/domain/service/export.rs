@@ -6,6 +6,15 @@ use mitsein::iter1::FromIterator1;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use tracing::warn;
 
+use crate::{
+    channel::ChannelQueryApi,
+    domain::{
+        repository::NodeRepositoryFacadeConcept,
+        service::{edge::EdgeQueryApi, node::NodeBorrowApi},
+    },
+    node::SpecByNodeIdQueryApi,
+    ui::{ChannelUiQueryApi, NodeUiQueryApi, NodeUiQueryProcessor},
+};
 use beetry_editor_types::{
     id::{ChannelId, NodeId, NodePortId},
     persistence::{
@@ -15,16 +24,6 @@ use beetry_editor_types::{
         PortStateStore, TreeStore, UiElementStore, ValidTree,
     },
     spec::node::NodeSpecKey,
-};
-
-use crate::domain::{
-    repository::{
-        ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryFacadeConcept,
-        UiRepositoryFacadeConcept,
-    },
-    service::{
-        channel::ChannelBorrowApi, edge::EdgeBorrowApi, node::NodeBorrowApi, ui::UiBorrowApi,
-    },
 };
 
 #[derive(Debug, Builder)]
@@ -46,37 +45,47 @@ impl TreeValidationResult {
     }
 }
 
-pub struct ExportApi<'a, NRF, ER, CRF, URF>
+pub struct ExportApi<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ>
 where
     NRF: NodeRepositoryFacadeConcept,
-    ER: EdgeRepositoryConcept,
-    CRF: ChannelRepositoryFacadeConcept,
-    URF: UiRepositoryFacadeConcept,
+    NSQ: SpecByNodeIdQueryApi,
+    EQ: EdgeQueryApi,
+    CQ: ChannelQueryApi,
+    NUQ: NodeUiQueryApi,
+    CUQ: ChannelUiQueryApi,
 {
-    channel_api: ChannelBorrowApi<'a, CRF>,
+    channel_api: CQ,
     node_api: NodeBorrowApi<'a, NRF>,
-    edge_api: EdgeBorrowApi<'a, ER>,
-    ui_api: UiBorrowApi<'a, URF>,
+    node_spec_query_api: NSQ,
+    edge_api: EQ,
+    node_ui_api: NUQ,
+    channel_ui_api: CUQ,
 }
 
-impl<'a, NRF, ER, CRF, URF> ExportApi<'a, NRF, ER, CRF, URF>
+impl<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ> ExportApi<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ>
 where
     NRF: NodeRepositoryFacadeConcept,
-    ER: EdgeRepositoryConcept,
-    CRF: ChannelRepositoryFacadeConcept,
-    URF: UiRepositoryFacadeConcept,
+    NSQ: SpecByNodeIdQueryApi,
+    EQ: EdgeQueryApi,
+    CQ: ChannelQueryApi,
+    NUQ: NodeUiQueryApi,
+    CUQ: ChannelUiQueryApi,
 {
     pub fn new(
-        channel_api: ChannelBorrowApi<'a, CRF>,
+        channel_api: CQ,
         node_api: NodeBorrowApi<'a, NRF>,
-        edge_api: EdgeBorrowApi<'a, ER>,
-        ui_api: UiBorrowApi<'a, URF>,
+        node_spec_query_api: NSQ,
+        edge_api: EQ,
+        node_ui_api: NUQ,
+        channel_ui_api: CUQ,
     ) -> Self {
         Self {
             channel_api,
             node_api,
+            node_spec_query_api,
             edge_api,
-            ui_api,
+            node_ui_api,
+            channel_ui_api,
         }
     }
 
@@ -185,9 +194,9 @@ where
                 .copied()
                 .map(|id| {
                     let mut children: Vec<_> = self.edge_api.children_of(id).copied().collect();
-                    self.ui_api.node().sort_children(&mut children, |l, r| {
-                        l.position.x.total_cmp(&r.position.x)
-                    })?;
+                    let query_processor = NodeUiQueryProcessor::new(&self.node_ui_api);
+                    query_processor
+                        .sort_nodes(&mut children, |l, r| l.position.x.total_cmp(&r.position.x))?;
 
                     Ok((
                         id,
@@ -264,8 +273,7 @@ where
 
     fn export_ui_elements(&mut self) -> UiElementStore {
         let channels: Vec<_> = {
-            let channel_api = self.ui_api.channel();
-            channel_api
+            self.channel_ui_api
                 .iter()
                 .map(|(id, data)| ChannelUiRecord {
                     id: *id,
@@ -274,8 +282,7 @@ where
                 .collect()
         };
         let nodes: Vec<_> = {
-            let node_api = self.ui_api.node();
-            node_api
+            self.node_ui_api
                 .iter()
                 .map(|(id, data)| NodeUiRecord {
                     id: *id,
@@ -314,15 +321,15 @@ where
                     .child_free_non_leaf_node(parent)
                     .build();
             }
-            let spec_api = self.node_api.spec();
             for child in children {
                 if !leaf_nodes.contains(&child) {
                     to_visit.insert(child);
                     continue;
                 }
 
-                if let Some(ports_spec) = spec_api
-                    .spec_by_node_id_pub(child)
+                if let Some(ports_spec) = self
+                    .node_spec_query_api
+                    .spec(child)
                     .expect("leaf node must have a spec")
                     .ports()
                 {

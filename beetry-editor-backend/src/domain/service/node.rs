@@ -3,7 +3,6 @@ use crate::domain::{
         ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryConcept,
         NodeRepositoryFacadeConcept, NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut,
         ParamValueRepositoryConcept, PortStateRepositoryConcept, SpecRepositoryConcept,
-        UiRepositoryConcept,
     },
     service::{
         channel::{ChannelBorrowMutApi, ChannelService, ConnectionContext},
@@ -16,10 +15,7 @@ use tracing::{debug, warn};
 
 use beetry_editor_types::{
     id::{ChannelId, NodeId, NodePortId, NodeSpecId},
-    output::{
-        node::{ParameterValue, Parameters, PortConnectionState},
-        ui::{NodeUiData, Point},
-    },
+    output::node::{ParameterValue, Parameters, PortConnectionState},
     persistence::{NodeRecord, ParameterValues, PortConnectionCollection},
     spec::node::{FieldTypeSpec, NodeKind, NodeName, NodeSpec, NodeSpecKey, ParamsSpec, PortsSpec},
 };
@@ -183,20 +179,16 @@ where
         }
     }
 
-    pub fn name(&self, id: NodeId) -> Result<&NodeName> {
-        Ok(Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.name())
-    }
-
     pub fn kind(&self, id: NodeId) -> Result<NodeKind> {
         Ok(Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.kind())
     }
 
-    pub fn ports(&self, id: NodeId) -> Result<&PortsSpec> {
-        Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?
-            .ports()
-            .as_ref()
-            .ok_or_else(|| anyhow!("expected port specification for node {id}"))
-    }
+    // pub fn ports(&self, id: NodeId) -> Result<&PortsSpec> {
+    //     Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?
+    //         .ports()
+    //         .as_ref()
+    //         .ok_or_else(|| anyhow!("expected port specification for node {id}"))
+    // }
 
     pub fn params(&self, id: NodeId) -> Result<&ParamsSpec> {
         Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?
@@ -211,11 +203,6 @@ where
 
     pub fn kind_by_spec_id(&self, spec_id: NodeSpecId) -> Result<NodeKind> {
         Ok(Self::spec_by_spec_id(self.spec_repo, spec_id)?.kind())
-    }
-
-    //@todo refine name and remove the other ones
-    pub fn spec_by_node_id_pub(&self, id: NodeId) -> Result<&NodeSpec> {
-        Self::spec_by_node_id(self.spec_repo, self.node_repo, id)
     }
 
     fn spec_by_node_id<'s>(spec_repo: &'s SR, node_repo: &NR, id: NodeId) -> Result<&'s NodeSpec> {
@@ -234,6 +221,100 @@ where
         node_repo
             .spec_id(&id)
             .ok_or_else(|| anyhow!("no mapping between node id {id} and spec id exists"))
+    }
+}
+
+pub trait SpecBySpecIdQueryApi {
+    fn spec(&self, id: NodeSpecId) -> Result<&NodeSpec>;
+    fn name(&self, id: NodeSpecId) -> Result<&NodeName>;
+    fn kind(&self, id: NodeSpecId) -> Result<NodeKind>;
+}
+
+pub trait SpecByNodeIdQueryApi {
+    fn spec(&self, id: NodeId) -> Result<&NodeSpec>;
+    fn name(&self, id: NodeId) -> Result<&NodeName>;
+    fn kind(&self, id: NodeId) -> Result<NodeKind>;
+    fn ports(&self, id: NodeId) -> Result<&PortsSpec>;
+    fn params(&self, id: NodeId) -> Result<&ParamsSpec>;
+}
+
+pub struct SpecBySpecIdQuery<'a, SR> {
+    repo: &'a SR,
+}
+
+impl<'a, SR> SpecBySpecIdQuery<'a, SR> {
+    pub(super) fn new(repo: &'a SR) -> Self {
+        Self { repo }
+    }
+}
+
+impl<'a, SR> SpecBySpecIdQueryApi for SpecBySpecIdQuery<'a, SR>
+where
+    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
+{
+    fn spec(&self, id: NodeSpecId) -> Result<&NodeSpec> {
+        self.repo
+            .spec(id)
+            .ok_or_else(|| anyhow!("failed to obtain spec {id}"))
+    }
+    fn name(&self, id: NodeSpecId) -> Result<&NodeName> {
+        Ok(self.spec(id)?.name())
+    }
+    fn kind(&self, id: NodeSpecId) -> Result<NodeKind> {
+        Ok(self.spec(id)?.kind())
+    }
+}
+
+pub struct SpecByNodeIdQuery<'a, SR, NR> {
+    spec_query: SpecBySpecIdQuery<'a, SR>,
+    node_repo: &'a NR,
+}
+
+impl<'a, SR, NR> SpecByNodeIdQuery<'a, SR, NR>
+where
+    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
+    NR: NodeRepositoryConcept,
+{
+    pub fn new(spec_query: SpecBySpecIdQuery<'a, SR>, node_repo: &'a NR) -> Self {
+        Self {
+            spec_query,
+            node_repo,
+        }
+    }
+
+    fn spec_id(&self, id: NodeId) -> Result<&NodeSpecId> {
+        self.node_repo
+            .spec_id(&id)
+            .ok_or_else(|| anyhow!("no mapping between node id {id} and spec id exists"))
+    }
+}
+
+impl<'a, SR, NR> SpecByNodeIdQueryApi for SpecByNodeIdQuery<'a, SR, NR>
+where
+    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
+    NR: NodeRepositoryConcept,
+{
+    fn spec(&self, id: NodeId) -> Result<&NodeSpec> {
+        let spec_id = self.spec_id(id)?;
+        self.spec_query.spec(*spec_id)
+    }
+    fn name(&self, id: NodeId) -> Result<&NodeName> {
+        Ok(self.spec(id)?.name())
+    }
+    fn kind(&self, id: NodeId) -> Result<NodeKind> {
+        Ok(self.spec(id)?.kind())
+    }
+    fn ports(&self, id: NodeId) -> Result<&PortsSpec> {
+        self.spec(id)?
+            .ports()
+            .as_ref()
+            .ok_or_else(|| anyhow!("expected port specification for node {id}"))
+    }
+    fn params(&self, id: NodeId) -> Result<&ParamsSpec> {
+        self.spec(id)?
+            .params()
+            .as_ref()
+            .ok_or_else(|| anyhow!("expected parameters specification for node {id}"))
     }
 }
 
@@ -681,20 +762,6 @@ impl NodeService {
             }
         }
         Ok(())
-    }
-
-    //@todo this should be moved into Ui service
-    pub(super) fn positions_by_kind<'a>(
-        &self,
-        repo: &'a impl UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
-        kind: NodeKind,
-    ) -> impl Iterator<Item = (NodeId, &'a Point)> {
-        let position_ids = self
-            .node_cache
-            .get(&kind)
-            .into_iter()
-            .flat_map(|i| i.iter().copied());
-        position_ids.flat_map(|id| repo.data(id).map(|data| (id, &data.position)))
     }
 
     fn remove(&mut self, spec: &NodeSpec, id: NodeId) -> Result<()> {
