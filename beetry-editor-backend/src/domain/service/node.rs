@@ -17,7 +17,10 @@ use beetry_editor_types::{
     id::{ChannelId, NodeId, NodePortId, NodeSpecId},
     output::node::{ParameterValue, Parameters, PortConnectionState},
     persistence::{NodeRecord, ParameterValues, PortConnectionCollection},
-    spec::node::{FieldTypeSpec, NodeKind, NodeName, NodeSpec, NodeSpecKey, ParamsSpec, PortsSpec},
+    spec::node::{
+        FieldTypeSpec, NodeKind, NodeName, NodePortKind, NodeSpec, NodeSpecKey, ParamsSpec,
+        PortsSpec,
+    },
 };
 use mitsein::iter1::FromIterator1;
 
@@ -130,6 +133,33 @@ where
         }
     }
 
+    pub fn port_connection_by_node(
+        &'a mut self,
+        node_id: NodeId,
+    ) -> Result<PortConnectionApi<'a, NRF::PortStateRepo, CRF>> {
+        let NodeBorrowMutApi {
+            facade_view,
+            channel_facade,
+            channel_service,
+            ..
+        } = self;
+
+        let spec = SpecApi::spec_by_node_id(facade_view.specs, facade_view.nodes, node_id)?;
+        let ports_spec = spec
+            .ports()
+            .as_ref()
+            .ok_or_else(|| anyhow!("node {node_id} has no ports spec"))?;
+
+        let channel_service_api =
+            ChannelBorrowMutApi::new(channel_facade.view_mut(), channel_service);
+
+        Ok(PortConnectionApi::new(
+            facade_view.ports,
+            ports_spec,
+            channel_service_api,
+        ))
+    }
+
     pub fn parameters(&mut self) -> ParameterValueBorrowMutApi<'_, NRF::ParamValuesRepo> {
         ParameterValueBorrowMutApi {
             repo: self.facade_view.parameters,
@@ -182,13 +212,6 @@ where
     pub fn kind(&self, id: NodeId) -> Result<NodeKind> {
         Ok(Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?.kind())
     }
-
-    // pub fn ports(&self, id: NodeId) -> Result<&PortsSpec> {
-    //     Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?
-    //         .ports()
-    //         .as_ref()
-    //         .ok_or_else(|| anyhow!("expected port specification for node {id}"))
-    // }
 
     pub fn params(&self, id: NodeId) -> Result<&ParamsSpec> {
         Self::spec_by_node_id(self.spec_repo, self.node_repo, id)?
@@ -480,6 +503,39 @@ where
     }
 }
 
+pub trait NodeTrackerQueryApi {
+    fn nodes(&self) -> impl Iterator<Item = &NodeId>;
+    fn leaf_nodes(&self) -> impl Iterator<Item = &NodeId>;
+    fn spec_id(&self, id: NodeId) -> Result<NodeSpecId>;
+    fn root_id(&self) -> Result<NodeId>;
+    fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId>;
+}
+
+impl<NR> NodeTrackerQueryApi for TrackerApi<'_, NR>
+where
+    NR: NodeRepositoryConcept,
+{
+    fn nodes(&self) -> impl Iterator<Item = &NodeId> {
+        TrackerApi::nodes(self)
+    }
+
+    fn leaf_nodes(&self) -> impl Iterator<Item = &NodeId> {
+        TrackerApi::leaf_nodes(self)
+    }
+
+    fn spec_id(&self, id: NodeId) -> Result<NodeSpecId> {
+        TrackerApi::spec_id(self, id)
+    }
+
+    fn root_id(&self) -> Result<NodeId> {
+        TrackerApi::root_id(self)
+    }
+
+    fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId> {
+        TrackerApi::nodes_by_kind(self, kind)
+    }
+}
+
 pub struct ParameterValueBorrowApi<'a, PVR> {
     repo: &'a PVR,
 }
@@ -532,12 +588,29 @@ pub struct ParameterValueBorrowMutApi<'a, PVR> {
     repo: &'a mut PVR,
 }
 
+pub trait ParameterValueMutApi {
+    fn create(&mut self, id: NodeId, params: Parameters);
+}
+
 impl<'a, PVR> ParameterValueBorrowMutApi<'a, PVR>
 where
     PVR: ParamValueRepositoryConcept,
 {
+    pub(super) fn new(repo: &'a mut PVR) -> Self {
+        Self { repo }
+    }
+
     pub fn create(&mut self, id: NodeId, params: Parameters) {
         self.repo.create(id, params);
+    }
+}
+
+impl<PVR> ParameterValueMutApi for ParameterValueBorrowMutApi<'_, PVR>
+where
+    PVR: ParamValueRepositoryConcept,
+{
+    fn create(&mut self, id: NodeId, params: Parameters) {
+        ParameterValueBorrowMutApi::create(self, id, params)
     }
 }
 
@@ -557,8 +630,35 @@ impl PortConnectionInput {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct PortConnectionView<'a> {
+    pub node_id: NodeId,
+    pub port_id: NodePortId,
+    pub channel_id: ChannelId,
+    pub kind: NodePortKind,
+    pub msg_desc: &'a str,
+}
+
 pub struct PortStateApi<'a, PR> {
     repo: &'a PR,
+}
+
+pub trait PortStateQueryApi {
+    fn state(&self, node_id: NodeId, port_id: NodePortId) -> Result<&PortConnectionState>;
+
+    fn node_conns(
+        &self,
+        node_id: NodeId,
+    ) -> impl Iterator<Item = (&NodePortId, &PortConnectionState)>;
+
+    fn iter(
+        &self,
+    ) -> impl Iterator<
+        Item = (
+            &NodeId,
+            impl Iterator<Item = (&NodePortId, &PortConnectionState)>,
+        ),
+    >;
 }
 
 impl<'a, PR> PortStateApi<'a, PR>
@@ -594,6 +694,33 @@ where
     }
 }
 
+impl<PR> PortStateQueryApi for PortStateApi<'_, PR>
+where
+    PR: PortStateRepositoryConcept,
+{
+    fn state(&self, node_id: NodeId, port_id: NodePortId) -> Result<&PortConnectionState> {
+        PortStateApi::state(self, node_id, port_id)
+    }
+
+    fn node_conns(
+        &self,
+        node_id: NodeId,
+    ) -> impl Iterator<Item = (&NodePortId, &PortConnectionState)> {
+        PortStateApi::node_conns(self, node_id)
+    }
+
+    fn iter(
+        &self,
+    ) -> impl Iterator<
+        Item = (
+            &NodeId,
+            impl Iterator<Item = (&NodePortId, &PortConnectionState)>,
+        ),
+    > {
+        PortStateApi::iter(self)
+    }
+}
+
 pub struct PortConnectionApi<'a, PR, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
@@ -601,6 +728,14 @@ where
     repo: &'a mut PR,
     ports_spec: &'a PortsSpec,
     channel_service_api: ChannelBorrowMutApi<'a, CRF>,
+}
+
+pub trait PortConnectionMutApi {
+    fn connect(&mut self, input: PortConnectionInput) -> Result<()>;
+    fn set_external(&mut self, id: NodeId, port: NodePortId) -> Result<()>;
+    fn disconnect(&mut self, input: PortConnectionInput) -> Result<()>;
+    fn disconnect_all_ports(&mut self, id: NodeId) -> Result<()>;
+    fn disconnect_port(&mut self, id: NodeId, port: NodePortId) -> Result<()>;
 }
 
 impl<'a, PR, CRF> PortConnectionApi<'a, PR, CRF>
@@ -682,6 +817,32 @@ where
         port_id: NodePortId,
     ) -> Option<&mut PortConnectionState> {
         self.repo.state_mut(node_id, port_id)
+    }
+}
+
+impl<PR, CRF> PortConnectionMutApi for PortConnectionApi<'_, PR, CRF>
+where
+    PR: PortStateRepositoryConcept,
+    CRF: ChannelRepositoryFacadeConcept,
+{
+    fn connect(&mut self, input: PortConnectionInput) -> Result<()> {
+        PortConnectionApi::connect(self, input)
+    }
+
+    fn set_external(&mut self, id: NodeId, port: NodePortId) -> Result<()> {
+        PortConnectionApi::set_external(self, id, port)
+    }
+
+    fn disconnect(&mut self, input: PortConnectionInput) -> Result<()> {
+        PortConnectionApi::disconnect(self, input)
+    }
+
+    fn disconnect_all_ports(&mut self, id: NodeId) -> Result<()> {
+        PortConnectionApi::disconnect_all_ports(self, id)
+    }
+
+    fn disconnect_port(&mut self, id: NodeId, port: NodePortId) -> Result<()> {
+        PortConnectionApi::disconnect_port(self, id, port)
     }
 }
 

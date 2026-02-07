@@ -1,6 +1,3 @@
-use beetry_editor_backend::node::{
-    PortConnectionInput, SpecByNodeIdQueryApi, SpecBySpecIdQueryApi,
-};
 use beetry_editor_backend::ui::NodeUiQueryApi;
 use beetry_editor_types::{
     id::{ChannelId, EdgeId, NodeId, NodePortId},
@@ -322,7 +319,7 @@ fn input_port_handlers(
         {
             let mut service = use_context::<ServiceContext>();
             service.with_mut(|s| {
-                beetry_editor_backend::service::api::edge::create(s, NodeEdge { from, to })
+                beetry_editor_backend::api::edge::create(s, NodeEdge { from, to })
             })?;
             render_edges.with_mut(|write| write.request());
             debug!("created edge from node {from}: to: {to}");
@@ -390,19 +387,8 @@ fn sender_handlers(
     };
     let on_context_menu = move |(node_id, port_id): (NodeId, NodePortId)| {
         let mut service_ctx = use_context::<ServiceContext>();
-        let port_spec = service_ctx.with(|s| {
-            let mut spec = beetry_editor_backend::api::node::spec::by_node_id(s)
-                .spec(node_id)
-                .unwrap()
-                .clone();
-            spec.ports_mut().take().unwrap()
-        });
         service_ctx
-            .with_mut(|s| {
-                s.node_api_mut()
-                    .port_connection(&port_spec)
-                    .set_external(node_id, port_id)
-            })
+            .with_mut(|s| beetry_editor_backend::api::node::ports::set_external(s, node_id, port_id))
             .unwrap();
     };
 
@@ -444,38 +430,16 @@ fn receiver_port_handlers(
 fn port_context_menu_handlers() -> PortContextMenuHandlers {
     let on_external = move |(node_id, port_id): (NodeId, NodePortId)| {
         let mut service_ctx = use_context::<ServiceContext>();
-        let port_spec = service_ctx.with(|s| {
-            let mut spec = beetry_editor_backend::api::node::spec::by_node_id(s)
-                .spec(node_id)
-                .unwrap()
-                .clone();
-            spec.ports_mut().take().unwrap()
-        });
         service_ctx
-            .with_mut(|s| {
-                s.node_api_mut()
-                    .port_connection(&port_spec)
-                    .set_external(node_id, port_id)
-            })
+            .with_mut(|s| beetry_editor_backend::api::node::ports::set_external(s, node_id, port_id))
             .unwrap();
         debug!("set port (node id: {node_id}, port id: {port_id}) as external")
     };
 
     let on_internal = move |(node_id, port_id): (NodeId, NodePortId)| {
         let mut service_ctx = use_context::<ServiceContext>();
-        let port_spec = service_ctx.with(|s| {
-            let mut spec = beetry_editor_backend::api::node::spec::by_node_id(s)
-                .spec(node_id)
-                .unwrap()
-                .clone();
-            spec.ports_mut().take().unwrap()
-        });
         service_ctx
-            .with_mut(|s| {
-                s.node_api_mut()
-                    .port_connection(&port_spec)
-                    .disconnect_port(node_id, port_id)
-            })
+            .with_mut(|s| beetry_editor_backend::api::node::ports::set_internal(s, node_id, port_id))
             .unwrap();
         debug!("set port (node id: {node_id}, port id: {port_id}) as internal")
     };
@@ -500,29 +464,26 @@ fn channel_handlers(
             && matches!(data.origin, ConnectionOrigin::Receiver)
         {
             let mut service = use_context::<ServiceContext>();
-            let mut write = service.write();
-            let node_spec = beetry_editor_backend::api::node::spec::by_node_id(&(*write))
-                .spec(data.node_id)?
-                .clone();
-            let mut node_api_mut = write.node_api_mut();
-
-            if let Some(ports_spec) = node_spec.ports() {
-                if let Ok(state) = node_api_mut.port_state().state(data.node_id, data.port_id)
-                    && state.is_external()
-                {
-                    error!("attempted to connect port that is marked as external");
-                    return Ok(());
-                }
-
-                let mut port_connection = node_api_mut.port_connection(ports_spec);
-                let input = PortConnectionInput::new(data.node_id, data.port_id, id);
-                port_connection.connect(input)?;
-                render_channels.with_mut(|write| write.request());
-                info!(
-                    "connected channel {id} and node (id: {}, port_id: {})",
-                    data.node_id, data.port_id
-                );
+            if service.with(|s| {
+                beetry_editor_backend::api::node::ports::is_external(s, data.node_id, data.port_id)
+            })? {
+                error!("attempted to connect port that is marked as external");
+                return Ok(());
             }
+
+            service.with_mut(|s| {
+                beetry_editor_backend::api::node::ports::connect(
+                    s,
+                    data.node_id,
+                    data.port_id,
+                    id,
+                )
+            })?;
+            render_channels.with_mut(|write| write.request());
+            info!(
+                "connected channel {id} and node (id: {}, port_id: {})",
+                data.node_id, data.port_id
+            );
         }
         Ok(())
     };
@@ -532,29 +493,26 @@ fn channel_handlers(
             && matches!(data.origin, ConnectionOrigin::Sender)
         {
             let mut service = use_context::<ServiceContext>();
-            let mut write = service.write();
-            let node_spec = beetry_editor_backend::api::node::spec::by_node_id(&(*write))
-                .spec(data.node_id)?
-                .clone();
-
-            let mut node_api_mut = write.node_api_mut();
-            if let Some(ports_spec) = node_spec.ports() {
-                if let Ok(state) = node_api_mut.port_state().state(data.node_id, data.port_id)
-                    && state.is_external()
-                {
-                    error!("attempted to connect port that is marked as external");
-                    return Ok(());
-                }
-
-                let mut port_connection = node_api_mut.port_connection(ports_spec);
-                let input = PortConnectionInput::new(data.node_id, data.port_id, id);
-                port_connection.connect(input)?;
-                render_channels.with_mut(|write| write.request());
-                info!(
-                    "connected channel {id} and node (id: {}, port_id: {})",
-                    data.node_id, data.port_id
-                );
+            if service.with(|s| {
+                beetry_editor_backend::api::node::ports::is_external(s, data.node_id, data.port_id)
+            })? {
+                error!("attempted to connect port that is marked as external");
+                return Ok(());
             }
+
+            service.with_mut(|s| {
+                beetry_editor_backend::api::node::ports::connect(
+                    s,
+                    data.node_id,
+                    data.port_id,
+                    id,
+                )
+            })?;
+            render_channels.with_mut(|write| write.request());
+            info!(
+                "connected channel {id} and node (id: {}, port_id: {})",
+                data.node_id, data.port_id
+            );
         }
         Ok(())
     };
@@ -570,7 +528,7 @@ fn node_context_menu_handlers(
 ) -> node::ContextMenuHandlers {
     let on_delete = move |id: NodeId| -> Result<()> {
         let mut service = use_context::<ServiceContext>();
-        service.with_mut(|s| beetry_editor_backend::service::api::node::remove(s, id))?;
+        service.with_mut(|s| beetry_editor_backend::api::node::remove(s, id))?;
 
         node_ctx_menu_state.set(ContextMenuState::Idle);
         render_nodes.with_mut(|write| write.request());
@@ -591,7 +549,7 @@ fn edge_context_menu_handlers(
 ) -> edge::ContextMenuHandlers {
     let on_delete = move |id: EdgeId| -> Result<()> {
         let mut service = use_context::<ServiceContext>();
-        service.with_mut(|s| beetry_editor_backend::service::api::edge::remove(s, id))?;
+        service.with_mut(|s| beetry_editor_backend::api::edge::remove(s, id))?;
         edge_ctx_menu_state.set(edge::ContextMenuState::Idle);
         render_edges.with_mut(|write| write.request());
         Ok(())
