@@ -1,9 +1,8 @@
 use crate::Point;
-use beetry_editor_backend::node::SpecByNodeIdQueryApi;
+use beetry_editor_backend::editor::EditorServiceApi;
+use beetry_editor_backend::node::PortConnectionView;
 use beetry_editor_backend::ui::ChannelUiQueryApi;
 use beetry_editor_backend::ui::NodeUiQueryApi;
-use beetry_editor_types::id::{ChannelId, NodeId, NodePortId};
-use beetry_editor_types::output::node::PortConnectionState;
 use beetry_editor_types::spec::node::NodePortKind;
 use dioxus::prelude::*;
 
@@ -31,46 +30,29 @@ pub fn Renderer(render_channels: Signal<RequestRender>) -> Element {
         }
     });
 
-    let port_channel_conns = port_channel_conns(&service);
-    let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
-
-    let sender_conns = port_channel_conns.iter().filter(|conn| {
-        spec_query
-            .ports(conn.node_id)
-            .ok()
-            .is_some_and(|ports_spec| {
-                ports_spec
-                    .kind(conn.port_id)
-                    .is_some_and(|kind| kind == NodePortKind::Sender)
-            })
+    let sender_connections = beetry_editor_backend::api::node::ports::connection_views_by_kind(
+        &(*read),
+        NodePortKind::Sender,
+    )
+    .filter_map(|conn| conn.ok())
+    .filter_map(|conn| sender_edge_pos(&(*read), &conn).ok())
+    .map(|edge| {
+        rsx! {
+            SenderConnection { edge }
+        }
     });
 
-    let sender_connections = sender_conns
-        .filter_map(|conn| sender_edge_pos(&service, conn).ok())
-        .map(|edge| {
-            rsx! {
-                SenderConnection { edge }
-            }
-        });
-
-    let receiver_conns = port_channel_conns.iter().filter(|conn| {
-        spec_query
-            .ports(conn.node_id)
-            .ok()
-            .is_some_and(|ports_spec| {
-                ports_spec
-                    .kind(conn.port_id)
-                    .is_some_and(|kind| kind == NodePortKind::Receiver)
-            })
+    let receiver_connections = beetry_editor_backend::api::node::ports::connection_views_by_kind(
+        &(*read),
+        NodePortKind::Receiver,
+    )
+    .filter_map(|conn| conn.ok())
+    .filter_map(|conn| receiver_edge_pos(&(*read), &conn).ok())
+    .map(|edge| {
+        rsx! {
+            ReceiverConnection { edge }
+        }
     });
-
-    let receiver_connections = receiver_conns
-        .filter_map(|conn| receiver_edge_pos(&service, conn).ok())
-        .map(|edge| {
-            rsx! {
-                ReceiverConnection { edge }
-            }
-        });
 
     rsx! {
         {sender_connections}
@@ -79,25 +61,14 @@ pub fn Renderer(render_channels: Signal<RequestRender>) -> Element {
     }
 }
 
-struct PortChannelConnection {
-    node_id: NodeId,
-    port_id: NodePortId,
-    channel_id: ChannelId,
-}
-
-fn sender_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> Result<EdgePos> {
-    let read = service.read();
-    let channel_query_api = beetry_editor_backend::api::ui::channel::borrow(&(*read));
-    let node_query_api = beetry_editor_backend::api::ui::node::borrow(&(*read));
+fn sender_edge_pos(read: &impl EditorServiceApi, conn: &PortConnectionView<'_>) -> Result<EdgePos> {
+    let channel_query_api = beetry_editor_backend::api::ui::channel::borrow(read);
+    let node_query_api = beetry_editor_backend::api::ui::node::borrow(read);
 
     let node_pos = node_query_api.position(conn.node_id)?;
     let channel_pos = channel_query_api.position(conn.channel_id)?;
 
-    let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
-    let spec = spec_query.spec(conn.node_id)?;
-    let ports_spec = spec.ports().as_ref().unwrap();
-    let msg_desc = ports_spec.spec(conn.port_id).unwrap().msg_spec.as_str();
-    let port_width = text::text_width_from(msg_desc, 11);
+    let port_width = text::text_width_from(conn.msg_desc, 11);
 
     Ok(EdgePos {
         start: Point {
@@ -112,20 +83,17 @@ fn sender_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> Re
     })
 }
 
-fn receiver_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> Result<EdgePos> {
-    let read = service.read();
-    let node_query_api = beetry_editor_backend::api::ui::node::borrow(&(*read));
-    let channel_query_api = beetry_editor_backend::api::ui::channel::borrow(&(*read));
+fn receiver_edge_pos(
+    read: &impl EditorServiceApi,
+    conn: &PortConnectionView<'_>,
+) -> Result<EdgePos> {
+    let node_query_api = beetry_editor_backend::api::ui::node::borrow(read);
+    let channel_query_api = beetry_editor_backend::api::ui::channel::borrow(read);
 
     let node_pos = node_query_api.position(conn.node_id)?;
     let channel_pos = channel_query_api.position(conn.channel_id)?;
 
-    let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
-    let spec = spec_query.spec(conn.node_id)?;
-    let ports_spec = spec.ports().as_ref().unwrap();
-    let msg_desc = ports_spec.spec(conn.port_id).unwrap().msg_spec.as_str();
-
-    let port_width = text::text_width_from(msg_desc, 11);
+    let port_width = text::text_width_from(conn.msg_desc, 11);
 
     Ok(EdgePos {
         start: Point {
@@ -137,27 +105,4 @@ fn receiver_edge_pos(service: &ServiceContext, conn: &PortChannelConnection) -> 
             y: channel_pos.y + 12.0,                     // Offset to center of channel vertically
         },
     })
-}
-
-//@todo would be nice to do without allocations
-fn port_channel_conns(service: &ServiceContext) -> Vec<PortChannelConnection> {
-    let read = service.read();
-    let node_api = read.node_api();
-    let port_state = node_api.port_state();
-    port_state
-        .iter()
-        .flat_map(|(id, port_conns_iter)| {
-            port_conns_iter.flat_map(|(port_id, state)| match state {
-                PortConnectionState::Internal(conns) => conns
-                    .iter()
-                    .map(|channel_id| PortChannelConnection {
-                        node_id: *id,
-                        port_id: *port_id,
-                        channel_id: *channel_id,
-                    })
-                    .collect::<Vec<_>>(),
-                PortConnectionState::External => Vec::new(),
-            })
-        })
-        .collect::<Vec<_>>()
 }

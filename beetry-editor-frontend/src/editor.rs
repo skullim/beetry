@@ -88,7 +88,7 @@ pub(crate) fn Editor() -> Element {
 
             let mut service = use_context::<ServiceContext>();
             let id = service.with_mut(|s| {
-                beetry_editor_backend::service::api::node::create(s, node_spec, ui_data)
+                beetry_editor_backend::api::node::create(s, node_spec, ui_data)
             })?;
 
             if node_spec.params().is_some() {
@@ -171,7 +171,7 @@ fn parameter_dialog_handlers(
 ) -> ParameterDialogHandlers {
     let on_confirm = move |(node_id, params): (NodeId, Parameters)| {
         let mut service_ctx = use_context::<ServiceContext>();
-        service_ctx.with_mut(|s| s.node_api_mut().parameters().create(node_id, params));
+        service_ctx.with_mut(|s| beetry_editor_backend::api::node::parameters::set(s, node_id, params));
         state.take();
     };
 
@@ -179,7 +179,7 @@ fn parameter_dialog_handlers(
         let state = state.take();
         if let ParameterDialogState::Visible { id, .. } = state {
             let mut service_ctx = use_context::<ServiceContext>();
-            service_ctx.with_mut(|s| beetry_editor_backend::service::api::node::remove(s, id))?;
+            service_ctx.with_mut(|s| beetry_editor_backend::api::node::remove(s, id))?;
             render_nodes.with_mut(|write| write.request());
         }
         Ok(())

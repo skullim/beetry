@@ -80,9 +80,9 @@ where
 
     pub fn map_to_positions(
         &self,
-        id_iter: impl Iterator<Item = NodeId>,
-    ) -> impl Iterator<Item = Result<(NodeId, &Point)>> {
-        id_iter.map(move |id| self.query.position(id).map(|p| (id, p)))
+        id_iter: impl Iterator<Item = &'a NodeId>,
+    ) -> impl Iterator<Item = Result<(&'a NodeId, &Point)>> {
+        id_iter.map(|id| self.query.position(*id).map(|p| (id, p)))
     }
 }
 
