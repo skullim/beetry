@@ -7,7 +7,7 @@ use beetry_editor_types::{id::EdgeId, id::NodeId, output::edge::NodeEdge, spec::
 use tracing::warn;
 
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
-pub struct EdgeBorrowApi<'a, ER> {
+pub struct EdgeView<'a, ER> {
     edge_repo: &'a ER,
     edge_service: &'a EdgeService,
 }
@@ -18,7 +18,7 @@ pub trait EdgeQueryApi {
     fn edges(&self) -> impl Iterator<Item = (&EdgeId, &NodeEdge)>;
 }
 
-impl<'a, ER> EdgeBorrowApi<'a, ER>
+impl<'a, ER> EdgeView<'a, ER>
 where
     ER: EdgeRepositoryConcept,
 {
@@ -30,7 +30,7 @@ where
     }
 }
 
-impl<ER> EdgeQueryApi for EdgeBorrowApi<'_, ER>
+impl<ER> EdgeQueryApi for EdgeView<'_, ER>
 where
     ER: EdgeRepositoryConcept,
 {
@@ -47,7 +47,7 @@ where
     }
 }
 
-pub(super) struct EdgeBorrowMutApi<'a, ER, NRF>
+pub(super) struct EdgeViewMut<'a, ER, NRF>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
@@ -57,7 +57,7 @@ where
     node_spec_api: SpecApi<'a, NRF::SpecRepo, NRF::NodeRepo>,
 }
 
-impl<'a, ER, NRF> EdgeBorrowMutApi<'a, ER, NRF>
+impl<'a, ER, NRF> EdgeViewMut<'a, ER, NRF>
 where
     ER: EdgeRepositoryConcept,
     NRF: NodeRepositoryFacadeConcept,

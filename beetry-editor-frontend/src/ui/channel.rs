@@ -126,7 +126,6 @@ impl GradientUrl {
     pub const SENDER_EXTERNAL: &'static str = "url(#channel-external-sender-gradient)";
     pub const BODY: &'static str = "url(#channel-body-gradient)";
     pub const RECEIVER: &'static str = "url(#channel-receiver-gradient)";
-    pub const RECEIVER_EXTERNAL: &'static str = "url(#channel-external-receiver-gradient)";
 }
 
 pub struct GradientHoverUrl;
@@ -136,7 +135,6 @@ impl GradientHoverUrl {
     pub const SENDER_EXTERNAL: &'static str = "url(#channel-external-sender-gradient-hover)";
     pub const BODY: &'static str = "url(#channel-body-gradient-hover)";
     pub const RECEIVER: &'static str = "url(#channel-receiver-gradient-hover)";
-    pub const RECEIVER_EXTERNAL: &'static str = "url(#channel-external-receiver-gradient-hover)";
 }
 
 #[component]

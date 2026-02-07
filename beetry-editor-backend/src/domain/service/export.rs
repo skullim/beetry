@@ -10,7 +10,7 @@ use crate::{
     channel::ChannelQueryApi,
     domain::{
         repository::NodeRepositoryFacadeConcept,
-        service::{edge::EdgeQueryApi, node::NodeBorrowApi},
+        service::{edge::EdgeQueryApi, node::NodeView},
     },
     node::SpecByNodeIdQueryApi,
     ui::{ChannelUiQueryApi, NodeUiQueryApi, NodeUiQueryProcessor},
@@ -45,7 +45,7 @@ impl TreeValidationResult {
     }
 }
 
-pub struct ExportApi<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ>
+pub struct ExportView<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ>
 where
     NRF: NodeRepositoryFacadeConcept,
     NSQ: SpecByNodeIdQueryApi,
@@ -55,14 +55,14 @@ where
     CUQ: ChannelUiQueryApi,
 {
     channel_api: CQ,
-    node_api: NodeBorrowApi<'a, NRF>,
+    node_api: NodeView<'a, NRF>,
     node_spec_query_api: NSQ,
     edge_api: EQ,
     node_ui_api: NUQ,
     channel_ui_api: CUQ,
 }
 
-impl<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ> ExportApi<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ>
+impl<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ> ExportView<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ>
 where
     NRF: NodeRepositoryFacadeConcept,
     NSQ: SpecByNodeIdQueryApi,
@@ -73,7 +73,7 @@ where
 {
     pub fn new(
         channel_api: CQ,
-        node_api: NodeBorrowApi<'a, NRF>,
+        node_api: NodeView<'a, NRF>,
         node_spec_query_api: NSQ,
         edge_api: EQ,
         node_ui_api: NUQ,

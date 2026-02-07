@@ -6,7 +6,7 @@ use beetry_editor_types::{
 };
 use std::collections::HashMap;
 
-pub struct NodeUiBorrowApi<'a, UR> {
+pub struct NodeUiView<'a, UR> {
     repo: &'a UR,
 }
 
@@ -17,7 +17,7 @@ pub trait NodeUiQueryApi {
     fn iter(&self) -> impl Iterator<Item = (&NodeId, &NodeUiData)>;
 }
 
-impl<'a, UR> NodeUiBorrowApi<'a, UR>
+impl<'a, UR> NodeUiView<'a, UR>
 where
     UR: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
 {
@@ -26,7 +26,7 @@ where
     }
 }
 
-impl<'a, UR> NodeUiQueryApi for NodeUiBorrowApi<'a, UR>
+impl<'a, UR> NodeUiQueryApi for NodeUiView<'a, UR>
 where
     UR: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
 {
@@ -86,11 +86,11 @@ where
     }
 }
 
-pub struct NodeUiBorrowMutApi<'a, UR> {
+pub struct NodeUiViewMut<'a, UR> {
     repo: &'a mut UR,
 }
 
-impl<'a, UR> NodeUiBorrowMutApi<'a, UR>
+impl<'a, UR> NodeUiViewMut<'a, UR>
 where
     UR: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
 {
@@ -116,11 +116,11 @@ where
     }
 }
 
-pub struct ChannelUiBorrowApi<'a, UR> {
+pub struct ChannelUiView<'a, UR> {
     repo: &'a UR,
 }
 
-impl<'a, UR> ChannelUiBorrowApi<'a, UR>
+impl<'a, UR> ChannelUiView<'a, UR>
 where
     UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
 {
@@ -135,7 +135,7 @@ pub trait ChannelUiQueryApi {
     fn iter(&self) -> impl Iterator<Item = (&ChannelId, &ChannelUiData)>;
 }
 
-impl<'a, UR> ChannelUiQueryApi for ChannelUiBorrowApi<'a, UR>
+impl<'a, UR> ChannelUiQueryApi for ChannelUiView<'a, UR>
 where
     UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
 {
@@ -154,11 +154,11 @@ where
     }
 }
 
-pub struct ChannelUiBorrowMutApi<'a, UR> {
+pub struct ChannelUiViewMut<'a, UR> {
     repo: &'a mut UR,
 }
 
-impl<'a, UR> ChannelUiBorrowMutApi<'a, UR>
+impl<'a, UR> ChannelUiViewMut<'a, UR>
 where
     UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
 {

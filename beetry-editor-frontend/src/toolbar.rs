@@ -88,14 +88,14 @@ pub struct ToolbarHandlers {
 
 fn do_export_project() -> Result<()> {
     let service = use_context::<ServiceContext>();
-    let state = service.with(|s| s.export_api().export_project())?;
+    let state = service.with(beetry_editor_backend::api::project::export)?;
     export_project_to_file(state)?;
     Ok(())
 }
 
 fn do_export_valid_tree() -> Result<()> {
     let service = use_context::<ServiceContext>();
-    let tree = service.with(|s| s.export_api().export_valid_tree())?;
+    let tree = service.with(beetry_editor_backend::api::project::export_valid_tree)?;
     export_valid_tree_to_file(tree)?;
     Ok(())
 }
@@ -119,7 +119,7 @@ fn export_valid_tree_to_file(valid_tree: ValidTree) -> Result<()> {
 fn do_import() -> Result<()> {
     let state = import_project_from_file()?;
     let mut service = use_context::<ServiceContext>();
-    service.with_mut(|s| s.import_api().import_project(state))?;
+    service.with_mut(|s| beetry_editor_backend::api::project::import(s, state))?;
     Ok(())
 }
 
