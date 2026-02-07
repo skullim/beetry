@@ -20,7 +20,7 @@ pub struct ConnectionContext<'a> {
     pub channel: ChannelId,
 }
 
-pub struct ChannelBorrowApi<'a, CRF>
+pub struct ChannelView<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
@@ -35,7 +35,7 @@ pub trait ChannelQueryApi {
     fn spec(&self, id: ChannelId) -> Result<&ChannelSpec>;
 }
 
-impl<'a, CRF> ChannelBorrowApi<'a, CRF>
+impl<'a, CRF> ChannelView<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
@@ -44,7 +44,7 @@ where
     }
 }
 
-impl<'a, CRF> ChannelQueryApi for ChannelBorrowApi<'a, CRF>
+impl<'a, CRF> ChannelQueryApi for ChannelView<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
@@ -69,7 +69,7 @@ where
     }
 }
 
-pub struct ChannelBorrowMutApi<'a, CRF>
+pub struct ChannelViewMut<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
@@ -77,7 +77,7 @@ where
     channel: &'a mut ChannelService,
 }
 
-impl<'a, CRF> ChannelBorrowMutApi<'a, CRF>
+impl<'a, CRF> ChannelViewMut<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
