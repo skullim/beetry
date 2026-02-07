@@ -1,3 +1,4 @@
+use beetry_editor_backend::node::NodeTrackerQueryApi;
 use beetry_editor_backend::ui::NodeUiQueryProcessor;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
@@ -23,33 +24,31 @@ pub fn Renderer(render_nodes: Signal<RequestRender>) -> Element {
     let query = beetry_editor_backend::api::ui::node::borrow(&(*read));
 
     let query_processor = NodeUiQueryProcessor::new(&query);
-    let node_api = read.node_api();
-    let tracker = node_api.tracker();
 
+    let tracker = beetry_editor_backend::api::node::tracker::borrow(&(*read));
     let filter_nodes_fn = |kind| {
-        query_processor
-            .map_to_positions(tracker.nodes_by_kind(kind).copied())
-            .filter_map(|r| r.ok())
+        let ids = tracker.nodes_by_kind(kind);
+        query_processor.map_to_positions(ids).filter_map(|r| r.ok())
     };
 
     let controls = (filter_nodes_fn)(NodeKind::Control).map(|(id, pos)| {
         rsx! {
-            Control { key: "{id}", id, position: Point { x: pos.x, y: pos.y } }
+            Control { key: "{id}", id: *id, position: Point { x: pos.x, y: pos.y } }
         }
     });
     let actions = (filter_nodes_fn)(NodeKind::action()).map(|(id, pos)| {
         rsx! {
-            Leaf { key: "{id}", id, position: Point { x: pos.x, y: pos.y } }
+            Leaf { key: "{id}", id: *id, position: Point { x: pos.x, y: pos.y } }
         }
     });
     let conditions = (filter_nodes_fn)(NodeKind::condition()).map(|(id, pos)| {
         rsx! {
-            Leaf { key: "{id}", id, position: Point { x: pos.x, y: pos.y } }
+            Leaf { key: "{id}", id: *id, position: Point { x: pos.x, y: pos.y } }
         }
     });
     let root = (filter_nodes_fn)(NodeKind::Root).map(|(id, pos)| {
         rsx! {
-            Root { key: "{id}", id, position: Point { x: pos.x, y: pos.y } }
+            Root { key: "{id}", id: *id, position: Point { x: pos.x, y: pos.y } }
         }
     });
 
