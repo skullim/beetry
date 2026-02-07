@@ -2,7 +2,7 @@ use crate::{
     NodeSpecMap,
     domain::{
         channel::LoadChannelApi,
-        edge::EdgeBorrowMutApi,
+        edge::EdgeViewMut,
         node,
         repository::{
             ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
@@ -15,7 +15,7 @@ use crate::{
             node::{LoadNodeApi, NodeService},
         },
     },
-    ui::{ChannelUiBorrowMutApi, NodeUiBorrowMutApi},
+    ui::{ChannelUiViewMut, NodeUiViewMut},
 };
 use anyhow::Result;
 use beetry_editor_types::{
@@ -23,7 +23,7 @@ use beetry_editor_types::{
     persistence::{EditorStateStore, MaybeValidTree, UiElementStore},
 };
 
-pub struct ImportApi<'a, NRF, ER, CRF, URF> {
+pub struct ImportViewMut<'a, NRF, ER, CRF, URF> {
     node_service: &'a mut NodeService,
     edge_service: &'a mut EdgeService,
     channel_service: &'a mut ChannelService,
@@ -31,7 +31,7 @@ pub struct ImportApi<'a, NRF, ER, CRF, URF> {
     spec_map: &'a NodeSpecMap,
 }
 
-impl<'a, NRF, ER, CRF, URF> ImportApi<'a, NRF, ER, CRF, URF>
+impl<'a, NRF, ER, CRF, URF> ImportViewMut<'a, NRF, ER, CRF, URF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
@@ -104,8 +104,8 @@ where
         let NodeRepositoryFacadeView { nodes, specs, .. } = node.view();
         let tracker_api = node::TrackerApi::new(self.node_service, nodes);
         let spec_api = node::SpecApi::new(specs, nodes);
-        let mut edge_mut_api: EdgeBorrowMutApi<'_, ER, NRF> =
-            EdgeBorrowMutApi::new(edge, self.edge_service, tracker_api, spec_api);
+        let mut edge_mut_api: EdgeViewMut<'_, ER, NRF> =
+            EdgeViewMut::new(edge, self.edge_service, tracker_api, spec_api);
         for edge in edges {
             edge_mut_api.create(edge)?;
         }
@@ -113,12 +113,12 @@ where
     }
 
     pub fn import_ui(&mut self, ui: UiElementStore) -> Result<()> {
-        let mut node_mut_api = NodeUiBorrowMutApi::new(self.repo.ui_mut().view_mut().node);
+        let mut node_mut_api = NodeUiViewMut::new(self.repo.ui_mut().view_mut().node);
         for node in ui.nodes {
             node_mut_api.create(node.id, node.data)?;
         }
 
-        let mut channel_mut_api = ChannelUiBorrowMutApi::new(self.repo.ui_mut().view_mut().channel);
+        let mut channel_mut_api = ChannelUiViewMut::new(self.repo.ui_mut().view_mut().channel);
         for channel in ui.channels {
             channel_mut_api.create(channel.id, channel.data)?;
         }

@@ -5,7 +5,7 @@ use crate::domain::{
         ParamValueRepositoryConcept, PortStateRepositoryConcept, SpecRepositoryConcept,
     },
     service::{
-        channel::{ChannelBorrowMutApi, ChannelService, ConnectionContext},
+        channel::{ChannelViewMut, ChannelService, ConnectionContext},
         edge::{self, EdgeService, OnNodeRemovalServiceApi},
     },
 };
@@ -24,14 +24,14 @@ use beetry_editor_types::{
 };
 use mitsein::iter1::FromIterator1;
 
-pub struct NodeBorrowApi<'a, NRF>
+pub struct NodeView<'a, NRF>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
     facade_view: NodeRepositoryFacadeView<'a, NRF>,
     node_service: &'a NodeService,
 }
-impl<'a, NRF> NodeBorrowApi<'a, NRF>
+impl<'a, NRF> NodeView<'a, NRF>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
@@ -63,14 +63,14 @@ where
         PortStateApi::new(self.facade_view.ports)
     }
 
-    pub fn parameter(&self) -> ParameterValueBorrowApi<'_, NRF::ParamValuesRepo> {
-        ParameterValueBorrowApi {
+    pub fn parameter(&self) -> ParameterValueView<'_, NRF::ParamValuesRepo> {
+        ParameterValueView {
             repo: self.facade_view.parameters,
         }
     }
 }
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
-pub struct NodeBorrowMutApi<'a, NRF, ER, CRF>
+pub struct NodeViewMut<'a, NRF, ER, CRF>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
@@ -82,7 +82,7 @@ where
     channel_service: &'a mut ChannelService,
 }
 
-impl<'a, NRF, ER, CRF> NodeBorrowMutApi<'a, NRF, ER, CRF>
+impl<'a, NRF, ER, CRF> NodeViewMut<'a, NRF, ER, CRF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
@@ -126,7 +126,7 @@ where
         PortConnectionApi {
             repo: self.facade_view.ports,
             ports_spec,
-            channel_service_api: ChannelBorrowMutApi::new(
+            channel_service_api: ChannelViewMut::new(
                 self.channel_facade.view_mut(),
                 self.channel_service,
             ),
@@ -137,7 +137,7 @@ where
         &'a mut self,
         node_id: NodeId,
     ) -> Result<PortConnectionApi<'a, NRF::PortStateRepo, CRF>> {
-        let NodeBorrowMutApi {
+        let NodeViewMut {
             facade_view,
             channel_facade,
             channel_service,
@@ -151,7 +151,7 @@ where
             .ok_or_else(|| anyhow!("node {node_id} has no ports spec"))?;
 
         let channel_service_api =
-            ChannelBorrowMutApi::new(channel_facade.view_mut(), channel_service);
+            ChannelViewMut::new(channel_facade.view_mut(), channel_service);
 
         Ok(PortConnectionApi::new(
             facade_view.ports,
@@ -160,8 +160,8 @@ where
         ))
     }
 
-    pub fn parameters(&mut self) -> ParameterValueBorrowMutApi<'_, NRF::ParamValuesRepo> {
-        ParameterValueBorrowMutApi {
+    pub fn parameters(&mut self) -> ParameterValueViewMut<'_, NRF::ParamValuesRepo> {
+        ParameterValueViewMut {
             repo: self.facade_view.parameters,
         }
     }
@@ -185,8 +185,8 @@ where
         PortStateApi::new(self.facade_view.ports)
     }
 
-    pub fn parameter(&self) -> ParameterValueBorrowApi<'_, NRF::ParamValuesRepo> {
-        ParameterValueBorrowApi {
+    pub fn parameter(&self) -> ParameterValueView<'_, NRF::ParamValuesRepo> {
+        ParameterValueView {
             repo: self.facade_view.parameters,
         }
     }
@@ -439,7 +439,7 @@ where
         self.edge_removal_service_api.on_removal(id)?;
         if let Some(ports_spec) = spec.ports() {
             let channel_service_api =
-                ChannelBorrowMutApi::new(self.channel_facade.view_mut(), self.channel_service);
+                ChannelViewMut::new(self.channel_facade.view_mut(), self.channel_service);
             let mut port_connection_service_api = PortConnectionApi::new(
                 self.node_facade_view.ports,
                 ports_spec,
@@ -536,11 +536,11 @@ where
     }
 }
 
-pub struct ParameterValueBorrowApi<'a, PVR> {
+pub struct ParameterValueView<'a, PVR> {
     repo: &'a PVR,
 }
 
-impl<'a, PVR> ParameterValueBorrowApi<'a, PVR>
+impl<'a, PVR> ParameterValueView<'a, PVR>
 where
     PVR: ParamValueRepositoryConcept,
 {
@@ -584,7 +584,7 @@ impl ParameterValueParser {
     }
 }
 
-pub struct ParameterValueBorrowMutApi<'a, PVR> {
+pub struct ParameterValueViewMut<'a, PVR> {
     repo: &'a mut PVR,
 }
 
@@ -592,7 +592,7 @@ pub trait ParameterValueMutApi {
     fn create(&mut self, id: NodeId, params: Parameters);
 }
 
-impl<'a, PVR> ParameterValueBorrowMutApi<'a, PVR>
+impl<'a, PVR> ParameterValueViewMut<'a, PVR>
 where
     PVR: ParamValueRepositoryConcept,
 {
@@ -605,12 +605,12 @@ where
     }
 }
 
-impl<PVR> ParameterValueMutApi for ParameterValueBorrowMutApi<'_, PVR>
+impl<PVR> ParameterValueMutApi for ParameterValueViewMut<'_, PVR>
 where
     PVR: ParamValueRepositoryConcept,
 {
     fn create(&mut self, id: NodeId, params: Parameters) {
-        ParameterValueBorrowMutApi::create(self, id, params)
+        ParameterValueViewMut::create(self, id, params)
     }
 }
 
@@ -727,7 +727,7 @@ where
 {
     repo: &'a mut PR,
     ports_spec: &'a PortsSpec,
-    channel_service_api: ChannelBorrowMutApi<'a, CRF>,
+    channel_service_api: ChannelViewMut<'a, CRF>,
 }
 
 pub trait PortConnectionMutApi {
@@ -746,7 +746,7 @@ where
     pub(super) fn new(
         repo: &'a mut PR,
         ports_spec: &'a PortsSpec,
-        channel_service_api: ChannelBorrowMutApi<'a, CRF>,
+        channel_service_api: ChannelViewMut<'a, CRF>,
     ) -> Self {
         Self {
             repo,
