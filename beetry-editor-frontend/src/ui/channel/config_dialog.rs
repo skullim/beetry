@@ -1,10 +1,10 @@
-use crate::Point;
+use crate::{Point, SharedSpecs};
+use beetry_core::MessageHash;
 use beetry_editor_types::{
     output::channel::{ChannelConfig, ChannelKind, TokioChannelKind},
-    spec::channel::ChannelSpec,
 };
 use dioxus::prelude::*;
-use dioxus_logger::tracing::debug;
+use dioxus_logger::tracing::{debug, error};
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum State {
@@ -12,8 +12,7 @@ pub enum State {
     Idle,
     Visible {
         position: Point,
-        //@todo better pass id and do lookup inside component
-        spec: ChannelSpec,
+        spec_key: MessageHash,
     },
 }
 
@@ -33,9 +32,15 @@ pub fn Dialog(props: DialogProps) -> Element {
     debug!("rendering");
     let state_read = props.state.read();
 
-    let position = match *state_read {
+    let (position, spec_key) = match *state_read {
         State::Idle => return rsx! {},
-        State::Visible { position, spec: _ } => position,
+        State::Visible { position, spec_key } => (position, spec_key),
+    };
+
+    let specs = use_context::<SharedSpecs>();
+    if let Err(err) = specs.channels.spec(&spec_key) {
+        error!("failed to open channel config dialog: {err:?}");
+        return rsx! {};
     };
 
     let mut capacity = use_signal(|| 1usize);
@@ -52,7 +57,7 @@ pub fn Dialog(props: DialogProps) -> Element {
         };
 
         let channel_config = ChannelConfig::new(capacity, channel_kind);
-        handlers.on_confirm.call(channel_config);
+        handlers.on_confirm.call((spec_key, channel_config));
     };
 
     let on_cancel = move |_| {
@@ -174,13 +179,13 @@ pub fn Dialog(props: DialogProps) -> Element {
 
 #[derive(Debug, Clone)]
 pub struct Handlers {
-    pub(crate) on_confirm: EventHandler<ChannelConfig>,
+    pub(crate) on_confirm: EventHandler<(MessageHash, ChannelConfig)>,
     pub(crate) on_cancel: EventHandler<()>,
 }
 
 impl Handlers {
     pub(crate) fn new(
-        on_confirm: impl FnMut(ChannelConfig) -> Result<()> + 'static,
+        on_confirm: impl FnMut((MessageHash, ChannelConfig)) -> Result<()> + 'static,
         on_cancel: impl FnMut(()) + 'static,
     ) -> Self {
         Self {
