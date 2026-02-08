@@ -8,13 +8,16 @@ use dioxus::prelude::*;
 use rfd::FileDialog;
 
 use crate::editor::ServiceContext;
-use crate::signals::{RequestChannelRender, RequestEdgeRender, RequestNodeRender};
+use crate::signals::{
+    RequestChannelEdgeRender, RequestChannelRender, RequestEdgeRender, RequestNodeRender,
+};
 use crate::ui::transfer;
 
 #[component]
 pub(crate) fn Toolbar(
     render_nodes: RequestNodeRender,
     render_channels: RequestChannelRender,
+    render_channel_edges: RequestChannelEdgeRender,
     render_edges: RequestEdgeRender,
 ) -> Element {
     let mut export_result = use_signal(transfer::OperationResult::default);
@@ -59,6 +62,7 @@ pub(crate) fn Toolbar(
             render_nodes.request();
             render_edges.request();
             render_channels.request();
+            render_channel_edges.request();
         }
         Err(e) => {
             import_result.set(transfer::OperationResult::new(

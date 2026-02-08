@@ -8,13 +8,13 @@ use dioxus::prelude::*;
 
 use crate::definitions::EdgePos;
 use crate::editor::ServiceContext;
-use crate::signals::RequestChannelRender;
+use crate::signals::{RequestChannelEdgeRender, RequestChannelRender};
 use crate::ui::channel::{Channel, ReceiverConnection, SenderConnection};
 use crate::ui::text;
 
-// Conditions to re-render the channels:
+// Conditions to re-render channel elements:
 // - new channel created
-// - node/channel position updated
+// - channel position updated
 #[component]
 pub fn Renderer(render_channels: RequestChannelRender) -> Element {
     debug!("rendering");
@@ -29,6 +29,22 @@ pub fn Renderer(render_channels: RequestChannelRender) -> Element {
             Channel { key: "{id}", id: *id, position: data.position }
         }
     });
+
+    rsx! {
+        {channels}
+    }
+}
+
+// Conditions to re-render channel connections:
+// - node/channel position updated
+// - channel connections changed
+#[component]
+pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Element {
+    debug!("rendering");
+    render_channel_edges.track();
+
+    let service = use_context::<ServiceContext>();
+    let read = service.read();
 
     let sender_connections = beetry_editor_backend::api::node::ports::connection_views_by_kind(
         &(*read),
@@ -57,7 +73,6 @@ pub fn Renderer(render_channels: RequestChannelRender) -> Element {
     rsx! {
         {sender_connections}
         {receiver_connections}
-        {channels}
     }
 }
 

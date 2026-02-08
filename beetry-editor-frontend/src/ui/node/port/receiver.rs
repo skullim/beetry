@@ -86,7 +86,7 @@ pub fn Receiver(props: ReceiverProps) -> Element {
                 onmouseleave: move |_| is_hovered.set(false),
                 onmousedown: move |evt| {
                     evt.stop_propagation();
-                    if evt.held_buttons().contains(MouseButton::Primary) {
+                    if evt.held_buttons().contains(MouseButton::Primary) && !is_external {
                         let mouse_coords = evt.element_coordinates();
                         let offset = Point {
                             x: mouse_coords.x,

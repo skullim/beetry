@@ -36,9 +36,13 @@ pub struct EdgeRenderTag;
 pub struct ChannelRenderTag;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ChannelEdgeRenderTag;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PortRenderTag;
 
 pub type RequestNodeRender = RenderTrigger<NodeRenderTag>;
 pub type RequestEdgeRender = RenderTrigger<EdgeRenderTag>;
 pub type RequestChannelRender = RenderTrigger<ChannelRenderTag>;
+pub type RequestChannelEdgeRender = RenderTrigger<ChannelEdgeRenderTag>;
 pub type RequestPortRender = RenderTrigger<PortRenderTag>;
