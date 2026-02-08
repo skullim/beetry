@@ -5,7 +5,7 @@ use dioxus_logger::tracing::debug;
 
 use crate::Point;
 use crate::editor::ServiceContext;
-use crate::signals::RequestRender;
+use crate::signals::RequestNodeRender;
 use crate::ui::node::control::Control;
 use crate::ui::node::leaf::Leaf;
 use crate::ui::node::root::Root;
@@ -15,9 +15,9 @@ use beetry_editor_types::spec::node::NodeKind;
 // - new node created
 // - node position updated
 #[component]
-pub fn Renderer(render_nodes: Signal<RequestRender>) -> Element {
+pub fn Renderer(render_nodes: RequestNodeRender) -> Element {
     debug!("rendering");
-    let _read = render_nodes.read();
+    render_nodes.track();
 
     let service = use_context::<ServiceContext>();
     let read = service.read();

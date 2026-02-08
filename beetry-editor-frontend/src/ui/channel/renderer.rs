@@ -8,7 +8,7 @@ use dioxus::prelude::*;
 
 use crate::definitions::EdgePos;
 use crate::editor::ServiceContext;
-use crate::signals::RequestRender;
+use crate::signals::RequestChannelRender;
 use crate::ui::channel::{Channel, ReceiverConnection, SenderConnection};
 use crate::ui::text;
 
@@ -16,9 +16,9 @@ use crate::ui::text;
 // - new channel created
 // - node/channel position updated
 #[component]
-pub fn Renderer(render_channels: Signal<RequestRender>) -> Element {
+pub fn Renderer(render_channels: RequestChannelRender) -> Element {
     debug!("rendering");
-    let _read = render_channels.read();
+    render_channels.track();
 
     let service = use_context::<ServiceContext>();
     let read = service.read();
