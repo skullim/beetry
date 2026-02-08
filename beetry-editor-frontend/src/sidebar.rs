@@ -74,7 +74,7 @@ pub(crate) fn Sidebar(channel_config_dialog_state: Signal<ChannelConfigDialogSta
                         channel_config_dialog_state
                             .set(ChannelConfigDialogState::Visible {
                                 position: Point { x: 200.0, y: 100.0 },
-                                spec: spec.clone(),
+                                spec_key: spec.msg_hash(),
                             });
                     },
                     {spec.as_str()}

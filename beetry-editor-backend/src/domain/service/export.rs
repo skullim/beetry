@@ -138,20 +138,15 @@ where
     fn export_node_store(&mut self, nodes: &[NodeId]) -> Result<NodeStore> {
         let specs = {
             let tracker_api = self.node_api.tracker();
-            let spec_ids = nodes
-                .iter()
-                //@todo handle unwrap
-                .map(|id| {
-                    tracker_api
-                        .spec_id(*id)
-                        .with_context(|| anyhow!("expected spec id for node {id}"))
-                        .unwrap()
-                })
-                .unique();
-
             let spec_api = self.node_api.spec();
-            spec_ids
-                .map(|spec_id| {
+
+            nodes
+                .iter()
+                .map(|id| {
+                    let spec_id = tracker_api
+                        .spec_id(*id)
+                        .with_context(|| anyhow!("expected spec id for node {id}"))?;
+
                     Ok((
                         spec_id,
                         NodeSpecKey::new(

@@ -1,7 +1,6 @@
 use dioxus::prelude::*;
 
 use crate::toolbar::ToolbarHandlers;
-use crate::ui::transfer::{OperationResult, OperationStatus};
 
 #[derive(Debug, Clone)]
 pub struct Handlers {
@@ -22,51 +21,19 @@ impl Handlers {
 }
 
 #[component]
-pub fn ExportProject(result: ReadSignal<OperationResult>) -> Element {
+pub fn ExportProject() -> Element {
     rsx! {
         button { onclick: move |_| { use_context::<ToolbarHandlers>().export.on_project.call(()) },
             "Export project"
-        }
-
-        match result.read().status {
-            OperationStatus::None => {
-                rsx! {}
-            }
-            OperationStatus::Success => {
-                rsx! {
-                    div { style: {"color: green; margin-top: 5px; font-size: 12px;"}, {result.peek().message.clone()} }
-                }
-            }
-            OperationStatus::Error => {
-                rsx! {
-                    div { style: {"color: red; margin-top: 5px; font-size: 12px;"}, {result.peek().message.clone()} }
-                }
-            }
         }
     }
 }
 
 #[component]
-pub fn ExportValidTree(result: ReadSignal<OperationResult>) -> Element {
+pub fn ExportValidTree() -> Element {
     rsx! {
         button { onclick: move |_| { use_context::<ToolbarHandlers>().export.on_valid_tree.call(()) },
             "Export valid tree"
-        }
-
-        match result.read().status {
-            OperationStatus::None => {
-                rsx! {}
-            }
-            OperationStatus::Success => {
-                rsx! {
-                    div { style: {"color: green; margin-top: 5px; font-size: 12px;"}, {result.peek().message.clone()} }
-                }
-            }
-            OperationStatus::Error => {
-                rsx! {
-                    div { style: {"color: red; margin-top: 5px; font-size: 12px;"}, {result.peek().message.clone()} }
-                }
-            }
         }
     }
 }
