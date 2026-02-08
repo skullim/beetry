@@ -21,7 +21,9 @@ use crate::{
     sidebar::SidebarEventHandlers, ui::channel::config_dialog::State as ChannelConfigDialogState,
 };
 use crate::{
-    signals::{RequestChannelRender, RequestEdgeRender, RequestNodeRender},
+    signals::{
+        RequestChannelEdgeRender, RequestChannelRender, RequestEdgeRender, RequestNodeRender,
+    },
     ui::channel::{self},
 };
 
@@ -73,6 +75,7 @@ pub(crate) fn Editor() -> Element {
     let mut render_nodes = RequestNodeRender::new();
     let render_edges = RequestEdgeRender::new();
     let mut render_channels = RequestChannelRender::new();
+    let render_channel_edges = RequestChannelEdgeRender::new();
 
     let ui_spawn_point = use_signal(Point::default);
 
@@ -150,6 +153,7 @@ pub(crate) fn Editor() -> Element {
                 Workspace {
                     render_nodes,
                     render_channels,
+                    render_channel_edges,
                     render_edges,
                     ui_spawn_point,
                 }
@@ -158,7 +162,7 @@ pub(crate) fn Editor() -> Element {
                 ParameterDialog { state: parameter_dialog_state }
             }
             div { style: "flex: 0 1 10%;",
-                Toolbar { render_nodes, render_channels, render_edges }
+                Toolbar { render_nodes, render_channels, render_channel_edges, render_edges }
             }
         }
     }

@@ -17,6 +17,8 @@ pub use config_dialog::Dialog as ConfigDialog;
 pub use context_menu::{ContextMenu, Handlers as ContextMenuHandlers, State as ContextMenuState};
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
+
+pub use renderer::ConnectionRenderer;
 pub use renderer::Renderer;
 pub use temporary::Temporary;
 
