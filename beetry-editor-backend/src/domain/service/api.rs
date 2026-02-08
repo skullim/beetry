@@ -1,5 +1,15 @@
+pub use crate::domain::{
+    channel::ChannelQueryView,
+    edge::EdgeQueryView,
+    node::{
+        NodeTrackerQueryView, ParameterValueParser, PortConnectionView, SpecByNodeIdQueryView,
+        SpecBySpecIdQueryView,
+    },
+    ui::{ChannelUiQueryApi, NodeUiQueryApi, NodeUiQueryProcessor},
+};
+
 pub mod node {
-    use crate::editor::NodeLifecycleApi;
+    use crate::domain::editor::NodeLifecycleApi;
     use anyhow::Result;
     use beetry_editor_types::{id::NodeId, output::ui::NodeUiData, spec::node::NodeSpec};
 
@@ -17,41 +27,40 @@ pub mod node {
 
     pub mod spec {
         use crate::{
-            editor::NodeApi,
-            node::{SpecByNodeIdQueryApi, SpecBySpecIdQueryApi},
+            domain::editor::NodeApi,
+            domain::node::{SpecByNodeIdQueryView, SpecBySpecIdQueryView},
         };
 
-        pub fn by_spec_id(api: &impl NodeApi) -> impl SpecBySpecIdQueryApi {
+        pub fn by_spec_id(api: &impl NodeApi) -> impl SpecBySpecIdQueryView {
             NodeApi::spec_by_spec_id(api)
         }
 
-        pub fn by_node_id(api: &impl NodeApi) -> impl SpecByNodeIdQueryApi {
+        pub fn by_node_id(api: &impl NodeApi) -> impl SpecByNodeIdQueryView {
             NodeApi::spec_by_node_id(api)
         }
     }
 
     pub mod tracker {
-        use crate::domain::service::node::NodeTrackerQueryApi;
-        use crate::editor::NodeApi;
+        use crate::domain::editor::NodeApi;
+        use crate::domain::service::node::NodeTrackerQueryView;
 
-        pub fn borrow(api: &impl NodeApi) -> impl NodeTrackerQueryApi {
+        pub fn query_view(api: &impl NodeApi) -> impl NodeTrackerQueryView {
             NodeApi::tracker(api)
         }
     }
 
     pub mod parameters {
-        use crate::domain::service::node::ParameterValueMutApi;
-        use crate::editor::NodeApi;
+        use crate::domain::editor::NodeApi;
+        use crate::domain::service::node::ParameterValueMut;
         use beetry_editor_types::{id::NodeId, output::node::Parameters};
 
-        pub fn set(api: &mut impl NodeApi, id: NodeId, params: Parameters) {
+        pub fn create(api: &mut impl NodeApi, id: NodeId, params: Parameters) {
             NodeApi::parameters_mut(api).create(id, params);
         }
     }
 
     pub mod ports {
-        use crate::editor::NodePortApi;
-        use crate::node::PortConnectionView;
+        use crate::domain::{editor::NodePortApi, node::PortConnectionDataView};
         use anyhow::Result;
         use beetry_editor_types::{
             id::{ChannelId, NodeId, NodePortId},
@@ -81,7 +90,7 @@ pub mod node {
             port_id: NodePortId,
             channel_id: ChannelId,
         ) -> Result<()> {
-            api.disconnect_port_connection(node_id, port_id, channel_id)
+            api.disconnect_port(node_id, port_id, channel_id)
         }
 
         pub fn set_external(
@@ -108,21 +117,21 @@ pub mod node {
 
         pub fn connection_views(
             api: &impl NodePortApi,
-        ) -> impl Iterator<Item = Result<PortConnectionView<'_>>> {
+        ) -> impl Iterator<Item = Result<PortConnectionDataView<'_>>> {
             api.connection_views()
         }
 
         pub fn connection_views_by_kind(
             api: &impl NodePortApi,
             kind: NodePortKind,
-        ) -> impl Iterator<Item = Result<PortConnectionView<'_>>> {
+        ) -> impl Iterator<Item = Result<PortConnectionDataView<'_>>> {
             api.connection_views_by_kind(kind)
         }
     }
 }
 
 pub mod edge {
-    use crate::{edge::EdgeQueryApi, editor::EdgeApi};
+    use crate::{domain::edge::EdgeQueryView, domain::editor::EdgeApi};
     use anyhow::Result;
     use beetry_editor_types::{id::EdgeId, output::edge::NodeEdge};
 
@@ -134,15 +143,15 @@ pub mod edge {
         EdgeApi::remove(api, id)
     }
 
-    pub fn borrow(api: &impl EdgeApi) -> impl EdgeQueryApi {
+    pub fn borrow(api: &impl EdgeApi) -> impl EdgeQueryView {
         EdgeApi::borrow(api)
     }
 }
 
 pub mod channel {
     use crate::{
-        channel::ChannelQueryApi,
-        editor::{ChannelApi, ChannelLifecycleApi},
+        domain::channel::ChannelQueryView,
+        domain::editor::{ChannelApi, ChannelLifecycleApi},
     };
     use anyhow::Result;
     use beetry_editor_types::{
@@ -164,14 +173,14 @@ pub mod channel {
         api.remove_with_ui(id)
     }
 
-    pub fn borrow(api: &impl ChannelApi) -> impl ChannelQueryApi {
+    pub fn borrow(api: &impl ChannelApi) -> impl ChannelQueryView {
         ChannelApi::borrow(api)
     }
 }
 
 pub mod ui {
     pub mod node {
-        use crate::{editor::NodeUiApi, ui::NodeUiQueryApi};
+        use crate::{domain::editor::NodeUiApi, domain::ui::NodeUiQueryApi};
         use anyhow::Result;
         use beetry_editor_types::{id::NodeId, output::ui::Point};
 
@@ -189,7 +198,7 @@ pub mod ui {
     }
 
     pub mod channel {
-        use crate::{editor::ChannelUiApi, ui::ChannelUiQueryApi};
+        use crate::{domain::editor::ChannelUiApi, domain::ui::ChannelUiQueryApi};
         use anyhow::Result;
         use beetry_editor_types::{id::ChannelId, output::ui::Point};
 
@@ -208,7 +217,7 @@ pub mod ui {
 }
 
 pub mod project {
-    use crate::editor::{ExportApi, ImportApi};
+    use crate::domain::editor::{ExportApi, ImportApi};
     use anyhow::Result;
     use beetry_editor_types::persistence::{EditorStateStore, ValidTree};
 

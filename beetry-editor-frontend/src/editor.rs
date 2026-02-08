@@ -1,9 +1,6 @@
 use crate::ui::node::ParameterDialog;
 use crate::{Point, SharedSpecs};
 use beetry_editor_backend::EditorService;
-use beetry_editor_backend::repository::{
-    ChannelRepositoryFacade, EdgeRepository, NodeRepositoryFacade, UiRepositoryFacade,
-};
 use beetry_editor_types::output::{
     channel::ChannelConfig,
     node::Parameters,
@@ -27,20 +24,13 @@ use crate::{
     ui::channel::{self},
 };
 
-type EditorServiceImpl = EditorService<
-    NodeRepositoryFacade,
-    EdgeRepository,
-    ChannelRepositoryFacade,
-    UiRepositoryFacade,
->;
-
 #[derive(Clone)]
 pub struct ServiceContext {
-    pub service: CopyValue<EditorServiceImpl>,
+    pub service: CopyValue<EditorService>,
 }
 
 impl std::ops::Deref for ServiceContext {
-    type Target = CopyValue<EditorServiceImpl>;
+    type Target = CopyValue<EditorService>;
     fn deref(&self) -> &Self::Target {
         &self.service
     }
@@ -55,7 +45,7 @@ impl std::ops::DerefMut for ServiceContext {
 impl ServiceContext {
     fn new(node_specs: NodeSpecMap) -> Self {
         Self {
-            service: CopyValue::new(EditorServiceImpl::new(node_specs)),
+            service: CopyValue::new(EditorService::new(node_specs)),
         }
     }
 }
@@ -175,7 +165,7 @@ fn parameter_dialog_handlers(
     let on_confirm = move |(node_id, params): (NodeId, Parameters)| {
         let mut service_ctx = use_context::<ServiceContext>();
         service_ctx
-            .with_mut(|s| beetry_editor_backend::api::node::parameters::set(s, node_id, params));
+            .with_mut(|s| beetry_editor_backend::api::node::parameters::create(s, node_id, params));
         state.take();
     };
 

@@ -1,4 +1,4 @@
-use beetry_editor_backend::ui::NodeUiQueryApi;
+use beetry_editor_backend::api::NodeUiQueryApi;
 use beetry_editor_types::{
     id::{ChannelId, EdgeId, NodeId, NodePortId},
     output::edge::NodeEdge,
@@ -520,16 +520,17 @@ fn channel_handlers(
             && matches!(data.origin, ConnectionOrigin::Receiver)
         {
             let mut service = use_context::<ServiceContext>();
-            if service.with(|s| {
-                beetry_editor_backend::api::node::ports::is_external(s, data.node_id, data.port_id)
-            })? {
-                error!("attempted to connect port that is marked as external");
-                return Ok(());
-            }
-
-            service.with_mut(|s| {
-                beetry_editor_backend::api::node::ports::connect(s, data.node_id, data.port_id, id)
-            })?;
+            service
+                .with_mut(|s| {
+                    beetry_editor_backend::api::node::ports::connect(
+                        s,
+                        data.node_id,
+                        data.port_id,
+                        id,
+                    )
+                })
+                .inspect_err(|e| error!("{e}"))
+                .ok();
             render_channel_edges.request();
             info!(
                 "connected channel {id} and node (id: {}, port_id: {})",
@@ -544,16 +545,17 @@ fn channel_handlers(
             && matches!(data.origin, ConnectionOrigin::Sender)
         {
             let mut service = use_context::<ServiceContext>();
-            if service.with(|s| {
-                beetry_editor_backend::api::node::ports::is_external(s, data.node_id, data.port_id)
-            })? {
-                error!("attempted to connect port that is marked as external");
-                return Ok(());
-            }
-
-            service.with_mut(|s| {
-                beetry_editor_backend::api::node::ports::connect(s, data.node_id, data.port_id, id)
-            })?;
+            service
+                .with_mut(|s| {
+                    beetry_editor_backend::api::node::ports::connect(
+                        s,
+                        data.node_id,
+                        data.port_id,
+                        id,
+                    )
+                })
+                .inspect_err(|e| error!("{e}"))
+                .ok();
             render_channel_edges.request();
             info!(
                 "connected channel {id} and node (id: {}, port_id: {})",
