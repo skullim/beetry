@@ -1,6 +1,6 @@
 use crate::definitions::EdgePos;
 use crate::editor::ServiceContext;
-use crate::signals::RequestRender;
+use crate::signals::RequestEdgeRender;
 use crate::ui::edge::Edge;
 use beetry_editor_backend::edge::EdgeQueryApi;
 use beetry_editor_backend::ui::NodeUiQueryApi;
@@ -10,9 +10,9 @@ use dioxus::prelude::*;
 // - new edge created
 // - node position updated
 #[component]
-pub fn Renderer(render_edges: Signal<RequestRender>) -> Element {
+pub fn Renderer(render_edges: RequestEdgeRender) -> Element {
     debug!("rendering");
-    let _read = render_edges.read();
+    render_edges.track();
     let service = use_context::<ServiceContext>();
     let read = service.read();
 

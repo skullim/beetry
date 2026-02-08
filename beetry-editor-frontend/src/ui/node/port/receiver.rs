@@ -1,4 +1,6 @@
 use crate::Point;
+use crate::editor::ServiceContext;
+use crate::signals::RequestPortRender;
 use crate::ui::{channel, shadow};
 use beetry_editor_types::spec::message::MessageSpec;
 use beetry_editor_types::{id::NodeId, id::NodePortId};
@@ -51,13 +53,20 @@ pub fn Receiver(props: ReceiverProps) -> Element {
 
     let port_id = props.port_id;
     let port_id_as_f64 = port_id.raw_value() as f64;
+    use_context::<RequestPortRender>().track();
+    let service = use_context::<ServiceContext>();
+    let is_external = service
+        .with(|s| beetry_editor_backend::api::node::ports::is_external(s, node_id, port_id))
+        .unwrap_or(false);
 
     let mut is_hovered = use_signal(|| false);
     let on_context_menu = use_context::<Handlers>().on_context_menu;
 
-    let fill = match is_hovered() {
-        true => channel::GradientHoverUrl::RECEIVER,
-        false => channel::GradientUrl::RECEIVER,
+    let fill = match (is_hovered(), is_external) {
+        (true, true) => channel::GradientHoverUrl::RECEIVER_EXTERNAL,
+        (true, false) => channel::GradientHoverUrl::RECEIVER,
+        (false, true) => channel::GradientUrl::RECEIVER_EXTERNAL,
+        (false, false) => channel::GradientUrl::RECEIVER,
     };
 
     rsx! {

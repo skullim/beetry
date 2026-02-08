@@ -33,13 +33,13 @@ pub(crate) enum State {
         position: Point,
         id: NodeId,
         port_id: NodePortId,
+        is_external: bool,
     },
 }
 
 #[component]
 pub fn PortContextMenu(state: Signal<State>) -> Element {
     debug!("rendering");
-    let mut checked = use_signal(|| false);
 
     match state() {
         State::Idle => {
@@ -49,18 +49,24 @@ pub fn PortContextMenu(state: Signal<State>) -> Element {
             position,
             id,
             port_id,
+            is_external,
         } => {
             rsx! {
                 g {
                     transform: "translate({position.x} {position.y})",
                     onclick: move |evt| {
                         evt.stop_propagation();
-                        checked.toggle();
-                        if *checked.peek() {
-                            use_context::<Handlers>().on_external.call((id, port_id));
-                        } else {
+                        if is_external {
                             use_context::<Handlers>().on_internal.call((id, port_id));
+                        } else {
+                            use_context::<Handlers>().on_external.call((id, port_id));
                         }
+                        state.set(State::Visible {
+                            position,
+                            id,
+                            port_id,
+                            is_external: !is_external,
+                        });
                     },
                     onmouseup: move |evt| {
                         evt.stop_propagation();
@@ -92,7 +98,7 @@ pub fn PortContextMenu(state: Signal<State>) -> Element {
                         style: "cursor: pointer;",
                     }
 
-                    if checked() {
+                    if is_external {
                         path {
                             d: "M3 8 L7 12 L13 4",
                             fill: "none",

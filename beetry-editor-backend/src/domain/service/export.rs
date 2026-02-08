@@ -268,7 +268,6 @@ where
         UiElementStore::new(nodes, channels)
     }
 
-    //@todo check if channel ports are connected to nodes that are part of the graph
     /// Validation rules:
     /// 0. Root node exists
     /// 1. Each node is connected to root
