@@ -1,11 +1,3 @@
-use anyhow::{Context, Result, anyhow, bail};
-use bon::Builder;
-use itertools::Itertools;
-use mitsein::iter1::FromIterator1;
-
-use std::collections::{BTreeSet, HashMap, HashSet};
-use tracing::warn;
-
 use crate::{
     channel::ChannelQueryApi,
     domain::{
@@ -15,6 +7,7 @@ use crate::{
     node::SpecByNodeIdQueryApi,
     ui::{ChannelUiQueryApi, NodeUiQueryApi, NodeUiQueryProcessor},
 };
+use anyhow::{Context, Result, anyhow, bail};
 use beetry_editor_types::{
     id::{ChannelId, NodeId, NodePortId},
     persistence::{
@@ -25,6 +18,10 @@ use beetry_editor_types::{
     },
     spec::node::NodeSpecKey,
 };
+use bon::Builder;
+use itertools::Itertools;
+use mitsein::iter1::FromIterator1;
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 #[derive(Debug, Builder)]
 pub struct TreeValidationResult {
@@ -41,7 +38,11 @@ pub struct TreeValidationResult {
 
 impl TreeValidationResult {
     pub fn is_tree_valid(&self) -> bool {
-        self.child_free_non_leaf_node.is_none() && self.unconnected_port.is_none()
+        !self.missing_root
+            && self.child_free_non_leaf_node.is_none()
+            && self.unconnected_port.is_none()
+            && self.unconnected_nodes.is_empty()
+            && self.unconnected_channels.is_empty()
     }
 }
 
@@ -121,39 +122,13 @@ where
             bail!("attempted to export invalid tree, details: {validation:?}");
         }
 
-        let nodes_to_export: Vec<_> = {
-            if !validation.unconnected_nodes.is_empty() {
-                warn!(
-                    "removing detected unconnected nodes {:?} from the export",
-                    validation.unconnected_nodes
-                );
-            }
-            let tracker = self.node_api.tracker();
-            tracker
-                .nodes()
-                .filter(|id| !validation.unconnected_nodes.contains(*id))
-                .copied()
-                .collect()
-        };
-
-        let channels_to_export: Vec<_> = {
-            if !validation.unconnected_channels.is_empty() {
-                warn!(
-                    "removing detected unconnected channels {:?} from the export",
-                    validation.unconnected_channels
-                );
-            }
-            let channel_id_iter = self.channel_api.channels();
-            channel_id_iter
-                .filter(|id| !validation.unconnected_channels.contains(*id))
-                .copied()
-                .collect()
-        };
-        let channel_store = self.export_channel_store(&channels_to_export)?;
-
+        let nodes_to_export: Vec<_> = self.node_api.tracker().nodes().copied().collect();
         let node_store = self.export_node_store(&nodes_to_export)?;
         let param_store = self.export_parameter_store(&nodes_to_export)?;
         let port_store = self.export_port_store(&nodes_to_export)?;
+
+        let channels_to_export: Vec<_> = self.channel_api.channels().copied().collect();
+        let channel_store = self.export_channel_store(&channels_to_export)?;
 
         let tree = TreeStore::new(node_store, port_store, param_store, channel_store);
         Ok(ValidTree::new(tree))
@@ -313,6 +288,7 @@ where
 
         let mut valid_nodes = HashSet::new();
         let mut to_visit = BTreeSet::from_iter(std::iter::once(root_id));
+        let port_state_api = self.node_api.port_state();
 
         while let Some(parent) = to_visit.pop_first() {
             let mut children = self.edge_api.children_of(parent).copied().peekable();
@@ -334,7 +310,7 @@ where
                     .ports()
                 {
                     for port_id in ports_spec.ids() {
-                        if self.node_api.port_state().state(child, *port_id).is_err() {
+                        if port_state_api.state(child, *port_id).is_err() {
                             return TreeValidationResult::builder()
                                 .unconnected_port((child, *port_id))
                                 .build();
@@ -353,8 +329,25 @@ where
             .filter(|id| !valid_nodes.contains(*id))
             .copied()
             .collect();
+
+        let unconnected_channels = self
+            .channel_api
+            .channels()
+            .filter(|id| {
+                let count = self
+                    .channel_api
+                    .config(**id)
+                    .expect("channel listed by iterator must have config")
+                    .count();
+                // "connected" channel has always at least one connected sender and receiver
+                (count.sender() == 0) || (count.receiver() == 0)
+            })
+            .copied()
+            .collect();
+
         TreeValidationResult::builder()
             .unconnected_nodes(unconnected_nodes)
+            .unconnected_channels(unconnected_channels)
             .build()
     }
 }

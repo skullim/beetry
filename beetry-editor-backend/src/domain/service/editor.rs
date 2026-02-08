@@ -14,24 +14,24 @@ use crate::{
             PortStateRepositoryConcept, SpecRepositoryConcept, UiRepositoryFacadeConcept,
         },
         service::{
-            channel::{ChannelViewMut, ChannelService},
-            edge::{EdgeViewMut, EdgeService},
-            node::{self, NodeViewMut, NodeService},
+            channel::{ChannelService, ChannelViewMut},
+            edge::{EdgeService, EdgeViewMut},
+            node::{self, NodeService, NodeViewMut},
         },
     },
     edge::EdgeQueryApi,
     node::{
-        NodeTrackerQueryApi, ParameterValueViewMut, ParameterValueMutApi, PortConnectionApi,
+        NodeTrackerQueryApi, ParameterValueMutApi, ParameterValueViewMut, PortConnectionApi,
         PortConnectionInput, PortConnectionMutApi, PortConnectionView, PortStateApi,
         PortStateQueryApi, SpecByNodeIdQuery, SpecByNodeIdQueryApi, SpecBySpecIdQuery,
         SpecBySpecIdQueryApi, TrackerApi,
     },
     ui::{
-        ChannelUiView, ChannelUiViewMut, ChannelUiQueryApi, NodeUiView,
-        NodeUiViewMut, NodeUiQueryApi,
+        ChannelUiQueryApi, ChannelUiView, ChannelUiViewMut, NodeUiQueryApi, NodeUiView,
+        NodeUiViewMut,
     },
 };
-use anyhow::{Result, anyhow};
+use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{
     id::{ChannelId, EdgeId, NodeId, NodePortId},
     output::{
@@ -424,22 +424,20 @@ where
     fn internal_connections(&self) -> impl Iterator<Item = (&NodeId, &NodePortId, &ChannelId)> {
         let EditorRepositoryView { node, .. } = self.repo.view();
         let NodeRepositoryFacadeView { ports, .. } = node.view();
-        ports
-            .iter()
-            .flat_map(|(node_id, port_iter): (&NodeId, _)| {
-                port_iter
-                    .filter_map(
-                        move |(port_id, state): (&NodePortId, &PortConnectionState)| match state {
-                            PortConnectionState::Internal(conns) => Some((port_id, conns)),
-                            PortConnectionState::External => None,
-                        },
-                    )
-                    .flat_map(move |(port_id, conns)| {
-                        conns
-                            .iter()
-                            .map(move |channel_id| (node_id, port_id, channel_id))
-                    })
-            })
+        ports.iter().flat_map(|(node_id, port_iter): (&NodeId, _)| {
+            port_iter
+                .filter_map(
+                    |(port_id, state): (&NodePortId, &PortConnectionState)| match state {
+                        PortConnectionState::Internal(conns) => Some((port_id, conns)),
+                        PortConnectionState::External => None,
+                    },
+                )
+                .flat_map(move |(port_id, conns)| {
+                    conns
+                        .iter()
+                        .map(move |channel_id| (node_id, port_id, channel_id))
+                })
+        })
     }
 
     fn connection_views(&self) -> impl Iterator<Item = Result<PortConnectionView<'_>>> {
@@ -591,7 +589,7 @@ where
     }
 }
 
-pub trait ChannelLifecycleApi: ChannelApi + ChannelUiApi {
+pub trait ChannelLifecycleApi: ChannelApi + ChannelUiApi + NodePortApi {
     fn create_with_ui(
         &mut self,
         spec: &ChannelSpec,
@@ -606,18 +604,29 @@ pub trait ChannelLifecycleApi: ChannelApi + ChannelUiApi {
     }
 
     fn remove_with_ui(&mut self, id: ChannelId) -> Result<()> {
-        ChannelApi::remove(self, id);
-        ChannelUiApi::remove(self, id);
+        let to_disconnect: Vec<_> = self
+            .internal_connections()
+            .filter(|(_, _, channel_id)| **channel_id == id)
+            .map(|(node_id, port_id, _)| (*node_id, *port_id))
+            .collect();
+
+        for (node_id, port_id) in to_disconnect {
+            self.disconnect_port_connection(node_id, port_id, id)?;
+        }
+
+        let removed_channel = ChannelApi::remove(self, id);
+        let removed_channel_ui = ChannelUiApi::remove(self, id);
+        if removed_channel.is_none() || removed_channel_ui.is_none() {
+            bail!("channel {id} does not exist");
+        }
+
         Ok(())
     }
 }
 
-impl<T> ChannelLifecycleApi for T where T: ChannelApi + ChannelUiApi {}
+impl<T> ChannelLifecycleApi for T where T: ChannelApi + ChannelUiApi + NodePortApi {}
 
-pub trait EditorServiceApi:
-    NodeApi + NodeUiApi + EdgeApi + ChannelApi + ChannelUiApi
-{
-}
+pub trait EditorServiceApi: NodeApi + NodeUiApi + EdgeApi + ChannelApi + ChannelUiApi {}
 
 impl<NRF, ER, CRF, URF> EditorServiceApi for EditorService<NRF, ER, CRF, URF>
 where
