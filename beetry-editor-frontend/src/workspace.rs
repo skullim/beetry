@@ -10,7 +10,8 @@ use dioxus::prelude::*;
 
 use crate::editor::ServiceContext;
 use crate::signals::{
-    RequestChannelRender, RequestEdgeRender, RequestNodeRender, RequestPortRender,
+    RequestChannelEdgeRender, RequestChannelRender, RequestEdgeRender, RequestNodeRender,
+    RequestPortRender,
 };
 use crate::ui::channel::temporary::{ConnectionOrigin, DraggedData};
 use crate::ui::channel::{self};
@@ -60,13 +61,13 @@ impl DimensionsContext {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum DragNodeState {
     Idle,
     Dragged { id: NodeId, offset: Point },
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum DragChannelState {
     Idle,
     Dragged { id: ChannelId, offset: Point },
@@ -77,6 +78,12 @@ struct WorkspaceEventHandlers {
     on_mouse_move: EventHandler<Event<MouseData>>,
     on_mouse_up: EventHandler<Event<MouseData>>,
     on_wheel: EventHandler<Event<WheelData>>,
+}
+
+fn set_if_changed<T: Clone + PartialEq + 'static>(state: &mut Signal<T>, next: T) {
+    if state.peek().ne(&next) {
+        state.set(next);
+    }
 }
 
 fn style_defs() -> Element {
@@ -130,6 +137,7 @@ impl WorkspaceContext {
 pub(crate) fn Workspace(
     render_nodes: RequestNodeRender,
     render_channels: RequestChannelRender,
+    render_channel_edges: RequestChannelEdgeRender,
     render_edges: RequestEdgeRender,
     ui_spawn_point: Signal<Point>,
 ) -> Element {
@@ -160,14 +168,18 @@ pub(crate) fn Workspace(
             node_context_menu_state,
             render_nodes,
             render_edges,
-            render_channels,
+            render_channel_edges,
         )
     });
 
     use_context_provider(move || edge_handlers(edge_context_menu_state));
     use_context_provider(move || edge_context_menu_handlers(edge_context_menu_state, render_edges));
     use_context_provider(move || {
-        channel_context_menu_handlers(channel_context_menu_state, render_channels)
+        channel_context_menu_handlers(
+            channel_context_menu_state,
+            render_channels,
+            render_channel_edges,
+        )
     });
 
     use_context_provider(move || sender_handlers(temp_channel_conn_ctx, port_context_menu_state));
@@ -181,7 +193,7 @@ pub(crate) fn Workspace(
             drag_channel_state,
             temp_channel_conn_ctx,
             channel_context_menu_state,
-            render_channels,
+            render_channel_edges,
         )
     });
 
@@ -202,7 +214,7 @@ pub(crate) fn Workspace(
                 })?;
                 render_nodes.request();
                 render_edges.request();
-                render_channels.request();
+                render_channel_edges.request();
 
                 let read = service.read();
                 let query_api = beetry_editor_backend::api::ui::node::borrow(&(*read));
@@ -224,6 +236,7 @@ pub(crate) fn Workspace(
                     beetry_editor_backend::api::ui::channel::update_position(s, id, updated_pos)
                 })?;
                 render_channels.request();
+                render_channel_edges.request();
             }
 
             temp_edge_ctx.update_end_if_dragged(&evt);
@@ -234,13 +247,20 @@ pub(crate) fn Workspace(
         let on_mouse_up = move |evt: Event<MouseData>| {
             debug!("detected mouse up in workspace");
             evt.stop_propagation();
-            drag_node_state.set(DragNodeState::Idle);
-            drag_channel_state.set(DragChannelState::Idle);
 
-            node_context_menu_state.set(node::ContextMenuState::Idle);
-            edge_context_menu_state.set(edge::ContextMenuState::Idle);
-            channel_context_menu_state.set(channel::ContextMenuState::Idle);
-            port_context_menu_state.set(node::port_context_menu::State::Idle);
+            set_if_changed(&mut drag_node_state, DragNodeState::Idle);
+            set_if_changed(&mut drag_channel_state, DragChannelState::Idle);
+
+            set_if_changed(&mut node_context_menu_state, node::ContextMenuState::Idle);
+            set_if_changed(&mut edge_context_menu_state, edge::ContextMenuState::Idle);
+            set_if_changed(
+                &mut channel_context_menu_state,
+                channel::ContextMenuState::Idle,
+            );
+            set_if_changed(
+                &mut port_context_menu_state,
+                node::port_context_menu::State::Idle,
+            );
 
             temp_edge_ctx.reset();
             temp_channel_conn_ctx.reset();
@@ -304,6 +324,7 @@ pub(crate) fn Workspace(
                 }
 
                 edge::Renderer { render_edges }
+                channel::ConnectionRenderer { render_channel_edges }
                 channel::Renderer { render_channels }
                 node::Renderer { render_nodes }
 
@@ -488,7 +509,7 @@ fn channel_handlers(
     mut drag_channel_state: Signal<DragChannelState>,
     mut channel_temp_connection_ctx: channel::temporary::Context,
     mut channel_ctx_menu_state: Signal<channel::ContextMenuState>,
-    mut render_channels: RequestChannelRender,
+    mut render_channel_edges: RequestChannelEdgeRender,
 ) -> channel::Handlers {
     let on_drag_start = move |(id, offset): (ChannelId, Point)| {
         drag_channel_state.set(DragChannelState::Dragged { id, offset });
@@ -509,7 +530,7 @@ fn channel_handlers(
             service.with_mut(|s| {
                 beetry_editor_backend::api::node::ports::connect(s, data.node_id, data.port_id, id)
             })?;
-            render_channels.request();
+            render_channel_edges.request();
             info!(
                 "connected channel {id} and node (id: {}, port_id: {})",
                 data.node_id, data.port_id
@@ -533,7 +554,7 @@ fn channel_handlers(
             service.with_mut(|s| {
                 beetry_editor_backend::api::node::ports::connect(s, data.node_id, data.port_id, id)
             })?;
-            render_channels.request();
+            render_channel_edges.request();
             info!(
                 "connected channel {id} and node (id: {}, port_id: {})",
                 data.node_id, data.port_id
@@ -561,16 +582,14 @@ fn node_context_menu_handlers(
     mut node_ctx_menu_state: Signal<node::ContextMenuState>,
     mut render_nodes: RequestNodeRender,
     mut render_edges: RequestEdgeRender,
-    mut render_channels: RequestChannelRender,
+    mut render_channel_edges: RequestChannelEdgeRender,
 ) -> node::ContextMenuHandlers {
     let on_delete = move |id: NodeId| -> Result<()> {
         let mut service = use_context::<ServiceContext>();
         service.with_mut(|s| beetry_editor_backend::api::node::remove(s, id))?;
-
-        node_ctx_menu_state.set(ContextMenuState::Idle);
         render_nodes.request();
         render_edges.request();
-        render_channels.request();
+        render_channel_edges.request();
         Ok(())
     };
 
@@ -587,7 +606,6 @@ fn edge_context_menu_handlers(
     let on_delete = move |id: EdgeId| -> Result<()> {
         let mut service = use_context::<ServiceContext>();
         service.with_mut(|s| beetry_editor_backend::api::edge::remove(s, id))?;
-        edge_ctx_menu_state.set(edge::ContextMenuState::Idle);
         render_edges.request();
         Ok(())
     };
@@ -602,12 +620,13 @@ fn edge_context_menu_handlers(
 fn channel_context_menu_handlers(
     mut channel_ctx_menu_state: Signal<channel::ContextMenuState>,
     mut render_channels: RequestChannelRender,
+    mut render_channel_edges: RequestChannelEdgeRender,
 ) -> channel::ContextMenuHandlers {
     let on_delete = move |id: ChannelId| -> Result<()> {
         let mut service = use_context::<ServiceContext>();
         service.with_mut(|s| beetry_editor_backend::api::channel::remove(s, id))?;
-        channel_ctx_menu_state.set(channel::ContextMenuState::Idle);
         render_channels.request();
+        render_channel_edges.request();
         Ok(())
     };
 
