@@ -106,6 +106,7 @@ pub struct WorkspaceContext {
     drag_channel_state: Signal<DragChannelState>,
     context_menu_state: Signal<ContextMenuState>,
     edge_context_menu_state: Signal<edge::ContextMenuState>,
+    channel_context_menu_state: Signal<channel::ContextMenuState>,
     port_context_menu_state: Signal<node::port_context_menu::State>,
     channel_temp_conn_ctx: channel::temporary::Context,
 }
@@ -118,6 +119,7 @@ impl WorkspaceContext {
             drag_channel_state: Signal::new(DragChannelState::Idle),
             context_menu_state: Signal::new(node::ContextMenuState::default()),
             edge_context_menu_state: Signal::new(edge::ContextMenuState::default()),
+            channel_context_menu_state: Signal::new(channel::ContextMenuState::default()),
             port_context_menu_state: Signal::new(node::port_context_menu::State::default()),
             channel_temp_conn_ctx: channel::temporary::Context::new(),
         }
@@ -139,6 +141,7 @@ pub(crate) fn Workspace(
 
     let mut node_context_menu_state = workspace_ctx.context_menu_state;
     let mut edge_context_menu_state = workspace_ctx.edge_context_menu_state;
+    let mut channel_context_menu_state = workspace_ctx.channel_context_menu_state;
     let mut port_context_menu_state = workspace_ctx.port_context_menu_state;
     let port_render_signal = use_context_provider(RequestPortRender::new);
 
@@ -163,6 +166,9 @@ pub(crate) fn Workspace(
 
     use_context_provider(move || edge_handlers(edge_context_menu_state));
     use_context_provider(move || edge_context_menu_handlers(edge_context_menu_state, render_edges));
+    use_context_provider(move || {
+        channel_context_menu_handlers(channel_context_menu_state, render_channels)
+    });
 
     use_context_provider(move || sender_handlers(temp_channel_conn_ctx, port_context_menu_state));
     use_context_provider(move || {
@@ -171,7 +177,12 @@ pub(crate) fn Workspace(
     use_context_provider(move || port_context_menu_handlers(port_render_signal));
 
     use_context_provider(move || {
-        channel_handlers(drag_channel_state, temp_channel_conn_ctx, render_channels)
+        channel_handlers(
+            drag_channel_state,
+            temp_channel_conn_ctx,
+            channel_context_menu_state,
+            render_channels,
+        )
     });
 
     let workspace_handlers_ctx = use_context_provider(move || {
@@ -228,6 +239,7 @@ pub(crate) fn Workspace(
 
             node_context_menu_state.set(node::ContextMenuState::Idle);
             edge_context_menu_state.set(edge::ContextMenuState::Idle);
+            channel_context_menu_state.set(channel::ContextMenuState::Idle);
             port_context_menu_state.set(node::port_context_menu::State::Idle);
 
             temp_edge_ctx.reset();
@@ -305,6 +317,7 @@ pub(crate) fn Workspace(
 
                 node::ContextMenu { state: node_context_menu_state }
                 edge::ContextMenu { state: edge_context_menu_state }
+                channel::ContextMenu { state: channel_context_menu_state }
                 node::port_context_menu::PortContextMenu { state: port_context_menu_state }
             }
         }
@@ -474,6 +487,7 @@ fn port_context_menu_handlers(
 fn channel_handlers(
     mut drag_channel_state: Signal<DragChannelState>,
     mut channel_temp_connection_ctx: channel::temporary::Context,
+    mut channel_ctx_menu_state: Signal<channel::ContextMenuState>,
     mut render_channels: RequestChannelRender,
 ) -> channel::Handlers {
     let on_drag_start = move |(id, offset): (ChannelId, Point)| {
@@ -528,7 +542,19 @@ fn channel_handlers(
         Ok(())
     };
 
-    channel::Handlers::new(on_drag_start, receiver_on_mouse_up, sender_on_mouse_up)
+    let on_context_menu = move |(channel_id, position): (ChannelId, Point)| {
+        channel_ctx_menu_state.set(channel::ContextMenuState::Visible {
+            position,
+            channel_id,
+        });
+    };
+
+    channel::Handlers::new(
+        on_drag_start,
+        receiver_on_mouse_up,
+        sender_on_mouse_up,
+        on_context_menu,
+    )
 }
 
 fn node_context_menu_handlers(
@@ -571,4 +597,23 @@ fn edge_context_menu_handlers(
     };
 
     edge::ContextMenuHandlers::new(on_delete, on_close)
+}
+
+fn channel_context_menu_handlers(
+    mut channel_ctx_menu_state: Signal<channel::ContextMenuState>,
+    mut render_channels: RequestChannelRender,
+) -> channel::ContextMenuHandlers {
+    let on_delete = move |id: ChannelId| -> Result<()> {
+        let mut service = use_context::<ServiceContext>();
+        service.with_mut(|s| beetry_editor_backend::api::channel::remove(s, id))?;
+        channel_ctx_menu_state.set(channel::ContextMenuState::Idle);
+        render_channels.request();
+        Ok(())
+    };
+
+    let on_close = move |_| {
+        channel_ctx_menu_state.set(channel::ContextMenuState::Idle);
+    };
+
+    channel::ContextMenuHandlers::new(on_delete, on_close)
 }
