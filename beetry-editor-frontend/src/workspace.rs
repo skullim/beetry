@@ -9,6 +9,7 @@ use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
 
 use crate::editor::ServiceContext;
+use crate::ui::error_dialog::ErrorMsgQueue;
 use crate::signals::{
     RequestChannelEdgeRender, RequestChannelRender, RequestEdgeRender, RequestNodeRender,
     RequestPortRender,
@@ -155,6 +156,7 @@ pub(crate) fn Workspace(
 
     let mut dimensions_ctx = workspace_ctx.dimensions_ctx;
     let mut temp_channel_conn_ctx = workspace_ctx.channel_temp_conn_ctx;
+    let error_queue = use_context::<Signal<ErrorMsgQueue>>();
 
     let mut temp_edge_ctx = use_context_provider(edge::temporary::Context::new);
     let mut viewport_ctx = use_context_provider(ViewportContext::new);
@@ -182,9 +184,11 @@ pub(crate) fn Workspace(
         )
     });
 
-    use_context_provider(move || sender_handlers(temp_channel_conn_ctx, port_context_menu_state));
     use_context_provider(move || {
-        receiver_port_handlers(temp_channel_conn_ctx, port_context_menu_state)
+        sender_handlers(temp_channel_conn_ctx, port_context_menu_state, error_queue)
+    });
+    use_context_provider(move || {
+        receiver_port_handlers(temp_channel_conn_ctx, port_context_menu_state, error_queue)
     });
     use_context_provider(move || port_context_menu_handlers(port_render_signal));
 
@@ -194,6 +198,7 @@ pub(crate) fn Workspace(
             temp_channel_conn_ctx,
             channel_context_menu_state,
             render_channel_edges,
+            error_queue,
         )
     });
 
@@ -403,6 +408,7 @@ fn edge_handlers(mut ctx_menu_state: Signal<edge::ContextMenuState>) -> edge::Ha
 fn sender_handlers(
     mut channel_temp_connection_ctx: channel::temporary::Context,
     mut port_ctx_menu_state: Signal<node::port_context_menu::State>,
+    mut error_queue: Signal<ErrorMsgQueue>,
 ) -> SenderPortHandlers {
     let on_mouse_down = move |(origin, indexed_drag_offset, port_id): (
         ConnectionOrigin,
@@ -423,9 +429,15 @@ fn sender_handlers(
     };
     let on_context_menu = move |(position, node_id, port_id): (Point, NodeId, NodePortId)| {
         let service = use_context::<ServiceContext>();
-        let is_external = service
+        let is_external = match service
             .with(|s| beetry_editor_backend::api::node::ports::is_external(s, node_id, port_id))
-            .unwrap_or(false);
+        {
+            Ok(value) => value,
+            Err(err) => {
+                error_queue.with_mut(|q| q.push("port-context-menu", err.to_string()));
+                false
+            }
+        };
         port_ctx_menu_state.set(node::port_context_menu::State::Visible {
             position,
             id: node_id,
@@ -440,6 +452,7 @@ fn sender_handlers(
 fn receiver_port_handlers(
     mut channel_temp_connection_ctx: channel::temporary::Context,
     mut port_ctx_menu_state: Signal<node::port_context_menu::State>,
+    mut error_queue: Signal<ErrorMsgQueue>,
 ) -> ReceiverPortHandlers {
     let on_mouse_down = move |(origin, indexed_drag_offset, port_id): (
         ConnectionOrigin,
@@ -460,9 +473,15 @@ fn receiver_port_handlers(
     };
     let on_context_menu = move |(position, node_id, port_id): (Point, NodeId, NodePortId)| {
         let service = use_context::<ServiceContext>();
-        let is_external = service
+        let is_external = match service
             .with(|s| beetry_editor_backend::api::node::ports::is_external(s, node_id, port_id))
-            .unwrap_or(false);
+        {
+            Ok(value) => value,
+            Err(err) => {
+                error_queue.with_mut(|q| q.push("port-context-menu", err.to_string()));
+                false
+            }
+        };
         port_ctx_menu_state.set(node::port_context_menu::State::Visible {
             position,
             id: node_id,
@@ -510,6 +529,7 @@ fn channel_handlers(
     mut channel_temp_connection_ctx: channel::temporary::Context,
     mut channel_ctx_menu_state: Signal<channel::ContextMenuState>,
     mut render_channel_edges: RequestChannelEdgeRender,
+    mut error_queue: Signal<ErrorMsgQueue>,
 ) -> channel::Handlers {
     let on_drag_start = move |(id, offset): (ChannelId, Point)| {
         drag_channel_state.set(DragChannelState::Dragged { id, offset });
@@ -520,22 +540,21 @@ fn channel_handlers(
             && matches!(data.origin, ConnectionOrigin::Receiver)
         {
             let mut service = use_context::<ServiceContext>();
-            service
-                .with_mut(|s| {
-                    beetry_editor_backend::api::node::ports::connect(
-                        s,
-                        data.node_id,
-                        data.port_id,
-                        id,
-                    )
-                })
-                .inspect_err(|e| error!("{e}"))
-                .ok();
-            render_channel_edges.request();
-            info!(
-                "connected channel {id} and node (id: {}, port_id: {})",
-                data.node_id, data.port_id
-            );
+            match service.with_mut(|s| {
+                beetry_editor_backend::api::node::ports::connect(s, data.node_id, data.port_id, id)
+            }) {
+                Ok(()) => {
+                    render_channel_edges.request();
+                    info!(
+                        "connected channel {id} and node (id: {}, port_id: {})",
+                        data.node_id, data.port_id
+                    );
+                }
+                Err(err) => {
+                    error!("{err}");
+                    error_queue.with_mut(|q| q.push("channel-connect", err.to_string()));
+                }
+            }
         }
         Ok(())
     };
@@ -545,22 +564,21 @@ fn channel_handlers(
             && matches!(data.origin, ConnectionOrigin::Sender)
         {
             let mut service = use_context::<ServiceContext>();
-            service
-                .with_mut(|s| {
-                    beetry_editor_backend::api::node::ports::connect(
-                        s,
-                        data.node_id,
-                        data.port_id,
-                        id,
-                    )
-                })
-                .inspect_err(|e| error!("{e}"))
-                .ok();
-            render_channel_edges.request();
-            info!(
-                "connected channel {id} and node (id: {}, port_id: {})",
-                data.node_id, data.port_id
-            );
+            match service.with_mut(|s| {
+                beetry_editor_backend::api::node::ports::connect(s, data.node_id, data.port_id, id)
+            }) {
+                Ok(()) => {
+                    render_channel_edges.request();
+                    info!(
+                        "connected channel {id} and node (id: {}, port_id: {})",
+                        data.node_id, data.port_id
+                    );
+                }
+                Err(err) => {
+                    error!("{err}");
+                    error_queue.with_mut(|q| q.push("channel-connect", err.to_string()));
+                }
+            }
         }
         Ok(())
     };

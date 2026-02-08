@@ -11,6 +11,8 @@ use crate::editor::ServiceContext;
 use crate::signals::{
     RequestChannelEdgeRender, RequestChannelRender, RequestEdgeRender, RequestNodeRender,
 };
+use crate::ui::error_dialog::ErrorDialog;
+use crate::ui::error_dialog::ErrorMsgQueue;
 use crate::ui::transfer;
 
 #[component]
@@ -20,55 +22,30 @@ pub(crate) fn Toolbar(
     render_channel_edges: RequestChannelEdgeRender,
     render_edges: RequestEdgeRender,
 ) -> Element {
-    let mut export_result = use_signal(transfer::OperationResult::default);
+    let mut error_queue = use_context::<Signal<ErrorMsgQueue>>();
     let on_project_export = move |()| match do_export_project() {
-        Ok(()) => {
-            export_result.set(transfer::OperationResult::new(
-                "Export successful",
-                transfer::OperationStatus::Success,
-            ));
-        }
+        Ok(()) => {}
         Err(e) => {
-            export_result.set(transfer::OperationResult::new(
-                format!("Export failed:\n{e}"),
-                transfer::OperationStatus::Error,
-            ));
+            error_queue.with_mut(|q| q.push("export-project", e.to_string()));
         }
     };
 
-    let mut valid_tree_export_result = use_signal(transfer::OperationResult::default);
     let on_valid_tree_export = move |()| match do_export_valid_tree() {
-        Ok(()) => {
-            valid_tree_export_result.set(transfer::OperationResult::new(
-                "Valid tree export successful",
-                transfer::OperationStatus::Success,
-            ));
-        }
+        Ok(()) => {}
         Err(e) => {
-            valid_tree_export_result.set(transfer::OperationResult::new(
-                format!("Export failed:\n{e}"),
-                transfer::OperationStatus::Error,
-            ));
+            error_queue.with_mut(|q| q.push("export-valid-tree", e.to_string()));
         }
     };
 
-    let mut import_result = use_signal(transfer::OperationResult::default);
     let on_import = move |()| match do_import() {
         Ok(()) => {
-            import_result.set(transfer::OperationResult::new(
-                "Import successful",
-                transfer::OperationStatus::Success,
-            ));
             render_nodes.request();
             render_edges.request();
             render_channels.request();
             render_channel_edges.request();
         }
         Err(e) => {
-            import_result.set(transfer::OperationResult::new(
-                format!("Import failed:\n{e}"),
-                transfer::OperationStatus::Error,
-            ));
+            error_queue.with_mut(|q| q.push("import-project", e.to_string()));
         }
     };
 
@@ -78,9 +55,10 @@ pub(crate) fn Toolbar(
     });
 
     rsx! {
-        transfer::ExportProject { result: export_result }
-        transfer::ExportValidTree { result: valid_tree_export_result }
-        transfer::Import { result: import_result }
+        transfer::ExportProject {}
+        transfer::ExportValidTree {}
+        transfer::Import {}
+        ErrorDialog {}
     }
 }
 

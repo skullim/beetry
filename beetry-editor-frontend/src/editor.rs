@@ -1,5 +1,6 @@
 use crate::ui::node::ParameterDialog;
 use crate::{Point, SharedSpecs};
+use beetry_core::MessageHash;
 use beetry_editor_backend::EditorService;
 use beetry_editor_types::output::{
     channel::ChannelConfig,
@@ -14,6 +15,7 @@ use crate::sidebar::Sidebar;
 use crate::ui::node::{ParameterDialogHandlers, ParameterDialogState};
 use crate::workspace::Workspace;
 use crate::{NodeSpecMap, toolbar::Toolbar};
+use crate::ui::error_dialog::ErrorMsgQueue;
 use crate::{
     sidebar::SidebarEventHandlers, ui::channel::config_dialog::State as ChannelConfigDialogState,
 };
@@ -56,6 +58,7 @@ pub(crate) fn Editor() -> Element {
 
     let specs = use_context::<SharedSpecs>();
     use_context_provider(|| ServiceContext::new(specs.nodes.clone()));
+    use_context_provider(|| Signal::new(ErrorMsgQueue::new()));
 
     let mut channel_config_dialog_state: Signal<ChannelConfigDialogState> =
         use_signal(ChannelConfigDialogState::default);
@@ -103,26 +106,22 @@ pub(crate) fn Editor() -> Element {
     });
 
     use_context_provider(move || {
-        let on_new_channel = move |config: ChannelConfig| -> Result<()> {
-            if let ChannelConfigDialogState::Visible { spec, .. } =
-                channel_config_dialog_state.take()
-            {
-                let spawn_point_read = ui_spawn_point.read();
-                let ui_data = ChannelUiData {
-                    position: *spawn_point_read,
-                };
+        let on_new_channel = move |(spec_key, config): (MessageHash, ChannelConfig)| -> Result<()> {
+            let specs = use_context::<SharedSpecs>();
+            let spec = specs.channels.spec(&spec_key)?;
 
-                let mut service = use_context::<ServiceContext>();
-                let id = service.with_mut(|s| {
-                    beetry_editor_backend::api::channel::create(s, &spec, config, ui_data)
-                })?;
+            let spawn_point_read = ui_spawn_point.read();
+            let ui_data = ChannelUiData {
+                position: *spawn_point_read,
+            };
 
-                info!(
-                    "created channel {id} with message type {}",
-                    spec.msg_type_name(),
-                );
-                render_channels.request();
-            }
+            let mut service = use_context::<ServiceContext>();
+            let id =
+                service.with_mut(|s| beetry_editor_backend::api::channel::create(s, spec, config, ui_data))?;
+
+            info!("created channel {id} with message type {}", spec.msg_type_name());
+            channel_config_dialog_state.take();
+            render_channels.request();
             Ok(())
         };
 

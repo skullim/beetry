@@ -5,6 +5,7 @@ use dioxus::prelude::*;
 
 use crate::definitions::EdgePos;
 use crate::editor::ServiceContext;
+use crate::ui::error_dialog::ErrorMsgQueue;
 use crate::signals::{RequestChannelEdgeRender, RequestChannelRender};
 use crate::ui::channel::{Channel, ReceiverConnection, SenderConnection};
 use crate::ui::text;
@@ -41,6 +42,7 @@ pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Ele
     render_channel_edges.track();
 
     let service = use_context::<ServiceContext>();
+    let mut error_queue = use_context::<Signal<ErrorMsgQueue>>();
     let read = service.read();
     let channel_query_api = beetry_editor_backend::api::ui::channel::borrow(&(*read));
     let node_query_api = beetry_editor_backend::api::ui::node::borrow(&(*read));
@@ -49,7 +51,13 @@ pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Ele
         &(*read),
         NodePortKind::Sender,
     )
-    .filter_map(|conn| conn.ok())
+    .filter_map(move |conn| match conn {
+        Ok(conn) => Some(conn),
+        Err(err) => {
+            error_queue.with_mut(|q| q.push("channel-render", err.to_string()));
+            None
+        }
+    })
     .filter_map(|conn| {
         let node_pos = node_query_api.position(conn.node_id).ok()?;
         let channel_pos = channel_query_api.position(conn.channel_id).ok()?;
@@ -70,7 +78,13 @@ pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Ele
         &(*read),
         NodePortKind::Receiver,
     )
-    .filter_map(|conn| conn.ok())
+    .filter_map(move |conn| match conn {
+        Ok(conn) => Some(conn),
+        Err(err) => {
+            error_queue.with_mut(|q| q.push("channel-render", err.to_string()));
+            None
+        }
+    })
     .filter_map(|conn| {
         let node_pos = node_query_api.position(conn.node_id).ok()?;
         let channel_pos = channel_query_api.position(conn.channel_id).ok()?;
