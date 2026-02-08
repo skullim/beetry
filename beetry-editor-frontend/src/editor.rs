@@ -21,7 +21,7 @@ use crate::{
     sidebar::SidebarEventHandlers, ui::channel::config_dialog::State as ChannelConfigDialogState,
 };
 use crate::{
-    signals::RequestRender,
+    signals::{RequestChannelRender, RequestEdgeRender, RequestNodeRender},
     ui::channel::{self},
 };
 
@@ -70,9 +70,9 @@ pub(crate) fn Editor() -> Element {
     let mut parameter_dialog_state: Signal<ParameterDialogState> =
         use_signal(ParameterDialogState::default);
 
-    let mut render_nodes = use_signal(RequestRender::new);
-    let render_edges = use_signal(RequestRender::new);
-    let mut render_channels = use_signal(RequestRender::new);
+    let mut render_nodes = RequestNodeRender::new();
+    let render_edges = RequestEdgeRender::new();
+    let mut render_channels = RequestChannelRender::new();
 
     let ui_spawn_point = use_signal(Point::default);
 
@@ -87,9 +87,8 @@ pub(crate) fn Editor() -> Element {
             };
 
             let mut service = use_context::<ServiceContext>();
-            let id = service.with_mut(|s| {
-                beetry_editor_backend::api::node::create(s, node_spec, ui_data)
-            })?;
+            let id = service
+                .with_mut(|s| beetry_editor_backend::api::node::create(s, node_spec, ui_data))?;
 
             if node_spec.params().is_some() {
                 parameter_dialog_state.set(ParameterDialogState::Visible {
@@ -103,7 +102,7 @@ pub(crate) fn Editor() -> Element {
                 node_spec_key.name(),
                 node_spec_key.kind()
             );
-            render_nodes.with_mut(|write| write.request());
+            render_nodes.request();
             Ok(())
         };
 
@@ -129,7 +128,7 @@ pub(crate) fn Editor() -> Element {
                     "created channel {id} with message type {}",
                     spec.msg_type_name(),
                 );
-                render_channels.with_mut(|write| write.request());
+                render_channels.request();
             }
             Ok(())
         };
@@ -167,11 +166,12 @@ pub(crate) fn Editor() -> Element {
 
 fn parameter_dialog_handlers(
     mut state: Signal<ParameterDialogState>,
-    mut render_nodes: Signal<RequestRender>,
+    mut render_nodes: RequestNodeRender,
 ) -> ParameterDialogHandlers {
     let on_confirm = move |(node_id, params): (NodeId, Parameters)| {
         let mut service_ctx = use_context::<ServiceContext>();
-        service_ctx.with_mut(|s| beetry_editor_backend::api::node::parameters::set(s, node_id, params));
+        service_ctx
+            .with_mut(|s| beetry_editor_backend::api::node::parameters::set(s, node_id, params));
         state.take();
     };
 
@@ -180,7 +180,7 @@ fn parameter_dialog_handlers(
         if let ParameterDialogState::Visible { id, .. } = state {
             let mut service_ctx = use_context::<ServiceContext>();
             service_ctx.with_mut(|s| beetry_editor_backend::api::node::remove(s, id))?;
-            render_nodes.with_mut(|write| write.request());
+            render_nodes.request();
         }
         Ok(())
     };
