@@ -14,25 +14,11 @@ use beetry_editor_types::{
 };
 use tracing::warn;
 
-pub struct ConnectionContext<'a> {
-    pub spec: &'a NodePortSpec,
-    pub node: NodeId,
-    pub channel: ChannelId,
-}
-
 pub struct ChannelView<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
     facade_view: ChannelRepositoryFacadeView<'a, CRF>,
-}
-
-pub trait ChannelQueryApi {
-    fn data(&self, id: ChannelId) -> Result<&ChannelData>;
-    fn config(&self, id: ChannelId) -> Result<&ChannelConfig>;
-    fn channels(&self) -> impl Iterator<Item = &ChannelId>;
-    fn spec_id(&self, id: ChannelId) -> Result<ChannelSpecId>;
-    fn spec(&self, id: ChannelId) -> Result<&ChannelSpec>;
 }
 
 impl<'a, CRF> ChannelView<'a, CRF>
@@ -44,7 +30,15 @@ where
     }
 }
 
-impl<'a, CRF> ChannelQueryApi for ChannelView<'a, CRF>
+pub trait ChannelQueryView {
+    fn data(&self, id: ChannelId) -> Result<&ChannelData>;
+    fn config(&self, id: ChannelId) -> Result<&ChannelConfig>;
+    fn channels(&self) -> impl Iterator<Item = &ChannelId>;
+    fn spec_id(&self, id: ChannelId) -> Result<ChannelSpecId>;
+    fn spec(&self, id: ChannelId) -> Result<&ChannelSpec>;
+}
+
+impl<'a, CRF> ChannelQueryView for ChannelView<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
@@ -117,7 +111,14 @@ where
     }
 }
 
-pub(super) struct LoadChannelApi<'a, CRF>
+pub struct ConnectionContext<'a> {
+    pub spec: &'a NodePortSpec,
+    pub node: NodeId,
+    pub channel: ChannelId,
+}
+
+// This is only needed by import/export API which is user-facing API, therefore this is not public
+pub(super) struct LoadChannelView<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
@@ -125,7 +126,7 @@ where
     channel: &'a mut ChannelService,
 }
 
-impl<'a, CRF> LoadChannelApi<'a, CRF>
+impl<'a, CRF> LoadChannelView<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {

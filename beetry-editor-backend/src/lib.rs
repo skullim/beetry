@@ -7,12 +7,19 @@ use beetry_editor_types::{
     spec::channel::ChannelSpec,
     spec::node::{NodeSpec, NodeSpecKey},
 };
-
-pub use domain::service::editor::EditorService;
+use domain::repository::{
+    ChannelRepositoryFacade, EdgeRepository, NodeRepositoryFacade, UiRepositoryFacade,
+};
 use std::collections::HashMap;
 
-//@todo hide
-pub use crate::domain::*;
+pub use crate::domain::api;
+pub type EditorService =
+    domain::service::editor::EditorService<
+        NodeRepositoryFacade,
+        EdgeRepository,
+        ChannelRepositoryFacade,
+        UiRepositoryFacade,
+    >;
 
 #[derive(Debug, Clone)]
 pub struct NodeSpecMap {

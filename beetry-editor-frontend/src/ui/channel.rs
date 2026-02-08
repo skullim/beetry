@@ -10,7 +10,7 @@ use crate::ui::curve::Curve;
 use crate::ui::shadow;
 use crate::ui::text::{self, text_width_from};
 use crate::ui::viewport::{ViewportContext, ZoomLevel};
-use beetry_editor_backend::channel::ChannelQueryApi;
+use beetry_editor_backend::api::ChannelQueryView;
 use beetry_editor_types::id::ChannelId;
 use beetry_plugin::Named;
 pub use config_dialog::Dialog as ConfigDialog;

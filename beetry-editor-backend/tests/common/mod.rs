@@ -1,11 +1,6 @@
 use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
-use beetry_editor_backend::{
-    EditorService, NodeSpecMap,
-    repository::{
-        ChannelRepositoryFacade, EdgeRepository, NodeRepositoryFacade, UiRepositoryFacade,
-    },
-};
+use beetry_editor_backend::{EditorService, NodeSpecMap};
 use beetry_editor_types::output::channel::{ChannelConfig, ChannelKind, TokioChannelKind};
 use beetry_editor_types::output::ui::Point;
 use beetry_editor_types::spec::channel::ChannelSpec;
@@ -189,12 +184,7 @@ impl TestSpecs {
     }
 }
 
-pub type TestEditorService = EditorService<
-    NodeRepositoryFacade,
-    EdgeRepository,
-    ChannelRepositoryFacade,
-    UiRepositoryFacade,
->;
+pub type TestEditorService = EditorService;
 
 #[fixture]
 pub fn specs() -> TestSpecs {

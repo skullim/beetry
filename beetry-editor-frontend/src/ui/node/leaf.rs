@@ -2,7 +2,7 @@ use crate::Point;
 use crate::editor::ServiceContext;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithContextMenu};
 use crate::ui::node::port::{self, input};
-use beetry_editor_backend::node::SpecByNodeIdQueryApi;
+use beetry_editor_backend::api::SpecByNodeIdQueryView;
 use beetry_editor_types::id::NodeId;
 use beetry_editor_types::spec::node::LeafKind;
 use dioxus::prelude::*;
