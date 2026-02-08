@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::domain::repository::{EdgeRepositoryConcept, NodeRepositoryFacadeConcept};
-use crate::domain::service::node::{SpecApi, TrackerApi};
+use crate::domain::service::node::{SpecView, TrackerView};
 use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{id::EdgeId, id::NodeId, output::edge::NodeEdge, spec::node::NodeKind};
 use tracing::warn;
@@ -10,12 +10,6 @@ use tracing::warn;
 pub struct EdgeView<'a, ER> {
     edge_repo: &'a ER,
     edge_service: &'a EdgeService,
-}
-
-pub trait EdgeQueryApi {
-    fn parent_of(&self, id: NodeId) -> Option<&NodeId>;
-    fn children_of(&self, id: NodeId) -> impl Iterator<Item = &NodeId>;
-    fn edges(&self) -> impl Iterator<Item = (&EdgeId, &NodeEdge)>;
 }
 
 impl<'a, ER> EdgeView<'a, ER>
@@ -30,7 +24,13 @@ where
     }
 }
 
-impl<ER> EdgeQueryApi for EdgeView<'_, ER>
+pub trait EdgeQueryView {
+    fn parent_of(&self, id: NodeId) -> Option<&NodeId>;
+    fn children_of(&self, id: NodeId) -> impl Iterator<Item = &NodeId>;
+    fn edges(&self) -> impl Iterator<Item = (&EdgeId, &NodeEdge)>;
+}
+
+impl<ER> EdgeQueryView for EdgeView<'_, ER>
 where
     ER: EdgeRepositoryConcept,
 {
@@ -53,8 +53,8 @@ where
 {
     edge_repo: &'a mut ER,
     edge_service: &'a mut EdgeService,
-    node_tracker_api: TrackerApi<'a, NRF::NodeRepo>,
-    node_spec_api: SpecApi<'a, NRF::SpecRepo, NRF::NodeRepo>,
+    node_tracker_view: TrackerView<'a, NRF::NodeRepo>,
+    node_spec_view: SpecView<'a, NRF::SpecRepo, NRF::NodeRepo>,
 }
 
 impl<'a, ER, NRF> EdgeViewMut<'a, ER, NRF>
@@ -65,22 +65,22 @@ where
     pub(super) fn new(
         edge_repo: &'a mut ER,
         edge_service: &'a mut EdgeService,
-        node_tracker_api: TrackerApi<'a, NRF::NodeRepo>,
-        node_spec_api: SpecApi<'a, NRF::SpecRepo, NRF::NodeRepo>,
+        node_tracker_view: TrackerView<'a, NRF::NodeRepo>,
+        node_spec_view: SpecView<'a, NRF::SpecRepo, NRF::NodeRepo>,
     ) -> Self {
         Self {
             edge_repo,
             edge_service,
-            node_tracker_api,
-            node_spec_api,
+            node_tracker_view,
+            node_spec_view,
         }
     }
 
     pub(super) fn create(&mut self, edge: NodeEdge) -> Result<EdgeId> {
         self.edge_service.create::<NRF>(
             self.edge_repo,
-            &self.node_tracker_api,
-            &self.node_spec_api,
+            &self.node_tracker_view,
+            &self.node_spec_view,
             edge,
         )
     }
@@ -138,8 +138,8 @@ impl EdgeService {
     fn create<NRF>(
         &mut self,
         edge_repo: &mut impl EdgeRepositoryConcept,
-        node_tracker_api: &TrackerApi<'_, NRF::NodeRepo>,
-        node_spec_api: &SpecApi<'_, NRF::SpecRepo, NRF::NodeRepo>,
+        node_tracker_view: &TrackerView<'_, NRF::NodeRepo>,
+        node_spec_view: &SpecView<'_, NRF::SpecRepo, NRF::NodeRepo>,
         edge: NodeEdge,
     ) -> Result<EdgeId>
     where
@@ -154,16 +154,16 @@ impl EdgeService {
         // - action/condition nodes have no children
 
         let (parent, child) = (edge.from, edge.to);
-        node_tracker_api.ensure_exists(parent)?;
-        node_tracker_api.ensure_exists(child)?;
+        node_tracker_view.ensure_exists(parent)?;
+        node_tracker_view.ensure_exists(child)?;
 
         // validate parent
-        let parent_kind = node_spec_api.kind(parent)?;
+        let parent_kind = node_spec_view.kind(parent)?;
         if matches!(parent_kind, NodeKind::Leaf(..)) {
             bail!("attempted to create invalid edge: leaf nodes must have no children");
         }
 
-        let child_kind = node_spec_api.kind(child)?;
+        let child_kind = node_spec_view.kind(child)?;
         if let NodeKind::Root = child_kind {
             bail!("attempted to create invalid edge: root node must not have any parent");
         }

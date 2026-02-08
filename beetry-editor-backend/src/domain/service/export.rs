@@ -1,11 +1,12 @@
 use crate::{
-    channel::ChannelQueryApi,
+    api::NodeTrackerQueryView,
     domain::{
+        channel::ChannelQueryView,
+        node::{PortStateQueryApi, SpecByNodeIdQueryView},
         repository::NodeRepositoryFacadeConcept,
-        service::{edge::EdgeQueryApi, node::NodeView},
+        service::{edge::EdgeQueryView, node::NodeView},
+        ui::{ChannelUiQueryApi, NodeUiQueryApi, NodeUiQueryProcessor},
     },
-    node::SpecByNodeIdQueryApi,
-    ui::{ChannelUiQueryApi, NodeUiQueryApi, NodeUiQueryProcessor},
 };
 use anyhow::{Context, Result, anyhow, bail};
 use beetry_editor_types::{
@@ -49,9 +50,9 @@ impl TreeValidationResult {
 pub struct ExportView<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ>
 where
     NRF: NodeRepositoryFacadeConcept,
-    NSQ: SpecByNodeIdQueryApi,
-    EQ: EdgeQueryApi,
-    CQ: ChannelQueryApi,
+    NSQ: SpecByNodeIdQueryView,
+    EQ: EdgeQueryView,
+    CQ: ChannelQueryView,
     NUQ: NodeUiQueryApi,
     CUQ: ChannelUiQueryApi,
 {
@@ -66,9 +67,9 @@ where
 impl<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ> ExportView<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ>
 where
     NRF: NodeRepositoryFacadeConcept,
-    NSQ: SpecByNodeIdQueryApi,
-    EQ: EdgeQueryApi,
-    CQ: ChannelQueryApi,
+    NSQ: SpecByNodeIdQueryView,
+    EQ: EdgeQueryView,
+    CQ: ChannelQueryView,
     NUQ: NodeUiQueryApi,
     CUQ: ChannelUiQueryApi,
 {

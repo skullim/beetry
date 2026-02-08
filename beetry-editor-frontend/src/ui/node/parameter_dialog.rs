@@ -1,6 +1,6 @@
 use crate::Point;
 use crate::editor::ServiceContext;
-use beetry_editor_backend::node::{ParameterValueParser, SpecByNodeIdQueryApi};
+use beetry_editor_backend::api::{ParameterValueParser, SpecByNodeIdQueryView};
 use beetry_editor_types::{
     id::NodeId,
     output::node::Parameters,

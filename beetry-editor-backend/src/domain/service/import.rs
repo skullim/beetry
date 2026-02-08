@@ -1,7 +1,7 @@
 use crate::{
     NodeSpecMap,
     domain::{
-        channel::LoadChannelApi,
+        channel::LoadChannelView,
         edge::EdgeViewMut,
         node,
         repository::{
@@ -12,10 +12,10 @@ use crate::{
         service::{
             channel::ChannelService,
             edge::EdgeService,
-            node::{LoadNodeApi, NodeService},
+            node::{LoadNodeView, NodeService},
         },
+        ui::{ChannelUiViewMut, NodeUiViewMut},
     },
-    ui::{ChannelUiViewMut, NodeUiViewMut},
 };
 use anyhow::Result;
 use beetry_editor_types::{
@@ -69,24 +69,24 @@ where
             ..
         } = self.repo.view_mut();
         {
-            let mut load_channel_api =
-                LoadChannelApi::new(channel.view_mut(), self.channel_service);
+            let mut load_channel_view =
+                LoadChannelView::new(channel.view_mut(), self.channel_service);
             for record in tree.channel.specs.into_records() {
-                load_channel_api.load_spec(record)?;
+                load_channel_view.load_spec(record)?;
             }
 
             for record in tree.channel.channels.into_records() {
-                load_channel_api.load_channel(record)?;
+                load_channel_view.load_channel(record)?;
             }
         }
 
         let mut edges = vec![];
         {
             let node_view = node.view_mut();
-            let mut load_node_api = LoadNodeApi::new(self.node_service, node_view);
+            let mut load_node_view = LoadNodeView::new(self.node_service, node_view);
             for (spec_id, spec_key) in tree.node.specs.iter() {
                 let spec = self.spec_map.spec(spec_key)?;
-                load_node_api.load_spec(*spec_id, spec.clone())?;
+                load_node_view.load_spec(*spec_id, spec.clone())?;
             }
 
             for record in tree.node.nodes.into_records() {
@@ -98,14 +98,14 @@ where
 
                 let param_value = tree.parameter.take(&record.id);
                 let port_state = tree.ports.take(&record.id);
-                load_node_api.load_node(record, param_value, port_state)?;
+                load_node_view.load_node(record, param_value, port_state)?;
             }
         }
         let NodeRepositoryFacadeView { nodes, specs, .. } = node.view();
-        let tracker_api = node::TrackerApi::new(self.node_service, nodes);
-        let spec_api = node::SpecApi::new(specs, nodes);
+        let tracker_view = node::TrackerView::new(self.node_service, nodes);
+        let spec_view = node::SpecView::new(specs, nodes);
         let mut edge_mut_api: EdgeViewMut<'_, ER, NRF> =
-            EdgeViewMut::new(edge, self.edge_service, tracker_api, spec_api);
+            EdgeViewMut::new(edge, self.edge_service, tracker_view, spec_view);
         for edge in edges {
             edge_mut_api.create(edge)?;
         }

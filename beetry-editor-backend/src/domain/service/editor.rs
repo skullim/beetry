@@ -1,49 +1,43 @@
 use crate::{
     NodeSpecMap,
-    channel::ChannelQueryApi,
     domain::{
-        channel::ChannelView,
-        edge::EdgeView,
-        export::ExportView,
-        import::ImportViewMut,
-        node::NodeView,
+        channel::{ChannelQueryView, ChannelView},
+        edge::{EdgeQueryView, EdgeView},
+        node::{
+            NodeTrackerQueryView, NodeView, ParameterValueMut, ParameterValueViewMut,
+            PortConnectionDataView, PortStateQueryApi, SpecByNodeIdQuery,
+            SpecByNodeIdQueryView, SpecBySpecIdQuery, SpecBySpecIdQueryView, TrackerView,
+        },
         repository::{
             ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
-            EditorRepositoryView, EditorRepositoryViewMut, NodeRepositoryConcept,
-            NodeRepositoryFacadeConcept, NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut,
-            PortStateRepositoryConcept, SpecRepositoryConcept, UiRepositoryFacadeConcept,
+            EditorRepositoryView, EditorRepositoryViewMut, NodeRepositoryFacadeConcept,
+            NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut, UiRepositoryFacadeConcept,
         },
         service::{
             channel::{ChannelService, ChannelViewMut},
             edge::{EdgeService, EdgeViewMut},
+            export::ExportView,
+            import::ImportViewMut,
             node::{self, NodeService, NodeViewMut},
         },
-    },
-    edge::EdgeQueryApi,
-    node::{
-        NodeTrackerQueryApi, ParameterValueMutApi, ParameterValueViewMut, PortConnectionApi,
-        PortConnectionInput, PortConnectionMutApi, PortConnectionView, PortStateApi,
-        PortStateQueryApi, SpecByNodeIdQuery, SpecByNodeIdQueryApi, SpecBySpecIdQuery,
-        SpecBySpecIdQueryApi, TrackerApi,
-    },
-    ui::{
-        ChannelUiQueryApi, ChannelUiView, ChannelUiViewMut, NodeUiQueryApi, NodeUiView,
-        NodeUiViewMut,
+        ui::{
+            ChannelUiQueryApi, ChannelUiView, ChannelUiViewMut, NodeUiQueryApi, NodeUiView,
+            NodeUiViewMut,
+        },
     },
 };
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Result, bail};
 use beetry_editor_types::{
     id::{ChannelId, EdgeId, NodeId, NodePortId},
     output::{
         channel::{ChannelConfig, ChannelData},
         edge::NodeEdge,
-        node::PortConnectionState,
         ui::{ChannelUiData, NodeUiData, Point},
     },
     persistence::{EditorStateStore, ValidTree},
     spec::{
         channel::ChannelSpec,
-        node::{NodePortKind, NodeSpec, PortsSpec},
+        node::{NodePortKind, NodeSpec},
     },
 };
 
@@ -98,9 +92,9 @@ where
     fn edge_view_mut(&mut self) -> EdgeViewMut<'_, ER, NRF> {
         let EditorRepositoryViewMut { node, edge, .. } = self.repo.view_mut();
         let NodeRepositoryFacadeView { nodes, specs, .. } = node.view();
-        let tracker_api = node::TrackerApi::new(&self.node_service, nodes);
-        let spec_api = node::SpecApi::new(specs, nodes);
-        EdgeViewMut::new(edge, &mut self.edge_service, tracker_api, spec_api)
+        let tracker_view = node::TrackerView::new(&self.node_service, nodes);
+        let spec_view = node::SpecView::new(specs, nodes);
+        EdgeViewMut::new(edge, &mut self.edge_service, tracker_view, spec_view)
     }
 
     fn channel_view_mut(&mut self) -> ChannelViewMut<'_, CRF> {
@@ -133,9 +127,9 @@ where
     ) -> ExportView<
         '_,
         NRF,
-        impl SpecByNodeIdQueryApi,
-        impl EdgeQueryApi,
-        impl ChannelQueryApi,
+        impl SpecByNodeIdQueryView,
+        impl EdgeQueryView,
+        impl ChannelQueryView,
         impl NodeUiQueryApi,
         impl ChannelUiQueryApi,
     > {
@@ -193,20 +187,14 @@ pub trait NodeApi {
     fn create(&mut self, spec: &NodeSpec) -> Result<NodeId>;
     fn remove(&mut self, id: NodeId) -> Result<()>;
 
-    fn spec_by_spec_id(&self) -> impl SpecBySpecIdQueryApi;
-    fn spec_by_node_id(&self) -> impl SpecByNodeIdQueryApi;
+    fn spec_by_spec_id(&self) -> impl SpecBySpecIdQueryView;
+    fn spec_by_node_id(&self) -> impl SpecByNodeIdQueryView;
 
-    fn tracker(&self) -> impl NodeTrackerQueryApi;
+    fn tracker(&self) -> impl NodeTrackerQueryView;
+
     fn port_state(&self) -> impl PortStateQueryApi;
-    fn port_connection<'a>(
-        &'a mut self,
-        ports_spec: &'a PortsSpec,
-    ) -> impl PortConnectionMutApi + 'a;
-    fn port_connection_by_node<'a>(
-        &'a mut self,
-        node_id: NodeId,
-    ) -> Result<impl PortConnectionMutApi + 'a>;
-    fn parameters_mut(&mut self) -> impl ParameterValueMutApi;
+
+    fn parameters_mut(&mut self) -> impl ParameterValueMut;
 }
 
 impl<NRF, ER, CRF, URF> NodeApi for EditorService<NRF, ER, CRF, URF>
@@ -226,66 +214,27 @@ where
         self.node_view_mut().lifecycle().remove(&spec, id)
     }
 
-    fn spec_by_spec_id(&self) -> impl SpecBySpecIdQueryApi {
+    fn spec_by_spec_id(&self) -> impl SpecBySpecIdQueryView {
         let EditorRepositoryView { node, .. } = self.repo.view();
         SpecBySpecIdQuery::new(node.view().specs)
     }
 
-    fn spec_by_node_id(&self) -> impl SpecByNodeIdQueryApi {
+    fn spec_by_node_id(&self) -> impl SpecByNodeIdQueryView {
         let EditorRepositoryView { node, .. } = self.repo.view();
         SpecByNodeIdQuery::new(SpecBySpecIdQuery::new(node.view().specs), node.view().nodes)
     }
 
-    fn tracker(&self) -> impl NodeTrackerQueryApi {
+    fn tracker(&self) -> impl NodeTrackerQueryView {
         let EditorRepositoryView { node, .. } = self.repo.view();
         let NodeRepositoryFacadeView { nodes, .. } = node.view();
-        TrackerApi::new(&self.node_service, nodes)
+        TrackerView::new(&self.node_service, nodes)
     }
 
     fn port_state(&self) -> impl PortStateQueryApi {
-        let EditorRepositoryView { node, .. } = self.repo.view();
-        let NodeRepositoryFacadeView { ports, .. } = node.view();
-        PortStateApi::new(ports)
+        self.node_view().into_port_state()
     }
 
-    fn port_connection<'a>(&'a mut self, ports_spec: &'a PortsSpec) -> impl PortConnectionMutApi {
-        let EditorRepositoryViewMut { node, channel, .. } = self.repo.view_mut();
-        PortConnectionApi::new(
-            node.view_mut().ports,
-            ports_spec,
-            ChannelViewMut::new(channel.view_mut(), &mut self.channel_service),
-        )
-    }
-
-    fn port_connection_by_node(&mut self, node_id: NodeId) -> Result<impl PortConnectionMutApi> {
-        let EditorRepositoryViewMut { node, channel, .. } = self.repo.view_mut();
-        let NodeRepositoryFacadeViewMut {
-            nodes,
-            specs,
-            ports,
-            ..
-        } = node.view_mut();
-
-        let spec_id = nodes
-            .spec_id(&node_id)
-            .copied()
-            .ok_or_else(|| anyhow!("no mapping between node id {node_id} and spec id exists"))?;
-        let spec = specs
-            .spec(spec_id)
-            .ok_or_else(|| anyhow!("failed to obtain spec {spec_id}"))?;
-        let ports_spec = spec
-            .ports()
-            .as_ref()
-            .ok_or_else(|| anyhow!("node {node_id} has no ports spec"))?;
-
-        Ok(PortConnectionApi::new(
-            ports,
-            ports_spec,
-            ChannelViewMut::new(channel.view_mut(), &mut self.channel_service),
-        ))
-    }
-
-    fn parameters_mut(&mut self) -> impl ParameterValueMutApi {
+    fn parameters_mut(&mut self) -> impl ParameterValueMut {
         let EditorRepositoryViewMut { node, .. } = self.repo.view_mut();
         let NodeRepositoryFacadeViewMut { parameters, .. } = node.view_mut();
         ParameterValueViewMut::new(parameters)
@@ -293,125 +242,34 @@ where
 }
 
 pub trait NodePortApi: NodeApi {
-    fn is_external(&self, node_id: NodeId, port_id: NodePortId) -> Result<bool> {
-        let port_state = NodeApi::port_state(self);
-        Ok(port_state
-            .node_conns(node_id)
-            .find(|(id, _)| **id == port_id)
-            .map(|(_, state)| state.is_external())
-            .unwrap_or(false))
-    }
+    fn is_external(&self, node_id: NodeId, port_id: NodePortId) -> Result<bool>;
 
     fn connect_port(
         &mut self,
         node_id: NodeId,
         port_id: NodePortId,
         channel_id: ChannelId,
-    ) -> Result<()> {
-        if self.is_external(node_id, port_id)? {
-            return Err(anyhow!(
-                "attempted to connect port that is marked as external"
-            ));
-        }
-        let mut port_connection = NodeApi::port_connection_by_node(self, node_id)?;
-        port_connection.connect(PortConnectionInput::new(node_id, port_id, channel_id))
-    }
+    ) -> Result<()>;
 
-    fn disconnect_port_connection(
+    fn disconnect_port(
         &mut self,
         node_id: NodeId,
         port_id: NodePortId,
         channel_id: ChannelId,
-    ) -> Result<()> {
-        let mut port_connection = NodeApi::port_connection_by_node(self, node_id)?;
-        port_connection.disconnect(PortConnectionInput::new(node_id, port_id, channel_id))
-    }
+    ) -> Result<()>;
 
-    fn set_port_external(&mut self, node_id: NodeId, port_id: NodePortId) -> Result<()> {
-        let mut port_connection = NodeApi::port_connection_by_node(self, node_id)?;
-        port_connection.set_external(node_id, port_id)
-    }
+    fn set_port_external(&mut self, node_id: NodeId, port_id: NodePortId) -> Result<()>;
 
-    fn set_port_internal(&mut self, node_id: NodeId, port_id: NodePortId) -> Result<()> {
-        let mut port_connection = NodeApi::port_connection_by_node(self, node_id)?;
-        port_connection.disconnect_port(node_id, port_id)
-    }
+    fn set_port_internal(&mut self, node_id: NodeId, port_id: NodePortId) -> Result<()>;
 
     fn internal_connections(&self) -> impl Iterator<Item = (&NodeId, &NodePortId, &ChannelId)>;
 
-    fn connection_views(&self) -> impl Iterator<Item = Result<PortConnectionView<'_>>>;
+    fn connection_views(&self) -> impl Iterator<Item = Result<PortConnectionDataView<'_>>>;
 
     fn connection_views_by_kind(
         &self,
         kind: NodePortKind,
-    ) -> impl Iterator<Item = Result<PortConnectionView<'_>>> {
-        self.connection_views().filter_map(move |res| match res {
-            Ok(view) if view.kind == kind => Some(Ok(view)),
-            Ok(_) => None,
-            Err(err) => Some(Err(err)),
-        })
-    }
-}
-
-struct ConnectionViewIter<'a, NR, SR, I> {
-    node_repo: &'a NR,
-    spec_repo: &'a SR,
-    iter: I,
-}
-
-impl<'a, NR, SR, I> ConnectionViewIter<'a, NR, SR, I>
-where
-    NR: NodeRepositoryConcept + 'a,
-    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = beetry_editor_types::id::NodeSpecId> + 'a,
-    I: Iterator<Item = (&'a NodeId, &'a NodePortId, &'a ChannelId)>,
-{
-    fn new(node_repo: &'a NR, spec_repo: &'a SR, iter: I) -> Self {
-        Self {
-            node_repo,
-            spec_repo,
-            iter,
-        }
-    }
-}
-
-impl<'a, NR, SR, I> Iterator for ConnectionViewIter<'a, NR, SR, I>
-where
-    NR: NodeRepositoryConcept + 'a,
-    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = beetry_editor_types::id::NodeSpecId> + 'a,
-    I: Iterator<Item = (&'a NodeId, &'a NodePortId, &'a ChannelId)>,
-{
-    type Item = Result<PortConnectionView<'a>>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let (node_id, port_id, channel_id) = self.iter.next()?;
-        let spec_id = match self.node_repo.spec_id(node_id).copied() {
-            Some(spec_id) => spec_id,
-            None => {
-                return Some(Err(anyhow!(
-                    "no mapping between node id {node_id} and spec id exists"
-                )));
-            }
-        };
-        let spec = match self.spec_repo.spec(spec_id) {
-            Some(spec) => spec,
-            None => return Some(Err(anyhow!("failed to obtain spec {spec_id}"))),
-        };
-        let ports_spec = match spec.ports().as_ref() {
-            Some(ports_spec) => ports_spec,
-            None => return Some(Err(anyhow!("node {node_id} has no ports spec"))),
-        };
-        let port_spec = match ports_spec.spec(*port_id) {
-            Ok(port_spec) => port_spec,
-            Err(err) => return Some(Err(err)),
-        };
-        Some(Ok(PortConnectionView {
-            node_id: *node_id,
-            port_id: *port_id,
-            channel_id: *channel_id,
-            kind: port_spec.kind,
-            msg_desc: port_spec.msg_spec.as_str(),
-        }))
-    }
+    ) -> impl Iterator<Item = Result<PortConnectionDataView<'_>>>;
 }
 
 impl<NRF, ER, CRF, URF> NodePortApi for EditorService<NRF, ER, CRF, URF>
@@ -421,29 +279,56 @@ where
     CRF: ChannelRepositoryFacadeConcept,
     URF: UiRepositoryFacadeConcept,
 {
-    fn internal_connections(&self) -> impl Iterator<Item = (&NodeId, &NodePortId, &ChannelId)> {
-        let EditorRepositoryView { node, .. } = self.repo.view();
-        let NodeRepositoryFacadeView { ports, .. } = node.view();
-        ports.iter().flat_map(|(node_id, port_iter): (&NodeId, _)| {
-            port_iter
-                .filter_map(
-                    |(port_id, state): (&NodePortId, &PortConnectionState)| match state {
-                        PortConnectionState::Internal(conns) => Some((port_id, conns)),
-                        PortConnectionState::External => None,
-                    },
-                )
-                .flat_map(move |(port_id, conns)| {
-                    conns
-                        .iter()
-                        .map(move |channel_id| (node_id, port_id, channel_id))
-                })
-        })
+    fn is_external(&self, node_id: NodeId, port_id: NodePortId) -> Result<bool> {
+        self.node_view().port_state().is_external(node_id, port_id)
     }
 
-    fn connection_views(&self) -> impl Iterator<Item = Result<PortConnectionView<'_>>> {
-        let EditorRepositoryView { node, .. } = self.repo.view();
-        let NodeRepositoryFacadeView { nodes, specs, .. } = node.view();
-        ConnectionViewIter::new(nodes, specs, self.internal_connections())
+    fn connect_port(
+        &mut self,
+        node_id: NodeId,
+        port_id: NodePortId,
+        channel_id: ChannelId,
+    ) -> Result<()> {
+        let mut node = self.node_view_mut();
+        node.port_state().connect_port(node_id, port_id, channel_id)
+    }
+
+    fn disconnect_port(
+        &mut self,
+        node_id: NodeId,
+        port_id: NodePortId,
+        channel_id: ChannelId,
+    ) -> Result<()> {
+        let mut node = self.node_view_mut();
+        node.port_state()
+            .disconnect_port(node_id, port_id, channel_id)
+    }
+
+    fn set_port_external(&mut self, node_id: NodeId, port_id: NodePortId) -> Result<()> {
+        let mut node = self.node_view_mut();
+        node.port_state().set_port_external(node_id, port_id)
+    }
+
+    fn set_port_internal(&mut self, node_id: NodeId, port_id: NodePortId) -> Result<()> {
+        let mut node = self.node_view_mut();
+        node.port_state().set_port_internal(node_id, port_id)
+    }
+
+    fn internal_connections(&self) -> impl Iterator<Item = (&NodeId, &NodePortId, &ChannelId)> {
+        self.node_view().into_port_state().internal_connections()
+    }
+
+    fn connection_views(&self) -> impl Iterator<Item = Result<PortConnectionDataView<'_>>> {
+        self.node_view().into_port_state().connection_views()
+    }
+
+    fn connection_views_by_kind(
+        &self,
+        kind: NodePortKind,
+    ) -> impl Iterator<Item = Result<PortConnectionDataView<'_>>> {
+        self.node_view()
+            .into_port_state()
+            .connection_views_by_kind(kind)
     }
 }
 
@@ -469,7 +354,7 @@ pub trait EdgeApi {
     fn create(&mut self, edge: NodeEdge) -> Result<EdgeId>;
     fn remove(&mut self, id: EdgeId) -> Result<()>;
 
-    fn borrow(&self) -> impl EdgeQueryApi;
+    fn borrow(&self) -> impl EdgeQueryView;
 }
 
 impl<NRF, ER, CRF, URF> EdgeApi for EditorService<NRF, ER, CRF, URF>
@@ -487,7 +372,7 @@ where
         self.edge_view_mut().remove(id)
     }
 
-    fn borrow(&self) -> impl EdgeQueryApi {
+    fn borrow(&self) -> impl EdgeQueryView {
         let EditorRepositoryView { edge, .. } = self.repo.view();
         EdgeView::new(edge, &self.edge_service)
     }
@@ -531,7 +416,7 @@ pub trait ChannelApi {
     fn create(&mut self, spec: &ChannelSpec, config: ChannelConfig) -> Result<ChannelId>;
     fn remove(&mut self, id: ChannelId) -> Option<ChannelData>;
 
-    fn borrow(&self) -> impl ChannelQueryApi;
+    fn borrow(&self) -> impl ChannelQueryView;
 }
 
 impl<NRF, ER, CRF, URF> ChannelApi for EditorService<NRF, ER, CRF, URF>
@@ -549,7 +434,7 @@ where
         self.channel_view_mut().remove(id)
     }
 
-    fn borrow(&self) -> impl ChannelQueryApi {
+    fn borrow(&self) -> impl ChannelQueryView {
         let EditorRepositoryView { channel, .. } = self.repo.view();
         ChannelView::new(channel.view())
     }
@@ -611,7 +496,7 @@ pub trait ChannelLifecycleApi: ChannelApi + ChannelUiApi + NodePortApi {
             .collect();
 
         for (node_id, port_id) in to_disconnect {
-            self.disconnect_port_connection(node_id, port_id, id)?;
+            self.disconnect_port(node_id, port_id, id)?;
         }
 
         let removed_channel = ChannelApi::remove(self, id);
@@ -625,14 +510,3 @@ pub trait ChannelLifecycleApi: ChannelApi + ChannelUiApi + NodePortApi {
 }
 
 impl<T> ChannelLifecycleApi for T where T: ChannelApi + ChannelUiApi + NodePortApi {}
-
-pub trait EditorServiceApi: NodeApi + NodeUiApi + EdgeApi + ChannelApi + ChannelUiApi {}
-
-impl<NRF, ER, CRF, URF> EditorServiceApi for EditorService<NRF, ER, CRF, URF>
-where
-    NRF: NodeRepositoryFacadeConcept,
-    ER: EdgeRepositoryConcept,
-    CRF: ChannelRepositoryFacadeConcept,
-    URF: UiRepositoryFacadeConcept,
-{
-}

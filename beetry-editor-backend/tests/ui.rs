@@ -2,9 +2,9 @@ mod common;
 
 use anyhow::Result;
 use beetry_editor_backend::api;
-use beetry_editor_backend::channel::ChannelQueryApi;
-use beetry_editor_backend::node::NodeTrackerQueryApi;
-use beetry_editor_backend::ui::{ChannelUiQueryApi, NodeUiQueryApi};
+use beetry_editor_backend::api::{
+    ChannelQueryView, ChannelUiQueryApi, NodeTrackerQueryView, NodeUiQueryApi,
+};
 use beetry_editor_types::output::ui::{ChannelUiData, NodeUiData, Point};
 use common::{ChannelSpecCase, NodeSpecCase, TestEditorService, TestSpecs, service, specs};
 use rstest::rstest;
@@ -60,7 +60,7 @@ fn node_and_channel_in_sync(mut service: TestEditorService, specs: TestSpecs) ->
     )?;
 
     {
-        let tracker = api::node::tracker::borrow(&service);
+        let tracker = api::node::tracker::query_view(&service);
         assert_eq!(tracker.nodes().count(), 1);
         assert!(tracker.nodes().any(|id| *id == node_id));
     }
@@ -81,7 +81,7 @@ fn node_and_channel_in_sync(mut service: TestEditorService, specs: TestSpecs) ->
     api::channel::remove(&mut service, channel_id)?;
 
     assert!(
-        !api::node::tracker::borrow(&service)
+        !api::node::tracker::query_view(&service)
             .nodes()
             .any(|id| *id == node_id)
     );

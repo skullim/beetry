@@ -2,7 +2,7 @@ mod common;
 
 use anyhow::Result;
 use beetry_editor_backend::api;
-use beetry_editor_backend::channel::ChannelQueryApi;
+use beetry_editor_backend::api::ChannelQueryView;
 use beetry_editor_types::id::{ChannelId, NodePortId};
 use beetry_editor_types::output::ui::{ChannelUiData, NodeUiData, Point};
 use common::{

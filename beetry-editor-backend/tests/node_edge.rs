@@ -2,8 +2,7 @@ mod common;
 
 use anyhow::Result;
 use beetry_editor_backend::api;
-use beetry_editor_backend::edge::EdgeQueryApi;
-use beetry_editor_backend::node::NodeTrackerQueryApi;
+use beetry_editor_backend::api::{EdgeQueryView, NodeTrackerQueryView};
 use beetry_editor_types::id::NodeId;
 use beetry_editor_types::output::edge::NodeEdge;
 use beetry_editor_types::output::ui::{NodeUiData, Point};
@@ -36,7 +35,7 @@ fn create_nodes(
         )?;
     }
 
-    let tracker = api::node::tracker::borrow(&service);
+    let tracker = api::node::tracker::query_view(&service);
     assert_eq!(tracker.nodes().count(), cases.len());
 
     Ok(())
@@ -59,7 +58,7 @@ fn removing_existing_node_succeeds(
     api::node::remove(&mut service, node_id)?;
 
     assert!(
-        !api::node::tracker::borrow(&service)
+        !api::node::tracker::query_view(&service)
             .nodes()
             .any(|id| *id == node_id)
     );

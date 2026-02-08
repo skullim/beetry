@@ -2,8 +2,7 @@ mod common;
 
 use anyhow::Result;
 use beetry_editor_backend::api;
-use beetry_editor_backend::edge::EdgeQueryApi;
-use beetry_editor_backend::node::NodeTrackerQueryApi;
+use beetry_editor_backend::api::{EdgeQueryView, NodeTrackerQueryView};
 use beetry_editor_types::id::NodePortId;
 use beetry_editor_types::output::edge::NodeEdge;
 use beetry_editor_types::output::ui::{ChannelUiData, NodeUiData, Point};
@@ -46,7 +45,7 @@ fn project_export_import(
     let mut target = TestEditorService::new(specs.node_spec_map());
     api::project::import(&mut target, store)?;
 
-    assert_eq!(api::node::tracker::borrow(&target).nodes().count(), 2);
+    assert_eq!(api::node::tracker::query_view(&target).nodes().count(), 2);
     assert_eq!(api::edge::borrow(&target).edges().count(), 1);
     Ok(())
 }

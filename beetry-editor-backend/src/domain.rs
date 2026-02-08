@@ -1,5 +1,4 @@
 pub mod repository;
 pub mod service;
 
-//@todo refine once the services are cleaned up
-pub use service::*;
+pub use service::{api, channel, edge, editor, node, ui};

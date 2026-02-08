@@ -2,8 +2,7 @@ use crate::definitions::EdgePos;
 use crate::editor::ServiceContext;
 use crate::signals::RequestEdgeRender;
 use crate::ui::edge::Edge;
-use beetry_editor_backend::edge::EdgeQueryApi;
-use beetry_editor_backend::ui::NodeUiQueryApi;
+use beetry_editor_backend::api::{EdgeQueryView, NodeUiQueryApi};
 use dioxus::prelude::*;
 
 // Conditions to re-render the edges:
