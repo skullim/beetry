@@ -5,8 +5,8 @@ use dioxus_logger::tracing::debug;
 
 use crate::Point;
 use crate::editor::ServiceContext;
-use crate::ui::error_dialog::ErrorMsgQueue;
 use crate::signals::RequestNodeRender;
+use crate::ui::error_dialog::ErrorMsgQueueSignal;
 use crate::ui::node::control::Control;
 use crate::ui::node::leaf::Leaf;
 use crate::ui::node::root::Root;
@@ -23,7 +23,7 @@ pub fn Renderer(render_nodes: RequestNodeRender) -> Element {
     let service = use_context::<ServiceContext>();
     let read = service.read();
 
-    let error_queue = use_context::<Signal<ErrorMsgQueue>>();
+    let error_queue = use_context::<ErrorMsgQueueSignal>();
     let query = beetry_editor_backend::api::ui::node::borrow(&(*read));
     let query_processor = NodeUiQueryProcessor::new(&query);
 
@@ -75,7 +75,7 @@ pub fn Renderer(render_nodes: RequestNodeRender) -> Element {
 
 fn render_node_result(
     result: anyhow::Result<(&NodeId, &Point)>,
-    mut error_queue: Signal<ErrorMsgQueue>,
+    mut error_queue: ErrorMsgQueueSignal,
     render_ok: impl FnOnce(&NodeId, &Point) -> Element,
 ) -> Element {
     match result {

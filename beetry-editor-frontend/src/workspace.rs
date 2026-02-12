@@ -1,4 +1,4 @@
-use beetry_editor_backend::api::NodeUiQueryApi;
+use beetry_editor_backend::api::{NodeUiQueryApi, SpecByNodeIdQueryView};
 use beetry_editor_types::{
     id::{ChannelId, EdgeId, NodeId, NodePortId},
     output::edge::NodeEdge,
@@ -9,14 +9,16 @@ use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
 
 use crate::editor::ServiceContext;
-use crate::ui::error_dialog::ErrorMsgQueue;
 use crate::signals::{
     RequestChannelEdgeRender, RequestChannelRender, RequestEdgeRender, RequestNodeRender,
     RequestPortRender,
 };
 use crate::ui::channel::temporary::{ConnectionOrigin, DraggedData};
 use crate::ui::channel::{self};
-use crate::ui::node::{self, ContextMenuState, ReceiverPortHandlers, SenderPortHandlers};
+use crate::ui::error_dialog::ErrorMsgQueueSignal;
+use crate::ui::node::{
+    self, ContextMenuState, PARAM_DIALOG_POSITION, ReceiverPortHandlers, SenderPortHandlers,
+};
 use crate::ui::viewport::ViewportContext;
 use crate::ui::{self, edge};
 use crate::{
@@ -141,6 +143,7 @@ pub(crate) fn Workspace(
     render_channel_edges: RequestChannelEdgeRender,
     render_edges: RequestEdgeRender,
     ui_spawn_point: Signal<Point>,
+    parameter_dialog_state: Signal<node::ParameterDialogState>,
 ) -> Element {
     debug!("rendering workspace");
 
@@ -156,7 +159,7 @@ pub(crate) fn Workspace(
 
     let mut dimensions_ctx = workspace_ctx.dimensions_ctx;
     let mut temp_channel_conn_ctx = workspace_ctx.channel_temp_conn_ctx;
-    let error_queue = use_context::<Signal<ErrorMsgQueue>>();
+    let error_queue = use_context::<ErrorMsgQueueSignal>();
 
     let mut temp_edge_ctx = use_context_provider(edge::temporary::Context::new);
     let mut viewport_ctx = use_context_provider(ViewportContext::new);
@@ -168,6 +171,7 @@ pub(crate) fn Workspace(
     use_context_provider(move || {
         node_context_menu_handlers(
             node_context_menu_state,
+            parameter_dialog_state,
             render_nodes,
             render_edges,
             render_channel_edges,
@@ -393,7 +397,24 @@ fn node_handlers(
     };
 
     let on_context_menu = move |(node_id, position): (NodeId, Point)| {
-        ctx_menu_state.set(node::ContextMenuState::Visible { position, node_id });
+        let service = use_context::<ServiceContext>();
+
+        let can_edit_params = service
+            .with(|s| -> anyhow::Result<bool> {
+                let spec_query = beetry_editor_backend::api::node::spec::by_node_id(s);
+                Ok(spec_query.spec(node_id)?.has_params())
+            })
+            .unwrap_or_else(|err| {
+                let mut error_queue = use_context::<ErrorMsgQueueSignal>();
+                error_queue.with_mut(|q| q.push("node-context-menu", err.to_string()));
+                false
+            });
+
+        ctx_menu_state.set(node::ContextMenuState::Visible {
+            position,
+            node_id,
+            can_edit_params,
+        });
     };
     node::Handlers::new(on_drag_start, on_context_menu)
 }
@@ -408,7 +429,7 @@ fn edge_handlers(mut ctx_menu_state: Signal<edge::ContextMenuState>) -> edge::Ha
 fn sender_handlers(
     mut channel_temp_connection_ctx: channel::temporary::Context,
     mut port_ctx_menu_state: Signal<node::port_context_menu::State>,
-    mut error_queue: Signal<ErrorMsgQueue>,
+    mut error_queue: ErrorMsgQueueSignal,
 ) -> SenderPortHandlers {
     let on_mouse_down = move |(origin, indexed_drag_offset, port_id): (
         ConnectionOrigin,
@@ -452,7 +473,7 @@ fn sender_handlers(
 fn receiver_port_handlers(
     mut channel_temp_connection_ctx: channel::temporary::Context,
     mut port_ctx_menu_state: Signal<node::port_context_menu::State>,
-    mut error_queue: Signal<ErrorMsgQueue>,
+    mut error_queue: ErrorMsgQueueSignal,
 ) -> ReceiverPortHandlers {
     let on_mouse_down = move |(origin, indexed_drag_offset, port_id): (
         ConnectionOrigin,
@@ -529,7 +550,7 @@ fn channel_handlers(
     mut channel_temp_connection_ctx: channel::temporary::Context,
     mut channel_ctx_menu_state: Signal<channel::ContextMenuState>,
     mut render_channel_edges: RequestChannelEdgeRender,
-    mut error_queue: Signal<ErrorMsgQueue>,
+    mut error_queue: ErrorMsgQueueSignal,
 ) -> channel::Handlers {
     let on_drag_start = move |(id, offset): (ChannelId, Point)| {
         drag_channel_state.set(DragChannelState::Dragged { id, offset });
@@ -600,6 +621,7 @@ fn channel_handlers(
 
 fn node_context_menu_handlers(
     mut node_ctx_menu_state: Signal<node::ContextMenuState>,
+    mut parameter_dialog_state: Signal<node::ParameterDialogState>,
     mut render_nodes: RequestNodeRender,
     mut render_edges: RequestEdgeRender,
     mut render_channel_edges: RequestChannelEdgeRender,
@@ -616,7 +638,15 @@ fn node_context_menu_handlers(
     let on_close = move |_| {
         node_ctx_menu_state.set(ContextMenuState::Idle);
     };
-    node::ContextMenuHandlers::new(on_delete, on_close)
+    let on_edit_params = move |id: NodeId| {
+        parameter_dialog_state.set(node::ParameterDialogState::Visible {
+            position: PARAM_DIALOG_POSITION,
+            id,
+            mode: node::ParameterDialogMode::Update,
+        });
+    };
+
+    node::ContextMenuHandlers::new(on_delete, on_edit_params, on_close)
 }
 
 fn edge_context_menu_handlers(

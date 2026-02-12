@@ -12,10 +12,12 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
 use crate::sidebar::Sidebar;
-use crate::ui::node::{ParameterDialogHandlers, ParameterDialogState};
+use crate::ui::error_dialog::ErrorMsgQueue;
+use crate::ui::node::{
+    PARAM_DIALOG_POSITION, ParameterDialogHandlers, ParameterDialogMode, ParameterDialogState,
+};
 use crate::workspace::Workspace;
 use crate::{NodeSpecMap, toolbar::Toolbar};
-use crate::ui::error_dialog::ErrorMsgQueue;
 use crate::{
     sidebar::SidebarEventHandlers, ui::channel::config_dialog::State as ChannelConfigDialogState,
 };
@@ -86,10 +88,11 @@ pub(crate) fn Editor() -> Element {
             let id = service
                 .with_mut(|s| beetry_editor_backend::api::node::create(s, node_spec, ui_data))?;
 
-            if node_spec.params().is_some() {
+            if node_spec.has_params() {
                 parameter_dialog_state.set(ParameterDialogState::Visible {
-                    position: Point { x: 300.0, y: 200.0 },
+                    position: PARAM_DIALOG_POSITION,
                     id,
+                    mode: ParameterDialogMode::Create,
                 });
             }
 
@@ -116,10 +119,14 @@ pub(crate) fn Editor() -> Element {
             };
 
             let mut service = use_context::<ServiceContext>();
-            let id =
-                service.with_mut(|s| beetry_editor_backend::api::channel::create(s, spec, config, ui_data))?;
+            let id = service.with_mut(|s| {
+                beetry_editor_backend::api::channel::create(s, spec, config, ui_data)
+            })?;
 
-            info!("created channel {id} with message type {}", spec.msg_type_name());
+            info!(
+                "created channel {id} with message type {}",
+                spec.msg_type_name()
+            );
             channel_config_dialog_state.take();
             render_channels.request();
             Ok(())
@@ -145,6 +152,7 @@ pub(crate) fn Editor() -> Element {
                     render_channel_edges,
                     render_edges,
                     ui_spawn_point,
+                    parameter_dialog_state,
                 }
             }
             div {
@@ -170,7 +178,9 @@ fn parameter_dialog_handlers(
 
     let on_cancel = move |_| -> Result<()> {
         let state = state.take();
-        if let ParameterDialogState::Visible { id, .. } = state {
+        if let ParameterDialogState::Visible { id, mode, .. } = state
+            && mode == ParameterDialogMode::Create
+        {
             let mut service_ctx = use_context::<ServiceContext>();
             service_ctx.with_mut(|s| beetry_editor_backend::api::node::remove(s, id))?;
             render_nodes.request();

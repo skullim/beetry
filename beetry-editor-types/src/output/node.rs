@@ -17,6 +17,48 @@ pub enum ParameterValue {
     String(String),
 }
 
+impl ParameterValue {
+    pub fn into_bool(self) -> Option<bool> {
+        if let Self::Bool(b) = self {
+            Some(b)
+        } else {
+            None
+        }
+    }
+
+    pub fn into_u64(self) -> Option<u64> {
+        if let Self::U64(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn into_i64(self) -> Option<i64> {
+        if let Self::I64(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn into_f64(self) -> Option<f64> {
+        if let Self::F64(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn into_string(self) -> Option<String> {
+        if let Self::String(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Parameters {
     map: BTreeMap<FieldName, ParameterValue>,
