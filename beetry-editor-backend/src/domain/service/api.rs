@@ -2,8 +2,8 @@ pub use crate::domain::{
     channel::ChannelQueryView,
     edge::EdgeQueryView,
     node::{
-        NodeTrackerQueryView, ParameterValueParser, PortConnectionView, SpecByNodeIdQueryView,
-        SpecBySpecIdQueryView,
+        NodeTrackerQueryView, ParameterValueParser, ParameterValueQueryView, PortConnectionView,
+        SpecByNodeIdQueryView, SpecBySpecIdQueryView,
     },
     ui::{ChannelUiQueryApi, NodeUiQueryApi, NodeUiQueryProcessor},
 };
@@ -56,6 +56,10 @@ pub mod node {
 
         pub fn create(api: &mut impl NodeApi, id: NodeId, params: Parameters) {
             NodeApi::parameters_mut(api).create(id, params);
+        }
+
+        pub fn get(api: &impl NodeApi, id: NodeId) -> anyhow::Result<&Parameters> {
+            NodeApi::parameters_by_node_id(api, id)
         }
     }
 

@@ -404,7 +404,7 @@ where
 
             port_connection_service_api.disconnect_all_ports(id)?;
         }
-        if spec.params().is_some() {
+        if spec.has_params() {
             self.node_facade_view.parameters.remove(id);
         }
         Ok(())
@@ -476,14 +476,31 @@ pub struct ParameterValueView<'a, PVR> {
     repo: &'a PVR,
 }
 
+pub trait ParameterValueQueryView {
+    fn parameters(&self, id: NodeId) -> Result<&Parameters>;
+}
+
 impl<'a, PVR> ParameterValueView<'a, PVR>
 where
     PVR: ParamValueRepositoryConcept,
 {
+    pub(super) fn new(repo: &'a PVR) -> Self {
+        Self { repo }
+    }
+
     pub fn parameters(&self, id: NodeId) -> Result<&Parameters> {
         self.repo
             .params(id)
             .ok_or_else(|| anyhow!("failed to obtain parameters for node {id}"))
+    }
+}
+
+impl<PVR> ParameterValueQueryView for ParameterValueView<'_, PVR>
+where
+    PVR: ParamValueRepositoryConcept,
+{
+    fn parameters(&self, id: NodeId) -> Result<&Parameters> {
+        ParameterValueView::parameters(self, id)
     }
 }
 

@@ -5,9 +5,9 @@ use dioxus::prelude::*;
 
 use crate::definitions::EdgePos;
 use crate::editor::ServiceContext;
-use crate::ui::error_dialog::ErrorMsgQueue;
 use crate::signals::{RequestChannelEdgeRender, RequestChannelRender};
 use crate::ui::channel::{Channel, ReceiverConnection, SenderConnection};
+use crate::ui::error_dialog::ErrorMsgQueueSignal;
 use crate::ui::text;
 
 // Conditions to re-render channel elements:
@@ -42,7 +42,7 @@ pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Ele
     render_channel_edges.track();
 
     let service = use_context::<ServiceContext>();
-    let mut error_queue = use_context::<Signal<ErrorMsgQueue>>();
+    let mut error_queue = use_context::<ErrorMsgQueueSignal>();
     let read = service.read();
     let channel_query_api = beetry_editor_backend::api::ui::channel::borrow(&(*read));
     let node_query_api = beetry_editor_backend::api::ui::node::borrow(&(*read));
@@ -107,7 +107,12 @@ pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Ele
     }
 }
 
-fn sender_edge_pos(node_pos: &Point, channel_pos: &Point, msg_desc: &str, port_id: NodePortId) -> EdgePos {
+fn sender_edge_pos(
+    node_pos: &Point,
+    channel_pos: &Point,
+    msg_desc: &str,
+    port_id: NodePortId,
+) -> EdgePos {
     let port_width = text::text_width_from(msg_desc, 11);
 
     EdgePos {

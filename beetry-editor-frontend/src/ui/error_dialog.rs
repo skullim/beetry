@@ -1,6 +1,8 @@
 use dioxus::prelude::*;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+pub type ErrorMsgQueueSignal = Signal<ErrorMsgQueue>;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ErrorMsg {
     pub id: u64,
@@ -68,7 +70,7 @@ impl ErrorMsgQueue {
 
 #[component]
 pub fn ErrorDialog() -> Element {
-    let mut queue = use_context::<Signal<ErrorMsgQueue>>();
+    let mut queue = use_context::<ErrorMsgQueueSignal>();
     let items = queue.read().snapshot();
     if items.is_empty() {
         return rsx! {};

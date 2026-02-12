@@ -12,7 +12,7 @@ use crate::signals::{
     RequestChannelEdgeRender, RequestChannelRender, RequestEdgeRender, RequestNodeRender,
 };
 use crate::ui::error_dialog::ErrorDialog;
-use crate::ui::error_dialog::ErrorMsgQueue;
+use crate::ui::error_dialog::ErrorMsgQueueSignal;
 use crate::ui::transfer;
 
 #[component]
@@ -22,7 +22,7 @@ pub(crate) fn Toolbar(
     render_channel_edges: RequestChannelEdgeRender,
     render_edges: RequestEdgeRender,
 ) -> Element {
-    let mut error_queue = use_context::<Signal<ErrorMsgQueue>>();
+    let mut error_queue = use_context::<ErrorMsgQueueSignal>();
     let on_project_export = move |()| match do_export_project() {
         Ok(()) => {}
         Err(e) => {
