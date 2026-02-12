@@ -7,7 +7,7 @@ use beetry_editor_types::{
     spec::node::{FieldName, FieldTypeSpec, ParamsSpec},
 };
 use dioxus::prelude::*;
-use dioxus_logger::tracing::debug;
+use dioxus_logger::tracing::{debug, error};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -35,7 +35,14 @@ pub enum State {
     Visible {
         position: Point,
         id: NodeId,
+        mode: Mode,
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
+    Create,
+    Update,
 }
 
 #[derive(Debug, Props, Clone, PartialEq, Eq)]
@@ -46,23 +53,47 @@ pub struct DialogProps {
 #[component]
 pub fn Dialog(props: DialogProps) -> Element {
     debug!("rendering");
-    let (id, position, params_spec, node_name) = match *props.state.read() {
+    let (id, position, mode) = match *props.state.read() {
         State::Idle => return rsx! {},
-        State::Visible { position, id } => {
-            let service = use_context::<ServiceContext>();
-            let read = service.read();
-            let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
-
-            (
-                id,
-                position,
-                Rc::new(spec_query.params(id).unwrap().clone()),
-                Rc::new(spec_query.name(id).unwrap().clone()),
-            )
-        }
+        State::Visible { position, id, mode } => (id, position, mode),
     };
 
-    let parameters = use_signal(Parameters::default);
+    rsx! { VisibleDialog { id, position, mode } }
+}
+
+#[derive(Debug, Props, Clone, PartialEq)]
+struct VisibleDialogProps {
+    id: NodeId,
+    position: Point,
+    mode: Mode,
+}
+
+#[component]
+fn VisibleDialog(props: VisibleDialogProps) -> Element {
+    let id = props.id;
+    let position = props.position;
+    let mode = props.mode;
+    let service = use_context::<ServiceContext>();
+    let read = service.read();
+    let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
+    let params_spec = Rc::new(spec_query.params(id).unwrap().clone());
+    let node_name = Rc::new(spec_query.name(id).unwrap().clone());
+
+    let initial_parameters = match mode {
+        Mode::Create => Parameters::default(),
+        Mode::Update => {
+            match service.with(|s| -> anyhow::Result<Parameters> {
+                Ok(beetry_editor_backend::api::node::parameters::get(s, id)?.clone())
+            }) {
+                Ok(parameters) => parameters,
+                Err(err) => {
+                    error!("failed to load existing node parameters for {id}: {err}");
+                    Parameters::default()
+                }
+            }
+        }
+    };
+    let parameters = use_signal(move || initial_parameters.clone());
     let handlers = use_context::<Handlers>();
     let spec = Rc::clone(&params_spec);
     let on_confirm = move |_| {
@@ -153,14 +184,14 @@ fn are_param_values_set(spec: &ParamsSpec, values: &Parameters) -> bool {
 }
 
 #[derive(Props, Clone, PartialEq)]
-struct ParameterFieldProps2 {
+struct ParameterFieldProps {
     id: NodeId,
     name: FieldName,
     parameters: Signal<Parameters>,
 }
 
 #[component]
-fn ParameterField(props: ParameterFieldProps2) -> Element {
+fn ParameterField(props: ParameterFieldProps) -> Element {
     let mut parameters = props.parameters;
 
     let service = use_context::<ServiceContext>();
@@ -172,7 +203,7 @@ fn ParameterField(props: ParameterFieldProps2) -> Element {
     let field_def = params_spec.get(&props.name).unwrap();
 
     let mut error_msg = use_signal::<Option<String>>(|| None);
-
+    let o_val = parameters.read().get(&props.name).cloned();
     rsx! {
         label { display: "block", margin_bottom: "4px", font_weight: "bold", {props.name.as_str()} }
 
@@ -188,7 +219,7 @@ fn ParameterField(props: ParameterFieldProps2) -> Element {
                 rsx! {
                     input {
                         r#type: "checkbox",
-                        checked: false,
+                        checked: o_val.map(|v| v.into_bool()).unwrap_or_default(),
                         onchange: move |evt| {
                             match ParameterValueParser::parse(
                                 &FieldTypeSpec::Bool(meta.clone()),
@@ -211,7 +242,7 @@ fn ParameterField(props: ParameterFieldProps2) -> Element {
                 rsx! {
                     input {
                         r#type: "number",
-                        value: 0i64,
+                        value: o_val.map(|v| v.into_i64()).unwrap_or_default(),
                         width: "100%",
                         padding: "4px 8px",
                         border_radius: "4px",
@@ -237,7 +268,7 @@ fn ParameterField(props: ParameterFieldProps2) -> Element {
                 rsx! {
                     input {
                         r#type: "number",
-                        value: 0u64,
+                        value: o_val.map(|v| v.into_u64()).unwrap_or_default(),
                         width: "100%",
                         padding: "4px 8px",
                         border_radius: "4px",
@@ -264,7 +295,7 @@ fn ParameterField(props: ParameterFieldProps2) -> Element {
                     input {
                         r#type: "number",
                         step: "1.00",
-                        value: 0.0f64,
+                        value:  o_val.map(|v| v.into_f64()).unwrap_or_default(),
                         width: "100%",
                         padding: "4px 8px",
                         border_radius: "4px",
@@ -290,7 +321,7 @@ fn ParameterField(props: ParameterFieldProps2) -> Element {
                 rsx! {
                     input {
                         r#type: "text",
-                        value: "",
+                        value: o_val.map(|v| v.into_string()).unwrap_or_default(),
                         width: "100%",
                         padding: "4px 8px",
                         border_radius: "4px",

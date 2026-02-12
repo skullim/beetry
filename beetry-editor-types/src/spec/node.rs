@@ -31,6 +31,10 @@ impl NodeSpec {
     pub fn kind(&self) -> NodeKind {
         self.key.kind()
     }
+
+    pub fn has_params(&self) -> bool {
+        self.params.is_some()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, CopyGetters, Serialize, Deserialize)]

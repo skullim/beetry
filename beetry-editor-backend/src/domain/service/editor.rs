@@ -4,14 +4,16 @@ use crate::{
         channel::{ChannelQueryView, ChannelView},
         edge::{EdgeQueryView, EdgeView},
         node::{
-            NodeTrackerQueryView, NodeView, ParameterValueMut, ParameterValueViewMut,
+            NodeTrackerQueryView, NodeView, ParameterValueMut, ParameterValueQueryView,
+            ParameterValueView, ParameterValueViewMut,
             PortConnectionDataView, PortStateQueryApi, SpecByNodeIdQuery,
             SpecByNodeIdQueryView, SpecBySpecIdQuery, SpecBySpecIdQueryView, TrackerView,
         },
         repository::{
             ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
             EditorRepositoryView, EditorRepositoryViewMut, NodeRepositoryFacadeConcept,
-            NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut, UiRepositoryFacadeConcept,
+            NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut, ParamValueRepositoryConcept,
+            UiRepositoryFacadeConcept,
         },
         service::{
             channel::{ChannelService, ChannelViewMut},
@@ -26,11 +28,12 @@ use crate::{
         },
     },
 };
-use anyhow::{Result, bail};
+use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{
     id::{ChannelId, EdgeId, NodeId, NodePortId},
     output::{
         channel::{ChannelConfig, ChannelData},
+        node::Parameters,
         edge::NodeEdge,
         ui::{ChannelUiData, NodeUiData, Point},
     },
@@ -194,6 +197,8 @@ pub trait NodeApi {
 
     fn port_state(&self) -> impl PortStateQueryApi;
 
+    fn parameters(&self) -> impl ParameterValueQueryView;
+    fn parameters_by_node_id(&self, id: NodeId) -> Result<&Parameters>;
     fn parameters_mut(&mut self) -> impl ParameterValueMut;
 }
 
@@ -232,6 +237,20 @@ where
 
     fn port_state(&self) -> impl PortStateQueryApi {
         self.node_view().into_port_state()
+    }
+
+    fn parameters(&self) -> impl ParameterValueQueryView {
+        let EditorRepositoryView { node, .. } = self.repo.view();
+        let NodeRepositoryFacadeView { parameters, .. } = node.view();
+        ParameterValueView::new(parameters)
+    }
+
+    fn parameters_by_node_id(&self, id: NodeId) -> Result<&Parameters> {
+        let EditorRepositoryView { node, .. } = self.repo.view();
+        let NodeRepositoryFacadeView { parameters, .. } = node.view();
+        parameters
+            .params(id)
+            .ok_or_else(|| anyhow!("failed to obtain parameters for node {id}"))
     }
 
     fn parameters_mut(&mut self) -> impl ParameterValueMut {
