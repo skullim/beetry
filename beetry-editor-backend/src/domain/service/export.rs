@@ -20,7 +20,6 @@ use beetry_editor_types::{
     spec::node::NodeSpecKey,
 };
 use bon::Builder;
-use itertools::Itertools;
 use mitsein::iter1::FromIterator1;
 use std::collections::{BTreeSet, HashMap, HashSet};
 
