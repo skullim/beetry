@@ -13,11 +13,11 @@ use dioxus_logger::tracing::debug;
 
 use crate::components::workspace::Workspace;
 use crate::sidebar::Sidebar;
-use crate::ui::error_dialog::ErrorQueueState;
+use crate::ui::error::ErrorQueueState;
 use crate::ui::node;
-use crate::ui::node::PARAM_DIALOG_POSITION;
+use crate::ui::node::PARAMETER_POSITION;
 use crate::{NodeSpecMap, toolbar::Toolbar};
-use crate::{sidebar, ui::channel::config::State as ChannelConfigDialogState};
+use crate::sidebar;
 use crate::{
     signals::RequestNodeRender,
     ui::channel::{self},
@@ -57,10 +57,10 @@ pub(crate) fn Editor() -> Element {
     let mut backend = use_context_provider(|| Backend::new(specs.nodes.clone()));
     use_context_provider(ErrorQueueState::new);
 
-    let mut channel_config_dialog_state: Signal<ChannelConfigDialogState> =
-        use_signal(ChannelConfigDialogState::default);
-    let mut parameter_dialog_state: Signal<node::parameter_dialog::State> =
-        use_signal(node::parameter_dialog::State::default);
+    let mut channel_config_state: Signal<channel::config::State> =
+        use_signal(channel::config::State::default);
+    let mut parameter_state: Signal<node::parameter::State> =
+        use_signal(node::parameter::State::default);
     let mut render_requests = use_context_provider(RenderRequests::default);
     let element_spawn_point = use_signal(Point::default);
 
@@ -78,10 +78,10 @@ pub(crate) fn Editor() -> Element {
                 .with_mut(|s| beetry_editor_backend::api::node::create(s, node_spec, ui_data))?;
 
             if node_spec.has_params() {
-                parameter_dialog_state.set(node::parameter_dialog::State::Visible {
-                    position: PARAM_DIALOG_POSITION,
+                parameter_state.set(node::parameter::State::Visible {
+                    position: PARAMETER_POSITION,
                     id,
-                    mode: node::parameter_dialog::Mode::Create,
+                    mode: node::parameter::Mode::Create,
                 });
             }
 
@@ -116,36 +116,36 @@ pub(crate) fn Editor() -> Element {
                 "created channel {id} with message type {}",
                 spec.msg_type_name()
             );
-            channel_config_dialog_state.take();
+            channel_config_state.take();
             render_requests.channels.request();
             Ok(())
         };
 
         let on_cancel = move |_| {
-            channel_config_dialog_state.take();
+            channel_config_state.take();
             Ok(())
         };
         channel::config::Handlers::new(on_new_channel, on_cancel)
     });
 
     use_context_provider(move || {
-        parameter_dialog_handlers(backend, parameter_dialog_state, render_requests.nodes)
+        parameter_handlers(backend, parameter_state, render_requests.nodes)
     });
 
     rsx! {
         div { style: "display: flex; flex-direction: row; gap: 10px;",
             div { style: "flex: 0 1 20%;",
-                Sidebar { channel_config_dialog_state }
+                Sidebar { channel_config_state }
             }
             div { style: "flex: 0 1 80%;",
                 Workspace {
                     render_requests,
                     element_spawn_point,
-                    parameter_dialog_state,
+                    parameter_state,
                 }
             }
             div {
-                node::parameter_dialog::Dialog { state: parameter_dialog_state }
+                node::parameter::Dialog { state: parameter_state }
             }
             div { style: "flex: 0 1 10%;",
                 Toolbar { render_requests }
@@ -154,11 +154,11 @@ pub(crate) fn Editor() -> Element {
     }
 }
 
-fn parameter_dialog_handlers(
+fn parameter_handlers(
     mut backend: Backend,
-    mut state: Signal<node::parameter_dialog::State>,
+    mut state: Signal<node::parameter::State>,
     mut render_nodes: RequestNodeRender,
-) -> node::parameter_dialog::Handlers {
+) -> node::parameter::Handlers {
     let on_confirm = move |(node_id, params): (NodeId, Parameters)| {
         backend
             .with_mut(|s| beetry_editor_backend::api::node::parameters::create(s, node_id, params));
@@ -168,8 +168,8 @@ fn parameter_dialog_handlers(
 
     let on_cancel = move |_| -> Result<()> {
         let state = state.take();
-        if let node::parameter_dialog::State::Visible { id, mode, .. } = state
-            && mode == node::parameter_dialog::Mode::Create
+        if let node::parameter::State::Visible { id, mode, .. } = state
+            && mode == node::parameter::Mode::Create
         {
             backend.with_mut(|s| beetry_editor_backend::api::node::remove(s, id))?;
             render_nodes.request();
@@ -177,5 +177,5 @@ fn parameter_dialog_handlers(
         Ok(())
     };
 
-    node::parameter_dialog::Handlers::new(on_confirm, on_cancel)
+    node::parameter::Handlers::new(on_confirm, on_cancel)
 }

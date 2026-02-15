@@ -1,7 +1,7 @@
 pub mod channel;
 pub mod curve;
 pub mod edge;
-pub mod error_dialog;
+pub mod error;
 pub(crate) mod handler;
 pub mod node;
 pub mod shadow;

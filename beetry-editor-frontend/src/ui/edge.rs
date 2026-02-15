@@ -1,5 +1,5 @@
 pub mod menu;
-mod renderer;
+pub mod renderer;
 pub mod temporary;
 
 use beetry_editor_types::id::EdgeId;

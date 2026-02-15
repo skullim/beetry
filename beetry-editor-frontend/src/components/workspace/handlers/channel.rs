@@ -3,8 +3,8 @@ use dioxus::{html::input_data::MouseButton, prelude::*};
 
 use crate::components::workspace::state::{drag, menu, svg, temporary};
 use crate::ui::channel;
-use crate::ui::error_dialog::ErrorQueueState;
-use crate::ui::node::ConnectionOrigin;
+use crate::ui::error::ErrorQueueState;
+use crate::ui::node::port::ConnectionOrigin;
 
 use super::{Backend, DragChannelState, RenderRequests};
 

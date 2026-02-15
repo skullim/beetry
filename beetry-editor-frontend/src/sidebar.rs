@@ -5,13 +5,12 @@ use dioxus::logger::tracing::info;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::ui::channel::config::State as ChannelConfigDialogState;
 use crate::ui::channel::{self};
 
 define_handlers!(on_new_node: NodeSpecKey);
 
 #[component]
-pub(crate) fn Sidebar(channel_config_dialog_state: Signal<ChannelConfigDialogState>) -> Element {
+pub(crate) fn Sidebar(channel_config_state: Signal<channel::config::State>) -> Element {
     debug!("rendering");
 
     let on_new_node = use_context::<Handlers>().on_new_node;
@@ -61,8 +60,8 @@ pub(crate) fn Sidebar(channel_config_dialog_state: Signal<ChannelConfigDialogSta
             for spec in channel_specs.values().cloned() {
                 button {
                     onclick: move |_| {
-                        channel_config_dialog_state
-                            .set(ChannelConfigDialogState::Visible {
+                        channel_config_state
+                            .set(channel::config::State::Visible {
                                 position: Point { x: 200.0, y: 100.0 },
                                 spec_key: spec.msg_hash(),
                             });
@@ -72,7 +71,7 @@ pub(crate) fn Sidebar(channel_config_dialog_state: Signal<ChannelConfigDialogSta
             }
 
             div {
-                channel::config::Dialog { state: channel_config_dialog_state }
+                channel::config::Dialog { state: channel_config_state }
             }
         }
     }

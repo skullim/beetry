@@ -8,7 +8,7 @@ use crate::{components::workspace, signals::RenderRequests};
 pub(super) fn WorkspaceContextProvider(
     render_requests: RenderRequests,
     element_spawn_point: Signal<crate::Point>,
-    parameter_dialog_state: Signal<node::parameter_dialog::State>,
+    parameter_state: Signal<node::parameter::State>,
     children: Element,
 ) -> Element {
     let backend = use_context();
@@ -41,7 +41,7 @@ pub(super) fn WorkspaceContextProvider(
             workspace_state.menu,
             backend,
             render_requests,
-            parameter_dialog_state,
+            parameter_state,
         )
     });
 
