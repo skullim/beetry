@@ -12,19 +12,9 @@ use dioxus::prelude::*;
 use crate::Point;
 use crate::definitions::EdgePos;
 use crate::ui::curve::Curve;
+use crate::ui::handler::handlers;
 
-#[derive(Debug, Clone)]
-pub struct Handlers {
-    on_context_menu: EventHandler<(EdgeId, Point)>,
-}
-
-impl Handlers {
-    pub(crate) fn new(on_context_menu: impl FnMut((EdgeId, Point)) + 'static) -> Self {
-        Self {
-            on_context_menu: EventHandler::new(on_context_menu),
-        }
-    }
-}
+handlers!(on_context_menu: (EdgeId, Point));
 
 #[derive(Props, Clone, PartialEq)]
 pub struct EdgeProps {
@@ -51,7 +41,7 @@ pub(crate) fn Edge(props: EdgeProps) -> Element {
     let stroke_color = "#8B5CF6"; // matches output ports
     let stroke_width = "3";
 
-    let context_menu_handler = use_context::<Handlers>().on_context_menu;
+    let handlers = use_context::<Handlers>();
 
     rsx! {
         path {
@@ -66,7 +56,7 @@ pub(crate) fn Edge(props: EdgeProps) -> Element {
                     x: evt.element_coordinates().x,
                     y: evt.element_coordinates().y,
                 };
-                context_menu_handler.call((edge_id, click_point));
+                handlers.on_context_menu.call((edge_id, click_point));
             },
         }
     }

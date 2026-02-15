@@ -38,7 +38,7 @@ pub(crate) enum State {
 }
 
 #[component]
-pub fn PortContextMenu(state: Signal<State>) -> Element {
+pub fn Menu(state: Signal<State>) -> Element {
     debug!("rendering");
 
     match state() {

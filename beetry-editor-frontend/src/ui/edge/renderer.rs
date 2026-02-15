@@ -1,5 +1,5 @@
 use crate::definitions::EdgePos;
-use crate::editor::ServiceContext;
+use crate::editor::Backend;
 use crate::signals::RequestEdgeRender;
 use crate::ui::edge::Edge;
 use beetry_editor_backend::api::{EdgeQueryView, NodeUiQueryApi};
@@ -12,14 +12,14 @@ use dioxus::prelude::*;
 pub fn Renderer(render_edges: RequestEdgeRender) -> Element {
     debug!("rendering");
     render_edges.track();
-    let service = use_context::<ServiceContext>();
-    let read = service.read();
+    let backend = use_context::<Backend>();
+    let read = backend.read();
 
     let edge_query = beetry_editor_backend::api::edge::borrow(&(*read));
     let ui_node_query = beetry_editor_backend::api::ui::node::borrow(&(*read));
 
     let edges = edge_query.edges().map(|(id, edge)| {
-        //@todo refine on service layer to get position of the port and not node
+        //@todo refine on API layer to get position of the port and not node
         //@todo error handling
         let edge_start = ui_node_query.data(edge.from).unwrap().position;
         let edge_end = ui_node_query.data(edge.to).unwrap().position;

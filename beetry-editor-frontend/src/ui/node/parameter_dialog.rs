@@ -1,5 +1,5 @@
-use crate::Point;
-use crate::editor::ServiceContext;
+use crate::editor::Backend;
+use crate::{Point, ui::handler::handlers};
 use beetry_editor_backend::api::{ParameterValueParser, SpecByNodeIdQueryView};
 use beetry_editor_types::{
     id::NodeId,
@@ -10,23 +10,9 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing::{debug, error};
 use std::rc::Rc;
 
-#[derive(Debug, Clone)]
-pub struct Handlers {
-    pub(crate) on_confirm: EventHandler<(NodeId, Parameters)>,
-    pub(crate) on_cancel: EventHandler<()>,
-}
-
-impl Handlers {
-    pub(crate) fn new(
-        on_confirm: impl FnMut((NodeId, Parameters)) + 'static,
-        on_cancel: impl FnMut(()) -> Result<()> + 'static,
-    ) -> Self {
-        Self {
-            on_confirm: EventHandler::new(on_confirm),
-            on_cancel: EventHandler::new(on_cancel),
-        }
-    }
-}
+handlers!(on_confirm: (NodeId, Parameters),
+          on_cancel: (),
+);
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum State {
@@ -73,8 +59,8 @@ fn VisibleDialog(props: VisibleDialogProps) -> Element {
     let id = props.id;
     let position = props.position;
     let mode = props.mode;
-    let service = use_context::<ServiceContext>();
-    let read = service.read();
+    let backend = use_context::<Backend>();
+    let read = backend.read();
     let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
     let params_spec = Rc::new(spec_query.params(id).unwrap().clone());
     let node_name = Rc::new(spec_query.name(id).unwrap().clone());
@@ -82,7 +68,7 @@ fn VisibleDialog(props: VisibleDialogProps) -> Element {
     let initial_parameters = match mode {
         Mode::Create => Parameters::default(),
         Mode::Update => {
-            match service.with(|s| -> anyhow::Result<Parameters> {
+            match backend.with(|s| -> anyhow::Result<Parameters> {
                 Ok(beetry_editor_backend::api::node::parameters::get(s, id)?.clone())
             }) {
                 Ok(parameters) => parameters,
@@ -194,8 +180,8 @@ struct ParameterFieldProps {
 fn ParameterField(props: ParameterFieldProps) -> Element {
     let mut parameters = props.parameters;
 
-    let service = use_context::<ServiceContext>();
-    let read = service.read();
+    let backend = use_context::<Backend>();
+    let read = backend.read();
 
     let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
     let spec = spec_query.spec(props.id).unwrap();

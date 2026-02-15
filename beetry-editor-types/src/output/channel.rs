@@ -35,7 +35,7 @@ impl ChannelConfig {
         }
     }
 
-    // service layer has to guarantee that invalid connections are handled when changing the channel kind
+    // backend has to guarantee that invalid connections are handled when changing the channel kind
     pub fn set_kind(&mut self, kind: ChannelKind) {
         self.kind = kind
     }
