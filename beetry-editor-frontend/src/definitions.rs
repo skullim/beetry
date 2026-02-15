@@ -3,7 +3,7 @@ use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Clone, PartialEq, Props, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Props, Serialize, Deserialize)]
 pub struct EdgePos {
     pub start: Point,
     pub end: Point,

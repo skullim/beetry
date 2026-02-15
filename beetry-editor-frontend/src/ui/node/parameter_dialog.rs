@@ -68,7 +68,7 @@ fn VisibleDialog(props: VisibleDialogProps) -> Element {
     let initial_parameters = match mode {
         Mode::Create => Parameters::default(),
         Mode::Update => {
-            match backend.with(|s| -> anyhow::Result<Parameters> {
+            match backend.with_peek(|s| -> anyhow::Result<Parameters> {
                 Ok(beetry_editor_backend::api::node::parameters::get(s, id)?.clone())
             }) {
                 Ok(parameters) => parameters,
