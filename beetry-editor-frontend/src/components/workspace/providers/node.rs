@@ -3,7 +3,7 @@ use beetry_editor_types::{id::NodeId, output::ui::Point};
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 
-use crate::components::workspace::providers::CanvasState;
+use crate::components::workspace::providers::WorkspaceSvgState;
 use crate::ui::node::{self, ContextMenuState, PARAM_DIALOG_POSITION};
 
 use super::{Backend, DragNodeState, DragState, MenuState, RenderRequests};
@@ -12,7 +12,7 @@ use crate::ui::error_dialog::ErrorQueueState;
 pub(crate) fn handlers(
     mut drag: DragState,
     mut menus: MenuState,
-    canvas: CanvasState,
+    svg: WorkspaceSvgState,
     backend: Backend,
     mut errors: ErrorQueueState,
 ) -> node::Handlers {
@@ -40,7 +40,7 @@ pub(crate) fn handlers(
 
         if evt.held_buttons().contains(MouseButton::Primary) {
             let mouse_coords = evt.client_coordinates();
-            let zoom_level = canvas.viewport.zoom_level.peek().get();
+            let zoom_level = svg.zoom.get();
 
             let svg_mouse_coords = Point {
                 x: mouse_coords.x / zoom_level,

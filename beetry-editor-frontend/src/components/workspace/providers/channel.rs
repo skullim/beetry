@@ -3,7 +3,7 @@ use dioxus::{html::input_data::MouseButton, prelude::*};
 
 use crate::ui::channel::temporary::ConnectionOrigin;
 use crate::ui::error_dialog::ErrorQueueState;
-use crate::{components::workspace::providers::CanvasState, ui::channel};
+use crate::{components::workspace::providers::WorkspaceSvgState, ui::channel};
 
 use super::{Backend, DragChannelState, DragState, MenuState, RenderRequests, TempState};
 
@@ -11,7 +11,7 @@ pub(crate) fn handlers(
     mut drag: DragState,
     mut menus: MenuState,
     mut temp: TempState,
-    canvas: CanvasState,
+    svg: WorkspaceSvgState,
     mut backend: Backend,
     mut requests: RenderRequests,
     mut errors: ErrorQueueState,
@@ -80,7 +80,7 @@ pub(crate) fn handlers(
     let on_mouse_down = move |(id, position, evt): (ChannelId, Point, Event<MouseData>)| {
         if evt.held_buttons().contains(MouseButton::Primary) {
             let mouse_coords = evt.client_coordinates();
-            let zoom_level = canvas.viewport.zoom_level.peek().get();
+            let zoom_level = svg.zoom.get();
 
             let svg_mouse_coords = Point {
                 x: mouse_coords.x / zoom_level,

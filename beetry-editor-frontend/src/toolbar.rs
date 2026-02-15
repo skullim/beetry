@@ -70,13 +70,13 @@ pub(crate) fn Toolbar(render_requests: RenderRequests) -> Element {
 }
 
 fn do_export_project(backend: Backend) -> Result<()> {
-    let state = backend.with(beetry_editor_backend::api::project::export)?;
+    let state = backend.with_peek(beetry_editor_backend::api::project::export)?;
     export_project_to_file(state)?;
     Ok(())
 }
 
 fn do_export_valid_tree(backend: Backend) -> Result<()> {
-    let tree = backend.with(beetry_editor_backend::api::project::export_valid_tree)?;
+    let tree = backend.with_peek(beetry_editor_backend::api::project::export_valid_tree)?;
     export_valid_tree_to_file(tree)?;
     Ok(())
 }

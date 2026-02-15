@@ -18,7 +18,8 @@ pub(crate) fn input_handlers(
     mut requests: RenderRequests,
 ) -> node::InputPortHandlers {
     let on_mouse_up = move |to: NodeId| -> Result<()> {
-        if let Some(from) = temp.edge.take_dragged()
+        let mut edge = temp.edge.write();
+        if let Some(from) = edge.take_dragged()
             && from != to
         {
             backend
@@ -33,11 +34,15 @@ pub(crate) fn input_handlers(
 
 pub(crate) fn output_handlers(mut temp: TempState) -> node::OutputPortHandlers {
     let on_mouse_down = move |indexed_drag_offset: IndexedDragOffset| {
-        let offset = indexed_drag_offset.offset;
-        temp.edge.set_dragged_from(indexed_drag_offset.id);
-        temp.edge.update_edge(EdgePos {
-            start: offset,
-            end: offset,
+        let (id, offset) = (indexed_drag_offset.id, indexed_drag_offset.offset);
+        temp.edge.with_mut(|e| {
+            e.set_dragged(
+                id,
+                EdgePos {
+                    start: offset,
+                    end: offset,
+                },
+            );
         });
         Ok(())
     };

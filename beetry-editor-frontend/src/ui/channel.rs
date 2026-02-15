@@ -40,12 +40,10 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
     let position = props.position;
 
     let backend = use_context::<Backend>();
-    let read = backend.read();
-    let channel_query_api = beetry_editor_backend::api::channel::borrow(&(*read));
+    let backend_peek = backend.peek();
+    let channel_query_api = beetry_editor_backend::api::channel::borrow(&(*backend_peek));
 
     let name = channel_query_api.spec(id).unwrap().name();
-
-    let handlers = use_context::<Handlers>();
 
     let font_size = 10;
     let body_width = text_width_from(name, font_size);
@@ -55,6 +53,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
     let mut receiver_hovered = use_signal(|| false);
     let mut show_tooltip = use_signal(|| false);
 
+    let handlers = use_context::<Handlers>();
     let on_context_menu = move |evt| handlers.on_context_menu.call((id, evt));
 
     rsx! {

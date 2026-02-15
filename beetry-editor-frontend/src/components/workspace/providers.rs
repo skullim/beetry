@@ -4,13 +4,16 @@ pub(crate) mod node;
 pub(crate) mod port;
 pub(crate) mod render_request;
 
+use crate::components::workspace::state;
 use crate::editor::Backend;
 use crate::signals::RenderRequests;
 use beetry_editor_types::{
     id::{ChannelId, NodeId},
     output::ui::Point,
 };
+use dioxus::html::geometry::WheelDelta;
 use dioxus::prelude::*;
+use std::ops::{Deref, DerefMut};
 
 use crate::ui::{
     channel as ui_channel, edge as ui_edge,
@@ -18,12 +21,12 @@ use crate::ui::{
 };
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct DimensionsContext {
+pub(crate) struct DimensionState {
     width: Signal<f64>,
     height: Signal<f64>,
 }
 
-impl DimensionsContext {
+impl DimensionState {
     const DEFAULT_SIZE: f64 = 1600.0;
     const MARGIN: f64 = 400.0;
 
@@ -55,6 +58,62 @@ impl DimensionsContext {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct ZoomState(Signal<f64>);
+
+impl ZoomState {
+    fn new() -> Self {
+        Self(Signal::new(1.0))
+    }
+
+    pub(crate) fn get(&self) -> f64 {
+        *self.0.peek()
+    }
+
+    pub(crate) fn update(&mut self, wheel_delta: &WheelDelta) {
+        let zoom_factor = match wheel_delta {
+            WheelDelta::Pixels(vector) => {
+                if vector.y > 0.0 {
+                    0.95
+                } else {
+                    1.05
+                }
+            }
+            WheelDelta::Lines(vector) => {
+                if vector.y > 0.0 {
+                    0.9
+                } else {
+                    1.1
+                }
+            }
+            WheelDelta::Pages(vector) => {
+                if vector.y > 0.0 {
+                    0.8
+                } else {
+                    1.25
+                }
+            }
+        };
+
+        self.0
+            .with_mut(|zoom| *zoom = (*zoom * zoom_factor).clamp(0.1, 10.0));
+    }
+}
+
+impl Deref for ZoomState {
+    type Target = Signal<f64>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for ZoomState {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum DragNodeState {
     Idle,
@@ -79,7 +138,7 @@ pub(crate) struct WorkspaceCtx {
 pub(crate) struct WorkspaceState {
     pub(crate) drag: DragState,
     pub(crate) menus: MenuState,
-    pub(crate) canvas: CanvasState,
+    pub(crate) svg: WorkspaceSvgState,
     pub(crate) temp: TempState,
 }
 
@@ -98,15 +157,15 @@ pub(crate) struct MenuState {
 }
 
 #[derive(Clone, Copy)]
-pub(crate) struct CanvasState {
-    pub(crate) dimensions: DimensionsContext,
-    pub(crate) viewport: crate::ui::viewport::ViewportContext,
+pub(crate) struct WorkspaceSvgState {
+    pub(crate) dimensions: DimensionState,
+    pub(crate) zoom: ZoomState,
 }
 
 #[derive(Clone, Copy)]
 pub(crate) struct TempState {
-    pub(crate) edge: ui_edge::temporary::Context,
-    pub(crate) channel: ui_channel::temporary::Context,
+    pub(crate) edge: Signal<state::temporary::State>,
+    pub(crate) channel: ui_channel::temporary::State,
 }
 
 impl WorkspaceCtx {
@@ -122,20 +181,20 @@ impl WorkspaceCtx {
                 channel: Signal::new(ui_channel::ContextMenuState::default()),
                 port: Signal::new(port_context_menu::State::default()),
             },
-            canvas: CanvasState {
-                dimensions: DimensionsContext::new(),
-                viewport: crate::ui::viewport::ViewportContext::new(),
+            svg: WorkspaceSvgState {
+                dimensions: DimensionState::new(),
+                zoom: ZoomState::new(),
             },
             temp: TempState {
-                edge: ui_edge::temporary::Context::new(),
-                channel: ui_channel::temporary::Context::new(),
+                edge: Signal::new(state::temporary::State::new()), //ui_edge::temporary::State::new(),
+                channel: ui_channel::temporary::State::new(),
             },
         };
 
         let workspace_handlers = render_request::workspace_event_handlers(
             state.drag,
             state.menus,
-            state.canvas,
+            state.svg,
             state.temp,
             backend,
             requests,
