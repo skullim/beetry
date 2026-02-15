@@ -1,6 +1,6 @@
 use crate::definitions::EdgePos;
 use crate::ui::edge;
-use crate::{Point, ui::node::ConnectionOrigin};
+use crate::{Point, ui::node::port::ConnectionOrigin};
 use beetry_editor_types::id::{NodeId, NodePortId};
 use dioxus::prelude::*;
 

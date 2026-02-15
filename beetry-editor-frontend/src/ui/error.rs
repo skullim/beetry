@@ -92,7 +92,7 @@ impl ErrorQueue {
 }
 
 #[component]
-pub fn ErrorDialog() -> Element {
+pub fn Dialog() -> Element {
     let mut queue = use_context::<ErrorQueueState>();
     let items = queue.read().snapshot();
     if items.is_empty() {

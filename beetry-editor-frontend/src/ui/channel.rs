@@ -1,6 +1,6 @@
 pub mod config;
 pub mod menu;
-mod renderer;
+pub mod renderer;
 
 use crate::Point;
 use crate::definitions::EdgePos;
@@ -14,7 +14,6 @@ use beetry_editor_types::id::ChannelId;
 use beetry_plugin::Named;
 use dioxus::prelude::*;
 pub use menu::Menu;
-
 pub use renderer::ConnectionRenderer;
 pub use renderer::Renderer;
 

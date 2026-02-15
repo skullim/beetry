@@ -35,11 +35,11 @@ pub fn launch() {
             .with_always_on_top(false)
             .with_title("Beetry Editor 🌳"),
     );
-    dioxus::LaunchBuilder::desktop().with_cfg(cfg).launch(app);
+    dioxus::LaunchBuilder::desktop().with_cfg(cfg).launch(App);
 }
 
 #[component]
-fn app() -> Element {
+fn App() -> Element {
     rsx! {
         SpecsProvider { editor::Editor {} }
     }

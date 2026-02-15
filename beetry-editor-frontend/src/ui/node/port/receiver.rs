@@ -1,7 +1,7 @@
 use crate::Point;
 use crate::editor::Backend;
 use crate::ui::handler::define_handlers;
-use crate::ui::node::ConnectionOrigin;
+use crate::ui::node::port::ConnectionOrigin;
 use crate::ui::{channel, shadow};
 use beetry_editor_types::spec::message::MessageSpec;
 use beetry_editor_types::{id::NodeId, id::NodePortId};

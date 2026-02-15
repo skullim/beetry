@@ -9,8 +9,8 @@ use rfd::FileDialog;
 
 use crate::editor::Backend;
 use crate::signals::RenderRequests;
-use crate::ui::error_dialog::ErrorDialog;
-use crate::ui::error_dialog::ErrorQueueState;
+use crate::ui::error;
+use crate::ui::error::ErrorQueueState;
 use crate::ui::transfer;
 
 #[component]
@@ -65,7 +65,7 @@ pub(crate) fn Toolbar(render_requests: RenderRequests) -> Element {
         transfer::ExportProject {}
         transfer::ExportValidTree {}
         transfer::Import {}
-        ErrorDialog {}
+        error::Dialog {}
     }
 }
 
