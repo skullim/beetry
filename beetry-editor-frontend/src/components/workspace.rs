@@ -1,4 +1,5 @@
 pub(crate) mod providers;
+mod state;
 
 use beetry_editor_types::output::ui::Point;
 use dioxus::logger::tracing::debug;
@@ -43,7 +44,7 @@ fn WorkspaceContextProvider(
         providers::node::handlers(
             workspace_ctx.state.drag,
             workspace_ctx.state.menus,
-            workspace_ctx.state.canvas,
+            workspace_ctx.state.svg,
             workspace_ctx.backend,
             error_queue_state,
         )
@@ -106,7 +107,7 @@ fn WorkspaceContextProvider(
             workspace_ctx.state.drag,
             workspace_ctx.state.menus,
             workspace_ctx.state.temp,
-            workspace_ctx.state.canvas,
+            workspace_ctx.state.svg,
             workspace_ctx.backend,
             workspace_ctx.requests,
             error_queue_state,
@@ -122,8 +123,8 @@ fn WorkspaceCanvas(render_requests: RenderRequests, ui_spawn_point: Signal<Point
 
     let ws = use_context::<providers::WorkspaceCtx>();
     let handlers = ws.workspace_handlers;
-    let zoom_level = ws.state.canvas.viewport.zoom_level.read().get();
-    let dimensions = ws.state.canvas.dimensions;
+    let zoom_level = *ws.state.svg.zoom.read();
+    let dimensions = ws.state.svg.dimensions;
     let (menus, temp) = (ws.state.menus, ws.state.temp);
 
     rsx! {
@@ -170,9 +171,7 @@ fn WorkspaceCanvas(render_requests: RenderRequests, ui_spawn_point: Signal<Point
                 channel::Renderer { render_channels: render_requests.channels }
                 node::Renderer { render_nodes: render_requests.nodes }
 
-                if temp.edge.is_dragged() {
-                    edge::Temporary { edge: temp.edge.edge() }
-                }
+                edge::Temporary { state: use_memo(move || (&*ws.state.temp.edge.read()).into()) }
                 if temp.channel.is_dragged() {
                     channel::Temporary { edge: temp.channel.edge() }
                 }

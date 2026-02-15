@@ -25,17 +25,15 @@ pub struct ContextMenuProps {
 #[component]
 pub fn ContextMenu(props: ContextMenuProps) -> Element {
     debug!("rendering");
-    let state_read = props.state.read();
-    let (position, edge_id) = match *state_read {
+    let (position, edge_id) = match *props.state.read() {
         State::Idle => return rsx!(),
         State::Visible { position, edge_id } => (position, edge_id),
     };
 
-    let context_menu_handlers = use_context::<Handlers>();
-
     let menu_width = 160;
     let menu_height = 36;
 
+    let context_menu_handlers = use_context::<Handlers>();
     rsx! {
         g { transform: "translate({position.x} {position.y})",
             rect {

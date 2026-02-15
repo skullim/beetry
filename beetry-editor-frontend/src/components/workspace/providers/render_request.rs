@@ -7,8 +7,8 @@ use crate::ui::channel;
 use crate::ui::edge;
 
 use super::{
-    Backend, CanvasState, DragChannelState, DragNodeState, DragState, MenuState, RenderRequests,
-    TempState,
+    Backend, DragChannelState, DragNodeState, DragState, MenuState, RenderRequests, TempState,
+    WorkspaceSvgState,
 };
 
 #[derive(Debug, Clone, Builder)]
@@ -18,28 +18,27 @@ pub(crate) struct WorkspaceEventHandlers {
     pub(crate) on_wheel: EventHandler<Event<WheelData>>,
 }
 
-pub(crate) fn set_if_changed<T: Clone + PartialEq + 'static>(state: &mut Signal<T>, next: T) {
-    if state.peek().ne(&next) {
-        state.set(next);
+pub(crate) fn set_if_changed<T: Clone + PartialEq + 'static>(state: &mut Signal<T>, to: T) {
+    if state.peek().ne(&to) {
+        state.set(to);
     }
 }
 
 pub(crate) fn workspace_event_handlers(
     mut drag: DragState,
     mut menus: MenuState,
-    mut canvas: CanvasState,
+    mut svg: WorkspaceSvgState,
     mut temp: TempState,
     mut backend: Backend,
     mut requests: RenderRequests,
 ) -> WorkspaceEventHandlers {
-    let mut dimensions_ctx = canvas.dimensions;
+    let mut dimensions_state = svg.dimensions;
     let on_mouse_move = move |evt: Event<MouseData>| -> Result<()> {
         evt.stop_propagation();
         if let DragNodeState::Dragged { id, offset } = *drag.node.peek() {
-            debug!("inside dragged node");
             let mouse_coords = evt.client_coordinates();
 
-            let zoom = canvas.viewport.zoom_level.peek().get();
+            let zoom = svg.zoom.get();
             let updated_pos = crate::Point {
                 x: mouse_coords.x / zoom - offset.x,
                 y: mouse_coords.y / zoom - offset.y,
@@ -51,16 +50,16 @@ pub(crate) fn workspace_event_handlers(
             requests.edges.request();
             requests.channel_edges.request();
 
-            let read = backend.read();
-            let query_api = beetry_editor_backend::api::ui::node::borrow(&(*read));
-            let positions_iter = query_api.positions();
-            dimensions_ctx.resize_if_needed(positions_iter);
+            backend.with_peek(|s| {
+                let query = beetry_editor_backend::api::ui::node::borrow(s);
+                dimensions_state.resize_if_needed(query.positions());
+            });
         }
 
         if let DragChannelState::Dragged { id, offset } = *drag.channel.peek() {
             let mouse_coords = evt.client_coordinates();
 
-            let zoom = canvas.viewport.zoom_level.peek().get();
+            let zoom = svg.zoom.get();
             let updated_pos = crate::Point {
                 x: mouse_coords.x / zoom - offset.x,
                 y: mouse_coords.y / zoom - offset.y,
@@ -73,7 +72,7 @@ pub(crate) fn workspace_event_handlers(
             requests.channel_edges.request();
         }
 
-        temp.edge.update_end_if_dragged(&evt);
+        temp.edge.with_mut(|e| e.update_end_if_dragged(&evt));
         temp.channel.update_end_if_dragged(&evt);
         Ok(())
     };
@@ -93,7 +92,7 @@ pub(crate) fn workspace_event_handlers(
             crate::ui::node::port_context_menu::State::Idle,
         );
 
-        temp.edge.reset();
+        temp.edge.with_mut(|e| e.reset());
         temp.channel.reset();
     };
 
@@ -101,10 +100,7 @@ pub(crate) fn workspace_event_handlers(
         if evt.modifiers().ctrl() {
             evt.prevent_default();
             let delta = evt.delta();
-            canvas
-                .viewport
-                .zoom_level
-                .with_mut(|level| level.update(&delta));
+            svg.zoom.update(&delta);
         }
     };
 

@@ -38,17 +38,18 @@ pub fn Renderer(render_channels: RequestChannelRender) -> Element {
 // - channel connections changed
 #[component]
 pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Element {
-    debug!("rendering");
+    debug!("rendering connection");
     render_channel_edges.track();
 
-    let backend = use_context::<Backend>();
     let mut error_queue = use_context::<ErrorQueueState>();
-    let read = backend.read();
-    let channel_query_api = beetry_editor_backend::api::ui::channel::borrow(&(*read));
-    let node_query_api = beetry_editor_backend::api::ui::node::borrow(&(*read));
+
+    let backend = use_context::<Backend>();
+    let backend_peek = backend.peek();
+    let channel_query_api = beetry_editor_backend::api::ui::channel::borrow(&(*backend_peek));
+    let node_query_api = beetry_editor_backend::api::ui::node::borrow(&(*backend_peek));
 
     let sender_connections = beetry_editor_backend::api::node::ports::connection_views_by_kind(
-        &(*read),
+        &(*backend_peek),
         NodePortKind::Sender,
     )
     .filter_map(move |conn| match conn {
@@ -75,7 +76,7 @@ pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Ele
     });
 
     let receiver_connections = beetry_editor_backend::api::node::ports::connection_views_by_kind(
-        &(*read),
+        &(*backend_peek),
         NodePortKind::Receiver,
     )
     .filter_map(move |conn| match conn {
