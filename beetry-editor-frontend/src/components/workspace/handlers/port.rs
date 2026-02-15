@@ -6,17 +6,18 @@ use beetry_editor_types::{
 use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
 
-use super::{Backend, MenuState, RenderRequests, TempState};
+use super::{Backend, RenderRequests};
+use crate::components::workspace::state::{menu, temporary};
 use crate::definitions::{EdgePos, IndexedDragOffset};
 use crate::ui::error_dialog::ErrorQueueState;
-use crate::ui::node::{self, ReceiverPortHandlers, SenderPortHandlers};
-use crate::{components::workspace::state::temporary::DraggedData, ui::node::ConnectionOrigin};
+use crate::ui::node::ConnectionOrigin;
+use crate::ui::node::{self};
 
 pub(crate) fn input_handlers(
-    mut temp: TempState,
+    mut temp: temporary::State,
     mut backend: Backend,
     mut requests: RenderRequests,
-) -> node::InputPortHandlers {
+) -> node::port::input::Handlers {
     let on_mouse_up = move |to: NodeId| -> Result<()> {
         let mut edge = temp.edge.write();
         if let Some(from) = edge.take_dragged()
@@ -29,10 +30,10 @@ pub(crate) fn input_handlers(
         }
         Ok(())
     };
-    node::InputPortHandlers::new(on_mouse_up)
+    node::port::input::Handlers::new(on_mouse_up)
 }
 
-pub(crate) fn output_handlers(mut temp: TempState) -> node::OutputPortHandlers {
+pub(crate) fn output_handlers(mut temp: temporary::State) -> node::port::output::Handlers {
     let on_mouse_down = move |indexed_drag_offset: IndexedDragOffset| {
         let (id, offset) = (indexed_drag_offset.id, indexed_drag_offset.offset);
         temp.edge.with_mut(|e| {
@@ -46,21 +47,21 @@ pub(crate) fn output_handlers(mut temp: TempState) -> node::OutputPortHandlers {
         });
         Ok(())
     };
-    node::OutputPortHandlers::new(on_mouse_down)
+    node::port::output::Handlers::new(on_mouse_down)
 }
 
 pub(crate) fn sender_handlers(
-    mut menus: MenuState,
-    mut temp: TempState,
+    mut menu: menu::State,
+    mut temp: temporary::State,
     backend: Backend,
     mut errors: ErrorQueueState,
-) -> SenderPortHandlers {
+) -> node::port::sender::Handlers {
     let on_mouse_down = move |(origin, indexed_drag_offset, port_id): (
         ConnectionOrigin,
         IndexedDragOffset,
         NodePortId,
     )| {
-        let dragged_data = DraggedData {
+        let dragged_data = temporary::channel_edge::DraggedData {
             node_id: indexed_drag_offset.id,
             origin,
             port_id,
@@ -77,7 +78,7 @@ pub(crate) fn sender_handlers(
         });
         Ok(())
     };
-    let on_context_menu = move |(position, node_id, port_id): (Point, NodeId, NodePortId)| {
+    let on_menu = move |(position, node_id, port_id): (Point, NodeId, NodePortId)| {
         let is_external = match backend
             .with(|s| beetry_editor_backend::api::node::ports::is_external(s, node_id, port_id))
         {
@@ -87,7 +88,7 @@ pub(crate) fn sender_handlers(
                 false
             }
         };
-        menus.port.set(node::port_context_menu::State::Visible {
+        menu.port.set(node::port::menu::State::Visible {
             position,
             id: node_id,
             port_id,
@@ -96,21 +97,21 @@ pub(crate) fn sender_handlers(
         Ok(())
     };
 
-    SenderPortHandlers::new(on_mouse_down, on_context_menu)
+    node::port::sender::Handlers::new(on_mouse_down, on_menu)
 }
 
 pub(crate) fn receiver_handlers(
-    mut menus: MenuState,
-    mut temp: TempState,
+    mut menu: menu::State,
+    mut temp: temporary::State,
     backend: Backend,
     mut errors: ErrorQueueState,
-) -> ReceiverPortHandlers {
+) -> node::port::receiver::Handlers {
     let on_mouse_down = move |(origin, indexed_drag_offset, port_id): (
         ConnectionOrigin,
         IndexedDragOffset,
         NodePortId,
     )| {
-        let dragged_data = DraggedData {
+        let dragged_data = temporary::channel_edge::DraggedData {
             node_id: indexed_drag_offset.id,
             origin,
             port_id,
@@ -127,7 +128,7 @@ pub(crate) fn receiver_handlers(
         });
         Ok(())
     };
-    let on_context_menu = move |(position, node_id, port_id): (Point, NodeId, NodePortId)| {
+    let on_menu = move |(position, node_id, port_id): (Point, NodeId, NodePortId)| {
         let is_external = match backend
             .with(|s| beetry_editor_backend::api::node::ports::is_external(s, node_id, port_id))
         {
@@ -137,7 +138,7 @@ pub(crate) fn receiver_handlers(
                 false
             }
         };
-        menus.port.set(node::port_context_menu::State::Visible {
+        menu.port.set(node::port::menu::State::Visible {
             position,
             id: node_id,
             port_id,
@@ -146,13 +147,13 @@ pub(crate) fn receiver_handlers(
         Ok(())
     };
 
-    ReceiverPortHandlers::new(on_mouse_down, on_context_menu)
+    node::port::receiver::Handlers::new(on_mouse_down, on_menu)
 }
 
-pub(crate) fn context_menu_handlers(
+pub(crate) fn menu_handlers(
     mut backend: Backend,
     mut requests: RenderRequests,
-) -> node::PortContextMenuHandlers {
+) -> node::port::menu::Handlers {
     let on_external = move |(node_id, port_id): (NodeId, NodePortId)| {
         backend
             .with_mut(|s| {
@@ -173,7 +174,7 @@ pub(crate) fn context_menu_handlers(
         debug!("set port (node id: {node_id}, port id: {port_id}) as internal")
     };
 
-    node::PortContextMenuHandlers::builder()
+    node::port::menu::Handlers::builder()
         .on_external(on_external)
         .on_internal(on_internal)
         .build()

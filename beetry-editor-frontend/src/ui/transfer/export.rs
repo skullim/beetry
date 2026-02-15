@@ -1,8 +1,8 @@
 use dioxus::prelude::*;
 
-use crate::ui::handler::handlers;
+use crate::ui::handler::define_handlers;
 
-handlers!(on_project: (),
+define_handlers!(on_project: (),
           on_valid_tree: ()
 );
 

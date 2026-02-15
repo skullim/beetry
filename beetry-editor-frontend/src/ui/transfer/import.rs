@@ -1,8 +1,8 @@
 use dioxus::prelude::*;
 
-use crate::ui::handler::handlers;
+use crate::ui::handler::define_handlers;
 
-handlers!(on_click: ());
+define_handlers!(on_click: ());
 
 #[component]
 pub fn Import() -> Element {

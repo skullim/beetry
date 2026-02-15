@@ -1,17 +1,18 @@
 use beetry_editor_types::{id::ChannelId, output::ui::Point};
 use dioxus::{html::input_data::MouseButton, prelude::*};
 
+use crate::components::workspace::state::{drag, menu, svg, temporary};
+use crate::ui::channel;
 use crate::ui::error_dialog::ErrorQueueState;
 use crate::ui::node::ConnectionOrigin;
-use crate::{components::workspace::providers::WorkspaceSvgState, ui::channel};
 
-use super::{Backend, DragChannelState, DragState, MenuState, RenderRequests, TempState};
+use super::{Backend, DragChannelState, RenderRequests};
 
 pub(crate) fn handlers(
-    mut drag: DragState,
-    mut menus: MenuState,
-    mut temp: TempState,
-    svg: WorkspaceSvgState,
+    mut drag: drag::State,
+    mut menus: menu::State,
+    mut temp: temporary::State,
+    svg: svg::State,
     mut backend: Backend,
     mut requests: RenderRequests,
     mut errors: ErrorQueueState,
@@ -64,7 +65,7 @@ pub(crate) fn handlers(
         Ok(())
     };
 
-    let on_context_menu = move |(channel_id, evt): (ChannelId, Event<MouseData>)| {
+    let on_menu = move |(channel_id, evt): (ChannelId, Event<MouseData>)| {
         evt.prevent_default();
         evt.stop_propagation();
         let click_point = Point {
@@ -72,7 +73,7 @@ pub(crate) fn handlers(
             y: evt.element_coordinates().y,
         };
 
-        menus.channel.set(channel::ContextMenuState::Visible {
+        menus.channel.set(channel::menu::State::Visible {
             position: click_point,
             channel_id,
         });
@@ -101,16 +102,16 @@ pub(crate) fn handlers(
     channel::Handlers::new(
         receiver_on_mouse_up,
         sender_on_mouse_up,
-        on_context_menu,
+        on_menu,
         on_mouse_down,
     )
 }
 
-pub(crate) fn context_menu_handlers(
-    mut menus: MenuState,
+pub(crate) fn menu_handlers(
+    mut menu: menu::State,
     mut backend: Backend,
     mut requests: RenderRequests,
-) -> channel::ContextMenuHandlers {
+) -> channel::menu::Handlers {
     let on_delete = move |id: ChannelId| -> Result<()> {
         backend.with_mut(|s| beetry_editor_backend::api::channel::remove(s, id))?;
         requests.channels.request();
@@ -119,9 +120,9 @@ pub(crate) fn context_menu_handlers(
     };
 
     let on_close = move |_| {
-        menus.channel.set(channel::ContextMenuState::Idle);
+        menu.channel.set(channel::menu::State::Idle);
         Ok(())
     };
 
-    channel::ContextMenuHandlers::new(on_delete, on_close)
+    channel::menu::Handlers::new(on_delete, on_close)
 }

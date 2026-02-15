@@ -1,11 +1,11 @@
 use crate::{
     Point,
-    ui::{handler::handlers, node::port::IoPortStyleUrl},
+    ui::{handler::define_handlers, node::port::IoPortStyleUrl},
 };
 use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 
-handlers!(on_mouse_up: NodeId);
+define_handlers!(on_mouse_up: NodeId);
 
 #[derive(Props, PartialEq, Clone)]
 pub struct PortProps {

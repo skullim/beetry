@@ -1,9 +1,9 @@
-use crate::{Point, ui::handler::handlers};
+use crate::{Point, ui::handler::define_handlers};
 use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-handlers!(on_delete: NodeId,
+define_handlers!(on_delete: NodeId,
           on_edit_params: NodeId,
           on_close: (),
 );
@@ -19,15 +19,10 @@ pub enum State {
     },
 }
 
-#[derive(Debug, Props, PartialEq, Clone)]
-pub struct ContextMenuProps {
-    state: ReadSignal<State>,
-}
-
 #[component]
-pub fn ContextMenu(props: ContextMenuProps) -> Element {
+pub fn Menu(state: ReadSignal<State>) -> Element {
     debug!("rendering");
-    let state_read = props.state.read();
+    let state_read = state.read();
     let (position, id, can_edit_params) = match *state_read {
         State::Idle => return rsx!(),
         State::Visible {
@@ -37,7 +32,7 @@ pub fn ContextMenu(props: ContextMenuProps) -> Element {
         } => (position, id, can_edit_params),
     };
 
-    let context_menu_handlers = use_context::<Handlers>();
+    let menu_handlers = use_context::<Handlers>();
 
     let menu_width = 160;
     let menu_height = if can_edit_params { 72 } else { 36 };
@@ -54,8 +49,8 @@ pub fn ContextMenu(props: ContextMenuProps) -> Element {
                 style: "cursor: pointer;",
                 onclick: move |evt| {
                     evt.stop_propagation();
-                    context_menu_handlers.on_delete.call(id);
-                    context_menu_handlers.on_close.call(());
+                    menu_handlers.on_delete.call(id);
+                    menu_handlers.on_close.call(());
                 },
                 onmouseup: move |evt| {
                     evt.stop_propagation();
@@ -81,8 +76,8 @@ pub fn ContextMenu(props: ContextMenuProps) -> Element {
                     style: "cursor: pointer;",
                     onclick: move |evt| {
                         evt.stop_propagation();
-                        context_menu_handlers.on_edit_params.call(id);
-                        context_menu_handlers.on_close.call(());
+                        menu_handlers.on_edit_params.call(id);
+                        menu_handlers.on_close.call(());
                     },
                     onmouseup: move |evt| {
                         evt.stop_propagation();

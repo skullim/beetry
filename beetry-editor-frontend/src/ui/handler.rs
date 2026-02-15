@@ -1,4 +1,4 @@
-macro_rules! handlers {
+macro_rules! define_handlers {
     ($($name: ident: $types: ty),+ $(,)?) => {
         #[derive(Debug, Clone)]
         pub struct Handlers {
@@ -23,4 +23,4 @@ macro_rules! handlers {
     };
 }
 
-pub(crate) use handlers;
+pub(crate) use define_handlers;

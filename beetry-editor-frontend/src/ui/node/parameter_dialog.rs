@@ -1,5 +1,5 @@
 use crate::editor::Backend;
-use crate::{Point, ui::handler::handlers};
+use crate::{Point, ui::handler::define_handlers};
 use beetry_editor_backend::api::{ParameterValueParser, SpecByNodeIdQueryView};
 use beetry_editor_types::{
     id::NodeId,
@@ -10,7 +10,7 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing::{debug, error};
 use std::rc::Rc;
 
-handlers!(on_confirm: (NodeId, Parameters),
+define_handlers!(on_confirm: (NodeId, Parameters),
           on_cancel: (),
 );
 

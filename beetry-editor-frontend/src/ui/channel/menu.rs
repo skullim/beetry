@@ -1,9 +1,9 @@
-use crate::{Point, ui::handler::handlers};
+use crate::{Point, ui::handler::define_handlers};
 use beetry_editor_types::id::ChannelId;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-handlers!(on_delete: ChannelId,
+define_handlers!(on_delete: ChannelId,
           on_close: (),
 );
 
@@ -17,15 +17,10 @@ pub enum State {
     },
 }
 
-#[derive(Debug, Props, PartialEq, Clone)]
-pub struct ContextMenuProps {
-    state: ReadSignal<State>,
-}
-
 #[component]
-pub fn ContextMenu(props: ContextMenuProps) -> Element {
+pub fn Menu(state: ReadSignal<State>) -> Element {
     debug!("rendering");
-    let state_read = props.state.read();
+    let state_read = state.read();
     let (position, channel_id) = match *state_read {
         State::Idle => return rsx!(),
         State::Visible {
@@ -34,7 +29,7 @@ pub fn ContextMenu(props: ContextMenuProps) -> Element {
         } => (position, channel_id),
     };
 
-    let context_menu_handlers = use_context::<Handlers>();
+    let menu_handlers = use_context::<Handlers>();
 
     let menu_width = 160;
     let menu_height = 36;
@@ -51,8 +46,8 @@ pub fn ContextMenu(props: ContextMenuProps) -> Element {
                 style: "cursor: pointer;",
                 onclick: move |evt| {
                     evt.stop_propagation();
-                    context_menu_handlers.on_delete.call(channel_id);
-                    context_menu_handlers.on_close.call(());
+                    menu_handlers.on_delete.call(channel_id);
+                    menu_handlers.on_close.call(());
                 },
                 onmouseup: move |evt| {
                     evt.stop_propagation();

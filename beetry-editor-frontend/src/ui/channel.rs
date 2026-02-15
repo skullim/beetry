@@ -1,27 +1,26 @@
-pub mod config_dialog;
-mod context_menu;
+pub mod config;
+pub mod menu;
 mod renderer;
 
 use crate::Point;
 use crate::definitions::EdgePos;
 use crate::editor::Backend;
 use crate::ui::curve::Curve;
-use crate::ui::handler::handlers;
+use crate::ui::handler::define_handlers;
 use crate::ui::shadow;
 use crate::ui::text::{self, text_width_from};
 use beetry_editor_backend::api::ChannelQueryView;
 use beetry_editor_types::id::ChannelId;
 use beetry_plugin::Named;
-pub use config_dialog::Dialog as ConfigDialog;
-pub use context_menu::{ContextMenu, Handlers as ContextMenuHandlers, State as ContextMenuState};
 use dioxus::prelude::*;
+pub use menu::Menu;
 
 pub use renderer::ConnectionRenderer;
 pub use renderer::Renderer;
 
-handlers!(receiver_on_mouse_up: ChannelId,
+define_handlers!(receiver_on_mouse_up: ChannelId,
           sender_on_mouse_up: ChannelId,
-          on_context_menu: (ChannelId, Event<MouseData>),
+          on_menu: (ChannelId, Event<MouseData>),
           on_mouse_down: (ChannelId, Point, Event<MouseData>)
 );
 
@@ -52,7 +51,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
     let mut show_tooltip = use_signal(|| false);
 
     let handlers = use_context::<Handlers>();
-    let on_context_menu = move |evt| handlers.on_context_menu.call((id, evt));
+    let on_menu = move |evt| handlers.on_menu.call((id, evt));
 
     rsx! {
         g {
@@ -63,7 +62,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
             // Sender port (left side)
             rect {
                 onmouseup: move |_| { handlers.sender_on_mouse_up.call(id) },
-                oncontextmenu: on_context_menu,
+                oncontextmenu: on_menu,
                 onmouseenter: move |_| sender_hovered.set(true),
                 onmouseleave: move |_| sender_hovered.set(false),
                 x: "{position.x}",
@@ -81,7 +80,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
 
             // Main body
             rect {
-                oncontextmenu: on_context_menu,
+                oncontextmenu: on_menu,
                 onmouseenter: move |_| {
                     body_hovered.set(true);
                     show_tooltip.set(true);
@@ -106,7 +105,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
             // Receiver port (right side)
             rect {
                 onmouseup: move |_| { handlers.receiver_on_mouse_up.call(id) },
-                oncontextmenu: on_context_menu,
+                oncontextmenu: on_menu,
                 onmouseenter: move |_| receiver_hovered.set(true),
                 onmouseleave: move |_| receiver_hovered.set(false),
                 x: "{position.x + 40.0 + body_width}",
