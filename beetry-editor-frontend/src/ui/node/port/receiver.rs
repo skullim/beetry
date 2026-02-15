@@ -1,6 +1,7 @@
 use crate::Point;
 use crate::editor::Backend;
 use crate::ui::handler::handlers;
+use crate::ui::node::ConnectionOrigin;
 use crate::ui::{channel, shadow};
 use beetry_editor_types::spec::message::MessageSpec;
 use beetry_editor_types::{id::NodeId, id::NodePortId};
@@ -8,7 +9,6 @@ use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 
 use crate::definitions::IndexedDragOffset;
-use crate::ui::channel::temporary::ConnectionOrigin;
 use crate::ui::text::{self, text_width_from};
 
 handlers!(on_mouse_down: (ConnectionOrigin, IndexedDragOffset, NodePortId),

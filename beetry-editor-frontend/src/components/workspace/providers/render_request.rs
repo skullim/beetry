@@ -73,7 +73,7 @@ pub(crate) fn workspace_event_handlers(
         }
 
         temp.edge.with_mut(|e| e.update_end_if_dragged(&evt));
-        temp.channel.update_end_if_dragged(&evt);
+        temp.channel.with_mut(|c| c.update_end_if_dragged(&evt));
         Ok(())
     };
 
@@ -93,7 +93,7 @@ pub(crate) fn workspace_event_handlers(
         );
 
         temp.edge.with_mut(|e| e.reset());
-        temp.channel.reset();
+        temp.channel.with_mut(|c| c.reset());
     };
 
     let on_wheel = move |evt: Event<WheelData>| {

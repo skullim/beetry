@@ -13,8 +13,18 @@ pub enum State {
     },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CurveOrientation {
+    Horizontal,
+    Vertical,
+}
+
 #[component]
-pub fn Temporary(state: ReadSignal<State>) -> Element {
+pub fn Temporary(
+    state: ReadSignal<State>,
+    orientation: CurveOrientation,
+    stroke: &'static str,
+) -> Element {
     debug!("rendering (data: {state:?})");
     let state = state.read();
 
@@ -23,10 +33,15 @@ pub fn Temporary(state: ReadSignal<State>) -> Element {
         State::Dragged { pos } => pos,
     };
 
+    let d = match orientation {
+        CurveOrientation::Horizontal => Curve::calculate_horizontal(&pos.start, &pos.end),
+        CurveOrientation::Vertical => Curve::calculate_vertical(&pos.start, &pos.end),
+    };
+
     rsx! {
         path {
-            d: "{Curve::calculate_vertical(&pos.start, &pos.end)}",
-            stroke: "#A78BFA", // Light purple to match output port hover
+            d: "{d}",
+            stroke,
             stroke_width: "2",
             fill: "none",
             stroke_dasharray: "5,5",

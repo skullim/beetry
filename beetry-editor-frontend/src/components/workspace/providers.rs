@@ -165,7 +165,7 @@ pub(crate) struct WorkspaceSvgState {
 #[derive(Clone, Copy)]
 pub(crate) struct TempState {
     pub(crate) edge: Signal<state::temporary::State>,
-    pub(crate) channel: ui_channel::temporary::State,
+    pub(crate) channel: Signal<state::temporary::ChannelState>,
 }
 
 impl WorkspaceCtx {
@@ -186,8 +186,8 @@ impl WorkspaceCtx {
                 zoom: ZoomState::new(),
             },
             temp: TempState {
-                edge: Signal::new(state::temporary::State::new()), //ui_edge::temporary::State::new(),
-                channel: ui_channel::temporary::State::new(),
+                edge: Signal::new(state::temporary::State::new()),
+                channel: Signal::new(state::temporary::ChannelState::new()),
             },
         };
 

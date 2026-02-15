@@ -14,6 +14,7 @@ pub use parameter_dialog::{
     Dialog as ParameterDialog, Handlers as ParameterDialogHandlers, Mode as ParameterDialogMode,
     State as ParameterDialogState,
 };
+pub use port::ConnectionOrigin;
 pub use port::context_menu as port_context_menu;
 pub(crate) use port::context_menu::Handlers as PortContextMenuHandlers;
 pub use port::input::Handlers as InputPortHandlers;
@@ -22,8 +23,8 @@ pub use port::receiver::Handlers as ReceiverPortHandlers;
 pub use port::sender::Handlers as SenderPortHandlers;
 pub use renderer::Renderer;
 
-use dioxus::prelude::*;
 use crate::Point;
+use dioxus::prelude::*;
 
 pub const PARAM_DIALOG_POSITION: Point = Point { x: 300.0, y: 200.0 };
 
