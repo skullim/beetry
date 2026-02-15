@@ -125,7 +125,7 @@ fn WorkspaceCanvas(render_requests: RenderRequests, ui_spawn_point: Signal<Point
     let handlers = ws.workspace_handlers;
     let zoom_level = *ws.state.svg.zoom.read();
     let dimensions = ws.state.svg.dimensions;
-    let (menus, temp) = (ws.state.menus, ws.state.temp);
+    let menus = ws.state.menus;
 
     rsx! {
         div {
@@ -171,9 +171,15 @@ fn WorkspaceCanvas(render_requests: RenderRequests, ui_spawn_point: Signal<Point
                 channel::Renderer { render_channels: render_requests.channels }
                 node::Renderer { render_nodes: render_requests.nodes }
 
-                edge::Temporary { state: use_memo(move || (&*ws.state.temp.edge.read()).into()) }
-                if temp.channel.is_dragged() {
-                    channel::Temporary { edge: temp.channel.edge() }
+                edge::Temporary {
+                    state: use_memo(move || (&*ws.state.temp.edge.read()).into()),
+                    orientation: edge::temporary::CurveOrientation::Vertical,
+                    stroke: "#A78BFA",
+                }
+                edge::Temporary {
+                    state: use_memo(move || (&*ws.state.temp.channel.read()).into()),
+                    orientation: edge::temporary::CurveOrientation::Horizontal,
+                    stroke: "#3a2020ff",
                 }
 
                 node::ContextMenu { state: menus.node }
