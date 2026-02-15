@@ -1,8 +1,8 @@
 use crate::Point;
 use crate::definitions::IndexedDragOffset;
 use crate::editor::Backend;
-use crate::ui::channel::temporary::ConnectionOrigin;
 use crate::ui::handler::handlers;
+use crate::ui::node::port::ConnectionOrigin;
 use crate::ui::text::{self, text_width_from};
 use crate::ui::{channel, shadow};
 use beetry_editor_types::spec::message::MessageSpec;

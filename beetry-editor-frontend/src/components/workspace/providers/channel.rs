@@ -1,8 +1,8 @@
 use beetry_editor_types::{id::ChannelId, output::ui::Point};
 use dioxus::{html::input_data::MouseButton, prelude::*};
 
-use crate::ui::channel::temporary::ConnectionOrigin;
 use crate::ui::error_dialog::ErrorQueueState;
+use crate::ui::node::ConnectionOrigin;
 use crate::{components::workspace::providers::WorkspaceSvgState, ui::channel};
 
 use super::{Backend, DragChannelState, DragState, MenuState, RenderRequests, TempState};
@@ -17,7 +17,8 @@ pub(crate) fn handlers(
     mut errors: ErrorQueueState,
 ) -> channel::Handlers {
     let receiver_on_mouse_up = move |id: ChannelId| -> Result<()> {
-        if let Some(data) = temp.channel.take_dragged()
+        let mut channel = temp.channel.write();
+        if let Some(data) = channel.take_dragged()
             && matches!(data.origin, ConnectionOrigin::Receiver)
         {
             match backend.with_mut(|s| {
@@ -40,7 +41,8 @@ pub(crate) fn handlers(
     };
 
     let sender_on_mouse_up = move |id: ChannelId| -> Result<()> {
-        if let Some(data) = temp.channel.take_dragged()
+        let mut channel = temp.channel.write();
+        if let Some(data) = channel.take_dragged()
             && matches!(data.origin, ConnectionOrigin::Sender)
         {
             match backend.with_mut(|s| {

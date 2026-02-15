@@ -8,9 +8,9 @@ use dioxus::prelude::*;
 
 use super::{Backend, MenuState, RenderRequests, TempState};
 use crate::definitions::{EdgePos, IndexedDragOffset};
-use crate::ui::channel::temporary::{ConnectionOrigin, DraggedData};
 use crate::ui::error_dialog::ErrorQueueState;
 use crate::ui::node::{self, ReceiverPortHandlers, SenderPortHandlers};
+use crate::{components::workspace::state::temporary::DraggedData, ui::node::ConnectionOrigin};
 
 pub(crate) fn input_handlers(
     mut temp: TempState,
@@ -66,10 +66,14 @@ pub(crate) fn sender_handlers(
             port_id,
         };
         let offset = indexed_drag_offset.offset;
-        temp.channel.set_dragged(dragged_data);
-        temp.channel.update_edge_pos(EdgePos {
-            start: offset,
-            end: offset,
+        temp.channel.with_mut(|c| {
+            c.set_dragged(
+                dragged_data,
+                EdgePos {
+                    start: offset,
+                    end: offset,
+                },
+            );
         });
         Ok(())
     };
@@ -112,10 +116,14 @@ pub(crate) fn receiver_handlers(
             port_id,
         };
         let offset = indexed_drag_offset.offset;
-        temp.channel.set_dragged(dragged_data);
-        temp.channel.update_edge_pos(EdgePos {
-            start: offset,
-            end: offset,
+        temp.channel.with_mut(|c| {
+            c.set_dragged(
+                dragged_data,
+                EdgePos {
+                    start: offset,
+                    end: offset,
+                },
+            );
         });
         Ok(())
     };

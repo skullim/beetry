@@ -1,7 +1,6 @@
 pub mod config_dialog;
 mod context_menu;
 mod renderer;
-pub mod temporary;
 
 use crate::Point;
 use crate::definitions::EdgePos;
@@ -19,7 +18,6 @@ use dioxus::prelude::*;
 
 pub use renderer::ConnectionRenderer;
 pub use renderer::Renderer;
-pub use temporary::Temporary;
 
 handlers!(receiver_on_mouse_up: ChannelId,
           sender_on_mouse_up: ChannelId,

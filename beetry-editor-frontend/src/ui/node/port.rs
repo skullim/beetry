@@ -9,6 +9,12 @@ pub use sender::Sender;
 
 use dioxus::prelude::*;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConnectionOrigin {
+    Sender,
+    Receiver,
+}
+
 pub(super) fn style_defs() -> Element {
     rsx! {
         defs {
