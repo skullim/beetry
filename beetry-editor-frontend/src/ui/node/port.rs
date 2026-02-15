@@ -6,6 +6,7 @@ pub mod sender;
 
 pub use receiver::Receiver;
 pub use sender::Sender;
+pub use menu::Menu;
 
 use dioxus::prelude::*;
 

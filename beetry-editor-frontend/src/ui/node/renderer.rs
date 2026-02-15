@@ -6,7 +6,7 @@ use dioxus_logger::tracing::debug;
 use crate::Point;
 use crate::editor::Backend;
 use crate::signals::RequestNodeRender;
-use crate::ui::error_dialog::ErrorQueueState;
+use crate::ui::error::ErrorQueueState;
 use crate::ui::node::control::Control;
 use crate::ui::node::leaf::Leaf;
 use crate::ui::node::root::Root;

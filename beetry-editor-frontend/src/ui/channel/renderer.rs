@@ -7,7 +7,7 @@ use crate::definitions::EdgePos;
 use crate::editor::Backend;
 use crate::signals::{RequestChannelEdgeRender, RequestChannelRender};
 use crate::ui::channel::{Channel, ReceiverConnection, SenderConnection};
-use crate::ui::error_dialog::ErrorQueueState;
+use crate::ui::error::ErrorQueueState;
 use crate::ui::text;
 
 // Conditions to re-render channel elements:

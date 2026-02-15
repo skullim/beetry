@@ -5,11 +5,11 @@ use dioxus::prelude::*;
 
 use crate::{
     components::workspace::state::{drag, menu, svg},
-    ui::node::{self, PARAM_DIALOG_POSITION},
+    ui::node::{self, PARAMETER_POSITION},
 };
 
 use super::{Backend, DragNodeState, RenderRequests};
-use crate::ui::error_dialog::ErrorQueueState;
+use crate::ui::error::ErrorQueueState;
 
 pub(crate) fn handlers(
     mut drag: drag::State,
@@ -17,7 +17,7 @@ pub(crate) fn handlers(
     svg: svg::State,
     backend: Backend,
     mut errors: ErrorQueueState,
-) -> node::Handlers {
+) -> node::base::Handlers {
     let on_menu = move |(id, position): (NodeId, Point)| {
         let can_edit_params = backend
             .with(|s| -> anyhow::Result<bool> {
@@ -25,7 +25,7 @@ pub(crate) fn handlers(
                 Ok(spec_query.spec(id)?.has_params())
             })
             .unwrap_or_else(|err| {
-                errors.with_mut(|q| q.push("node-context-menu", err.to_string()));
+                errors.with_mut(|q| q.push("node-menu", err.to_string()));
                 false
             });
 
@@ -58,14 +58,14 @@ pub(crate) fn handlers(
         }
         Ok(())
     };
-    node::Handlers::new(on_menu, on_mouse_down)
+    node::base::Handlers::new(on_menu, on_mouse_down)
 }
 
 pub(crate) fn menu_handlers(
     mut menu: menu::State,
     mut backend: Backend,
     mut requests: RenderRequests,
-    mut parameter_dialog_state: Signal<node::parameter_dialog::State>,
+    mut parameter_state: Signal<node::parameter::State>,
 ) -> node::menu::Handlers {
     let on_delete = move |id: NodeId| -> Result<()> {
         backend.with_mut(|s| beetry_editor_backend::api::node::remove(s, id))?;
@@ -80,10 +80,10 @@ pub(crate) fn menu_handlers(
         Ok(())
     };
     let on_edit_params = move |id: NodeId| {
-        parameter_dialog_state.set(node::parameter_dialog::State::Visible {
-            position: PARAM_DIALOG_POSITION,
+        parameter_state.set(node::parameter::State::Visible {
+            position: PARAMETER_POSITION,
             id,
-            mode: node::parameter_dialog::Mode::Update,
+            mode: node::parameter::Mode::Update,
         });
         Ok(())
     };

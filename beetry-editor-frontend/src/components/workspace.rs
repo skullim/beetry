@@ -27,13 +27,13 @@ define_handlers!(
 pub(crate) fn Workspace(
     render_requests: RenderRequests,
     element_spawn_point: Signal<Point>,
-    parameter_dialog_state: Signal<node::parameter_dialog::State>,
+    parameter_state: Signal<node::parameter::State>,
 ) -> Element {
     rsx! {
         WorkspaceContextProvider {
             render_requests,
             element_spawn_point,
-            parameter_dialog_state,
+            parameter_state,
 
             WorkspaceCanvas {
                 render_requests,
@@ -106,7 +106,7 @@ fn WorkspaceCanvas(render_requests: RenderRequests) -> Element {
                 node::Menu { state: menus.node }
                 edge::Menu { state: menus.edge }
                 channel::Menu { state: menus.channel }
-                node::port::menu::Menu { state: menus.port }
+                node::port::Menu { state: menus.port }
             }
         }
     }

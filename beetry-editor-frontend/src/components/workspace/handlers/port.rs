@@ -9,8 +9,8 @@ use dioxus::prelude::*;
 use super::{Backend, RenderRequests};
 use crate::components::workspace::state::{menu, temporary};
 use crate::definitions::{EdgePos, IndexedDragOffset};
-use crate::ui::error_dialog::ErrorQueueState;
-use crate::ui::node::ConnectionOrigin;
+use crate::ui::error::ErrorQueueState;
+use crate::ui::node::port::ConnectionOrigin;
 use crate::ui::node::{self};
 
 pub(crate) fn input_handlers(
@@ -84,7 +84,7 @@ pub(crate) fn sender_handlers(
         {
             Ok(value) => value,
             Err(err) => {
-                errors.with_mut(|q| q.push("port-context-menu", err.to_string()));
+                errors.with_mut(|q| q.push("port-menu", err.to_string()));
                 false
             }
         };
@@ -134,7 +134,7 @@ pub(crate) fn receiver_handlers(
         {
             Ok(value) => value,
             Err(err) => {
-                errors.with_mut(|q| q.push("port-context-menu", err.to_string()));
+                errors.with_mut(|q| q.push("port-menu", err.to_string()));
                 false
             }
         };
