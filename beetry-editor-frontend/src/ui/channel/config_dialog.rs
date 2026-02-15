@@ -1,10 +1,12 @@
-use crate::{Point, SharedSpecs};
+use crate::{Point, SharedSpecs, ui::handler::handlers};
 use beetry_core::MessageHash;
-use beetry_editor_types::{
-    output::channel::{ChannelConfig, ChannelKind, TokioChannelKind},
-};
+use beetry_editor_types::output::channel::{ChannelConfig, ChannelKind, TokioChannelKind};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::{debug, error};
+
+handlers!(on_confirm: (MessageHash, ChannelConfig),
+          on_cancel: (),
+);
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum State {
@@ -173,24 +175,6 @@ pub fn Dialog(props: DialogProps) -> Element {
                     }
                 }
             }
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Handlers {
-    pub(crate) on_confirm: EventHandler<(MessageHash, ChannelConfig)>,
-    pub(crate) on_cancel: EventHandler<()>,
-}
-
-impl Handlers {
-    pub(crate) fn new(
-        on_confirm: impl FnMut((MessageHash, ChannelConfig)) -> Result<()> + 'static,
-        on_cancel: impl FnMut(()) + 'static,
-    ) -> Self {
-        Self {
-            on_confirm: EventHandler::new(on_confirm),
-            on_cancel: EventHandler::new(on_cancel),
         }
     }
 }

@@ -9,14 +9,16 @@ pub struct RenderTrigger<Tag> {
     _tag: PhantomData<Tag>,
 }
 
-impl<Tag> RenderTrigger<Tag> {
-    pub fn new() -> Self {
+impl<Tag> Default for RenderTrigger<Tag> {
+    fn default() -> Self {
         Self {
             flag: Signal::new(false),
             _tag: PhantomData,
         }
     }
+}
 
+impl<Tag> RenderTrigger<Tag> {
     pub fn request(&mut self) {
         self.flag.with_mut(|write| *write = !*write);
     }
@@ -46,3 +48,12 @@ pub type RequestEdgeRender = RenderTrigger<EdgeRenderTag>;
 pub type RequestChannelRender = RenderTrigger<ChannelRenderTag>;
 pub type RequestChannelEdgeRender = RenderTrigger<ChannelEdgeRenderTag>;
 pub type RequestPortRender = RenderTrigger<PortRenderTag>;
+
+#[derive(Clone, Copy, PartialEq, Default)]
+pub(crate) struct RenderRequests {
+    pub(crate) nodes: RequestNodeRender,
+    pub(crate) edges: RequestEdgeRender,
+    pub(crate) channels: RequestChannelRender,
+    pub(crate) channel_edges: RequestChannelEdgeRender,
+    pub(crate) ports: RequestPortRender,
+}

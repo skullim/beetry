@@ -1,24 +1,14 @@
 use dioxus::prelude::*;
 
-use crate::toolbar::ToolbarHandlers;
+use crate::ui::handler::handlers;
 
-#[derive(Debug, Clone)]
-pub struct Handlers {
-    on_click: EventHandler<()>,
-}
-
-impl Handlers {
-    pub(crate) fn new(on_click: impl FnMut(()) + 'static) -> Self {
-        Self {
-            on_click: EventHandler::new(on_click),
-        }
-    }
-}
+handlers!(on_click: ());
 
 #[component]
 pub fn Import() -> Element {
+    let handlers = use_context::<Handlers>();
     rsx! {
-        button { onclick: move |_| { use_context::<ToolbarHandlers>().import.on_click.call(()) },
+        button { onclick: move |_| { handlers.on_click.call(()) },
             "Import project"
         }
     }

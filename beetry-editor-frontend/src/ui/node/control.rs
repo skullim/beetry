@@ -1,5 +1,5 @@
 use crate::Point;
-use crate::editor::ServiceContext;
+use crate::editor::Backend;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithContextMenu};
 use crate::ui::node::port::{input, output};
 use beetry_editor_backend::api::SpecByNodeIdQueryView;
@@ -42,8 +42,8 @@ pub struct ControlProps {
 pub fn Control(props: ControlProps) -> Element {
     let id = props.id;
     debug!("rendering (node id: {id})");
-    let service = use_context::<ServiceContext>();
-    let read = service.read();
+    let backend = use_context::<Backend>();
+    let read = backend.read();
     let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
     let name = spec_query.name(id).unwrap();
 

@@ -1,6 +1,6 @@
 use crate::Point;
-use crate::editor::ServiceContext;
-use crate::signals::RequestPortRender;
+use crate::editor::Backend;
+use crate::ui::handler::handlers;
 use crate::ui::{channel, shadow};
 use beetry_editor_types::spec::message::MessageSpec;
 use beetry_editor_types::{id::NodeId, id::NodePortId};
@@ -11,23 +11,9 @@ use crate::definitions::IndexedDragOffset;
 use crate::ui::channel::temporary::ConnectionOrigin;
 use crate::ui::text::{self, text_width_from};
 
-#[derive(Debug, Clone)]
-pub struct Handlers {
-    on_mouse_down: EventHandler<(ConnectionOrigin, IndexedDragOffset, NodePortId)>,
-    on_context_menu: EventHandler<(Point, NodeId, NodePortId)>,
-}
-
-impl Handlers {
-    pub(crate) fn new(
-        on_mouse_down: impl FnMut((ConnectionOrigin, IndexedDragOffset, NodePortId)) + 'static,
-        on_context_menu: impl FnMut((Point, NodeId, NodePortId)) + 'static,
-    ) -> Self {
-        Self {
-            on_mouse_down: EventHandler::new(on_mouse_down),
-            on_context_menu: EventHandler::new(on_context_menu),
-        }
-    }
-}
+handlers!(on_mouse_down: (ConnectionOrigin, IndexedDragOffset, NodePortId),
+          on_context_menu: (Point, NodeId, NodePortId),
+);
 
 #[derive(Props, PartialEq, Clone)]
 pub struct ReceiverProps {
@@ -53,14 +39,12 @@ pub fn Receiver(props: ReceiverProps) -> Element {
 
     let port_id = props.port_id;
     let port_id_as_f64 = port_id.raw_value() as f64;
-    use_context::<RequestPortRender>().track();
-    let service = use_context::<ServiceContext>();
-    let is_external = service
+    let backend = use_context::<Backend>();
+    let is_external = backend
         .with(|s| beetry_editor_backend::api::node::ports::is_external(s, node_id, port_id))
         .unwrap_or(false);
 
     let mut is_hovered = use_signal(|| false);
-    let on_context_menu = use_context::<Handlers>().on_context_menu;
 
     let fill = match (is_hovered(), is_external) {
         (true, true) => channel::GradientHoverUrl::RECEIVER_EXTERNAL,
@@ -68,6 +52,8 @@ pub fn Receiver(props: ReceiverProps) -> Element {
         (false, true) => channel::GradientUrl::RECEIVER_EXTERNAL,
         (false, false) => channel::GradientUrl::RECEIVER,
     };
+
+    let handlers = use_context::<Handlers>();
 
     rsx! {
         g {
@@ -92,7 +78,7 @@ pub fn Receiver(props: ReceiverProps) -> Element {
                             x: mouse_coords.x,
                             y: mouse_coords.y,
                         };
-                        use_context::<Handlers>()
+                       handlers
                             .on_mouse_down
                             .call((
                                 ConnectionOrigin::Receiver,
@@ -111,7 +97,7 @@ pub fn Receiver(props: ReceiverProps) -> Element {
                         x: evt.element_coordinates().x,
                         y: evt.element_coordinates().y,
                     };
-                    on_context_menu.call((click_point, node_id, port_id))
+                    handlers.on_context_menu.call((click_point, node_id, port_id))
                 },
             }
             text {
