@@ -1,9 +1,9 @@
-mod context_menu;
+pub mod menu;
 mod renderer;
-
 pub mod temporary;
+
 use beetry_editor_types::id::EdgeId;
-pub use context_menu::{ContextMenu, Handlers as ContextMenuHandlers, State as ContextMenuState};
+pub use menu::Menu;
 pub use renderer::Renderer;
 pub use temporary::Temporary;
 
@@ -12,9 +12,9 @@ use dioxus::prelude::*;
 use crate::Point;
 use crate::definitions::EdgePos;
 use crate::ui::curve::Curve;
-use crate::ui::handler::handlers;
+use crate::ui::handler::define_handlers;
 
-handlers!(on_context_menu: (EdgeId, Point));
+define_handlers!(on_menu: (EdgeId, Point));
 
 #[derive(Props, Clone, PartialEq)]
 pub struct EdgeProps {
@@ -56,7 +56,7 @@ pub(crate) fn Edge(props: EdgeProps) -> Element {
                     x: evt.element_coordinates().x,
                     y: evt.element_coordinates().y,
                 };
-                handlers.on_context_menu.call((edge_id, click_point));
+                handlers.on_menu.call((edge_id, click_point));
             },
         }
     }

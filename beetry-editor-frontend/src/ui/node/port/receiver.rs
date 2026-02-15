@@ -1,6 +1,6 @@
 use crate::Point;
 use crate::editor::Backend;
-use crate::ui::handler::handlers;
+use crate::ui::handler::define_handlers;
 use crate::ui::node::ConnectionOrigin;
 use crate::ui::{channel, shadow};
 use beetry_editor_types::spec::message::MessageSpec;
@@ -11,8 +11,8 @@ use dioxus::prelude::*;
 use crate::definitions::IndexedDragOffset;
 use crate::ui::text::{self, text_width_from};
 
-handlers!(on_mouse_down: (ConnectionOrigin, IndexedDragOffset, NodePortId),
-          on_context_menu: (Point, NodeId, NodePortId),
+define_handlers!(on_mouse_down: (ConnectionOrigin, IndexedDragOffset, NodePortId),
+          on_menu: (Point, NodeId, NodePortId),
 );
 
 #[derive(Props, PartialEq, Clone)]
@@ -97,7 +97,7 @@ pub fn Receiver(props: ReceiverProps) -> Element {
                         x: evt.element_coordinates().x,
                         y: evt.element_coordinates().y,
                     };
-                    handlers.on_context_menu.call((click_point, node_id, port_id))
+                    handlers.on_menu.call((click_point, node_id, port_id))
                 },
             }
             text {

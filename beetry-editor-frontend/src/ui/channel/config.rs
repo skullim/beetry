@@ -1,10 +1,10 @@
-use crate::{Point, SharedSpecs, ui::handler::handlers};
+use crate::{Point, SharedSpecs, ui::handler::define_handlers};
 use beetry_core::MessageHash;
 use beetry_editor_types::output::channel::{ChannelConfig, ChannelKind, TokioChannelKind};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::{debug, error};
 
-handlers!(on_confirm: (MessageHash, ChannelConfig),
+define_handlers!(on_confirm: (MessageHash, ChannelConfig),
           on_cancel: (),
 );
 

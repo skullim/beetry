@@ -1,4 +1,4 @@
-pub mod context_menu;
+pub mod menu;
 pub mod input;
 pub mod output;
 pub mod receiver;

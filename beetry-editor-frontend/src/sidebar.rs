@@ -1,14 +1,14 @@
-use crate::ui::handler::handlers;
+use crate::ui::handler::define_handlers;
 use crate::{Point, SharedSpecs};
 use beetry_editor_types::spec::node::{NodeKind, NodeSpecKey};
 use dioxus::logger::tracing::info;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::ui::channel::config_dialog::State as ChannelConfigDialogState;
+use crate::ui::channel::config::State as ChannelConfigDialogState;
 use crate::ui::channel::{self};
 
-handlers!(on_new_node: NodeSpecKey);
+define_handlers!(on_new_node: NodeSpecKey);
 
 #[component]
 pub(crate) fn Sidebar(channel_config_dialog_state: Signal<ChannelConfigDialogState>) -> Element {
@@ -72,7 +72,7 @@ pub(crate) fn Sidebar(channel_config_dialog_state: Signal<ChannelConfigDialogSta
             }
 
             div {
-                channel::ConfigDialog { state: channel_config_dialog_state }
+                channel::config::Dialog { state: channel_config_dialog_state }
             }
         }
     }

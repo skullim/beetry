@@ -1,5 +1,5 @@
 use crate::Point;
-use crate::ui::handler::handlers;
+use crate::ui::handler::define_handlers;
 use crate::ui::{shadow, text};
 use beetry_editor_types::id::NodeId;
 use bon::Builder;
@@ -7,7 +7,7 @@ use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 use std::rc::Rc;
 
-handlers!(on_context_menu: (NodeId, Point),
+define_handlers!(on_menu: (NodeId, Point),
           on_mouse_down: (NodeId, Point, Event<MouseData>),
 );
 
@@ -33,15 +33,15 @@ pub struct NodeBaseProps {
 }
 
 #[component]
-pub fn NodeWithContextMenu(children: Element, id: NodeId) -> Element {
-    let context_menu_handler = use_context::<Handlers>().on_context_menu;
+pub fn NodeWithMenu(children: Element, id: NodeId) -> Element {
+    let menu_handler = use_context::<Handlers>().on_menu;
     rsx! {
         g {
             oncontextmenu: move |evt| {
                 if evt.held_buttons().contains(MouseButton::Secondary) {
                     evt.prevent_default();
                     let mouse_coords = evt.element_coordinates();
-                    context_menu_handler
+                    menu_handler
                         .call((
                             id,
                             Point {
