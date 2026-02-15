@@ -1,3 +1,4 @@
+mod components;
 mod definitions;
 mod editor;
 mod sidebar;

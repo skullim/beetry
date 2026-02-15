@@ -1,10 +1,33 @@
 use dioxus::prelude::*;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    ops::{Deref, DerefMut},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
-pub type ErrorMsgQueueSignal = Signal<ErrorMsgQueue>;
+#[derive(Debug, Clone, Copy)]
+pub struct ErrorQueueState(Signal<ErrorQueue>);
+
+impl ErrorQueueState {
+    pub(crate) fn new() -> Self {
+        Self(Signal::new(ErrorQueue::new()))
+    }
+}
+
+impl Deref for ErrorQueueState {
+    type Target = Signal<ErrorQueue>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for ErrorQueueState {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ErrorMsg {
+pub struct ErrorLog {
     pub id: u64,
     pub source: &'static str,
     pub message: String,
@@ -13,15 +36,15 @@ pub struct ErrorMsg {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ErrorMsgQueue {
-    entries: Vec<ErrorMsg>,
+pub struct ErrorQueue {
+    entries: Vec<ErrorLog>,
     next_id: u64,
 }
 
-impl ErrorMsgQueue {
+impl ErrorQueue {
     const MAX_ENTRIES: usize = 50;
 
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             entries: vec![],
             next_id: 1,
@@ -42,7 +65,7 @@ impl ErrorMsgQueue {
 
         let id = self.next_id;
         self.next_id = self.next_id.saturating_add(1);
-        self.entries.push(ErrorMsg {
+        self.entries.push(ErrorLog {
             id,
             source,
             message: message.clone(),
@@ -55,7 +78,7 @@ impl ErrorMsgQueue {
         }
     }
 
-    pub fn snapshot(&self) -> Vec<ErrorMsg> {
+    pub fn snapshot(&self) -> Vec<ErrorLog> {
         self.entries.clone()
     }
 
@@ -70,7 +93,7 @@ impl ErrorMsgQueue {
 
 #[component]
 pub fn ErrorDialog() -> Element {
-    let mut queue = use_context::<ErrorMsgQueueSignal>();
+    let mut queue = use_context::<ErrorQueueState>();
     let items = queue.read().snapshot();
     if items.is_empty() {
         return rsx! {};
@@ -129,7 +152,7 @@ pub fn ErrorDialog() -> Element {
                 style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;",
                 b { "Errors ({queue.read().entries.len()})" }
                 button {
-                    onclick: move |_| queue.with_mut(ErrorMsgQueue::clear),
+                    onclick: move |_| queue.with_mut(ErrorQueue::clear),
                     style: "font-size: 12px; border: 1px solid #d66; border-radius: 6px; background: #fff; color: #8b0000; padding: 2px 8px; cursor: pointer;",
                     "Clear"
                 }

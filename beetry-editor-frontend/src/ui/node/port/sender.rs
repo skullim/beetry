@@ -1,8 +1,8 @@
 use crate::Point;
 use crate::definitions::IndexedDragOffset;
-use crate::editor::ServiceContext;
-use crate::signals::RequestPortRender;
+use crate::editor::Backend;
 use crate::ui::channel::temporary::ConnectionOrigin;
+use crate::ui::handler::handlers;
 use crate::ui::text::{self, text_width_from};
 use crate::ui::{channel, shadow};
 use beetry_editor_types::spec::message::MessageSpec;
@@ -10,23 +10,9 @@ use beetry_editor_types::{id::NodeId, id::NodePortId};
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 
-#[derive(Debug, Clone)]
-pub struct Handlers {
-    on_mouse_down: EventHandler<(ConnectionOrigin, IndexedDragOffset, NodePortId)>,
-    on_context_menu: EventHandler<(Point, NodeId, NodePortId)>,
-}
-
-impl Handlers {
-    pub(crate) fn new(
-        on_mouse_down: impl FnMut((ConnectionOrigin, IndexedDragOffset, NodePortId)) + 'static,
-        on_context_menu: impl FnMut((Point, NodeId, NodePortId)) + 'static,
-    ) -> Self {
-        Self {
-            on_mouse_down: EventHandler::new(on_mouse_down),
-            on_context_menu: EventHandler::new(on_context_menu),
-        }
-    }
-}
+handlers!(on_mouse_down: (ConnectionOrigin, IndexedDragOffset, NodePortId),
+          on_context_menu: (Point, NodeId, NodePortId),
+);
 
 #[derive(Props, PartialEq, Clone)]
 pub struct SenderProps {
@@ -49,9 +35,8 @@ pub fn Sender(props: SenderProps) -> Element {
 
     let port_id = props.port_id;
     let port_id_as_f64 = port_id.raw_value() as f64;
-    use_context::<RequestPortRender>().track();
-    let service = use_context::<ServiceContext>();
-    let is_external = service
+    let backend = use_context::<Backend>();
+    let is_external = backend
         .with(|s| beetry_editor_backend::api::node::ports::is_external(s, node_id, port_id))
         .unwrap_or(false);
 
@@ -62,6 +47,9 @@ pub fn Sender(props: SenderProps) -> Element {
         (false, true) => channel::GradientUrl::SENDER_EXTERNAL,
         (false, false) => channel::GradientUrl::SENDER,
     };
+
+    let handlers = use_context::<Handlers>();
+
     rsx! {
         g {
             rect {
@@ -85,7 +73,7 @@ pub fn Sender(props: SenderProps) -> Element {
                             x: mouse_coords.x,
                             y: mouse_coords.y,
                         };
-                        use_context::<Handlers>()
+                        handlers
                             .on_mouse_down
                             .call((
                                 ConnectionOrigin::Sender,
@@ -104,7 +92,7 @@ pub fn Sender(props: SenderProps) -> Element {
                         x: evt.element_coordinates().x,
                         y: evt.element_coordinates().y,
                     };
-                    use_context::<Handlers>()
+                    handlers
                         .on_context_menu
                         .call((click_point, node_id, port_id))
                 },

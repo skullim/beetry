@@ -1,25 +1,11 @@
-use crate::Point;
+use crate::{Point, ui::handler::handlers};
 use beetry_editor_types::id::EdgeId;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-#[derive(Debug, Clone)]
-pub struct Handlers {
-    on_delete: EventHandler<EdgeId>,
-    on_close: EventHandler<()>,
-}
-
-impl Handlers {
-    pub(crate) fn new(
-        on_delete: impl FnMut(EdgeId) -> Result<()> + 'static,
-        on_close: impl FnMut(()) + 'static,
-    ) -> Self {
-        Self {
-            on_delete: EventHandler::new(on_delete),
-            on_close: EventHandler::new(on_close),
-        }
-    }
-}
+handlers!(on_delete: EdgeId,
+          on_close: (),
+);
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub enum State {

@@ -1,3 +1,4 @@
+use crate::ui::handler::handlers;
 use crate::{Point, SharedSpecs};
 use beetry_editor_types::spec::node::{NodeKind, NodeSpecKey};
 use dioxus::logger::tracing::info;
@@ -7,24 +8,13 @@ use dioxus_logger::tracing::debug;
 use crate::ui::channel::config_dialog::State as ChannelConfigDialogState;
 use crate::ui::channel::{self};
 
-#[derive(Clone)]
-pub struct SidebarEventHandlers {
-    pub(crate) on_new_node: EventHandler<NodeSpecKey>,
-}
-
-impl SidebarEventHandlers {
-    pub(crate) fn new(on_new_node: impl FnMut(NodeSpecKey) -> Result<()> + 'static) -> Self {
-        Self {
-            on_new_node: EventHandler::new(on_new_node),
-        }
-    }
-}
+handlers!(on_new_node: NodeSpecKey);
 
 #[component]
 pub(crate) fn Sidebar(channel_config_dialog_state: Signal<ChannelConfigDialogState>) -> Element {
     debug!("rendering");
 
-    let on_new_node = use_context::<SidebarEventHandlers>().on_new_node;
+    let on_new_node = use_context::<Handlers>().on_new_node;
     use_hook(|| on_new_node.call(NodeSpecKey::root()));
 
     let specs = use_context::<SharedSpecs>();

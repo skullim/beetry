@@ -1,6 +1,5 @@
 use crate::Point;
-use crate::definitions::IndexedDragOffset;
-use crate::ui::viewport::{ViewportContext, ZoomLevel};
+use crate::ui::handler::handlers;
 use crate::ui::{shadow, text};
 use beetry_editor_types::id::NodeId;
 use bon::Builder;
@@ -8,23 +7,9 @@ use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 use std::rc::Rc;
 
-#[derive(Debug, Clone)]
-pub struct Handlers {
-    on_drag_start: EventHandler<IndexedDragOffset>,
-    on_context_menu: EventHandler<(NodeId, Point)>,
-}
-
-impl Handlers {
-    pub(crate) fn new(
-        on_drag_start: impl FnMut(IndexedDragOffset) + 'static,
-        on_context_menu: impl FnMut((NodeId, Point)) + 'static,
-    ) -> Self {
-        Self {
-            on_drag_start: EventHandler::new(on_drag_start),
-            on_context_menu: EventHandler::new(on_context_menu),
-        }
-    }
-}
+handlers!(on_context_menu: (NodeId, Point),
+          on_mouse_down: (NodeId, Point, Event<MouseData>),
+);
 
 #[derive(Clone, Debug, PartialEq, Builder)]
 pub(super) struct NodeStyle {
@@ -77,9 +62,6 @@ pub fn NodeBase(props: NodeBaseProps) -> Element {
     let id = props.id;
     let style = &props.style;
 
-    let on_drag_start_cb = use_context::<Handlers>().on_drag_start;
-    let zoom_level = use_context::<ViewportContext>().zoom_level;
-
     let mut is_hovered = use_signal(|| false);
     let fill_color = if *is_hovered.peek() {
         &style.hover_gradient
@@ -87,12 +69,11 @@ pub fn NodeBase(props: NodeBaseProps) -> Element {
         &style.fill_gradient
     };
 
+    let handlers = use_context::<Handlers>();
+
     rsx! {
         g {
-            onmousedown: move |evt| {
-                evt.stop_propagation();
-                on_mouse_down(evt, position, id, zoom_level.into(), &on_drag_start_cb);
-            },
+            onmousedown: move |evt| handlers.on_mouse_down.call((id, position, evt)),
             onmouseenter: move |_| is_hovered.set(true),
             onmouseleave: move |_| is_hovered.set(false),
             style: "cursor: grab;",
@@ -123,32 +104,5 @@ pub fn NodeBase(props: NodeBaseProps) -> Element {
                 "{style.label}"
             }
         }
-    }
-}
-
-fn on_mouse_down(
-    evt: Event<MouseData>,
-    position: Point,
-    id: NodeId,
-    zoom_level: ReadSignal<ZoomLevel>,
-    drag_start_cb: &Callback<IndexedDragOffset>,
-) {
-    if evt.held_buttons().contains(MouseButton::Primary) {
-        let mouse_coords = evt.client_coordinates();
-        let zoom_level = zoom_level.peek().get();
-
-        let svg_mouse_coords = Point {
-            x: mouse_coords.x / zoom_level,
-            y: mouse_coords.y / zoom_level,
-        };
-
-        let drag_offset = Point {
-            x: svg_mouse_coords.x - position.x,
-            y: svg_mouse_coords.y - position.y,
-        };
-        drag_start_cb.call(IndexedDragOffset {
-            id,
-            offset: drag_offset,
-        });
     }
 }

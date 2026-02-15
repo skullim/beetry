@@ -4,10 +4,10 @@ use beetry_editor_types::{id::NodePortId, spec::node::NodePortKind};
 use dioxus::prelude::*;
 
 use crate::definitions::EdgePos;
-use crate::editor::ServiceContext;
+use crate::editor::Backend;
 use crate::signals::{RequestChannelEdgeRender, RequestChannelRender};
 use crate::ui::channel::{Channel, ReceiverConnection, SenderConnection};
-use crate::ui::error_dialog::ErrorMsgQueueSignal;
+use crate::ui::error_dialog::ErrorQueueState;
 use crate::ui::text;
 
 // Conditions to re-render channel elements:
@@ -18,8 +18,8 @@ pub fn Renderer(render_channels: RequestChannelRender) -> Element {
     debug!("rendering");
     render_channels.track();
 
-    let service = use_context::<ServiceContext>();
-    let read = service.read();
+    let backend = use_context::<Backend>();
+    let read = backend.read();
     let query_api = beetry_editor_backend::api::ui::channel::borrow(&(*read));
 
     let channels = query_api.iter().map(|(id, data)| {
@@ -41,9 +41,9 @@ pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Ele
     debug!("rendering");
     render_channel_edges.track();
 
-    let service = use_context::<ServiceContext>();
-    let mut error_queue = use_context::<ErrorMsgQueueSignal>();
-    let read = service.read();
+    let backend = use_context::<Backend>();
+    let mut error_queue = use_context::<ErrorQueueState>();
+    let read = backend.read();
     let channel_query_api = beetry_editor_backend::api::ui::channel::borrow(&(*read));
     let node_query_api = beetry_editor_backend::api::ui::node::borrow(&(*read));
 

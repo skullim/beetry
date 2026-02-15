@@ -7,52 +7,59 @@ use beetry_serialization::{Deserializer, JsonDeserializer, JsonSerializer, Seria
 use dioxus::prelude::*;
 use rfd::FileDialog;
 
-use crate::editor::ServiceContext;
-use crate::signals::{
-    RequestChannelEdgeRender, RequestChannelRender, RequestEdgeRender, RequestNodeRender,
-};
+use crate::editor::Backend;
+use crate::signals::RenderRequests;
 use crate::ui::error_dialog::ErrorDialog;
-use crate::ui::error_dialog::ErrorMsgQueueSignal;
+use crate::ui::error_dialog::ErrorQueueState;
 use crate::ui::transfer;
 
 #[component]
-pub(crate) fn Toolbar(
-    render_nodes: RequestNodeRender,
-    render_channels: RequestChannelRender,
-    render_channel_edges: RequestChannelEdgeRender,
-    render_edges: RequestEdgeRender,
-) -> Element {
-    let mut error_queue = use_context::<ErrorMsgQueueSignal>();
-    let on_project_export = move |()| match do_export_project() {
-        Ok(()) => {}
-        Err(e) => {
-            error_queue.with_mut(|q| q.push("export-project", e.to_string()));
-        }
-    };
+pub(crate) fn Toolbar(render_requests: RenderRequests) -> Element {
+    let mut error_queue = use_context::<ErrorQueueState>();
+    let backend = use_context::<Backend>();
 
-    let on_valid_tree_export = move |()| match do_export_valid_tree() {
-        Ok(()) => {}
-        Err(e) => {
-            error_queue.with_mut(|q| q.push("export-valid-tree", e.to_string()));
-        }
-    };
+    {
+        let on_project = move |()| {
+            match do_export_project(backend) {
+                Ok(()) => {}
+                Err(e) => {
+                    error_queue.with_mut(|q| q.push("export-project", e.to_string()));
+                }
+            };
+            Ok(())
+        };
 
-    let on_import = move |()| match do_import() {
-        Ok(()) => {
-            render_nodes.request();
-            render_edges.request();
-            render_channels.request();
-            render_channel_edges.request();
-        }
-        Err(e) => {
-            error_queue.with_mut(|q| q.push("import-project", e.to_string()));
-        }
-    };
+        let on_valid_tree = move |()| {
+            match do_export_valid_tree(backend) {
+                Ok(()) => {}
+                Err(e) => {
+                    error_queue.with_mut(|q| q.push("export-valid-tree", e.to_string()));
+                }
+            };
+            Ok(())
+        };
 
-    use_context_provider(move || ToolbarHandlers {
-        import: transfer::ImportHandlers::new(on_import),
-        export: transfer::ExportHandlers::new(on_project_export, on_valid_tree_export),
-    });
+        use_context_provider(move || transfer::export::Handlers::new(on_project, on_valid_tree));
+    }
+
+    {
+        let on_click = move |()| {
+            match do_import(backend) {
+                Ok(()) => {
+                    render_requests.nodes.request();
+                    render_requests.edges.request();
+                    render_requests.channels.request();
+                    render_requests.channel_edges.request();
+                }
+                Err(e) => {
+                    error_queue.with_mut(|q| q.push("import-project", e.to_string()));
+                }
+            };
+            Ok(())
+        };
+
+        use_context_provider(move || transfer::import::Handlers::new(on_click));
+    }
 
     rsx! {
         transfer::ExportProject {}
@@ -62,22 +69,14 @@ pub(crate) fn Toolbar(
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ToolbarHandlers {
-    pub(crate) import: transfer::ImportHandlers,
-    pub(crate) export: transfer::ExportHandlers,
-}
-
-fn do_export_project() -> Result<()> {
-    let service = use_context::<ServiceContext>();
-    let state = service.with(beetry_editor_backend::api::project::export)?;
+fn do_export_project(backend: Backend) -> Result<()> {
+    let state = backend.with(beetry_editor_backend::api::project::export)?;
     export_project_to_file(state)?;
     Ok(())
 }
 
-fn do_export_valid_tree() -> Result<()> {
-    let service = use_context::<ServiceContext>();
-    let tree = service.with(beetry_editor_backend::api::project::export_valid_tree)?;
+fn do_export_valid_tree(backend: Backend) -> Result<()> {
+    let tree = backend.with(beetry_editor_backend::api::project::export_valid_tree)?;
     export_valid_tree_to_file(tree)?;
     Ok(())
 }
@@ -98,10 +97,9 @@ fn export_valid_tree_to_file(valid_tree: ValidTree) -> Result<()> {
         .map_err(|e| anyhow!("Failed to save file '{}': {}", file_path.display(), e))
 }
 
-fn do_import() -> Result<()> {
+fn do_import(mut backend: Backend) -> Result<()> {
     let state = import_project_from_file()?;
-    let mut service = use_context::<ServiceContext>();
-    service.with_mut(|s| beetry_editor_backend::api::project::import(s, state))?;
+    backend.with_mut(|s| beetry_editor_backend::api::project::import(s, state))?;
     Ok(())
 }
 
