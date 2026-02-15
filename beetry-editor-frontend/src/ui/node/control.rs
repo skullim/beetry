@@ -1,6 +1,6 @@
 use crate::Point;
 use crate::editor::Backend;
-use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithContextMenu};
+use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithMenu};
 use crate::ui::node::port::{input, output};
 use beetry_editor_backend::api::SpecByNodeIdQueryView;
 use beetry_editor_types::id::NodeId;
@@ -54,7 +54,7 @@ pub fn Control(props: ControlProps) -> Element {
 
     rsx! {
         g {
-            NodeWithContextMenu {
+            NodeWithMenu {
                 children: rsx! {
                     NodeBase { id, position, style }
                 },

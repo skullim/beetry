@@ -1,7 +1,7 @@
 use crate::Point;
 use crate::definitions::IndexedDragOffset;
 use crate::editor::Backend;
-use crate::ui::handler::handlers;
+use crate::ui::handler::define_handlers;
 use crate::ui::node::port::ConnectionOrigin;
 use crate::ui::text::{self, text_width_from};
 use crate::ui::{channel, shadow};
@@ -10,8 +10,8 @@ use beetry_editor_types::{id::NodeId, id::NodePortId};
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 
-handlers!(on_mouse_down: (ConnectionOrigin, IndexedDragOffset, NodePortId),
-          on_context_menu: (Point, NodeId, NodePortId),
+define_handlers!(on_mouse_down: (ConnectionOrigin, IndexedDragOffset, NodePortId),
+          on_menu: (Point, NodeId, NodePortId),
 );
 
 #[derive(Props, PartialEq, Clone)]
@@ -93,7 +93,7 @@ pub fn Sender(props: SenderProps) -> Element {
                         y: evt.element_coordinates().y,
                     };
                     handlers
-                        .on_context_menu
+                        .on_menu
                         .call((click_point, node_id, port_id))
                 },
             }

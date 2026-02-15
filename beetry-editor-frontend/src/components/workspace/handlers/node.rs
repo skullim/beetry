@@ -3,20 +3,22 @@ use beetry_editor_types::{id::NodeId, output::ui::Point};
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 
-use crate::components::workspace::providers::WorkspaceSvgState;
-use crate::ui::node::{self, ContextMenuState, PARAM_DIALOG_POSITION};
+use crate::{
+    components::workspace::state::{drag, menu, svg},
+    ui::node::{self, PARAM_DIALOG_POSITION},
+};
 
-use super::{Backend, DragNodeState, DragState, MenuState, RenderRequests};
+use super::{Backend, DragNodeState, RenderRequests};
 use crate::ui::error_dialog::ErrorQueueState;
 
 pub(crate) fn handlers(
-    mut drag: DragState,
-    mut menus: MenuState,
-    svg: WorkspaceSvgState,
+    mut drag: drag::State,
+    mut menu: menu::State,
+    svg: svg::State,
     backend: Backend,
     mut errors: ErrorQueueState,
 ) -> node::Handlers {
-    let on_context_menu = move |(id, position): (NodeId, Point)| {
+    let on_menu = move |(id, position): (NodeId, Point)| {
         let can_edit_params = backend
             .with(|s| -> anyhow::Result<bool> {
                 let spec_query = beetry_editor_backend::api::node::spec::by_node_id(s);
@@ -27,7 +29,7 @@ pub(crate) fn handlers(
                 false
             });
 
-        menus.node.set(node::ContextMenuState::Visible {
+        menu.node.set(node::menu::State::Visible {
             position,
             id,
             can_edit_params,
@@ -56,15 +58,15 @@ pub(crate) fn handlers(
         }
         Ok(())
     };
-    node::Handlers::new(on_context_menu, on_mouse_down)
+    node::Handlers::new(on_menu, on_mouse_down)
 }
 
-pub(crate) fn context_menu_handlers(
-    mut menus: MenuState,
+pub(crate) fn menu_handlers(
+    mut menu: menu::State,
     mut backend: Backend,
     mut requests: RenderRequests,
-    mut parameter_dialog_state: Signal<node::ParameterDialogState>,
-) -> node::ContextMenuHandlers {
+    mut parameter_dialog_state: Signal<node::parameter_dialog::State>,
+) -> node::menu::Handlers {
     let on_delete = move |id: NodeId| -> Result<()> {
         backend.with_mut(|s| beetry_editor_backend::api::node::remove(s, id))?;
         requests.nodes.request();
@@ -74,17 +76,17 @@ pub(crate) fn context_menu_handlers(
     };
 
     let on_close = move |_| {
-        menus.node.set(ContextMenuState::Idle);
+        menu.node.set(node::menu::State::Idle);
         Ok(())
     };
     let on_edit_params = move |id: NodeId| {
-        parameter_dialog_state.set(node::ParameterDialogState::Visible {
+        parameter_dialog_state.set(node::parameter_dialog::State::Visible {
             position: PARAM_DIALOG_POSITION,
             id,
-            mode: node::ParameterDialogMode::Update,
+            mode: node::parameter_dialog::Mode::Update,
         });
         Ok(())
     };
 
-    node::ContextMenuHandlers::new(on_delete, on_edit_params, on_close)
+    node::menu::Handlers::new(on_delete, on_edit_params, on_close)
 }

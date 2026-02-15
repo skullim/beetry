@@ -5,19 +5,17 @@ mod sidebar;
 mod signals;
 mod toolbar;
 mod ui;
-mod workspace;
 
 use std::rc::Rc;
 
 use beetry_editor_backend::{ChannelSpecMap, NodeSpecMap};
+use beetry_editor_types::{output::ui::Point, spec::node::NodeSpec};
 use beetry_plugin::{
     channel::ChannelPluginConstructor,
     node::{ActionPluginConstructor, ConditionPluginConstructor, ControlPluginConstructor},
 };
 use dioxus::prelude::*;
 use dioxus::{desktop::WindowBuilder, logger::tracing::Level};
-
-use beetry_editor_types::{output::ui::Point, spec::node::NodeSpec};
 
 #[cfg(target_family = "wasm")]
 unsafe extern "C" {

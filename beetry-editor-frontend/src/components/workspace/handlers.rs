@@ -1,39 +1,33 @@
+pub(crate) mod channel;
+pub(crate) mod edge;
+pub(crate) mod node;
+pub(crate) mod port;
+
+use crate::components::workspace::state;
+use crate::editor::Backend;
+use crate::signals::RenderRequests;
+use crate::{Point, components::workspace};
 use beetry_editor_backend::api::NodeUiQueryApi;
-use bon::Builder;
 use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
 
-use crate::ui::channel;
-use crate::ui::edge;
+use crate::ui::{channel as ui_channel, edge as ui_edge};
 
-use super::{
-    Backend, DragChannelState, DragNodeState, DragState, MenuState, RenderRequests, TempState,
-    WorkspaceSvgState,
-};
+pub(crate) use state::drag::{DragChannelState, DragNodeState};
 
-#[derive(Debug, Clone, Builder)]
-pub(crate) struct WorkspaceEventHandlers {
-    pub(crate) on_mouse_move: EventHandler<Event<MouseData>>,
-    pub(crate) on_mouse_up: EventHandler<Event<MouseData>>,
-    pub(crate) on_wheel: EventHandler<Event<WheelData>>,
-}
-
-pub(crate) fn set_if_changed<T: Clone + PartialEq + 'static>(state: &mut Signal<T>, to: T) {
-    if state.peek().ne(&to) {
-        state.set(to);
-    }
-}
-
-pub(crate) fn workspace_event_handlers(
-    mut drag: DragState,
-    mut menus: MenuState,
-    mut svg: WorkspaceSvgState,
-    mut temp: TempState,
+pub(crate) fn handlers(
+    state: workspace::State,
+    mut element_spawn_point: Signal<Point>,
     mut backend: Backend,
     mut requests: RenderRequests,
-) -> WorkspaceEventHandlers {
+) -> super::Handlers {
+    let mut drag = state.drag;
+    let mut menus = state.menu;
+    let mut svg = state.svg;
+    let mut temp = state.temp;
+
     let mut dimensions_state = svg.dimensions;
-    let on_mouse_move = move |evt: Event<MouseData>| -> Result<()> {
+    let on_mouse_move = move |evt: Event<MouseData>| {
         evt.stop_propagation();
         if let DragNodeState::Dragged { id, offset } = *drag.node.peek() {
             let mouse_coords = evt.client_coordinates();
@@ -84,16 +78,14 @@ pub(crate) fn workspace_event_handlers(
         set_if_changed(&mut drag.node, DragNodeState::Idle);
         set_if_changed(&mut drag.channel, DragChannelState::Idle);
 
-        set_if_changed(&mut menus.node, crate::ui::node::ContextMenuState::Idle);
-        set_if_changed(&mut menus.edge, edge::ContextMenuState::Idle);
-        set_if_changed(&mut menus.channel, channel::ContextMenuState::Idle);
-        set_if_changed(
-            &mut menus.port,
-            crate::ui::node::port_context_menu::State::Idle,
-        );
+        set_if_changed(&mut menus.node, crate::ui::node::menu::State::Idle);
+        set_if_changed(&mut menus.edge, ui_edge::menu::State::Idle);
+        set_if_changed(&mut menus.channel, ui_channel::menu::State::Idle);
+        set_if_changed(&mut menus.port, crate::ui::node::port::menu::State::Idle);
 
         temp.edge.with_mut(|e| e.reset());
         temp.channel.with_mut(|c| c.reset());
+        Ok(())
     };
 
     let on_wheel = move |evt: Event<WheelData>| {
@@ -102,31 +94,22 @@ pub(crate) fn workspace_event_handlers(
             let delta = evt.delta();
             svg.zoom.update(&delta);
         }
+        Ok(())
     };
 
-    WorkspaceEventHandlers::builder()
-        .on_mouse_move(EventHandler::new(on_mouse_move))
-        .on_mouse_up(EventHandler::new(on_mouse_up))
-        .on_wheel(EventHandler::new(on_wheel))
-        .build()
+    let on_scroll = move |evt: Event<ScrollData>| {
+        let zoom_level = svg.zoom.get();
+        let x = evt.scroll_left() / zoom_level;
+        let y = evt.scroll_top() / zoom_level;
+        element_spawn_point.set(Point { x, y });
+        Ok(())
+    };
+
+    super::Handlers::new(on_mouse_move, on_mouse_up, on_wheel, on_scroll)
 }
 
-pub(crate) fn grid_style_defs() -> Element {
-    rsx! {
-        defs {
-            pattern {
-                id: "grid",
-                width: "50",
-                height: "50",
-                pattern_units: "userSpaceOnUse",
-
-                path {
-                    d: "M 50 0 L 0 0 0 50",
-                    fill: "none",
-                    stroke: "#d0d0d0",
-                    stroke_width: "2",
-                }
-            }
-        }
+pub(crate) fn set_if_changed<T: Clone + PartialEq + 'static>(state: &mut Signal<T>, to: T) {
+    if state.peek().ne(&to) {
+        state.set(to);
     }
 }

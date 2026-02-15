@@ -1,9 +1,9 @@
-use crate::{Point, ui::handler::handlers};
+use crate::{Point, ui::handler::define_handlers};
 use beetry_editor_types::id::EdgeId;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-handlers!(on_delete: EdgeId,
+define_handlers!(on_delete: EdgeId,
           on_close: (),
 );
 
@@ -17,15 +17,10 @@ pub enum State {
     },
 }
 
-#[derive(Debug, Props, PartialEq, Clone)]
-pub struct ContextMenuProps {
-    state: ReadSignal<State>,
-}
-
 #[component]
-pub fn ContextMenu(props: ContextMenuProps) -> Element {
+pub fn Menu(state: ReadSignal<State>) -> Element {
     debug!("rendering");
-    let (position, edge_id) = match *props.state.read() {
+    let (position, edge_id) = match *state.read() {
         State::Idle => return rsx!(),
         State::Visible { position, edge_id } => (position, edge_id),
     };
@@ -33,7 +28,7 @@ pub fn ContextMenu(props: ContextMenuProps) -> Element {
     let menu_width = 160;
     let menu_height = 36;
 
-    let context_menu_handlers = use_context::<Handlers>();
+    let menu_handlers = use_context::<Handlers>();
     rsx! {
         g { transform: "translate({position.x} {position.y})",
             rect {
@@ -46,8 +41,8 @@ pub fn ContextMenu(props: ContextMenuProps) -> Element {
                 style: "cursor: pointer;",
                 onclick: move |evt| {
                     evt.stop_propagation();
-                    context_menu_handlers.on_delete.call(edge_id);
-                    context_menu_handlers.on_close.call(());
+                    menu_handlers.on_delete.call(edge_id);
+                    menu_handlers.on_close.call(());
                 },
                 onmouseup: move |evt| {
                     evt.stop_propagation();
