@@ -1,4 +1,4 @@
-mod context_provider;
+mod context;
 mod handlers;
 mod state;
 
@@ -7,22 +7,25 @@ use dioxus_logger::tracing::debug;
 
 use crate::components::workspace::Workspace;
 use crate::sidebar::Sidebar;
-use crate::ui::node;
+use crate::signals::RenderRequests;
 use crate::toolbar::Toolbar;
-use context_provider::EditorContextProvider;
+use crate::ui::node;
+
+pub(crate) use state::State;
 
 #[component]
 pub(crate) fn Editor() -> Element {
+    let state = State::new();
     rsx! {
-        EditorContextProvider { EditorLayout {} }
+        context::Provider {state, Layout {state} }
     }
 }
 
 #[component]
-fn EditorLayout() -> Element {
+fn Layout(state: State) -> Element {
     debug!("rendering");
 
-    let state = use_context::<state::State>();
+    let render_requests = use_context::<RenderRequests>();
 
     rsx! {
         div { style: "display: flex; flex-direction: row; gap: 10px;",
@@ -31,7 +34,7 @@ fn EditorLayout() -> Element {
             }
             div { style: "flex: 0 1 80%;",
                 Workspace {
-                    render_requests: state.render_requests,
+                    render_requests,
                     element_spawn_point: state.element_spawn_point,
                     parameter_state: state.parameter,
                 }
@@ -40,7 +43,7 @@ fn EditorLayout() -> Element {
                 node::parameter::Dialog { state: state.parameter }
             }
             div { style: "flex: 0 1 10%;",
-                Toolbar { render_requests: state.render_requests }
+                Toolbar { render_requests }
             }
         }
     }

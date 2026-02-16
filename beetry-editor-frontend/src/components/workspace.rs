@@ -1,4 +1,4 @@
-mod context_provider;
+mod context;
 pub(crate) mod handlers;
 mod state;
 
@@ -8,13 +8,11 @@ use beetry_editor_types::output::ui::Point;
 use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
 
-use crate::components::workspace;
 use crate::signals::RenderRequests;
 use crate::ui::channel::{self};
 use crate::ui::handler::define_handlers;
 use crate::ui::node;
 use crate::ui::{self, edge};
-use context_provider::WorkspaceContextProvider;
 
 define_handlers!(
     on_mouse_move: Event<MouseData>,
@@ -29,13 +27,16 @@ pub(crate) fn Workspace(
     element_spawn_point: Signal<Point>,
     parameter_state: Signal<node::parameter::State>,
 ) -> Element {
+    let state = State::new();
     rsx! {
-        WorkspaceContextProvider {
+        context::Provider {
+            state,
             render_requests,
             element_spawn_point,
             parameter_state,
 
-            WorkspaceCanvas {
+            Canvas {
+                state,
                 render_requests,
             }
         }
@@ -43,14 +44,13 @@ pub(crate) fn Workspace(
 }
 
 #[component]
-fn WorkspaceCanvas(render_requests: RenderRequests) -> Element {
+fn Canvas(state: State, render_requests: RenderRequests) -> Element {
     debug!("rendering workspace");
 
-    let ws = use_context::<workspace::State>();
     let handlers = use_context::<Handlers>();
-    let zoom_level = *ws.svg.zoom.read();
-    let dimensions = ws.svg.dimensions;
-    let menus = ws.menu;
+    let zoom_level = *state.svg.zoom.read();
+    let dimensions = state.svg.dimensions;
+    let menus = state.menu;
 
     rsx! {
         div {
@@ -93,12 +93,12 @@ fn WorkspaceCanvas(render_requests: RenderRequests) -> Element {
                 node::Renderer { render_nodes: render_requests.nodes }
 
                 edge::Temporary {
-                    state: use_memo(move || (&*ws.temp.edge.read()).into()),
+                    state: use_memo(move || (&*state.temp.edge.read()).into()),
                     orientation: edge::temporary::CurveOrientation::Vertical,
                     stroke: "#A78BFA",
                 }
                 edge::Temporary {
-                    state: use_memo(move || (&*ws.temp.channel.read()).into()),
+                    state: use_memo(move || (&*state.temp.channel.read()).into()),
                     orientation: edge::temporary::CurveOrientation::Horizontal,
                     stroke: "#3a2020ff",
                 }

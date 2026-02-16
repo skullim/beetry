@@ -3,7 +3,7 @@ use dioxus::html::geometry::WheelDelta;
 use dioxus::prelude::*;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct DimensionState {
     width: Signal<f64>,
     height: Signal<f64>,
@@ -41,7 +41,7 @@ impl DimensionState {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct ZoomState(Signal<f64>);
 
 impl ZoomState {
@@ -97,7 +97,7 @@ impl DerefMut for ZoomState {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub(crate) struct State {
     pub(crate) dimensions: DimensionState,
     pub(crate) zoom: ZoomState,
