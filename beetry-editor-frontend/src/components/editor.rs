@@ -6,9 +6,9 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
 use crate::components::sidebar::Sidebar;
+use crate::components::toolbar::Toolbar;
 use crate::components::workspace::Workspace;
 use crate::signals::RenderRequests;
-use crate::toolbar::Toolbar;
 
 pub(crate) use state::State;
 
@@ -35,7 +35,7 @@ fn Layout(state: State) -> Element {
                 Workspace { render_requests, editor_state: state }
             }
             div { style: "flex: 0 1 10%;",
-                Toolbar { render_requests }
+                Toolbar {}
             }
         }
     }
