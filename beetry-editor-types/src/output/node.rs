@@ -6,6 +6,7 @@ use mitsein::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::fmt;
 use tracing::error;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,6 +56,18 @@ impl ParameterValue {
             Some(v)
         } else {
             None
+        }
+    }
+}
+
+impl fmt::Display for ParameterValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Bool(v) => write!(f, "{v}"),
+            Self::U64(v) => write!(f, "{v}"),
+            Self::I64(v) => write!(f, "{v}"),
+            Self::F64(v) => write!(f, "{v}"),
+            Self::String(v) => write!(f, "{v}"),
         }
     }
 }

@@ -5,8 +5,9 @@ use dioxus::prelude::*;
 
 use crate::{
     components::workspace::state::{drag, menu, svg},
-    ui::node::{self, PARAMETER_POSITION},
+    ui::node::{self},
 };
+use crate::ui::node::parameter::DEFAULT_DIALOG_POSITION;
 
 use super::{Backend, DragNodeState, RenderRequests};
 use crate::ui::error::ErrorQueueState;
@@ -81,7 +82,7 @@ pub(crate) fn menu_handlers(
     };
     let on_edit_params = move |id: NodeId| {
         parameter_state.set(node::parameter::State::Visible {
-            position: PARAMETER_POSITION,
+            position: DEFAULT_DIALOG_POSITION,
             id,
             mode: node::parameter::Mode::Update,
         });

@@ -6,6 +6,7 @@ use bon::bon;
 use dioxus::prelude::*;
 
 use crate::ui::handler::define_handlers;
+use crate::ui::text;
 
 define_handlers!(on_internal: (NodeId, NodePortId),
                  on_external: (NodeId, NodePortId)
@@ -113,7 +114,7 @@ pub fn Menu(state: Signal<State>) -> Element {
                     text {
                         x: "24",
                         y: "12",
-                        font_size: "12",
+                        font_size: "{text::FONT_SIZE_NORMAL}",
                         fill: "#222",
                         dominant_baseline: "middle",
                         "External port"

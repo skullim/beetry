@@ -1,6 +1,6 @@
 use crate::id::ChannelSpecId;
 use anyhow::{Result, anyhow};
-use derive_more::From;
+use derive_more::{Display, From};
 use getset::{CopyGetters, MutGetters, Setters};
 use serde::{Deserialize, Serialize};
 
@@ -41,12 +41,12 @@ impl ChannelConfig {
     }
 }
 
-#[derive(Debug, From, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Display, From, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum ChannelKind {
     Tokio(TokioChannelKind),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Display, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TokioChannelKind {
     Mpsc,
     Broadcast,
