@@ -1,4 +1,8 @@
+mod context;
+mod handlers;
+
 use crate::SharedSpecs;
+use crate::components::editor;
 use crate::ui::handler::define_handlers;
 use beetry_editor_types::spec::channel::ChannelSpec;
 use beetry_editor_types::spec::node::{NodeKind, NodeSpecKey};
@@ -10,7 +14,14 @@ define_handlers!(on_new_node: NodeSpecKey,
                  on_new_channel: ChannelSpec);
 
 #[component]
-pub(crate) fn Sidebar() -> Element {
+pub(crate) fn Sidebar(editor_state: editor::State) -> Element {
+    rsx! {
+        context::Provider {editor_state, Layout {} }
+    }
+}
+
+#[component]
+fn Layout() -> Element {
     debug!("rendering");
     let handlers = use_context::<Handlers>();
 
