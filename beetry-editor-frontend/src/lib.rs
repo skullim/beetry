@@ -1,6 +1,6 @@
+mod backend;
 mod components;
 mod definitions;
-mod editor;
 mod sidebar;
 mod signals;
 mod toolbar;
@@ -16,6 +16,8 @@ use beetry_plugin::{
 };
 use dioxus::prelude::*;
 use dioxus::{desktop::WindowBuilder, logger::tracing::Level};
+
+pub(crate) use backend::Backend;
 
 #[cfg(target_family = "wasm")]
 unsafe extern "C" {
@@ -41,7 +43,7 @@ pub fn launch() {
 #[component]
 fn App() -> Element {
     rsx! {
-        SpecsProvider { editor::Editor {} }
+        SpecsProvider { components::editor::Editor {} }
     }
 }
 

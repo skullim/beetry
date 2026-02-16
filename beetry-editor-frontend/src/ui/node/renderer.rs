@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
 use crate::Point;
-use crate::editor::Backend;
+use crate::Backend;
 use crate::signals::RequestNodeRender;
 use crate::ui::error::ErrorQueueState;
 use crate::ui::node::control::Control;

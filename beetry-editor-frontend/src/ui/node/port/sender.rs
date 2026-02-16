@@ -1,6 +1,6 @@
 use crate::Point;
 use crate::definitions::IndexedDragOffset;
-use crate::editor::Backend;
+use crate::Backend;
 use crate::ui::handler::define_handlers;
 use crate::ui::node::port::ConnectionOrigin;
 use crate::ui::text::{self, text_width_from};
