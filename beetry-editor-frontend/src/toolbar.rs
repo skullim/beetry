@@ -7,7 +7,7 @@ use beetry_serialization::{Deserializer, JsonDeserializer, JsonSerializer, Seria
 use dioxus::prelude::*;
 use rfd::FileDialog;
 
-use crate::editor::Backend;
+use crate::Backend;
 use crate::signals::RenderRequests;
 use crate::ui::error;
 use crate::ui::error::ErrorQueueState;

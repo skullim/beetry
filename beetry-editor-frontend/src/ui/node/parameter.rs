@@ -1,4 +1,4 @@
-use crate::editor::Backend;
+use crate::Backend;
 use crate::{Point, ui::handler::define_handlers};
 use beetry_editor_backend::api::{ParameterValueParser, SpecByNodeIdQueryView};
 use beetry_editor_types::{

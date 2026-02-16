@@ -1,5 +1,5 @@
 use crate::Point;
-use crate::editor::Backend;
+use crate::Backend;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithMenu};
 use crate::ui::node::port::{self, input};
 use beetry_editor_backend::api::SpecByNodeIdQueryView;

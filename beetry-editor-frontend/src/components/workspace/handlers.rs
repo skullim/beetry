@@ -4,9 +4,9 @@ pub(crate) mod node;
 pub(crate) mod port;
 
 use crate::components::workspace::state;
-use crate::editor::Backend;
 use crate::signals::RenderRequests;
 use crate::{Point, components::workspace};
+use crate::Backend;
 use beetry_editor_backend::api::NodeUiQueryApi;
 use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;

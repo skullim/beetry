@@ -4,7 +4,7 @@ pub mod renderer;
 
 use crate::Point;
 use crate::definitions::EdgePos;
-use crate::editor::Backend;
+use crate::Backend;
 use crate::ui::curve::Curve;
 use crate::ui::handler::define_handlers;
 use crate::ui::shadow;
