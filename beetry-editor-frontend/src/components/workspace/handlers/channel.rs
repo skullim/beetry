@@ -1,7 +1,7 @@
 use beetry_editor_types::{id::ChannelId, output::ui::Point};
 use dioxus::{html::input_data::MouseButton, prelude::*};
 
-use crate::components::workspace::state::{drag, menu, svg, temporary};
+use crate::components::workspace::{self, state::menu};
 use crate::ui::channel;
 use crate::ui::error::ErrorQueueState;
 use crate::ui::node::port::ConnectionOrigin;
@@ -9,16 +9,13 @@ use crate::ui::node::port::ConnectionOrigin;
 use super::{Backend, DragChannelState, RenderRequests};
 
 pub(crate) fn handlers(
-    mut drag: drag::State,
-    mut menus: menu::State,
-    mut temp: temporary::State,
-    svg: svg::State,
+    mut state: workspace::State,
     mut backend: Backend,
     mut requests: RenderRequests,
     mut errors: ErrorQueueState,
 ) -> channel::Handlers {
     let receiver_on_mouse_up = move |id: ChannelId| -> Result<()> {
-        let mut channel = temp.channel.write();
+        let mut channel = state.temp.channel.write();
         if let Some(data) = channel.take_dragged()
             && matches!(data.origin, ConnectionOrigin::Receiver)
         {
@@ -42,7 +39,7 @@ pub(crate) fn handlers(
     };
 
     let sender_on_mouse_up = move |id: ChannelId| -> Result<()> {
-        let mut channel = temp.channel.write();
+        let mut channel = state.temp.channel.write();
         if let Some(data) = channel.take_dragged()
             && matches!(data.origin, ConnectionOrigin::Sender)
         {
@@ -73,7 +70,7 @@ pub(crate) fn handlers(
             y: evt.element_coordinates().y,
         };
 
-        menus.channel.set(channel::menu::State::Visible {
+        state.menu.channel.set(channel::menu::State::Visible {
             position: click_point,
             channel_id,
         });
@@ -83,7 +80,7 @@ pub(crate) fn handlers(
     let on_mouse_down = move |(id, position, evt): (ChannelId, Point, Event<MouseData>)| {
         if evt.held_buttons().contains(MouseButton::Primary) {
             let mouse_coords = evt.client_coordinates();
-            let zoom_level = svg.zoom.get();
+            let zoom_level = state.svg.zoom.get();
 
             let svg_mouse_coords = Point {
                 x: mouse_coords.x / zoom_level,
@@ -94,7 +91,10 @@ pub(crate) fn handlers(
                 x: svg_mouse_coords.x - position.x,
                 y: svg_mouse_coords.y - position.y,
             };
-            drag.channel.set(DragChannelState::Dragged { id, offset });
+            state
+                .drag
+                .channel
+                .set(DragChannelState::Dragged { id, offset });
         }
         Ok(())
     };

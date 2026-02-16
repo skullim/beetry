@@ -2,11 +2,13 @@ use beetry_editor_types::{output::ui::NodeUiData, spec::node::NodeSpecKey};
 use dioxus::prelude::*;
 
 use super::super::state;
+use crate::signals::RequestNodeRender;
 use crate::ui::node::PARAMETER_POSITION;
 use crate::{Backend, SharedSpecs, sidebar, ui::node};
 
 pub(crate) fn handlers(
     specs: SharedSpecs,
+    mut request: RequestNodeRender,
     mut backend: Backend,
     mut state: state::State,
 ) -> sidebar::Handlers {
@@ -32,7 +34,7 @@ pub(crate) fn handlers(
             node_spec_key.name(),
             node_spec_key.kind()
         );
-        state.render_requests.nodes.request();
+        request.request();
         Ok(())
     };
 
