@@ -3,11 +3,11 @@ use beetry_editor_types::output::{channel::ChannelConfig, ui::ChannelUiData};
 use dioxus::prelude::*;
 
 use super::super::state;
-use crate::{Backend, SharedSpecs, signals::RequestChannelEdgeRender, ui::channel};
+use crate::{Backend, SharedSpecs, signals::RequestChannelRender, ui::channel};
 
 pub(crate) fn handlers(
     specs: SharedSpecs,
-    mut request: RequestChannelEdgeRender,
+    mut request: RequestChannelRender,
     mut backend: Backend,
     mut state: state::State,
 ) -> channel::config::Handlers {

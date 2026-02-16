@@ -16,13 +16,7 @@ pub(super) fn Provider(state: editor::State, children: Element) -> Element {
 
     use_context_provider({
         let specs = specs.clone();
-        move || {
-            handlers::channel_config::handlers(specs, render_requests.channel_edges, backend, state)
-        }
-    });
-    use_context_provider({
-        let specs = specs.clone();
-        move || handlers::sidebar::handlers(specs, render_requests.nodes, backend, state)
+        move || handlers::channel_config::handlers(specs, render_requests.channels, backend, state)
     });
     use_context_provider(|| {
         handlers::parameter::handlers(backend, state.parameter, render_requests.nodes)

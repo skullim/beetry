@@ -3,11 +3,12 @@ use beetry_editor_types::spec::channel::ChannelSpec;
 use beetry_editor_types::{output::ui::NodeUiData, spec::node::NodeSpecKey};
 use dioxus::prelude::*;
 
-use super::super::state;
+use super::Handlers;
+use crate::components::editor;
 use crate::signals::RequestNodeRender;
 use crate::ui::node::PARAMETER_POSITION;
 use crate::{
-    Backend, SharedSpecs, sidebar,
+    Backend, SharedSpecs,
     ui::{channel, node},
 };
 
@@ -15,8 +16,8 @@ pub(crate) fn handlers(
     specs: SharedSpecs,
     mut request: RequestNodeRender,
     mut backend: Backend,
-    mut state: state::State,
-) -> sidebar::Handlers {
+    mut state: editor::State,
+) -> Handlers {
     let on_new_node = move |node_spec_key: NodeSpecKey| -> Result<()> {
         let node_spec = specs.nodes.spec(&node_spec_key)?;
 
@@ -51,5 +52,5 @@ pub(crate) fn handlers(
         Ok(())
     };
 
-    sidebar::Handlers::new(on_new_node, on_new_channel)
+    Handlers::new(on_new_node, on_new_channel)
 }

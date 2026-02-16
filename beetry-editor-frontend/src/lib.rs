@@ -1,7 +1,6 @@
 mod backend;
 mod components;
 mod definitions;
-mod sidebar;
 mod signals;
 mod specs;
 mod toolbar;
