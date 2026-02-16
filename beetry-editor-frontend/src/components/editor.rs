@@ -9,6 +9,7 @@ use crate::components::sidebar::Sidebar;
 use crate::components::toolbar::Toolbar;
 use crate::components::workspace::Workspace;
 use crate::signals::RenderRequests;
+use crate::ui::theme::GlobalStyle;
 
 pub(crate) use state::State;
 
@@ -29,14 +30,21 @@ fn Layout(state: State) -> Element {
     let render_requests = use_context::<RenderRequests>();
 
     rsx! {
-        div { style: "display: flex; flex-direction: row; gap: 10px;",
-            div { style: "flex: 0 1 20%;",
+        GlobalStyle {}
+        div { class: "bt-editor-shell",
+            div { class: "bt-editor-grid",
+                div { class: "bt-panel",
                 Sidebar { editor_state: state }
-            }
-            div { style: "flex: 0 1 80%;",
+                }
+                div { class: "bt-panel bt-workspace-shell",
+                    div { class: "bt-workspace-header",
+                        span { "Workspace" }
+                        span { "Ctrl + Wheel to zoom" }
+                    }
                 Workspace { render_requests, editor_state: state }
+                }
+                div { class: "bt-panel", Toolbar {} }
             }
-            div { style: "flex: 0 1 10%;", Toolbar {} }
         }
     }
 }

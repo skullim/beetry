@@ -16,9 +16,12 @@ pub(crate) fn Toolbar() -> Element {
 #[component]
 fn Layout() -> Element {
     rsx! {
-        transfer::ExportProject {}
-        transfer::ExportValidTree {}
-        transfer::Import {}
+        div { class: "bt-toolbar-actions",
+            p { class: "bt-panel-title", "Toolbar" }
+            transfer::ExportProject {}
+            transfer::ExportValidTree {}
+            transfer::Import {}
+        }
         error::Dialog {}
     }
 }

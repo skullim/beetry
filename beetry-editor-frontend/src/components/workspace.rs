@@ -42,7 +42,7 @@ fn Canvas(state: State, editor_state: editor::State, render_requests: RenderRequ
 
     rsx! {
         div {
-            style: "overflow: auto; border: 1px solid black; width: 800px; height: 800px;",
+            class: "bt-workspace-canvas",
             onwheel: handlers.on_wheel,
             onscroll: handlers.on_scroll,
 
@@ -59,21 +59,12 @@ fn Canvas(state: State, editor_state: editor::State, render_requests: RenderRequ
                     y: "0",
                     width: "100%",
                     height: "100%",
-                    fill: "#5045454f",
+                    fill: "#1a2a46",
                 }
 
                 {ui::channel::style_defs()}
                 {ui::node::style_defs()}
                 {ui::shadow::style_defs()}
-
-                {grid_style_defs()}
-                rect {
-                    x: "0",
-                    y: "0",
-                    width: "100%",
-                    height: "100%",
-                    fill: "url(#grid)",
-                }
 
                 edge::Renderer { render_edges: render_requests.edges }
                 channel::ConnectionRenderer { render_channel_edges: render_requests.channel_edges }
@@ -88,7 +79,7 @@ fn Canvas(state: State, editor_state: editor::State, render_requests: RenderRequ
                 edge::Temporary {
                     state: use_memo(move || (&*state.temp.channel.read()).into()),
                     orientation: edge::temporary::CurveOrientation::Horizontal,
-                    stroke: "#3a2020ff",
+                    stroke: "rgb(167, 162, 162)",
                 }
 
                 node::Menu { state: menus.node }
@@ -99,26 +90,6 @@ fn Canvas(state: State, editor_state: editor::State, render_requests: RenderRequ
 
             node::parameter::Dialog { state: editor_state.parameter }
             channel::config::Dialog { state: editor_state.channel_config }
-        }
-    }
-}
-
-pub(crate) fn grid_style_defs() -> Element {
-    rsx! {
-        defs {
-            pattern {
-                id: "grid",
-                width: "50",
-                height: "50",
-                pattern_units: "userSpaceOnUse",
-
-                path {
-                    d: "M 50 0 L 0 0 0 50",
-                    fill: "none",
-                    stroke: "#d0d0d0",
-                    stroke_width: "2",
-                }
-            }
         }
     }
 }
