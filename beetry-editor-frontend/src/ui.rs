@@ -6,4 +6,5 @@ pub(crate) mod handler;
 pub mod node;
 pub mod shadow;
 pub mod text;
+pub mod tooltip;
 pub mod transfer;

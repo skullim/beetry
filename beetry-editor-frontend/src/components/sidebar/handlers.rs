@@ -6,7 +6,7 @@ use dioxus::prelude::*;
 use super::Handlers;
 use crate::components::editor;
 use crate::signals::RequestNodeRender;
-use crate::ui::node::PARAMETER_POSITION;
+use crate::ui::node::parameter::DEFAULT_DIALOG_POSITION;
 use crate::{
     Backend, SharedSpecs,
     ui::{channel, node},
@@ -29,7 +29,7 @@ pub(crate) fn handlers(
 
         if node_spec.has_params() {
             state.parameter.set(node::parameter::State::Visible {
-                position: PARAMETER_POSITION,
+                position: DEFAULT_DIALOG_POSITION,
                 id,
                 mode: node::parameter::Mode::Create,
             });

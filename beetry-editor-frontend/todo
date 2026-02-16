@@ -1,16 +1,11 @@
 Features:
 - subtrees
 - search for node name
-- show node id
 - long term there should be button to align the nodes in the tree
 - resize nodes
-- show selected params
-- add error component that collects error messages and displays it 
 
 
 Improvements:
-- Once 0.7 becomes stable use Store instead of Signal<HashMap<T, V>> (https://github.com/DioxusLabs/docsite/pull/538)
-- error context + error types
 - monotonically increasing id assignment does not play nice if some elements are removed, or when importing from serialized data
 
 UX:
