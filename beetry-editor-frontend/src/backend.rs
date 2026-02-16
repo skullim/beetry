@@ -1,7 +1,5 @@
-use beetry_editor_backend::EditorService;
+use beetry_editor_backend::{EditorService, NodeSpecMap};
 use dioxus::prelude::*;
-
-use crate::NodeSpecMap;
 
 #[derive(Clone, Copy)]
 pub struct Backend {

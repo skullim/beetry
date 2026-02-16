@@ -14,7 +14,7 @@ pub(crate) enum DragChannelState {
     Dragged { id: ChannelId, offset: Point },
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub(crate) struct State {
     pub(crate) node: Signal<DragNodeState>,
     pub(crate) channel: Signal<DragChannelState>,
