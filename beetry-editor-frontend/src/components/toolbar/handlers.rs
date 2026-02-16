@@ -1,72 +1,56 @@
 use std::io::Read;
 use std::path::PathBuf;
 
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result, anyhow};
 use beetry_editor_types::persistence::{EditorStateStore, ValidTree};
 use beetry_serialization::{Deserializer, JsonDeserializer, JsonSerializer, Serializer};
-use dioxus::prelude::*;
+use dioxus::prelude::{ReadableExt, WritableExt};
 use rfd::FileDialog;
 
 use crate::Backend;
 use crate::signals::RenderRequests;
-use crate::ui::error;
 use crate::ui::error::ErrorQueueState;
 use crate::ui::transfer;
 
-#[component]
-pub(crate) fn Toolbar(render_requests: RenderRequests) -> Element {
-    let mut error_queue = use_context::<ErrorQueueState>();
-    let backend = use_context::<Backend>();
+pub(super) fn export_handlers(
+    mut error_queue: ErrorQueueState,
+    backend: Backend,
+) -> transfer::export::Handlers {
+    let on_project = move |()| {
+        if let Err(e) = do_export_project(backend) {
+            error_queue.with_mut(|q| q.push("export-project", e.to_string()));
+        }
+        Ok(())
+    };
 
-    {
-        let on_project = move |()| {
-            match do_export_project(backend) {
-                Ok(()) => {}
-                Err(e) => {
-                    error_queue.with_mut(|q| q.push("export-project", e.to_string()));
-                }
-            };
-            Ok(())
-        };
+    let on_valid_tree = move |()| {
+        if let Err(e) = do_export_valid_tree(backend) {
+            error_queue.with_mut(|q| q.push("export-valid-tree", e.to_string()));
+        }
+        Ok(())
+    };
 
-        let on_valid_tree = move |()| {
-            match do_export_valid_tree(backend) {
-                Ok(()) => {}
-                Err(e) => {
-                    error_queue.with_mut(|q| q.push("export-valid-tree", e.to_string()));
-                }
-            };
-            Ok(())
-        };
+    transfer::export::Handlers::new(on_project, on_valid_tree)
+}
 
-        use_context_provider(move || transfer::export::Handlers::new(on_project, on_valid_tree));
-    }
+pub(super) fn import_handlers(
+    mut error_queue: ErrorQueueState,
+    backend: Backend,
+    mut render_requests: RenderRequests,
+) -> transfer::import::Handlers {
+    let on_click = move |()| {
+        match do_import(backend) {
+            Ok(()) => {
+                render_requests.request_all();
+            }
+            Err(e) => {
+                error_queue.with_mut(|q| q.push("import-project", e.to_string()));
+            }
+        }
+        Ok(())
+    };
 
-    {
-        let on_click = move |()| {
-            match do_import(backend) {
-                Ok(()) => {
-                    render_requests.nodes.request();
-                    render_requests.edges.request();
-                    render_requests.channels.request();
-                    render_requests.channel_edges.request();
-                }
-                Err(e) => {
-                    error_queue.with_mut(|q| q.push("import-project", e.to_string()));
-                }
-            };
-            Ok(())
-        };
-
-        use_context_provider(move || transfer::import::Handlers::new(on_click));
-    }
-
-    rsx! {
-        transfer::ExportProject {}
-        transfer::ExportValidTree {}
-        transfer::Import {}
-        error::Dialog {}
-    }
+    transfer::import::Handlers::new(on_click)
 }
 
 fn do_export_project(backend: Backend) -> Result<()> {
@@ -86,7 +70,7 @@ fn export_project_to_file(editor_state: EditorStateStore) -> Result<()> {
     let file_path = select_export_file()?;
 
     std::fs::write(&file_path, serialized)
-        .map_err(|e| anyhow!("Failed to save file '{}': {}", file_path.display(), e))
+        .with_context(|| format!("Failed to save file '{}'", file_path.display()))
 }
 
 fn export_valid_tree_to_file(valid_tree: ValidTree) -> Result<()> {
@@ -94,7 +78,7 @@ fn export_valid_tree_to_file(valid_tree: ValidTree) -> Result<()> {
     let file_path = select_export_file()?;
 
     std::fs::write(&file_path, serialized)
-        .map_err(|e| anyhow!("Failed to save file '{}': {}", file_path.display(), e))
+        .with_context(|| format!("Failed to save file '{}'", file_path.display()))
 }
 
 fn do_import(mut backend: Backend) -> Result<()> {
@@ -103,7 +87,7 @@ fn do_import(mut backend: Backend) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn import_project_from_file() -> Result<EditorStateStore> {
+fn import_project_from_file() -> Result<EditorStateStore> {
     let path = select_import_file()?;
     let ext = path
         .extension()

@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use crate::ui::handler::define_handlers;
 
 define_handlers!(on_project: (),
-          on_valid_tree: ()
+                 on_valid_tree: ()
 );
 
 #[component]

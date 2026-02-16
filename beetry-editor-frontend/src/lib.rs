@@ -3,7 +3,6 @@ mod components;
 mod definitions;
 mod signals;
 mod specs;
-mod toolbar;
 mod ui;
 
 use beetry_editor_types::output::ui::Point;

@@ -57,3 +57,13 @@ pub(crate) struct RenderRequests {
     pub(crate) channel_edges: RequestChannelEdgeRender,
     pub(crate) ports: RequestPortRender,
 }
+
+impl RenderRequests {
+    pub fn request_all(&mut self) {
+        self.nodes.request();
+        self.edges.request();
+        self.channels.request();
+        self.channel_edges.request();
+        self.ports.request();
+    }
+}
