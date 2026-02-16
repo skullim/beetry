@@ -8,6 +8,10 @@ define_handlers!(on_click: ());
 pub fn Import() -> Element {
     let handlers = use_context::<Handlers>();
     rsx! {
-        button { onclick: move |_| { handlers.on_click.call(()) }, "Import project" }
+        button {
+            class: "bt-btn bt-btn--toolbar",
+            onclick: move |_| { handlers.on_click.call(()) },
+            "Import project"
+        }
     }
 }
