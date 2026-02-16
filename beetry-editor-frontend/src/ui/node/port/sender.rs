@@ -30,8 +30,8 @@ pub fn Sender(props: SenderProps) -> Element {
     let node_id = props.id;
     let message_desc = props.msg_spec.as_str();
 
-    static FONT_SIZE: u8 = 10;
-    let port_width = text_width_from(message_desc, FONT_SIZE);
+    let font_size = text::FONT_SIZE_SMALL;
+    let port_width = text_width_from(message_desc, font_size);
 
     let port_id = props.port_id;
     let port_id_as_f64 = port_id.raw_value() as f64;
@@ -100,7 +100,7 @@ pub fn Sender(props: SenderProps) -> Element {
                 y: "{position.y + 13.0 + 20.0 * port_id_as_f64}",
                 fill: "white",
                 font_family: text::font_family(),
-                font_size: "{FONT_SIZE}",
+                font_size: "{font_size}",
                 font_weight: "medium",
                 text_anchor: "middle",
                 pointer_events: "none",

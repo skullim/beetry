@@ -3,6 +3,7 @@ pub mod menu;
 pub mod parameter;
 pub mod port;
 pub mod renderer;
+pub(crate) mod tooltip;
 
 pub(super) mod control;
 pub(super) mod leaf;
@@ -10,11 +11,7 @@ pub(super) mod root;
 
 pub use menu::Menu;
 pub use renderer::Renderer;
-
-use crate::Point;
 use dioxus::prelude::*;
-
-pub const PARAMETER_POSITION: Point = Point { x: 300.0, y: 200.0 };
 
 pub fn style_defs() -> Element {
     rsx! {

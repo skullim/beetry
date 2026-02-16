@@ -1,5 +1,6 @@
 use crate::Point;
 use crate::ui::handler::define_handlers;
+use crate::ui::node::tooltip::Tooltip;
 use crate::ui::{shadow, text};
 use beetry_editor_types::id::NodeId;
 use bon::Builder;
@@ -73,7 +74,11 @@ pub fn NodeBase(props: NodeBaseProps) -> Element {
 
     rsx! {
         g {
-            onmousedown: move |evt| handlers.on_mouse_down.call((id, position, evt)),
+            onmousedown: move |evt| {
+                if evt.held_buttons().contains(MouseButton::Primary) {
+                    handlers.on_mouse_down.call((id, position, evt))
+                }
+            },
             onmouseenter: move |_| is_hovered.set(true),
             onmouseleave: move |_| is_hovered.set(false),
             style: "cursor: grab;",
@@ -98,10 +103,19 @@ pub fn NodeBase(props: NodeBaseProps) -> Element {
                 text_anchor: "middle",
                 dominant_baseline: "middle",
                 font_family: text::font_family(),
-                font_size: "12",
+                font_size: "{text::FONT_SIZE_NORMAL}",
                 font_weight: "semi-bold",
                 fill: "white",
                 "{style.label}"
+            }
+
+            Tooltip {
+                visible: is_hovered,
+                node_id: id,
+                anchor: Point {
+                    x: position.x + style.width + 8.0,
+                    y: position.y,
+                },
             }
         }
     }

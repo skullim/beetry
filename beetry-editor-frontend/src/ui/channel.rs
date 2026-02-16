@@ -10,6 +10,7 @@ use crate::ui::error::ErrorQueueState;
 use crate::ui::handler::define_handlers;
 use crate::ui::shadow;
 use crate::ui::text::{self, text_width_from};
+use crate::ui::tooltip::TooltipCard;
 use beetry_editor_backend::api::ChannelQueryView;
 use beetry_editor_types::id::ChannelId;
 use beetry_plugin::Named;
@@ -47,14 +48,20 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
         return rsx! {};
     };
     let name = spec.name();
+    let (kind_label, capacity_label) = match channel_query_api.config(id) {
+        Ok(config) => (config.kind().to_string(), config.capacity().to_string()),
+        Err(e) => {
+            errors.push(e);
+            ("unknown".to_string(), "unknown".to_string())
+        }
+    };
 
-    let font_size = 10;
+    let font_size = text::FONT_SIZE_SMALL;
     let body_width = text_width_from(name, font_size);
 
     let mut sender_hovered = use_signal(|| false);
     let mut body_hovered = use_signal(|| false);
     let mut receiver_hovered = use_signal(|| false);
-    let mut show_tooltip = use_signal(|| false);
 
     let handlers = use_context::<Handlers>();
     let on_menu = move |evt| handlers.on_menu.call((id, evt));
@@ -89,11 +96,9 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
                 oncontextmenu: on_menu,
                 onmouseenter: move |_| {
                     body_hovered.set(true);
-                    show_tooltip.set(true);
                 },
                 onmouseleave: move |_| {
                     body_hovered.set(false);
-                    show_tooltip.set(false);
                 },
                 x: "{position.x + 40.0}",
                 y: "{position.y}",
@@ -139,32 +144,17 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
                 "{name}"
             }
 
-            // Tooltip for channel ID (only show on hover)
-            if *show_tooltip.read() {
-                g {
-                    rect {
-                        x: "{position.x + 38.0 + (body_width / 2.0) - 15.0}",
-                        y: "{position.y - 35.0}",
-                        width: "30",
-                        height: "18",
-                        rx: "4",
-                        ry: "4",
-                        fill: "rgba(0, 0, 0, 0.8)",
-                        stroke: "rgba(255, 255, 255, 0.2)",
-                        stroke_width: "1",
-                    }
-
-                    text {
-                        x: "{position.x + 38.0 + (body_width / 2.0)}",
-                        y: "{position.y - 23.0}",
-                        fill: "white",
-                        font_family: text::font_family(),
-                        font_size: "{font_size}",
-                        font_weight: "400",
-                        text_anchor: "middle",
-                        pointer_events: "none",
-                        "ID: {id}"
-                    }
+            if *body_hovered.read() {
+                TooltipCard {
+                    anchor: Point {
+                        x: position.x + 80.0 + body_width + 8.0,
+                        y: position.y,
+                    },
+                    lines: vec![
+                        format!("ID : {id}"),
+                        format!("Type : {kind_label}"),
+                        format!("Capacity : {capacity_label}"),
+                    ],
                 }
             }
 

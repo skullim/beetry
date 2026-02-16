@@ -11,6 +11,8 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing::{debug, error};
 use std::rc::Rc;
 
+pub const DEFAULT_DIALOG_POSITION: Point = Point { x: 300.0, y: 200.0 };
+
 define_handlers!(on_confirm: (NodeId, Parameters),
           on_cancel: (),
 );
