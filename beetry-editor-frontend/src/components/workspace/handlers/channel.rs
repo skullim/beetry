@@ -29,9 +29,8 @@ pub(crate) fn handlers(
                         data.node_id, data.port_id
                     );
                 }
-                Err(err) => {
-                    error!("{err}");
-                    errors.with_mut(|q| q.push("channel-connect", err.to_string()));
+                Err(e) => {
+                    errors.push(e);
                 }
             }
         }
@@ -53,9 +52,8 @@ pub(crate) fn handlers(
                         data.node_id, data.port_id
                     );
                 }
-                Err(err) => {
-                    error!("{err}");
-                    errors.with_mut(|q| q.push("channel-connect", err.to_string()));
+                Err(e) => {
+                    errors.push(e);
                 }
             }
         }

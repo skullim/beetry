@@ -3,8 +3,8 @@ use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::Point;
 use crate::Backend;
+use crate::Point;
 use crate::signals::RequestNodeRender;
 use crate::ui::error::ErrorQueueState;
 use crate::ui::node::control::Control;
@@ -92,13 +92,13 @@ pub fn Renderer(render_nodes: RequestNodeRender) -> Element {
 
 fn render_node_result(
     result: anyhow::Result<(&NodeId, &Point)>,
-    mut error_queue: ErrorQueueState,
+    mut errors: ErrorQueueState,
     render_ok: impl FnOnce(&NodeId, &Point) -> Element,
 ) -> Element {
     match result {
         Ok((id, pos)) => render_ok(id, pos),
         Err(e) => {
-            error_queue.with_mut(|q| q.push("renderer", e.to_string()));
+            errors.push(e);
             rsx!()
         }
     }

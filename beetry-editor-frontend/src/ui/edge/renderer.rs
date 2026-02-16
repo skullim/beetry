@@ -1,7 +1,7 @@
 use crate::definitions::EdgePos;
-use crate::Backend;
 use crate::signals::RequestEdgeRender;
 use crate::ui::edge::Edge;
+use crate::{Backend, ui::error::ErrorQueueState};
 use beetry_editor_backend::api::{EdgeQueryView, NodeUiQueryApi};
 use dioxus::prelude::*;
 
@@ -18,18 +18,23 @@ pub fn Renderer(render_edges: RequestEdgeRender) -> Element {
     let edge_query = beetry_editor_backend::api::edge::borrow(&(*read));
     let ui_node_query = beetry_editor_backend::api::ui::node::borrow(&(*read));
 
-    let edges = edge_query.edges().map(|(id, edge)| {
-        //@todo refine on API layer to get position of the port and not node
-        //@todo error handling
-        let edge_start = ui_node_query.data(edge.from).unwrap().position;
-        let edge_end = ui_node_query.data(edge.to).unwrap().position;
-        let edge_pos = EdgePos {
-            start: edge_start,
-            end: edge_end,
-        };
-        rsx! {
-            Edge { key: "{id}", pos: edge_pos, edge_id: *id }
-        }
+    let mut errors = use_context::<ErrorQueueState>();
+    let mut node_pos = |node_id| {
+        ui_node_query
+            .data(node_id)
+            //@todo refine on API layer to get position of the port and not node
+            .map(|d| d.position)
+            .map_err(|e| errors.push(e))
+            .ok()
+    };
+
+    let edges = edge_query.edges().filter_map(|(id, edge)| {
+        let start = node_pos(edge.from)?;
+        let end = node_pos(edge.to)?;
+
+        Some(rsx! {
+            Edge { key: "{id}", pos: EdgePos { start, end }, edge_id: *id }
+        })
     });
 
     rsx! {

@@ -66,8 +66,13 @@ pub(crate) fn handlers(
             requests.channel_edges.request();
         }
 
-        temp.edge.with_mut(|e| e.update_end_if_dragged(&evt));
-        temp.channel.with_mut(|c| c.update_end_if_dragged(&evt));
+        let mouse_coords = evt.element_coordinates();
+        let cursor = Point {
+            x: mouse_coords.x,
+            y: mouse_coords.y,
+        };
+        temp.edge.with_mut(|e| e.update_end_if_dragged(cursor));
+        temp.channel.with_mut(|c| c.update_end_if_dragged(cursor));
         Ok(())
     };
 

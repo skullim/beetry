@@ -1,5 +1,6 @@
-use crate::Point;
 use crate::Backend;
+use crate::Point;
+use crate::ui::error::ErrorQueueState;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithMenu};
 use crate::ui::node::port::{self, input};
 use beetry_editor_backend::api::SpecByNodeIdQueryView;
@@ -58,8 +59,20 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
     let backend = use_context::<Backend>();
     let read = backend.read();
     let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
-    let name = spec_query.name(id).unwrap();
-    let kind = spec_query.kind(id).unwrap().leaf().unwrap();
+
+    let mut errors = use_context::<ErrorQueueState>();
+    let Some((name, kind)) = (|| -> anyhow::Result<_> {
+        let name = spec_query.name(id)?;
+        let kind = spec_query
+            .kind(id)?
+            .leaf()
+            .context("node kind is not leaf")?;
+        Ok((name, kind))
+    })()
+    .map_err(|e| errors.push(e))
+    .ok() else {
+        return rsx! {};
+    };
 
     let style = use_hook(|| Rc::new(style(kind, &name.0)));
     let position = props.position;

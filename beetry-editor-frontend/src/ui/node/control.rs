@@ -1,5 +1,6 @@
-use crate::Point;
 use crate::Backend;
+use crate::Point;
+use crate::ui::error::ErrorQueueState;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithMenu};
 use crate::ui::node::port::{input, output};
 use beetry_editor_backend::api::SpecByNodeIdQueryView;
@@ -45,7 +46,11 @@ pub fn Control(props: ControlProps) -> Element {
     let backend = use_context::<Backend>();
     let read = backend.read();
     let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
-    let name = spec_query.name(id).unwrap();
+
+    let mut errors = use_context::<ErrorQueueState>();
+    let Some(name) = spec_query.name(id).map_err(|e| errors.push(e)).ok() else {
+        return rsx!();
+    };
 
     let style = use_hook(|| Rc::new(style(&name.0)));
     let position = props.position;

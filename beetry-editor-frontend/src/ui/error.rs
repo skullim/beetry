@@ -1,5 +1,8 @@
+use chrono::{DateTime, Local, Utc};
+use core::fmt;
 use dioxus::prelude::*;
 use std::{
+    collections::VecDeque,
     ops::{Deref, DerefMut},
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -10,6 +13,12 @@ pub struct ErrorQueueState(Signal<ErrorQueue>);
 impl ErrorQueueState {
     pub(crate) fn new() -> Self {
         Self(Signal::new(ErrorQueue::new()))
+    }
+}
+
+impl ErrorQueueState {
+    pub fn push(&mut self, err: impl fmt::Display) {
+        self.0.with_mut(|e| e.push(err));
     }
 }
 
@@ -29,15 +38,13 @@ impl DerefMut for ErrorQueueState {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ErrorLog {
     pub id: u64,
-    pub source: &'static str,
     pub message: String,
-    pub count: usize,
     pub timestamp_secs: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ErrorQueue {
-    entries: Vec<ErrorLog>,
+    entries: VecDeque<ErrorLog>,
     next_id: u64,
 }
 
@@ -46,39 +53,25 @@ impl ErrorQueue {
 
     fn new() -> Self {
         Self {
-            entries: vec![],
-            next_id: 1,
+            entries: VecDeque::new(),
+            next_id: 0,
         }
     }
 
-    pub fn push(&mut self, source: &'static str, message: impl Into<String>) {
-        let message = message.into();
-        let now = now_unix_secs();
-        if let Some(last) = self.entries.last_mut()
-            && last.source == source
-            && last.message == message
-        {
-            last.count += 1;
-            last.timestamp_secs = now;
-            return;
-        }
-
+    pub fn push(&mut self, err: impl fmt::Display) {
         let id = self.next_id;
         self.next_id = self.next_id.saturating_add(1);
-        self.entries.push(ErrorLog {
+        self.entries.push_back(ErrorLog {
             id,
-            source,
-            message: message.clone(),
-            count: 1,
-            timestamp_secs: now,
+            message: format!("{err}"),
+            timestamp_secs: now_unix_secs(),
         });
         if self.entries.len() > Self::MAX_ENTRIES {
-            let to_drop = self.entries.len() - Self::MAX_ENTRIES;
-            self.entries.drain(0..to_drop);
+            self.entries.pop_front();
         }
     }
 
-    pub fn snapshot(&self) -> Vec<ErrorLog> {
+    pub fn snapshot(&self) -> VecDeque<ErrorLog> {
         self.entries.clone()
     }
 
@@ -102,27 +95,12 @@ pub fn Dialog() -> Element {
     let entries = items.into_iter().rev().map(|item| {
         let mut queue_for_entry = queue;
         let timestamp = format_timestamp(item.timestamp_secs);
-        let count_badge = if item.count > 1 {
-            rsx! {
-                span { style: "font-size: 10px; color: #8b0000; border: 1px solid #efb8b8; background: #fff5f5; border-radius: 999px; padding: 0 6px;",
-                    "x{item.count}"
-                }
-            }
-        } else {
-            rsx! {}
-        };
 
         rsx! {
             li {
                 key: "{item.id}",
                 style: "list-style: none; margin-bottom: 8px; padding: 8px; border: 1px solid #efb8b8; border-radius: 8px; background: #fffafa;",
                 div { style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;",
-                    div { style: "display: flex; align-items: center; gap: 6px;",
-                        span { style: "font-size: 10px; color: #8b0000; border: 1px solid #efb8b8; background: #fff0f0; border-radius: 999px; padding: 0 6px;",
-                            "{item.source}"
-                        }
-                        {count_badge}
-                    }
                     div { style: "display: flex; align-items: center; gap: 6px;",
                         span { style: "font-size: 10px; color: #9f5e5e;", "{timestamp}" }
                         button {
@@ -133,7 +111,7 @@ pub fn Dialog() -> Element {
                     }
                 }
                 div { style: "font-size: 12px; color: #631f1f; white-space: pre-wrap; word-break: break-word;",
-                    {item.message.clone()}
+                    {item.message}
                 }
             }
         }
@@ -142,7 +120,7 @@ pub fn Dialog() -> Element {
     rsx! {
         div { style: "position: fixed; right: 16px; bottom: 16px; width: 420px; max-width: calc(100vw - 24px); z-index: 2000; border: 1px solid #d66; background: #fff; padding: 10px; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.2);",
             div { style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;",
-                b { "Errors ({queue.read().entries.len()})" }
+                b { "Errors" }
                 button {
                     onclick: move |_| queue.with_mut(ErrorQueue::clear),
                     style: "font-size: 12px; border: 1px solid #d66; border-radius: 6px; background: #fff; color: #8b0000; padding: 2px 8px; cursor: pointer;",
@@ -164,8 +142,7 @@ fn now_unix_secs() -> u64 {
 }
 
 fn format_timestamp(epoch_secs: u64) -> String {
-    let minutes = (epoch_secs / 60) % 60;
-    let hours = (epoch_secs / 3600) % 24;
-    let seconds = epoch_secs % 60;
-    format!("{hours:02}:{minutes:02}:{seconds:02}")
+    DateTime::<Utc>::from_timestamp(epoch_secs as i64, 0)
+        .map(|dt| dt.with_timezone(&Local).format("%H:%M:%S").to_string())
+        .unwrap_or_else(|| String::from("--:--:--"))
 }

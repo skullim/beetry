@@ -5,18 +5,18 @@ use beetry_editor_types::{
 use bon::bon;
 use dioxus::prelude::*;
 
-#[derive(Debug, Clone)]
-pub(crate) struct Handlers {
-    on_internal: EventHandler<(NodeId, NodePortId)>,
-    on_external: EventHandler<(NodeId, NodePortId)>,
-}
+use crate::ui::handler::define_handlers;
+
+define_handlers!(on_internal: (NodeId, NodePortId),
+                 on_external: (NodeId, NodePortId)
+);
 
 #[bon]
 impl Handlers {
     #[builder]
     pub(crate) fn new(
-        on_internal: impl FnMut((NodeId, NodePortId)) + 'static,
-        on_external: impl FnMut((NodeId, NodePortId)) + 'static,
+        on_internal: impl FnMut((NodeId, NodePortId)) -> Result<()> + 'static,
+        on_external: impl FnMut((NodeId, NodePortId)) -> Result<()> + 'static,
     ) -> Self {
         Self {
             on_internal: EventHandler::new(on_internal),
