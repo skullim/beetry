@@ -78,7 +78,7 @@ pub fn Receiver(props: ReceiverProps) -> Element {
                             x: mouse_coords.x,
                             y: mouse_coords.y,
                         };
-                       handlers
+                        handlers
                             .on_mouse_down
                             .call((
                                 ConnectionOrigin::Receiver,
