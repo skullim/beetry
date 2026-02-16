@@ -1,5 +1,5 @@
 use crate::definitions::EdgePos;
-use crate::editor::Backend;
+use crate::Backend;
 use crate::signals::RequestEdgeRender;
 use crate::ui::edge::Edge;
 use beetry_editor_backend::api::{EdgeQueryView, NodeUiQueryApi};

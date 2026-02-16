@@ -4,7 +4,7 @@ use beetry_editor_types::{id::NodePortId, spec::node::NodePortKind};
 use dioxus::prelude::*;
 
 use crate::definitions::EdgePos;
-use crate::editor::Backend;
+use crate::Backend;
 use crate::signals::{RequestChannelEdgeRender, RequestChannelRender};
 use crate::ui::channel::{Channel, ReceiverConnection, SenderConnection};
 use crate::ui::error::ErrorQueueState;
