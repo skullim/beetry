@@ -30,13 +30,13 @@ fn Layout(state: State) -> Element {
 
     rsx! {
         div { style: "display: flex; flex-direction: row; gap: 10px;",
-            div { style: "flex: 0 1 20%;", Sidebar {editor_state: state} }
+            div { style: "flex: 0 1 20%;",
+                Sidebar { editor_state: state }
+            }
             div { style: "flex: 0 1 80%;",
                 Workspace { render_requests, editor_state: state }
             }
-            div { style: "flex: 0 1 10%;",
-                Toolbar {}
-            }
+            div { style: "flex: 0 1 10%;", Toolbar {} }
         }
     }
 }

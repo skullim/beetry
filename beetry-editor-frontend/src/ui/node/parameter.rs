@@ -1,4 +1,5 @@
 use crate::Backend;
+use crate::ui::error::ErrorQueueState;
 use crate::{Point, ui::handler::define_handlers};
 use beetry_editor_backend::api::{ParameterValueParser, SpecByNodeIdQueryView};
 use beetry_editor_types::{
@@ -59,8 +60,17 @@ fn VisibleDialog(props: VisibleDialogProps) -> Element {
     let backend = use_context::<Backend>();
     let read = backend.read();
     let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
-    let params_spec = Rc::new(spec_query.params(id).unwrap().clone());
-    let node_name = Rc::new(spec_query.name(id).unwrap().clone());
+
+    let mut errors = use_context::<ErrorQueueState>();
+    let Some((params_spec, node_name)) = (|| -> anyhow::Result<_> {
+        let params_spec = Rc::new(spec_query.params(id)?.clone());
+        let node_name = Rc::new(spec_query.name(id)?.clone());
+        Ok((params_spec, node_name))
+    })()
+    .map_err(|e| errors.push(e))
+    .ok() else {
+        return rsx! {};
+    };
 
     let initial_parameters = match mode {
         Mode::Create => Parameters::default(),
@@ -179,11 +189,21 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
 
     let backend = use_context::<Backend>();
     let read = backend.read();
-
     let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
-    let spec = spec_query.spec(props.id).unwrap();
-    let params_spec = spec.params().as_ref().unwrap();
-    let field_def = params_spec.get(&props.name).unwrap();
+
+    let mut errors = use_context::<ErrorQueueState>();
+    let Some(field_def) = (|| -> anyhow::Result<_> {
+        let spec = spec_query.spec(props.id)?;
+        let params_spec = spec.params().as_ref().context("node has no params spec")?;
+        let field_def = params_spec
+            .get(&props.name)
+            .context("param field not found in params spec")?;
+        Ok(field_def)
+    })()
+    .map_err(|e| errors.push(e))
+    .ok() else {
+        return rsx! {};
+    };
 
     let mut error_msg = use_signal::<Option<String>>(|| None);
     let o_val = parameters.read().get(&props.name).cloned();

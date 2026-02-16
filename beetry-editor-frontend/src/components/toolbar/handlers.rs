@@ -18,14 +18,14 @@ pub(super) fn export_handlers(
 ) -> transfer::export::Handlers {
     let on_project = move |()| {
         if let Err(e) = do_export_project(backend) {
-            error_queue.with_mut(|q| q.push("export-project", e.to_string()));
+            error_queue.push(e);
         }
         Ok(())
     };
 
     let on_valid_tree = move |()| {
         if let Err(e) = do_export_valid_tree(backend) {
-            error_queue.with_mut(|q| q.push("export-valid-tree", e.to_string()));
+            error_queue.push(e);
         }
         Ok(())
     };
@@ -44,7 +44,7 @@ pub(super) fn import_handlers(
                 render_requests.request_all();
             }
             Err(e) => {
-                error_queue.with_mut(|q| q.push("import-project", e.to_string()));
+                error_queue.push(e);
             }
         }
         Ok(())

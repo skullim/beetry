@@ -21,15 +21,9 @@ pub(super) fn Provider(
         )
     });
 
-    let error_queue_state = use_context();
+    let errors = use_context();
     use_context_provider(|| {
-        handlers::node::handlers(
-            state.drag,
-            state.menu,
-            state.svg,
-            backend,
-            error_queue_state,
-        )
+        handlers::node::handlers(state.drag, state.menu, state.svg, backend, errors)
     });
     use_context_provider(|| handlers::port::input_handlers(state.temp, backend, render_requests));
     use_context_provider(|| handlers::port::output_handlers(state.temp));
@@ -42,16 +36,14 @@ pub(super) fn Provider(
     use_context_provider(|| handlers::channel::menu_handlers(state.menu, backend, render_requests));
 
     use_context_provider(|| {
-        handlers::port::sender_handlers(state.menu, state.temp, backend, error_queue_state)
+        handlers::port::sender_handlers(state.menu, state.temp, backend, errors)
     });
     use_context_provider(|| {
-        handlers::port::receiver_handlers(state.menu, state.temp, backend, error_queue_state)
+        handlers::port::receiver_handlers(state.menu, state.temp, backend, errors)
     });
-    use_context_provider(|| handlers::port::menu_handlers(backend, render_requests));
+    use_context_provider(|| handlers::port::menu_handlers(backend, render_requests, errors));
 
-    use_context_provider(|| {
-        handlers::channel::handlers(state, backend, render_requests, error_queue_state)
-    });
+    use_context_provider(|| handlers::channel::handlers(state, backend, render_requests, errors));
 
     children
 }

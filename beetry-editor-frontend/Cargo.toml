@@ -16,6 +16,7 @@ beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
 beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }
 beetry-editor-backend = { version = "0.1.0", path = "../beetry-editor-backend" }
 bon.workspace = true
+chrono = "0.4.42"
 dioxus = { version = "0.7.0", features = [] }
 dioxus-logger = "0.7.0"
 rfd = { version = "0.15.4", default-features = false, features = [

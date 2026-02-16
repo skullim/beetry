@@ -2,10 +2,11 @@ pub mod config;
 pub mod menu;
 pub mod renderer;
 
+use crate::Backend;
 use crate::Point;
 use crate::definitions::EdgePos;
-use crate::Backend;
 use crate::ui::curve::Curve;
+use crate::ui::error::ErrorQueueState;
 use crate::ui::handler::define_handlers;
 use crate::ui::shadow;
 use crate::ui::text::{self, text_width_from};
@@ -39,7 +40,13 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
     let backend_peek = backend.peek();
     let channel_query_api = beetry_editor_backend::api::channel::borrow(&(*backend_peek));
 
-    let name = channel_query_api.spec(id).unwrap().name();
+    let mut errors = use_context::<ErrorQueueState>();
+    let Ok(spec) = channel_query_api.spec(id).map_err(|e| {
+        errors.push(e);
+    }) else {
+        return rsx! {};
+    };
+    let name = spec.name();
 
     let font_size = 10;
     let body_width = text_width_from(name, font_size);

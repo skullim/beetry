@@ -3,8 +3,8 @@ use beetry_editor_backend::api::{ChannelUiQueryApi, NodeUiQueryApi};
 use beetry_editor_types::{id::NodePortId, spec::node::NodePortKind};
 use dioxus::prelude::*;
 
-use crate::definitions::EdgePos;
 use crate::Backend;
+use crate::definitions::EdgePos;
 use crate::signals::{RequestChannelEdgeRender, RequestChannelRender};
 use crate::ui::channel::{Channel, ReceiverConnection, SenderConnection};
 use crate::ui::error::ErrorQueueState;
@@ -41,23 +41,21 @@ pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Ele
     debug!("rendering connection");
     render_channel_edges.track();
 
-    let mut error_queue = use_context::<ErrorQueueState>();
-
     let backend = use_context::<Backend>();
     let backend_peek = backend.peek();
     let channel_query_api = beetry_editor_backend::api::ui::channel::borrow(&(*backend_peek));
     let node_query_api = beetry_editor_backend::api::ui::node::borrow(&(*backend_peek));
+    let mut errors = use_context::<ErrorQueueState>();
 
     let sender_connections = beetry_editor_backend::api::node::ports::connection_views_by_kind(
         &(*backend_peek),
         NodePortKind::Sender,
     )
-    .filter_map(move |conn| match conn {
-        Ok(conn) => Some(conn),
-        Err(err) => {
-            error_queue.with_mut(|q| q.push("channel-render", err.to_string()));
-            None
-        }
+    .filter_map(move |conn| {
+        conn.map_err(|e| {
+            errors.push(e);
+        })
+        .ok()
     })
     .filter_map(|conn| {
         let node_pos = node_query_api.position(conn.node_id).ok()?;
@@ -79,12 +77,11 @@ pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Ele
         &(*backend_peek),
         NodePortKind::Receiver,
     )
-    .filter_map(move |conn| match conn {
-        Ok(conn) => Some(conn),
-        Err(err) => {
-            error_queue.with_mut(|q| q.push("channel-render", err.to_string()));
-            None
-        }
+    .filter_map(move |conn| {
+        conn.map_err(|e| {
+            errors.push(e);
+        })
+        .ok()
     })
     .filter_map(|conn| {
         let node_pos = node_query_api.position(conn.node_id).ok()?;
