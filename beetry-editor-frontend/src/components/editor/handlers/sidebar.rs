@@ -1,10 +1,15 @@
+use beetry_editor_types::output::ui::Point;
+use beetry_editor_types::spec::channel::ChannelSpec;
 use beetry_editor_types::{output::ui::NodeUiData, spec::node::NodeSpecKey};
 use dioxus::prelude::*;
 
 use super::super::state;
 use crate::signals::RequestNodeRender;
 use crate::ui::node::PARAMETER_POSITION;
-use crate::{Backend, SharedSpecs, sidebar, ui::node};
+use crate::{
+    Backend, SharedSpecs, sidebar,
+    ui::{channel, node},
+};
 
 pub(crate) fn handlers(
     specs: SharedSpecs,
@@ -38,5 +43,13 @@ pub(crate) fn handlers(
         Ok(())
     };
 
-    sidebar::Handlers::new(on_new_node)
+    let on_new_channel = move |spec: ChannelSpec| -> Result<()> {
+        state.channel_config.set(channel::config::State::Visible {
+            position: Point { x: 200.0, y: 100.0 },
+            spec_key: spec.msg_hash(),
+        });
+        Ok(())
+    };
+
+    sidebar::Handlers::new(on_new_node, on_new_channel)
 }

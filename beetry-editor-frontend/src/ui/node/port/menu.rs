@@ -61,12 +61,13 @@ pub fn Menu(state: Signal<State>) -> Element {
                         } else {
                             use_context::<Handlers>().on_external.call((id, port_id));
                         }
-                        state.set(State::Visible {
-                            position,
-                            id,
-                            port_id,
-                            is_external: !is_external,
-                        });
+                        state
+                            .set(State::Visible {
+                                position,
+                                id,
+                                port_id,
+                                is_external: !is_external,
+                            });
                     },
                     onmouseup: move |evt| {
                         evt.stop_propagation();

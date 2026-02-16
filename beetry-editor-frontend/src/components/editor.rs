@@ -9,7 +9,6 @@ use crate::components::workspace::Workspace;
 use crate::sidebar::Sidebar;
 use crate::signals::RenderRequests;
 use crate::toolbar::Toolbar;
-use crate::ui::node;
 
 pub(crate) use state::State;
 
@@ -17,7 +16,9 @@ pub(crate) use state::State;
 pub(crate) fn Editor() -> Element {
     let state = State::new();
     rsx! {
-        context::Provider {state, Layout {state} }
+        context::Provider { state,
+            Layout { state }
+        }
     }
 }
 
@@ -29,18 +30,9 @@ fn Layout(state: State) -> Element {
 
     rsx! {
         div { style: "display: flex; flex-direction: row; gap: 10px;",
-            div { style: "flex: 0 1 20%;",
-                Sidebar { channel_config_state: state.channel_config }
-            }
+            div { style: "flex: 0 1 20%;", Sidebar {} }
             div { style: "flex: 0 1 80%;",
-                Workspace {
-                    render_requests,
-                    element_spawn_point: state.element_spawn_point,
-                    parameter_state: state.parameter,
-                }
-            }
-            div {
-                node::parameter::Dialog { state: state.parameter }
+                Workspace { render_requests, editor_state: state }
             }
             div { style: "flex: 0 1 10%;",
                 Toolbar { render_requests }

@@ -7,8 +7,6 @@ use super::editor::Editor;
 #[component]
 pub(crate) fn App() -> Element {
     rsx! {
-        context::Provider {
-            Editor {}
-        }
+        context::Provider { Editor {} }
     }
 }

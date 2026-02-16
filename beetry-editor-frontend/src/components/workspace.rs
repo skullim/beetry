@@ -4,10 +4,10 @@ mod state;
 
 pub(crate) use state::State;
 
-use beetry_editor_types::output::ui::Point;
 use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
 
+use crate::components::editor;
 use crate::signals::RenderRequests;
 use crate::ui::channel::{self};
 use crate::ui::handler::define_handlers;
@@ -22,29 +22,17 @@ define_handlers!(
 );
 
 #[component]
-pub(crate) fn Workspace(
-    render_requests: RenderRequests,
-    element_spawn_point: Signal<Point>,
-    parameter_state: Signal<node::parameter::State>,
-) -> Element {
+pub(crate) fn Workspace(render_requests: RenderRequests, editor_state: editor::State) -> Element {
     let state = State::new();
     rsx! {
-        context::Provider {
-            state,
-            render_requests,
-            element_spawn_point,
-            parameter_state,
-
-            Canvas {
-                state,
-                render_requests,
-            }
+        context::Provider { state, editor_state, render_requests,
+            Canvas { state, editor_state, render_requests }
         }
     }
 }
 
 #[component]
-fn Canvas(state: State, render_requests: RenderRequests) -> Element {
+fn Canvas(state: State, editor_state: editor::State, render_requests: RenderRequests) -> Element {
     debug!("rendering workspace");
 
     let handlers = use_context::<Handlers>();
@@ -108,6 +96,9 @@ fn Canvas(state: State, render_requests: RenderRequests) -> Element {
                 channel::Menu { state: menus.channel }
                 node::port::Menu { state: menus.port }
             }
+
+            node::parameter::Dialog { state: editor_state.parameter }
+            channel::config::Dialog { state: editor_state.channel_config }
         }
     }
 }

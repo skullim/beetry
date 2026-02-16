@@ -31,20 +31,17 @@ pub enum Mode {
     Update,
 }
 
-#[derive(Debug, Props, Clone, PartialEq, Eq)]
-pub struct DialogProps {
-    state: Signal<State>,
-}
-
 #[component]
-pub fn Dialog(props: DialogProps) -> Element {
+pub fn Dialog(state: ReadSignal<State>) -> Element {
     debug!("rendering");
-    let (id, position, mode) = match *props.state.read() {
+    let (id, position, mode) = match *state.read() {
         State::Idle => return rsx! {},
         State::Visible { position, id, mode } => (id, position, mode),
     };
 
-    rsx! { VisibleDialog { id, position, mode } }
+    rsx! {
+        VisibleDialog { id, position, mode }
+    }
 }
 
 #[derive(Debug, Props, Clone, PartialEq)]
@@ -281,7 +278,7 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                     input {
                         r#type: "number",
                         step: "1.00",
-                        value:  o_val.map(|v| v.into_f64()).unwrap_or_default(),
+                        value: o_val.map(|v| v.into_f64()).unwrap_or_default(),
                         width: "100%",
                         padding: "4px 8px",
                         border_radius: "4px",
