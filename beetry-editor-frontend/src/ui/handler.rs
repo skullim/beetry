@@ -8,6 +8,7 @@ macro_rules! define_handlers {
         }
 
         impl Handlers {
+            #[allow(unused)]
             pub(crate) fn new(
             $(
                 $name: impl FnMut($types) -> Result<()> + 'static,

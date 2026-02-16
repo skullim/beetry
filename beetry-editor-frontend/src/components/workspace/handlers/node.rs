@@ -24,8 +24,8 @@ pub(crate) fn handlers(
                 let spec_query = beetry_editor_backend::api::node::spec::by_node_id(s);
                 Ok(spec_query.spec(id)?.has_params())
             })
-            .unwrap_or_else(|err| {
-                errors.with_mut(|q| q.push("node-menu", err.to_string()));
+            .unwrap_or_else(|e| {
+                errors.push(e);
                 false
             });
 

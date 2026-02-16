@@ -2,7 +2,6 @@ use crate::definitions::EdgePos;
 use crate::ui::edge;
 use crate::Point;
 use beetry_editor_types::id::NodeId;
-use dioxus::prelude::*;
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum State {
@@ -37,13 +36,9 @@ impl State {
         None
     }
 
-    pub(crate) fn update_end_if_dragged(&mut self, evt: &Event<MouseData>) {
+    pub(crate) fn update_end_if_dragged(&mut self, cursor: Point) {
         if let Self::Dragged { from: _, pos } = self {
-            let mouse_coords = evt.element_coordinates();
-            pos.end = Point {
-                x: mouse_coords.x,
-                y: mouse_coords.y,
-            };
+            pos.end = cursor;
         }
     }
 

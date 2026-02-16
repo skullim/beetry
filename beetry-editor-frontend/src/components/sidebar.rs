@@ -16,7 +16,7 @@ define_handlers!(on_new_node: NodeSpecKey,
 #[component]
 pub(crate) fn Sidebar(editor_state: editor::State) -> Element {
     rsx! {
-        context::Provider {editor_state, Layout {} }
+        context::Provider { editor_state, Layout {} }
     }
 }
 
@@ -73,7 +73,7 @@ fn Layout() -> Element {
                     {spec.as_str()}
                 }
             }
-
+        
 
         }
     }

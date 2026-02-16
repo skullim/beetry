@@ -83,8 +83,8 @@ pub(crate) fn sender_handlers(
             .with(|s| beetry_editor_backend::api::node::ports::is_external(s, node_id, port_id))
         {
             Ok(value) => value,
-            Err(err) => {
-                errors.with_mut(|q| q.push("port-menu", err.to_string()));
+            Err(e) => {
+                errors.push(e);
                 false
             }
         };
@@ -133,8 +133,8 @@ pub(crate) fn receiver_handlers(
             .with(|s| beetry_editor_backend::api::node::ports::is_external(s, node_id, port_id))
         {
             Ok(value) => value,
-            Err(err) => {
-                errors.with_mut(|q| q.push("port-menu", err.to_string()));
+            Err(e) => {
+                errors.push(e);
                 false
             }
         };
@@ -153,25 +153,30 @@ pub(crate) fn receiver_handlers(
 pub(crate) fn menu_handlers(
     mut backend: Backend,
     mut requests: RenderRequests,
+    mut errors: ErrorQueueState,
 ) -> node::port::menu::Handlers {
-    let on_external = move |(node_id, port_id): (NodeId, NodePortId)| {
+    let on_external = move |(node_id, port_id): (NodeId, NodePortId)| -> Result<()> {
         backend
             .with_mut(|s| {
                 beetry_editor_backend::api::node::ports::set_external(s, node_id, port_id)
             })
-            .unwrap();
+            .map_err(|e| errors.push(e))
+            .ok();
         requests.ports.request();
-        debug!("set port (node id: {node_id}, port id: {port_id}) as external")
+        debug!("set port (node id: {node_id}, port id: {port_id}) as external");
+        Ok(())
     };
 
-    let on_internal = move |(node_id, port_id): (NodeId, NodePortId)| {
+    let on_internal = move |(node_id, port_id): (NodeId, NodePortId)| -> Result<()> {
         backend
             .with_mut(|s| {
                 beetry_editor_backend::api::node::ports::set_internal(s, node_id, port_id)
             })
-            .unwrap();
+            .map_err(|e| errors.push(e))
+            .ok();
         requests.ports.request();
-        debug!("set port (node id: {node_id}, port id: {port_id}) as internal")
+        debug!("set port (node id: {node_id}, port id: {port_id}) as internal");
+        Ok(())
     };
 
     node::port::menu::Handlers::builder()
