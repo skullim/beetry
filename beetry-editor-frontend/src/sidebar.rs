@@ -1,20 +1,20 @@
+use crate::SharedSpecs;
 use crate::ui::handler::define_handlers;
-use crate::{Point, SharedSpecs};
+use beetry_editor_types::spec::channel::ChannelSpec;
 use beetry_editor_types::spec::node::{NodeKind, NodeSpecKey};
 use dioxus::logger::tracing::info;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-use crate::ui::channel::{self};
-
-define_handlers!(on_new_node: NodeSpecKey);
+define_handlers!(on_new_node: NodeSpecKey,
+                 on_new_channel: ChannelSpec);
 
 #[component]
-pub(crate) fn Sidebar(channel_config_state: Signal<channel::config::State>) -> Element {
+pub(crate) fn Sidebar() -> Element {
     debug!("rendering");
+    let handlers = use_context::<Handlers>();
 
-    let on_new_node = use_context::<Handlers>().on_new_node;
-    use_hook(|| on_new_node.call(NodeSpecKey::root()));
+    use_hook(|| handlers.on_new_node.call(NodeSpecKey::root()));
 
     let specs = use_context::<SharedSpecs>();
     let node_specs = &specs.nodes;
@@ -33,9 +33,9 @@ pub(crate) fn Sidebar(channel_config_state: Signal<channel::config::State>) -> E
         .values()
         .filter(|v| v.kind() == NodeKind::condition());
 
-    let new_node_handler = |spec: NodeSpecKey| {
+    let on_new_node = |spec: NodeSpecKey| {
         move |_| {
-            on_new_node.call(spec.clone());
+            handlers.on_new_node.call(spec.clone());
         }
     };
 
@@ -43,36 +43,27 @@ pub(crate) fn Sidebar(channel_config_state: Signal<channel::config::State>) -> E
         div {
             h3 { "Control Nodes" }
             for spec in controls {
-                button { onclick: new_node_handler(spec.key().clone()), {format!("{}", spec.name())} }
+                button { onclick: on_new_node(spec.key().clone()), {format!("{}", spec.name())} }
             }
 
             h3 { "Action Nodes" }
             for spec in actions {
-                button { onclick: new_node_handler(spec.key().clone()), {format!("{}", spec.name())} }
+                button { onclick: on_new_node(spec.key().clone()), {format!("{}", spec.name())} }
             }
 
             h3 { "Condition Nodes" }
             for spec in conditions {
-                button { onclick: new_node_handler(spec.key().clone()), {format!("{}", spec.name())} }
+                button { onclick: on_new_node(spec.key().clone()), {format!("{}", spec.name())} }
             }
 
             h3 { "Channels" }
             for spec in channel_specs.values().cloned() {
-                button {
-                    onclick: move |_| {
-                        channel_config_state
-                            .set(channel::config::State::Visible {
-                                position: Point { x: 200.0, y: 100.0 },
-                                spec_key: spec.msg_hash(),
-                            });
-                    },
+                button { onclick: move |_| { handlers.on_new_channel.call(spec.clone()) },
                     {spec.as_str()}
                 }
             }
 
-            div {
-                channel::config::Dialog { state: channel_config_state }
-            }
+
         }
     }
 }

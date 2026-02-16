@@ -92,9 +92,7 @@ pub fn Sender(props: SenderProps) -> Element {
                         x: evt.element_coordinates().x,
                         y: evt.element_coordinates().y,
                     };
-                    handlers
-                        .on_menu
-                        .call((click_point, node_id, port_id))
+                    handlers.on_menu.call((click_point, node_id, port_id))
                 },
             }
             text {

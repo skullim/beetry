@@ -104,8 +104,7 @@ pub fn Dialog() -> Element {
         let timestamp = format_timestamp(item.timestamp_secs);
         let count_badge = if item.count > 1 {
             rsx! {
-                span {
-                    style: "font-size: 10px; color: #8b0000; border: 1px solid #efb8b8; background: #fff5f5; border-radius: 999px; padding: 0 6px;",
+                span { style: "font-size: 10px; color: #8b0000; border: 1px solid #efb8b8; background: #fff5f5; border-radius: 999px; padding: 0 6px;",
                     "x{item.count}"
                 }
             }
@@ -117,18 +116,14 @@ pub fn Dialog() -> Element {
             li {
                 key: "{item.id}",
                 style: "list-style: none; margin-bottom: 8px; padding: 8px; border: 1px solid #efb8b8; border-radius: 8px; background: #fffafa;",
-                div {
-                    style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;",
-                    div {
-                        style: "display: flex; align-items: center; gap: 6px;",
-                        span {
-                            style: "font-size: 10px; color: #8b0000; border: 1px solid #efb8b8; background: #fff0f0; border-radius: 999px; padding: 0 6px;",
+                div { style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;",
+                    div { style: "display: flex; align-items: center; gap: 6px;",
+                        span { style: "font-size: 10px; color: #8b0000; border: 1px solid #efb8b8; background: #fff0f0; border-radius: 999px; padding: 0 6px;",
                             "{item.source}"
                         }
                         {count_badge}
                     }
-                    div {
-                        style: "display: flex; align-items: center; gap: 6px;",
+                    div { style: "display: flex; align-items: center; gap: 6px;",
                         span { style: "font-size: 10px; color: #9f5e5e;", "{timestamp}" }
                         button {
                             onclick: move |_| queue_for_entry.with_mut(|q| q.dismiss(item.id)),
@@ -137,8 +132,7 @@ pub fn Dialog() -> Element {
                         }
                     }
                 }
-                div {
-                    style: "font-size: 12px; color: #631f1f; white-space: pre-wrap; word-break: break-word;",
+                div { style: "font-size: 12px; color: #631f1f; white-space: pre-wrap; word-break: break-word;",
                     {item.message.clone()}
                 }
             }
@@ -146,10 +140,8 @@ pub fn Dialog() -> Element {
     });
 
     rsx! {
-        div {
-            style: "position: fixed; right: 16px; bottom: 16px; width: 420px; max-width: calc(100vw - 24px); z-index: 2000; border: 1px solid #d66; background: #fff; padding: 10px; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.2);",
-            div {
-                style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;",
+        div { style: "position: fixed; right: 16px; bottom: 16px; width: 420px; max-width: calc(100vw - 24px); z-index: 2000; border: 1px solid #d66; background: #fff; padding: 10px; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.2);",
+            div { style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;",
                 b { "Errors ({queue.read().entries.len()})" }
                 button {
                     onclick: move |_| queue.with_mut(ErrorQueue::clear),
@@ -157,8 +149,7 @@ pub fn Dialog() -> Element {
                     "Clear"
                 }
             }
-            ul {
-                style: "margin: 0; padding: 0; max-height: 220px; overflow: auto;",
+            ul { style: "margin: 0; padding: 0; max-height: 220px; overflow: auto;",
                 {entries}
             }
         }

@@ -37,7 +37,11 @@ pub fn Renderer(render_nodes: RequestNodeRender) -> Element {
     let controls = mapped_nodes(NodeKind::Control).map(|result| {
         render_node_result(result, error_queue, |id, pos| {
             rsx! {
-                Control { key: "{id}", id: *id, position: Point { x: pos.x, y: pos.y } }
+                Control {
+                    key: "{id}",
+                    id: *id,
+                    position: Point { x: pos.x, y: pos.y },
+                }
             }
         })
     });
@@ -45,7 +49,11 @@ pub fn Renderer(render_nodes: RequestNodeRender) -> Element {
     let actions = mapped_nodes(NodeKind::action()).map(|result| {
         render_node_result(result, error_queue, |id, pos| {
             rsx! {
-                Leaf { key: "{id}", id: *id, position: Point { x: pos.x, y: pos.y } }
+                Leaf {
+                    key: "{id}",
+                    id: *id,
+                    position: Point { x: pos.x, y: pos.y },
+                }
             }
         })
     });
@@ -53,7 +61,11 @@ pub fn Renderer(render_nodes: RequestNodeRender) -> Element {
     let conditions = mapped_nodes(NodeKind::condition()).map(|result| {
         render_node_result(result, error_queue, |id, pos| {
             rsx! {
-                Leaf { key: "{id}", id: *id, position: Point { x: pos.x, y: pos.y } }
+                Leaf {
+                    key: "{id}",
+                    id: *id,
+                    position: Point { x: pos.x, y: pos.y },
+                }
             }
         })
     });
@@ -61,7 +73,11 @@ pub fn Renderer(render_nodes: RequestNodeRender) -> Element {
     let root = mapped_nodes(NodeKind::Root).map(|result| {
         render_node_result(result, error_queue, |id, pos| {
             rsx! {
-                Root { key: "{id}", id: *id, position: Point { x: pos.x, y: pos.y } }
+                Root {
+                    key: "{id}",
+                    id: *id,
+                    position: Point { x: pos.x, y: pos.y },
+                }
             }
         })
     });
