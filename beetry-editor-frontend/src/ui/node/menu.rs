@@ -3,6 +3,9 @@ use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
+const MENU_WIDTH: i32 = 160;
+const MENU_ROW_HEIGHT: i32 = 36;
+
 define_handlers!(on_delete: NodeId,
           on_edit_params: NodeId,
           on_close: (),
@@ -34,16 +37,19 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
 
     let menu_handlers = use_context::<Handlers>();
 
-    let menu_width = 160;
-    let menu_height = if can_edit_params { 72 } else { 36 };
+    let menu_height = if can_edit_params {
+        MENU_ROW_HEIGHT * 2
+    } else {
+        MENU_ROW_HEIGHT
+    };
 
     rsx! {
         g { transform: "translate({position.x} {position.y})",
-            rect {
-                x: "0",
-                y: "0",
-                width: "{menu_width}",
-                height: "{menu_height}",
+                rect {
+                    x: "0",
+                    y: "0",
+                    width: "{MENU_WIDTH}",
+                    height: "{menu_height}",
                 fill: "white",
                 stroke: "#ccc",
                 style: "cursor: pointer;",
@@ -68,9 +74,9 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
             if can_edit_params {
                 rect {
                     x: "0",
-                    y: "36",
-                    width: "{menu_width}",
-                    height: "36",
+                    y: "{MENU_ROW_HEIGHT}",
+                    width: "{MENU_WIDTH}",
+                    height: "{MENU_ROW_HEIGHT}",
                     fill: "white",
                     stroke: "#ccc",
                     style: "cursor: pointer;",
