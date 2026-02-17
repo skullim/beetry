@@ -45,7 +45,7 @@ pub(crate) fn TooltipCard(props: TooltipCardProps) -> Element {
                 stroke_width: "1.0",
             }
 
-            for (idx, line) in props.lines.iter().enumerate() {
+            for (idx , line) in props.lines.iter().enumerate() {
                 text {
                     x: "{TEXT_X_PADDING}",
                     y: "{text_start_y + (idx as f64 * LINE_HEIGHT)}",
