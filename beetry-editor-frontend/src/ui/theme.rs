@@ -87,7 +87,6 @@ const THEME_CSS: &str = r#"
         margin: 0;
         font-size: 12px;
         font-weight: 700;
-        text-transform: uppercase;
         letter-spacing: 0.04em;
         color: var(--bt-text-soft);
     }
@@ -97,6 +96,7 @@ const THEME_CSS: &str = r#"
         gap: 6px;
         max-height: 160px;
         overflow: auto;
+        padding-top: 2px;
         padding-right: 2px;
     }
 
@@ -167,17 +167,50 @@ const THEME_CSS: &str = r#"
         border-color: #c3d4e9;
     }
 
-    .bt-workspace-header {
+    .bt-topbar {
+        position: relative;
         display: flex;
-        justify-content: space-between;
+        justify-content: flex-end;
         align-items: center;
-        padding: 6px 10px;
-        border-radius: var(--bt-radius-md);
-        border: 1px solid #c2d4ea;
-        background: rgba(255, 255, 255, 0.82);
+        min-height: 24px;
+        z-index: 4;
+        overflow: visible;
+    }
+
+
+    .bt-topbar-help {
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        border: 1px solid #8ea9ca;
+        background: rgba(255, 255, 255, 0.92);
+        color: #2a4365;
+        font-size: 13px;
+        font-weight: 700;
+        display: grid;
+        place-items: center;
+        cursor: help;
+        user-select: none;
+    }
+
+    .bt-topbar-help-tooltip {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 6px);
+        z-index: 5;
+        padding: 4px 8px;
+        border-radius: 6px;
+        border: 1px solid #8ea9ca;
+        background: rgba(255, 255, 255, 0.96);
+        color: #2a4365;
         font-size: 12px;
         font-weight: 600;
-        color: var(--bt-text-soft);
+        white-space: normal;
+        pointer-events: none;
+    }
+
+    .bt-topbar-help-tooltip p {
+        margin: 0;
     }
 
     .bt-workspace-canvas {
@@ -190,13 +223,25 @@ const THEME_CSS: &str = r#"
         min-height: 760px;
         max-height: calc(100vh - 140px);
     }
+
+    .bt-input-chip {
+        display: inline-block;
+        margin: 0 2px;
+        padding: 1px 6px;
+        border-radius: 999px;
+        border: 1px solid #a7bbd6;
+        background: #edf4fc;
+        color: #1f3a5c;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1.2;
+        vertical-align: baseline;
+    }
 "#;
 
 #[component]
 pub(crate) fn GlobalStyle() -> Element {
     rsx! {
-        style {
-            {THEME_CSS}
-        }
+        style { {THEME_CSS} }
     }
 }

@@ -23,7 +23,7 @@ pub fn launch() {
         info!("running wasm ctor");
         __wasm_call_ctors();
     }
-    dioxus_logger::init(Level::DEBUG).expect("failed to init logger");
+    dioxus_logger::init(Level::INFO).expect("failed to init logger");
     let cfg = dioxus::desktop::Config::default().with_window(
         WindowBuilder::new()
             .with_always_on_top(false)
