@@ -99,18 +99,18 @@ pub fn Dialog() -> Element {
         rsx! {
             li {
                 key: "{item.id}",
-                style: "list-style: none; margin-bottom: 8px; padding: 8px; border: 1px solid #efb8b8; border-radius: 8px; background: #fffafa;",
-                div { style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;",
-                    div { style: "display: flex; align-items: center; gap: 6px;",
-                        span { style: "font-size: 10px; color: #9f5e5e;", "{timestamp}" }
+                class: "bt-error-item",
+                div { class: "bt-error-item-header",
+                    div { class: "bt-error-item-meta",
+                        span { class: "bt-error-timestamp", "{timestamp}" }
                         button {
+                            class: "bt-error-dismiss-btn",
                             onclick: move |_| queue_for_entry.with_mut(|q| q.dismiss(item.id)),
-                            style: "font-size: 12px; line-height: 1; color: #8b0000; border: 1px solid #efb8b8; background: #fff; border-radius: 4px; width: 18px; height: 18px; cursor: pointer;",
                             "x"
                         }
                     }
                 }
-                div { style: "font-size: 12px; color: #631f1f; white-space: pre-wrap; word-break: break-word;",
+                div { class: "bt-error-message",
                     {item.message}
                 }
             }
@@ -118,16 +118,16 @@ pub fn Dialog() -> Element {
     });
 
     rsx! {
-        div { style: "position: fixed; right: 16px; bottom: 16px; width: 420px; max-width: calc(100vw - 24px); z-index: 2000; border: 1px solid #d66; background: #fff; padding: 10px; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.2);",
-            div { style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;",
-                b { "Errors" }
+        div { class: "bt-error-dialog",
+            div { class: "bt-error-header",
+                b { class: "bt-error-title", "Errors" }
                 button {
+                    class: "bt-error-clear-btn",
                     onclick: move |_| queue.with_mut(ErrorQueue::clear),
-                    style: "font-size: 12px; border: 1px solid #d66; border-radius: 6px; background: #fff; color: #8b0000; padding: 2px 8px; cursor: pointer;",
                     "Clear"
                 }
             }
-            ul { style: "margin: 0; padding: 0; max-height: 220px; overflow: auto;",
+            ul { class: "bt-error-list",
                 {entries}
             }
         }

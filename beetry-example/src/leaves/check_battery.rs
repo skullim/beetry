@@ -74,6 +74,8 @@ impl ProvideParamSpec for CheckBatteryParams {
                 type_spec: FieldTypeSpec::F64(FieldMetadata::new(Arc::new(|level| {
                     if *level > 100.0 {
                         Err(anyhow!("level must be lower than 100%"))
+                    } else if *level < 0.0 {
+                        Err(anyhow!("level cannot be lower than 0%"))
                     } else {
                         Ok(())
                     }
