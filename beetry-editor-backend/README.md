@@ -1,23 +1,9 @@
-# Development
+## FAQ
 
-```
-project/
-├─ assets/ # Any assets that are used by the app should be placed here
-├─ src/
-│  ├─ main.rs # main.rs is the entry point to your application and currently contains all components for the app
-├─ Cargo.toml # The Cargo.toml file defines the dependencies and feature flags for your project
-```
+1. Why is importing a serialized project/tree not the only prerequisite? Why must the used plugins be loaded?
 
-### Serving Your App
+   Regarding editor: advanced parameter-value validation requires objects that cannot be easily serialized. Serializing all project/tree dependencies would also increase the exported file size and is less flexible than the alternative solution.  
+   However, if this is a major concern, one can consider implementing a "limited" editor view that allows only basic operations.
 
-Run the following command in the root of your project to start developing with the default platform:
-
-```bash
-dx serve
-```
-
-To run for a different platform, use the `--platform platform` flag. E.g.
-```bash
-dx serve --platform desktop
-```
-
+   Regarding tree reconstruction: tree reconstruction requires a constructor that instantiates a given node. This object is not trivially serializable.  
+   The chosen approach keeps tree export as small as needed and avoids breaking changes.
