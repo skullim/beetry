@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 
 const THEME_CSS: &str = r#"
     :root {
+        --bt-font-family: system-ui, -apple-system, sans-serif;
         --bt-bg: #eef2f7;
         --bt-bg-soft: #e4ebf3;
         --bt-panel: #f1f6fc;
@@ -39,7 +40,14 @@ const THEME_CSS: &str = r#"
             radial-gradient(1300px 700px at 0% 0%, rgba(255,255,255,0.95), rgba(238,242,247,0.9)),
             linear-gradient(135deg, var(--bt-bg), var(--bt-bg-soft));
         color: var(--bt-text);
-        font-family: system-ui, -apple-system, sans-serif;
+        font-family: var(--bt-font-family);
+    }
+
+    .bt-editor-shell button,
+    .bt-editor-shell input,
+    .bt-editor-shell select,
+    .bt-editor-shell textarea {
+        font-family: var(--bt-font-family);
     }
 
     .bt-editor-grid {
@@ -370,6 +378,97 @@ const THEME_CSS: &str = r#"
         font-weight: 700;
         line-height: 1.2;
         vertical-align: baseline;
+    }
+
+    .bt-error-dialog {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        width: 420px;
+        max-width: calc(100vw - 24px);
+        z-index: 2000;
+        border: 1px solid #d66;
+        background: var(--bt-surface);
+        padding: 10px;
+        border-radius: var(--bt-radius-md);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+    }
+
+    .bt-error-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .bt-error-title {
+        color: #6e2525;
+    }
+
+    .bt-error-clear-btn {
+        font-size: var(--bt-font-sm);
+        border: 1px solid #d66;
+        border-radius: 6px;
+        background: var(--bt-surface);
+        color: #8b0000;
+        padding: 2px 8px;
+        cursor: pointer;
+    }
+
+    .bt-error-list {
+        margin: 0;
+        padding: 0;
+        max-height: 220px;
+        overflow: auto;
+    }
+
+    .bt-error-item {
+        list-style: none;
+        margin-bottom: 8px;
+        padding: 8px;
+        border: 1px solid #efb8b8;
+        border-radius: var(--bt-radius-sm);
+        background: #fffafa;
+    }
+
+    .bt-error-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+    }
+
+    .bt-error-item-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .bt-error-timestamp {
+        font-size: var(--bt-font-sm);
+        color: #9f5e5e;
+    }
+
+    .bt-error-dismiss-btn {
+        font-size: var(--bt-font-sm);
+        line-height: 1;
+        color: #8b0000;
+        border: 1px solid #efb8b8;
+        background: var(--bt-surface);
+        border-radius: 4px;
+        width: 18px;
+        height: 18px;
+        padding: 0;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+    }
+
+    .bt-error-message {
+        font-size: var(--bt-font-sm);
+        color: #631f1f;
+        white-space: pre-wrap;
+        word-break: break-word;
     }
 "#;
 
