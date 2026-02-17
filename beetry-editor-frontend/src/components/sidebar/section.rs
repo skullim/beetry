@@ -20,7 +20,7 @@ pub(crate) fn NodeSection(props: NodeSectionProps) -> Element {
         section { class: "bt-sidebar-section",
             h3 { "{props.title}" }
             div { class: "bt-sidebar-list",
-                for (spec_key, label) in props.items.iter().cloned() {
+                for (spec_key , label) in props.items.iter().cloned() {
                     button {
                         class: "bt-btn bt-btn--sidebar",
                         onclick: move |_| handlers.on_new_node.call(spec_key.clone()),
@@ -49,7 +49,7 @@ pub(crate) fn ChannelSection(props: ChannelSectionProps) -> Element {
         section { class: "bt-sidebar-section",
             h3 { "{props.title}" }
             div { class: "bt-sidebar-list",
-                for (spec, label) in props.items.iter().cloned() {
+                for (spec , label) in props.items.iter().cloned() {
                     button {
                         class: "bt-btn bt-btn--sidebar",
                         onclick: move |_| handlers.on_new_channel.call(spec.clone()),

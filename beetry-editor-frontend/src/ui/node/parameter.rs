@@ -104,65 +104,38 @@ fn VisibleDialog(props: VisibleDialogProps) -> Element {
         handlers.on_cancel.call(());
     };
 
-    let param_fields = params_spec.iter().map(|(name, _)| {
-        rsx!(
-            div { margin_bottom: "16px",
-                ParameterField { id, name: name.clone(), parameters }
-            }
-        )
-    });
+    let param_fields = params_spec
+        .iter()
+        .map(|(name, _)| rsx!(
+            ParameterField { id, name: name.clone(), parameters }
+        ));
 
     rsx! {
-        div {
-            position: "fixed",
-            top: "0",
-            left: "0",
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.5)",
-            z_index: "1000",
-            onclick: on_cancel,
+        div { class: "bt-dialog-overlay", onclick: on_cancel,
 
             div {
-                position: "absolute",
+                class: "bt-dialog bt-dialog--parameter",
                 left: "{position.x}px",
                 top: "{position.y}px",
-                background: "white",
-                border: "1px solid #ccc",
-                border_radius: "8px",
-                box_shadow: "0 4px 16px rgba(0,0,0,0.3)",
-                min_width: "320px",
-                max_width: "500px",
-                padding: "20px",
-                z_index: "1001",
                 onclick: move |evt| evt.stop_propagation(),
 
-                h3 { margin: "0 0 16px 0", "Configure Parameters for {node_name.clone()}" }
+                h3 { class: "bt-dialog-title",
+                    "Configure Parameters:"
+                    br {}
+                    span { class: "bt-dialog-subtitle", "{node_name}" }
+                }
                 {param_fields}
 
-                div {
-                    display: "flex",
-                    justify_content: "flex-end",
-                    gap: "8px",
-                    margin_top: "20px",
+                div { class: "bt-dialog-actions",
 
                     button {
-                        padding: "8px 16px",
-                        border: "1px solid #ddd",
-                        border_radius: "4px",
-                        background: "white",
-                        cursor: "pointer",
+                        class: "bt-btn bt-btn--dialog-secondary",
                         onclick: on_cancel,
                         "Cancel"
                     }
 
                     button {
-                        padding: "8px 16px",
-                        border: "1px solid #007acc",
-                        border_radius: "4px",
-                        background: "#007acc",
-                        color: "white",
-                        cursor: "pointer",
+                        class: "bt-btn bt-btn--dialog-primary",
                         onclick: on_confirm,
                         "Confirm"
                     }
@@ -210,146 +183,139 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
     let mut error_msg = use_signal::<Option<String>>(|| None);
     let o_val = parameters.read().get(&props.name).cloned();
     rsx! {
-        label { display: "block", margin_bottom: "4px", font_weight: "bold", {props.name.as_str()} }
+        div { class: "bt-form-field",
+            label { class: "bt-form-label", {props.name.as_str()} }
 
-        if let Some(desc) = &field_def.description {
-            div { font_size: "12px", color: "#666", margin_bottom: "4px", {desc.as_str()} }
+            if let Some(desc) = &field_def.description {
+                div { class: "bt-form-description", {desc.as_str()} }
+            }
+
+            //@todo avoid clone
+            match field_def.type_spec.clone() {
+                FieldTypeSpec::Bool(meta) => {
+                    rsx! {
+                        input {
+                            class: "bt-form-checkbox",
+                            r#type: "checkbox",
+                            checked: o_val.map(|v| v.into_bool()).unwrap_or_default(),
+                            onchange: move |evt| {
+                                match ParameterValueParser::parse(
+                                    &FieldTypeSpec::Bool(meta.clone()),
+                                    evt.value(),
+                                ) {
+                                    Ok(val) => {
+                                        parameters.with_mut(|write| write.insert(props.name.clone(), val));
+                                        error_msg.set(None);
+                                    }
+                                    Err(e) => {
+                                        parameters.with_mut(|write| write.remove(&props.name));
+                                        error_msg.set(Some(e.to_string()));
+                                    }
+                                }
+                            },
+                        }
+                    }
+                }
+                FieldTypeSpec::I64(meta) => {
+                    rsx! {
+                        input {
+                            class: "bt-form-input",
+                            r#type: "number",
+                            value: o_val.map(|v| v.into_i64()).unwrap_or_default(),
+                            oninput: move |evt| {
+                                match ParameterValueParser::parse(
+                                    &FieldTypeSpec::I64(meta.clone()),
+                                    evt.value(),
+                                ) {
+                                    Ok(val) => {
+                                        parameters.with_mut(|write| write.insert(props.name.clone(), val));
+                                        error_msg.set(None);
+                                    }
+                                    Err(e) => {
+                                        parameters.with_mut(|write| write.remove(&props.name));
+                                        error_msg.set(Some(e.to_string()));
+                                    }
+                                }
+                            },
+                        }
+                    }
+                }
+                FieldTypeSpec::U64(meta) => {
+                    rsx! {
+                        input {
+                            class: "bt-form-input",
+                            r#type: "number",
+                            value: o_val.map(|v| v.into_u64()).unwrap_or_default(),
+                            oninput: move |evt| {
+                                match ParameterValueParser::parse(
+                                    &FieldTypeSpec::U64(meta.clone()),
+                                    evt.value(),
+                                ) {
+                                    Ok(val) => {
+                                        parameters.with_mut(|write| write.insert(props.name.clone(), val));
+                                        error_msg.set(None);
+                                    }
+                                    Err(e) => {
+                                        parameters.with_mut(|write| write.remove(&props.name));
+                                        error_msg.set(Some(e.to_string()));
+                                    }
+                                }
+                            },
+                        }
+                    }
+                }
+                FieldTypeSpec::F64(meta) => {
+                    rsx! {
+                        input {
+                            class: "bt-form-input",
+                            r#type: "number",
+                            step: "1.00",
+                            value: o_val.map(|v| v.into_f64()).unwrap_or_default(),
+                            oninput: move |evt| {
+                                match ParameterValueParser::parse(
+                                    &FieldTypeSpec::F64(meta.clone()),
+                                    evt.value(),
+                                ) {
+                                    Ok(val) => {
+                                        parameters.with_mut(|write| write.insert(props.name.clone(), val));
+                                        error_msg.set(None);
+                                    }
+                                    Err(e) => {
+                                        parameters.with_mut(|write| write.remove(&props.name));
+                                        error_msg.set(Some(e.to_string()));
+                                    }
+                                }
+                            },
+                        }
+                    }
+                }
+                FieldTypeSpec::String(meta) => {
+                    rsx! {
+                        input {
+                            class: "bt-form-input",
+                            r#type: "text",
+                            value: o_val.map(|v| v.into_string()).unwrap_or_default(),
+                            oninput: move |evt| {
+                                match ParameterValueParser::parse(
+                                    &FieldTypeSpec::String(meta.clone()),
+                                    evt.value(),
+                                ) {
+                                    Ok(val) => {
+                                        parameters.with_mut(|write| write.insert(props.name.clone(), val));
+                                        error_msg.set(None);
+                                    }
+                                    Err(e) => {
+                                        parameters.with_mut(|write| write.remove(&props.name));
+                                        error_msg.set(Some(e.to_string()));
+                                    }
+                                }
+                            },
+                        }
+                    }
+                }
+            }
+            ParameterErrorDialog { error_msg }
         }
-
-
-
-        //@todo avoid clone
-        match field_def.type_spec.clone() {
-            FieldTypeSpec::Bool(meta) => {
-                rsx! {
-                    input {
-                        r#type: "checkbox",
-                        checked: o_val.map(|v| v.into_bool()).unwrap_or_default(),
-                        onchange: move |evt| {
-                            match ParameterValueParser::parse(
-                                &FieldTypeSpec::Bool(meta.clone()),
-                                evt.value(),
-                            ) {
-                                Ok(val) => {
-                                    parameters.with_mut(|write| write.insert(props.name.clone(), val));
-                                    error_msg.set(None);
-                                }
-                                Err(e) => {
-                                    parameters.with_mut(|write| write.remove(&props.name));
-                                    error_msg.set(Some(e.to_string()));
-                                }
-                            }
-                        },
-                    }
-                }
-            }
-            FieldTypeSpec::I64(meta) => {
-                rsx! {
-                    input {
-                        r#type: "number",
-                        value: o_val.map(|v| v.into_i64()).unwrap_or_default(),
-                        width: "100%",
-                        padding: "4px 8px",
-                        border_radius: "4px",
-                        oninput: move |evt| {
-                            match ParameterValueParser::parse(
-                                &FieldTypeSpec::I64(meta.clone()),
-                                evt.value(),
-                            ) {
-                                Ok(val) => {
-                                    parameters.with_mut(|write| write.insert(props.name.clone(), val));
-                                    error_msg.set(None);
-                                }
-                                Err(e) => {
-                                    parameters.with_mut(|write| write.remove(&props.name));
-                                    error_msg.set(Some(e.to_string()));
-                                }
-                            }
-                        },
-                    }
-                }
-            }
-            FieldTypeSpec::U64(meta) => {
-                rsx! {
-                    input {
-                        r#type: "number",
-                        value: o_val.map(|v| v.into_u64()).unwrap_or_default(),
-                        width: "100%",
-                        padding: "4px 8px",
-                        border_radius: "4px",
-                        oninput: move |evt| {
-                            match ParameterValueParser::parse(
-                                &FieldTypeSpec::U64(meta.clone()),
-                                evt.value(),
-                            ) {
-                                Ok(val) => {
-                                    parameters.with_mut(|write| write.insert(props.name.clone(), val));
-                                    error_msg.set(None);
-                                }
-                                Err(e) => {
-                                    parameters.with_mut(|write| write.remove(&props.name));
-                                    error_msg.set(Some(e.to_string()));
-                                }
-                            }
-                        },
-                    }
-                }
-            }
-            FieldTypeSpec::F64(meta) => {
-                rsx! {
-                    input {
-                        r#type: "number",
-                        step: "1.00",
-                        value: o_val.map(|v| v.into_f64()).unwrap_or_default(),
-                        width: "100%",
-                        padding: "4px 8px",
-                        border_radius: "4px",
-                        oninput: move |evt| {
-                            match ParameterValueParser::parse(
-                                &FieldTypeSpec::F64(meta.clone()),
-                                evt.value(),
-                            ) {
-                                Ok(val) => {
-                                    parameters.with_mut(|write| write.insert(props.name.clone(), val));
-                                    error_msg.set(None);
-                                }
-                                Err(e) => {
-                                    parameters.with_mut(|write| write.remove(&props.name));
-                                    error_msg.set(Some(e.to_string()));
-                                }
-                            }
-                        },
-                    }
-                }
-            }
-            FieldTypeSpec::String(meta) => {
-                rsx! {
-                    input {
-                        r#type: "text",
-                        value: o_val.map(|v| v.into_string()).unwrap_or_default(),
-                        width: "100%",
-                        padding: "4px 8px",
-                        border_radius: "4px",
-                        oninput: move |evt| {
-                            match ParameterValueParser::parse(
-                                &FieldTypeSpec::String(meta.clone()),
-                                evt.value(),
-                            ) {
-                                Ok(val) => {
-                                    parameters.with_mut(|write| write.insert(props.name.clone(), val));
-                                    error_msg.set(None);
-                                }
-                                Err(e) => {
-                                    parameters.with_mut(|write| write.remove(&props.name));
-                                    error_msg.set(Some(e.to_string()));
-                                }
-                            }
-                        },
-                    }
-                }
-            }
-        }
-        ParameterErrorDialog { error_msg }
     }
 }
 
@@ -358,7 +324,7 @@ fn ParameterErrorDialog(error_msg: Signal<Option<String>>) -> Element {
     let read = error_msg.read();
     let dialog = read.iter().map(|msg| {
         rsx! {
-            p { color: "red", font_size: "0.8rem", margin_top: "4px", "{msg:?}" }
+            p { class: "bt-form-error", "{msg:?}" }
         }
     });
 

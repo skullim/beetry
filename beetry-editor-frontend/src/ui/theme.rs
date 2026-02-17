@@ -6,12 +6,25 @@ const THEME_CSS: &str = r#"
         --bt-bg-soft: #e4ebf3;
         --bt-panel: #f1f6fc;
         --bt-panel-strong: #f8fbff;
+        --bt-surface: #ffffff;
+        --bt-surface-soft: #f7fbff;
+        --bt-surface-muted: #edf4fc;
         --bt-border: #ccd8e6;
+        --bt-border-soft: #c7d5e6;
+        --bt-border-soft-hover: #a7bbd6;
+        --bt-border-focus: #8fb8e0;
+        --bt-border-accent: #8ea9ca;
         --bt-text: #0f172a;
         --bt-text-soft: #55637a;
+        --bt-text-strong-soft: #2a4365;
+        --bt-text-muted: #274060;
         --bt-accent: #0f766e;
         --bt-accent-strong: #0b5f58;
+        --bt-accent-button: #119c90;
+        --bt-accent-button-hover: #0f8a7f;
         --bt-accent-soft: #d6f2ef;
+        --bt-danger: #c2363f;
+        --bt-focus-ring: rgba(143, 184, 224, 0.2);
         --bt-shadow: 0 14px 36px rgba(15, 23, 42, 0.12);
         --bt-radius-lg: 16px;
         --bt-radius-md: 10px;
@@ -60,9 +73,9 @@ const THEME_CSS: &str = r#"
     .bt-sidebar-search {
         width: 100%;
         box-sizing: border-box;
-        border: 1px solid #c7d5e6;
+        border: 1px solid var(--bt-border-soft);
         border-radius: var(--bt-radius-sm);
-        background: #f7fbff;
+        background: var(--bt-surface-soft);
         color: var(--bt-text);
         padding: 9px 10px;
         font-size: 12px;
@@ -70,8 +83,8 @@ const THEME_CSS: &str = r#"
     }
 
     .bt-sidebar-search:focus {
-        border-color: #8fb8e0;
-        box-shadow: 0 0 0 3px rgba(143, 184, 224, 0.2);
+        border-color: var(--bt-border-focus);
+        box-shadow: 0 0 0 3px var(--bt-focus-ring);
     }
 
     .bt-sidebar-section {
@@ -155,6 +168,127 @@ const THEME_CSS: &str = r#"
         border-color: #86b8b0;
     }
 
+    .bt-btn--dialog-secondary {
+        border-color: var(--bt-border-soft);
+        background: var(--bt-surface-soft);
+        color: var(--bt-text-muted);
+    }
+
+    .bt-btn--dialog-secondary:hover {
+        border-color: var(--bt-border-soft-hover);
+        background: var(--bt-surface-muted);
+    }
+
+    .bt-btn--dialog-primary {
+        border-color: #0e6f67;
+        background: var(--bt-accent-button);
+        color: #ffffff;
+    }
+
+    .bt-btn--dialog-primary:hover {
+        border-color: #0b5f58;
+        background: var(--bt-accent-button-hover);
+    }
+
+    .bt-dialog-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(15, 23, 42, 0.42);
+        z-index: 1000;
+    }
+
+    .bt-dialog {
+        position: absolute;
+        background: linear-gradient(180deg, #ffffff, #f8fbff);
+        border: 1px solid var(--bt-border);
+        border-radius: var(--bt-radius-md);
+        box-shadow: var(--bt-shadow);
+        padding: 18px;
+        z-index: 1001;
+    }
+
+    .bt-dialog--parameter {
+        min-width: 320px;
+        max-width: 500px;
+    }
+
+    .bt-dialog--channel {
+        min-width: 320px;
+        max-width: 460px;
+    }
+
+    .bt-dialog-title {
+        margin: 0 0 14px 0;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.3;
+        color: var(--bt-text);
+    }
+
+    .bt-dialog-subtitle {
+        font-size: 13px;
+        color: var(--bt-text-soft);
+        font-weight: 600;
+    }
+
+    .bt-dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 20px;
+    }
+
+    .bt-form-field {
+        margin-bottom: 16px;
+    }
+
+    .bt-form-label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--bt-text);
+    }
+
+    .bt-form-description {
+        margin-bottom: 6px;
+        font-size: 12px;
+        color: var(--bt-text-soft);
+    }
+
+    .bt-form-input {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid var(--bt-border-soft);
+        border-radius: var(--bt-radius-sm);
+        background: var(--bt-surface);
+        color: var(--bt-text);
+        padding: 6px 8px;
+        font-size: 12px;
+        outline: none;
+    }
+
+    .bt-form-input:focus {
+        border-color: var(--bt-border-focus);
+        box-shadow: 0 0 0 3px var(--bt-focus-ring);
+    }
+
+    .bt-form-checkbox {
+        width: 16px;
+        height: 16px;
+        accent-color: #0f766e;
+    }
+
+    .bt-form-error {
+        margin: 4px 0 0 0;
+        color: var(--bt-danger);
+        font-size: 12px;
+        font-weight: 600;
+    }
+
     .bt-toolbar-actions {
         display: grid;
         gap: 8px;
@@ -182,9 +316,9 @@ const THEME_CSS: &str = r#"
         width: 24px;
         height: 24px;
         border-radius: 999px;
-        border: 1px solid #8ea9ca;
+        border: 1px solid var(--bt-border-accent);
         background: rgba(255, 255, 255, 0.92);
-        color: #2a4365;
+        color: var(--bt-text-strong-soft);
         font-size: 13px;
         font-weight: 700;
         display: grid;
@@ -200,9 +334,9 @@ const THEME_CSS: &str = r#"
         z-index: 5;
         padding: 4px 8px;
         border-radius: 6px;
-        border: 1px solid #8ea9ca;
+        border: 1px solid var(--bt-border-accent);
         background: rgba(255, 255, 255, 0.96);
-        color: #2a4365;
+        color: var(--bt-text-strong-soft);
         font-size: 12px;
         font-weight: 600;
         white-space: normal;
@@ -224,13 +358,13 @@ const THEME_CSS: &str = r#"
         max-height: calc(100vh - 140px);
     }
 
-    .bt-input-chip {
+    .bt-topbar-chip {
         display: inline-block;
         margin: 0 2px;
         padding: 1px 6px;
         border-radius: 999px;
-        border: 1px solid #a7bbd6;
-        background: #edf4fc;
+        border: 1px solid var(--bt-border-soft-hover);
+        background: var(--bt-surface-muted);
         color: #1f3a5c;
         font-size: 11px;
         font-weight: 700;
