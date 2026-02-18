@@ -14,7 +14,7 @@ use tracing_tree::HierarchicalLayer;
 use anyhow::{Result, anyhow};
 use beetry_builder::Builder;
 use beetry_core::{
-    BehaviorTreeTicker, BoxNode, RegisterTask, Root, Sender, TaskHandle, Tree, TreeEngine,
+    BoxNode, PeriodicTick, PeriodicTicker, RegisterTask, Root, Sender, TaskHandle, Tree, TreeEngine,
 };
 use beetry_example::{
     ChargeCommand, CheckBattery, CheckBatteryParams, Drive, DriveReceivers, ExternalData, Localize,
@@ -43,17 +43,17 @@ async fn main() -> Result<()> {
     let (mut ready_exec, registry) = executor.into_ready_with_registry();
     let builder = Builder::new(registry);
 
-    let creation_type = BtCreationType::Editor;
+    let creation_type = BtCreationType::Code;
     let bt = match creation_type {
         BtCreationType::Editor => bt_from_editor(&builder, receiver_registry).await?,
         BtCreationType::Code => bt_from_code(&builder)?,
     };
 
-    let ticker = BehaviorTreeTicker::new(Duration::from_secs(1));
-    let mut engine = TreeEngine::new().set_ticker(ticker).set_tree(bt);
+    let mut engine = TreeEngine::new(bt);
 
     for _ in 0..2 {
-        engine.tick_till_terminal(&mut ready_exec).await;
+        let ticker = PeriodicTicker::new(PeriodicTick::new(Duration::from_secs(1)));
+        engine.tick_till_terminal(ticker, &mut ready_exec).await?;
     }
 
     Ok(())

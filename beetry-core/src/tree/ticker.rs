@@ -1,72 +1,122 @@
-use std::time::Duration;
+use std::{
+    pin::Pin,
+    task::{Context, Poll},
+    time::Duration,
+};
 
-use tokio::time::{Instant, Interval, MissedTickBehavior};
-use tracing::{debug, instrument, warn};
+use futures::{Stream, future::poll_fn};
+use tokio::time::MissedTickBehavior;
 
-use crate::{Node, TickStatus, Tree};
+use crate::tree::Error;
+use crate::{Node, TickStatus};
 
-pub struct Ticker {
-    interval: Interval,
+/// Drives a behavior tree using an external tick source (`Stream<Item = TickSignal>`).
+///
+/// This lets callers decide when ticks happen (periodic, event-driven, or mixed).
+pub struct Ticker<S> {
+    stream: Pin<Box<S>>,
 }
 
-struct TickHealthMonitor {
-    last: Option<Instant>,
-    expected: Duration,
-}
+pub type TickSignal = ();
 
-impl TickHealthMonitor {
-    fn new(expected: Duration) -> Self {
+impl<S> Ticker<S>
+where
+    S: Stream<Item = TickSignal>,
+{
+    pub fn new(stream: S) -> Self {
         Self {
-            last: None,
-            expected,
+            stream: Box::pin(stream),
         }
     }
 
-    fn monitor(&mut self, current: Instant) {
-        if let Some(last) = self.last {
-            let took = current.duration_since(last);
-            if took > self.expected {
-                warn!(
-                    "exceeded tick interval, it took {took:?}, expected {:?}",
-                    self.expected
-                );
+    pub async fn tick_till_terminal(&mut self, tree: &mut impl Node) -> Result<TickStatus, Error> {
+        while poll_fn(|cx| self.stream.as_mut().poll_next(cx))
+            .await
+            .is_some()
+        {
+            match tree.tick() {
+                TickStatus::Running => {}
+                s @ (TickStatus::Success | TickStatus::Failure) => return Ok(s),
             }
         }
-        self.last = Some(current);
+        Err(Error::TickSourceExhausted)
     }
 }
 
-impl Ticker {
-    pub fn new(period: Duration) -> Self {
-        let mut interval = tokio::time::interval(period);
-        // @todo let client set the tick behavior
-        interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
+/// Built-in periodic tick source. Useful as the default in most applications.
+pub struct PeriodicTick {
+    interval: tokio::time::Interval,
+}
 
-        Self { interval }
+impl PeriodicTick {
+    pub fn new(period: Duration) -> Self {
+        Self {
+            interval: tokio::time::interval(period),
+        }
     }
 
-    #[instrument(skip_all)]
-    pub async fn tick_till_terminal<N>(&mut self, tree: &mut Tree<N>) -> TickStatus
-    where
-        N: Node,
-    {
-        // start warning if tick takes twice as much time as it should
-        let mut tick_monitor = TickHealthMonitor::new(2 * self.interval.period());
-        loop {
-            // @todo might actually allow user to specify multiple conditions when the tick can happen
-            // e.g. one might want to tick the tree 'faster' as some extraordinary situation occurred.
-            // In this case the next tick should be executed without waiting for current tick to timeout.
-            let current = self.interval.tick().await;
-            tick_monitor.monitor(current);
-            let status = tree.tick();
-            debug!("ticked bt yielded status: {status:?}");
-            match status {
-                status @ (TickStatus::Failure | TickStatus::Success) => {
-                    debug!("finished executing bt with status: {status:?}");
-                    return status;
-                }
-                TickStatus::Running => {}
-            }
-        }
+    pub fn with_missed_tick_behavior(&mut self, behavior: MissedTickBehavior) {
+        self.interval.set_missed_tick_behavior(behavior);
+    }
+}
+
+impl Stream for PeriodicTick {
+    type Item = TickSignal;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        self.get_mut().interval.poll_tick(cx).map(|_| Some(()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use futures::stream;
+
+    use super::*;
+    use crate::{MockNode, TickStatus, tree::Error};
+
+    #[tokio::test]
+    async fn periodic_tick_yields_terminal_status() {
+        let mut node = MockNode::new();
+        node.expect_tick().once().return_const(TickStatus::Success);
+
+        let mut ticker = Ticker::new(PeriodicTick::new(Duration::from_millis(1)));
+        let status = ticker
+            .tick_till_terminal(&mut node)
+            .await
+            .expect("periodic stream should tick at least once");
+
+        assert_eq!(status, TickStatus::Success);
+    }
+
+    #[tokio::test]
+    async fn terminal_status_precedes_source_exhaustion() {
+        let mut node = MockNode::new();
+        let mut statuses = [TickStatus::Running, TickStatus::Success].into_iter();
+        node.expect_tick()
+            .times(2)
+            .returning(move || statuses.next().expect("status sequence configured"));
+
+        let mut ticker = Ticker::new(stream::iter([(), (), ()]));
+        let status = ticker
+            .tick_till_terminal(&mut node)
+            .await
+            .expect("tree reaches terminal status before source exhaustion");
+
+        assert_eq!(status, TickStatus::Success);
+    }
+
+    #[tokio::test]
+    async fn tick_source_exhausted() {
+        let mut node = MockNode::new();
+        node.expect_tick()
+            .times(2)
+            .return_const(TickStatus::Running);
+
+        let mut ticker = Ticker::new(stream::iter([(), ()]));
+        let result = ticker.tick_till_terminal(&mut node).await;
+        assert!(matches!(result, Err(Error::TickSourceExhausted)));
     }
 }
