@@ -13,7 +13,8 @@ pub use node::MockNode;
 pub use node::{BoxNode, ControlNode, Node, NonEmptyNodes};
 
 pub use root::Root;
-pub use tree::{Ticker as BehaviorTreeTicker, Tree, TreeEngine};
+pub use tree::{PeriodicTick, Ticker, Tree, TreeEngine, TreeEngineError};
+pub type PeriodicTicker = Ticker<PeriodicTick>;
 
 pub use task::{
     AbortTask, BoxTaskFuture, ExecutorConcept, NodeTask, QueryTask, RegisterTask, Task,

@@ -1,55 +1,37 @@
 use crate::task::ExecutorConcept;
-use crate::{BehaviorTreeTicker, Node, TickStatus, Tree};
-use state_shift::{impl_state, type_state};
+use crate::{Node, PeriodicTicker, TickStatus, Tree};
+use crate::tree::Error;
 
-#[type_state(states = (Initial, TickerSet, TreeSet), slots = (Initial))]
 pub struct TreeEngine<N> {
-    ticker: Option<BehaviorTreeTicker>,
-    tree: Option<Tree<N>>,
+    tree: Tree<N>,
 }
 
-#[impl_state]
 impl<N> TreeEngine<N>
 where
     N: Node,
 {
-    #[require(Initial)]
-    pub fn new() -> TreeEngine<N> {
-        TreeEngine {
-            ticker: None,
-            tree: None,
-        }
+    pub fn new(tree: Tree<N>) -> TreeEngine<N> {
+        TreeEngine { tree }
     }
 
-    #[require(Initial)]
-    #[switch_to(TickerSet)]
-    pub fn set_ticker(self, ticker: BehaviorTreeTicker) -> TreeEngine<N> {
-        TreeEngine {
-            ticker: Some(ticker),
-            tree: None,
-        }
-    }
-
-    #[require(TickerSet)]
-    #[switch_to(TreeSet)]
-    pub fn set_tree(self, tree: Tree<N>) -> TreeEngine<N> {
-        TreeEngine {
-            ticker: self.ticker,
-            tree: Some(tree),
-        }
-    }
-
-    #[require(TreeSet)]
-    pub async fn tick_till_terminal<E>(&mut self, executor: &mut E) -> TickStatus
+    pub async fn tick_till_terminal<E>(
+        &mut self,
+        mut ticker: PeriodicTicker,
+        executor: &mut E,
+    ) -> Result<TickStatus, Error>
     where
         E: ExecutorConcept,
     {
         tokio::select! {
-            status = self.ticker.as_mut().expect("type system guarantees ticker is set").tick_till_terminal(self.tree.as_mut().expect("type system guarantee tree is set"))
+            status = ticker.tick_till_terminal(&mut self.tree)
             => {status}
             result = executor.run() => {
-                result.unwrap();
-                TickStatus::Failure
+                match result {
+                    Ok(()) => Err(Error::ExecutorFailure(
+                        "executor terminated before tree reached terminal state".to_string(),
+                    )),
+                    Err(err) => Err(Error::ExecutorFailure(err.to_string())),
+                }
             }
         }
     }

@@ -6,8 +6,8 @@ use beetry_editor_types::spec::message::MessageSpec;
 use beetry_editor_types::spec::node::{
     NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey,
 };
-use beetry_plugin::Plugin;
 use beetry_plugin::node::ActionFactory;
+use beetry_plugin::{Plugin, plugin2};
 use beetry_reconstruction_types::node::ActionReconstructionData;
 use mitsein::iter1::IntoIterator1;
 use std::time::Duration;
@@ -99,7 +99,7 @@ impl Task for LocalizeTask {
     }
 }
 
-// plugin! {
+// plugin2! {
 //     LocalizePlugin: Action {
 //       spec = spec! {type = action, name = "Localize", senders = [Pose, desc = "Localized pose"] },
 //       factory_fn = |mut data: ActionReconstructionData| {

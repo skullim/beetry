@@ -10,13 +10,14 @@ mock = ["dep:mockall"]
 [dependencies]
 anyhow.workspace = true
 bon.workspace = true
+futures.workspace = true
 mitsein.workspace = true
 mockall = { version = "0.13.1", optional = true }
 serde.workspace = true
-state-shift = "2.1.1"
 thiserror.workspace = true
 tokio = { version = "1.47.1", features = ["sync", "time", "macros"] }
 tracing.workspace = true
 
 [dev-dependencies]
 mockall = { version = "0.13.1" }
+tokio = { version = "1.47.1", features = ["rt"] }
