@@ -20,20 +20,21 @@ members = [
 ]
 
 [workspace.dependencies]
-anyhow = "1.0.100"
-bon = "3.8.1"
-derive_more = { version = "2.0.1", features = ["full"] }
+anyhow = "1.0.101"
+bon = "3.9.0"
+derive_more = { version = "2.1.1", features = ["full"] }
 futures = "0.3.32"
 getset = "0.1.6"
-indexmap = { version = "2.12.1", features = ["serde"] }
-mitsein = { version = "0.8.0", features = ["serde"] }
+indexmap = { version = "2.13.0", features = ["serde"] }
+mitsein = { version = "0.9.0", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde-value = "0.7.0"
 strum_macros = "0.27.2"
-thiserror = "2.0.17"
-tracing = "0.1.41"
+thiserror = "2.0.18"
+tracing = "0.1.44"
 itertools = "0.14.0"
 num-traits = "0.2.19"
+tokio = "1.49.0"
 
 [profile.release]
 panic = "abort"

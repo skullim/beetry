@@ -17,13 +17,10 @@ beetry-reconstruction-types = { version = "0.1.0", path = "../beetry-reconstruct
 beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }
 bon.workspace = true
 mitsein.workspace = true
-rfd = { version = "0.15.4", default-features = false, features = [
-    "xdg-portal",
-    "tokio",
-] }
+rfd = { version = "0.17.2", default-features = false, features = ["xdg-portal"] }
 serde.workspace = true
-tokio = { version = "1.47.1", features = ["macros", "rt"] }
+tokio = { workspace = true, features = ["macros", "rt"] }
 tracing.workspace = true
-tracing-subscriber = "0.3.19"
+tracing-subscriber = "0.3.20"
 tracing-tree = "0.4.0"
 type_hash = "0.3.0"

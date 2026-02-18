@@ -5,7 +5,5 @@ edition = "2024"
 
 [dependencies]
 anyhow.workspace = true
-bincode = "2.0.1"
 serde.workspace = true
-serde_json = "1.0.145"
-serde_yml = "0.0.12"
+serde_json = "1.0.149"
