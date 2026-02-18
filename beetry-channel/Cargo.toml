@@ -10,7 +10,7 @@ tokio = ["dep:tokio"]
 [dependencies]
 anyhow.workspace = true
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
-tokio = { version = "1.47.1", features = [
+tokio = { workspace = true, features = [
     "sync",
     "time",
     "macros",
