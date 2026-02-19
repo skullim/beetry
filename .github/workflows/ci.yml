@@ -11,6 +11,7 @@ env:
 
 jobs:
   build:
+  # Rust toolchain is installed by default
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -27,7 +28,13 @@ jobs:
         libssl-dev
         libayatana-appindicator3-dev
         librsvg2-dev
-    - name: Build
-      run: cargo build --verbose
+
+    - uses: Swatinem/rust-cache@v2
+    - name: Check
+      run: cargo check
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test
+    - name: Cargo deny
+      run: >
+        cargo install cargo-deny --locked &&
+        cargo deny check advisories licenses bans sources
