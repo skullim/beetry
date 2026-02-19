@@ -13,13 +13,12 @@ use domain::repository::{
 use std::collections::HashMap;
 
 pub use crate::domain::api;
-pub type EditorService =
-    domain::service::editor::EditorService<
-        NodeRepositoryFacade,
-        EdgeRepository,
-        ChannelRepositoryFacade,
-        UiRepositoryFacade,
-    >;
+pub type EditorService = domain::service::editor::EditorService<
+    NodeRepositoryFacade,
+    EdgeRepository,
+    ChannelRepositoryFacade,
+    UiRepositoryFacade,
+>;
 
 #[derive(Debug, Clone)]
 pub struct NodeSpecMap {

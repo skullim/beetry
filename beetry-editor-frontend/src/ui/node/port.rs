@@ -1,12 +1,12 @@
-pub mod menu;
 pub mod input;
+pub mod menu;
 pub mod output;
 pub mod receiver;
 pub mod sender;
 
+pub use menu::Menu;
 pub use receiver::Receiver;
 pub use sender::Sender;
-pub use menu::Menu;
 
 use dioxus::prelude::*;
 
