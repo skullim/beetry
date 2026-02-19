@@ -1,9 +1,11 @@
+use std::rc::Rc;
+
 use crate::Backend;
 use crate::Point;
 use crate::ui::handler::define_handlers;
-use crate::ui::node::port::ConnectionOrigin;
+use crate::ui::node::port::{ConnectionOrigin, layout};
 use crate::ui::{channel, shadow};
-use beetry_editor_types::spec::message::MessageSpec;
+use beetry_editor_backend::api::SpecByNodeIdQueryView;
 use beetry_editor_types::{id::NodeId, id::NodePortId};
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
@@ -18,9 +20,8 @@ define_handlers!(on_mouse_down: (ConnectionOrigin, IndexedDragOffset, NodePortId
 #[derive(Props, PartialEq, Clone)]
 pub struct ReceiverProps {
     id: NodeId,
-    position: Point,
-    msg_spec: MessageSpec,
     port_id: NodePortId,
+    position: Point,
 }
 
 #[component]
@@ -29,21 +30,26 @@ pub fn Receiver(props: ReceiverProps) -> Element {
         "rendering (node id: {}, port id: {})",
         props.id, props.port_id
     );
-
     let position = props.position;
     let node_id = props.id;
-    let message_desc = props.msg_spec.as_str();
+    let port_id = props.port_id;
+
+    let backend = use_context::<Backend>();
+    let message_desc = use_hook(|| {
+        backend.with(|s| {
+            let query_api = beetry_editor_backend::api::node::spec::by_node_id(s);
+            let spec = query_api.ports(node_id).unwrap();
+            let msg_spec = spec.spec(port_id).unwrap().msg_spec.desc().clone();
+            Rc::new(msg_spec)
+        })
+    });
 
     let font_size = text::FONT_SIZE_SMALL;
-    let port_width = text_width_from(message_desc, font_size);
+    let port_width = text_width_from(&message_desc, font_size);
 
-    let port_id = props.port_id;
-    let port_id_as_f64 = port_id.raw_value() as f64;
-    let backend = use_context::<Backend>();
     let is_external = backend
         .with(|s| beetry_editor_backend::api::node::ports::is_external(s, node_id, port_id))
         .unwrap_or(false);
-
     let mut is_hovered = use_signal(|| false);
 
     let fill = match (is_hovered(), is_external) {
@@ -58,10 +64,10 @@ pub fn Receiver(props: ReceiverProps) -> Element {
     rsx! {
         g {
             rect {
-                x: "{position.x + 80.0 - port_width}",
-                y: "{position.y + 20.0 * port_id_as_f64}",
+                x: "{position.x - port_width}",
+                y: "{position.y}",
                 width: "{port_width}",
-                height: "20",
+                height: "{layout::HEIGHT}",
                 rx: "4",
                 ry: "4",
                 fill,
@@ -101,8 +107,8 @@ pub fn Receiver(props: ReceiverProps) -> Element {
                 },
             }
             text {
-                x: "{position.x + 80.0 - (port_width / 2.0)}",
-                y: "{position.y + 13.0 + 20.0 * port_id_as_f64}",
+                x: "{position.x - (port_width / 2.0)}",
+                y: "{position.y + layout::TEXT_BASELINE_OFFSET}",
                 fill: "white",
                 font_family: text::font_family(),
                 font_size: "{font_size}",

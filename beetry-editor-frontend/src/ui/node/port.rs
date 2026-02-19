@@ -37,3 +37,9 @@ impl IoPortStyleUrl {
     pub const GRADIENT: &'static str = "url(#io-port-gradient)";
     pub const HOVER: &'static str = "url(#io-port-hover)";
 }
+
+pub mod layout {
+    pub const HEIGHT: f64 = 20.0;
+    pub const MIN_GAP: f64 = 1.0;
+    pub const TEXT_BASELINE_OFFSET: f64 = 13.0;
+}
