@@ -2,6 +2,7 @@
 name = "beetry-builder"
 version = "0.1.0"
 edition = "2024"
+license.workspace = true
 
 [dependencies]
 beetry-core = { version = "0.1.0", path = "../beetry-core" }

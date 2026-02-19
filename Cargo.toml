@@ -42,3 +42,6 @@ panic = "abort"
 [profile.profiling]
 inherits = "release"
 debug = true
+
+[workspace.package]
+license = "MIT"
