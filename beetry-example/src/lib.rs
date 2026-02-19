@@ -3,7 +3,7 @@ mod leaves;
 use beetry_editor_types::spec::channel::ChannelSpec;
 pub use leaves::{
     CheckBattery, CheckBatteryParams, Drive, DrivePlugin, DriveReceivers, Localize, LocalizePlugin,
-    ReadExternalDataReceivers,
+    ReadExternalDataPlugin, ReadExternalDataReceivers,
 };
 
 use beetry_macros::{Message, submit_as_channel_plugin};
@@ -88,5 +88,5 @@ impl ExternalData {
 
 beetry_plugin::submit!(ActionPluginConstructor::new::<DrivePlugin>());
 beetry_plugin::submit!(ActionPluginConstructor::new::<LocalizePlugin>());
-// beetry_plugin::submit!(ActionPluginConstructor::new::<ReadExternalDataPlugin>());
+beetry_plugin::submit!(ActionPluginConstructor::new::<ReadExternalDataPlugin>());
 beetry_plugin::submit!(ConditionPluginConstructor::new::<CheckBatteryPlugin>());

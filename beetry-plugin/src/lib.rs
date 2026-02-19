@@ -1,5 +1,6 @@
 pub mod channel;
 pub mod node;
+mod node_macro;
 
 pub trait Plugin {
     type Spec;
@@ -100,4 +101,19 @@ macro_rules! submit {
     ($plugin:expr) => {
         $crate::inventory::submit!($plugin);
     };
+}
+
+#[doc(hidden)]
+pub mod __macro_support {
+    pub use anyhow;
+    pub use beetry_channel;
+    pub use beetry_core::{BoxActionBehavior, BoxConditionBehavior};
+    pub use beetry_editor_types::spec::message::MessageSpec;
+    pub use beetry_editor_types::spec::node::{
+        NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey, PortsSpec,
+    };
+    pub use beetry_reconstruction_types::node::{
+        ActionReconstructionData, ConditionReconstructionData,
+    };
+    pub use mitsein::iter1::FromIterator1;
 }
