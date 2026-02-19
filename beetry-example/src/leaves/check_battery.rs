@@ -1,11 +1,9 @@
 use anyhow::anyhow;
-use beetry_core::{BoxConditionBehavior, ConditionBehavior};
+use beetry_core::ConditionBehavior;
 use beetry_editor_types::spec::node::{
-    FieldDefinition, FieldMetadata, FieldName, FieldTypeSpec, NodeKind, NodeName, NodeSpec,
-    NodeSpecKey, ParamsSpec, ProvideParamSpec,
+    FieldDefinition, FieldMetadata, FieldName, FieldTypeSpec, ParamsSpec, ProvideParamSpec,
 };
-use beetry_plugin::{Plugin, node::ConditionFactory};
-use beetry_reconstruction_types::node::ConditionReconstructionData;
+use beetry_plugin::condition;
 use mitsein::iter1::IntoIterator1;
 use std::sync::Arc;
 
@@ -53,19 +51,6 @@ impl ConditionBehavior for CheckBattery {
     }
 }
 
-// plugin! {
-//   CheckBatteryPlugin: Condition {
-//     spec = spec! {type = condition, name = "CheckBattery", params = CheckBatteryParams::provide()},
-//     factory_fn = |data: ConditionReconstructionData| {
-//             Ok(
-//                 Box::new(
-//                     CheckBattery::new(beetry_reconstruction_types::parameter::Deserializer::deserialize(data.parameters)?))
-//                     as BoxConditionBehavior,
-//             )
-//     }
-//   }
-// }
-
 impl ProvideParamSpec for CheckBatteryParams {
     fn provide() -> ParamsSpec {
         [(
@@ -88,47 +73,8 @@ impl ProvideParamSpec for CheckBatteryParams {
     }
 }
 
-pub struct CheckBatteryPlugin {
-    spec: NodeSpec,
-    factory: ConditionFactory,
-}
-
-impl Plugin for CheckBatteryPlugin {
-    type Spec = NodeSpec;
-    type Factory = ConditionFactory;
-
-    fn new() -> Self
-    where
-        Self: Sized,
-    {
-        let factory_fn = |data: ConditionReconstructionData| {
-            Ok(Box::new(CheckBattery::new(ParamsReconstructor::reconstruct(
-                data.parameters,
-            )?)) as BoxConditionBehavior)
-        };
-        let spec = NodeSpec::builder()
-            .key(NodeSpecKey::new(
-                NodeName::new("Check Battery"),
-                NodeKind::condition(),
-            ))
-            .params(CheckBatteryParams::provide())
-            .build();
-
-        Self {
-            spec,
-            factory: Self::Factory::new(Box::new(factory_fn)),
-        }
-    }
-
-    fn spec(&self) -> &Self::Spec {
-        &self.spec
-    }
-
-    fn factory(&self) -> &Self::Factory {
-        &self.factory
-    }
-
-    fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
-        (self.spec, self.factory)
-    }
+condition! {
+    CheckBatteryPlugin: "Check Battery";
+    params(parameters): CheckBatteryParams::provide();
+    create: CheckBattery::new(ParamsReconstructor::reconstruct(parameters)?);
 }

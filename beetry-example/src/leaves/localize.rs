@@ -1,15 +1,7 @@
 use crate::Pose;
-use anyhow::{Result, anyhow};
-use beetry_channel::downcast;
-use beetry_core::{self, ActionBehavior, BoxActionBehavior, NodeTask, Task, TickStatus};
-use beetry_editor_types::spec::message::MessageSpec;
-use beetry_editor_types::spec::node::{
-    NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey,
-};
-use beetry_plugin::node::ActionFactory;
-use beetry_plugin::{Plugin, plugin2};
-use beetry_reconstruction_types::node::ActionReconstructionData;
-use mitsein::iter1::IntoIterator1;
+use anyhow::Result;
+use beetry_core::{self, ActionBehavior, NodeTask, Task, TickStatus};
+use beetry_plugin::action;
 use std::time::Duration;
 use tokio::sync::mpsc::{Receiver, Sender, channel as mpsc_channel};
 use tracing::{debug, instrument};
@@ -99,67 +91,8 @@ impl Task for LocalizeTask {
     }
 }
 
-// plugin2! {
-//     LocalizePlugin: Action {
-//       spec = spec! {type = action, name = "Localize", senders = [Pose, desc = "Localized pose"] },
-//       factory_fn = |mut data: ActionReconstructionData| {
-//         let senders = downcast! {senders = &mut data.inner.senders, expected = [Pose]}
-//         .map_err(|_| anyhow!("failed to obtain typed senders"))?;
-//         Ok(Box::new(Localize::new(senders.0)) as BoxActionBehavior)
-
-//         }
-//     }
-// }
-
-pub struct LocalizePlugin {
-    spec: NodeSpec,
-    factory: ActionFactory,
-}
-
-impl Plugin for LocalizePlugin {
-    type Spec = NodeSpec;
-    type Factory = ActionFactory;
-
-    fn new() -> Self
-    where
-        Self: Sized,
-    {
-        let factory_fn = |mut data: ActionReconstructionData| {
-            debug!("reconstruction data: {data:?}");
-            let senders = downcast! {senders = &mut data.inner.senders, expected = [Pose]}
-                .map_err(|_| anyhow!("failed to obtain typed senders"))?;
-            Ok(Box::new(Localize::new(senders.0)) as BoxActionBehavior)
-        };
-        let spec = NodeSpec::builder()
-            .key(NodeSpecKey::new(
-                NodeName::new("Localize"),
-                NodeKind::action(),
-            ))
-            .ports(
-                [NodePortSpec {
-                    kind: NodePortKind::Sender,
-                    msg_spec: MessageSpec::new::<Pose>("Drive pose"),
-                }]
-                .into_iter1()
-                .collect1(),
-            )
-            .build();
-
-        Self {
-            spec,
-            factory: Self::Factory::new(Box::new(factory_fn)),
-        }
-    }
-
-    fn spec(&self) -> &Self::Spec {
-        &self.spec
-    }
-
-    fn factory(&self) -> &Self::Factory {
-        &self.factory
-    }
-
-    fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
-        (self.spec, self.factory)
-    }
+action! {
+    LocalizePlugin: "Localize";
+    senders: [pose_send: Pose => "Drive pose"];
+    create: Localize::new(pose_send);
 }
