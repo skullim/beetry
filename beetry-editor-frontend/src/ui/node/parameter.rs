@@ -105,11 +105,9 @@ fn VisibleDialog(props: VisibleDialogProps) -> Element {
     };
 
     let param_fields = params_spec.iter().map(|(name, _)| {
-        rsx!(ParameterField {
-            id,
-            name: name.clone(),
-            parameters
-        })
+        rsx!(
+            ParameterField { id, name: name.clone(), parameters }
+        )
     });
 
     rsx! {

@@ -97,9 +97,7 @@ pub fn Dialog() -> Element {
         let timestamp = format_timestamp(item.timestamp_secs);
 
         rsx! {
-            li {
-                key: "{item.id}",
-                class: "bt-error-item",
+            li { key: "{item.id}", class: "bt-error-item",
                 div { class: "bt-error-item-header",
                     div { class: "bt-error-item-meta",
                         span { class: "bt-error-timestamp", "{timestamp}" }
@@ -110,9 +108,7 @@ pub fn Dialog() -> Element {
                         }
                     }
                 }
-                div { class: "bt-error-message",
-                    {item.message}
-                }
+                div { class: "bt-error-message", {item.message} }
             }
         }
     });
@@ -127,9 +123,7 @@ pub fn Dialog() -> Element {
                     "Clear"
                 }
             }
-            ul { class: "bt-error-list",
-                {entries}
-            }
+            ul { class: "bt-error-list", {entries} }
         }
     }
 }

@@ -45,11 +45,11 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
 
     rsx! {
         g { transform: "translate({position.x} {position.y})",
-                rect {
-                    x: "0",
-                    y: "0",
-                    width: "{MENU_WIDTH}",
-                    height: "{menu_height}",
+            rect {
+                x: "0",
+                y: "0",
+                width: "{MENU_WIDTH}",
+                height: "{menu_height}",
                 fill: "white",
                 stroke: "#ccc",
                 style: "cursor: pointer;",

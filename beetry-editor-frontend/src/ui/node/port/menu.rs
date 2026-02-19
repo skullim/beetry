@@ -55,21 +55,6 @@ pub fn Menu(state: Signal<State>) -> Element {
             rsx! {
                 g {
                     transform: "translate({position.x} {position.y})",
-                    onclick: move |evt| {
-                        evt.stop_propagation();
-                        if is_external {
-                            use_context::<Handlers>().on_internal.call((id, port_id));
-                        } else {
-                            use_context::<Handlers>().on_external.call((id, port_id));
-                        }
-                        state
-                            .set(State::Visible {
-                                position,
-                                id,
-                                port_id,
-                                is_external: !is_external,
-                            });
-                    },
                     onmouseup: move |evt| {
                         evt.stop_propagation();
                     },
@@ -98,6 +83,22 @@ pub fn Menu(state: Signal<State>) -> Element {
                         stroke: "#444",
                         stroke_width: "1",
                         style: "cursor: pointer;",
+
+                        onclick: move |evt| {
+                            evt.stop_propagation();
+                            if is_external {
+                                use_context::<Handlers>().on_internal.call((id, port_id));
+                            } else {
+                                use_context::<Handlers>().on_external.call((id, port_id));
+                            }
+                            state
+                                .set(State::Visible {
+                                    position,
+                                    id,
+                                    port_id,
+                                    is_external: !is_external,
+                                });
+                        },
                     }
 
                     if is_external {
