@@ -1,18 +1,10 @@
 use std::time::Duration;
 
 use crate::Pose;
-use anyhow::{Result, anyhow};
-use beetry_channel::downcast;
-use beetry_core::{ActionBehavior, BoxActionBehavior, NodeTask, Receiver, Task, TickStatus};
-use beetry_editor_types::spec::message::MessageSpec;
-use beetry_editor_types::spec::node::{
-    NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey,
-};
+use anyhow::Result;
+use beetry_core::{ActionBehavior, NodeTask, Receiver, Task, TickStatus};
 use beetry_macros::receivers;
-use beetry_plugin::Plugin;
-use beetry_plugin::node::ActionFactory;
-use beetry_reconstruction_types::node::ActionReconstructionData;
-use mitsein::iter1::IntoIterator1;
+use beetry_plugin::action;
 use tracing::{debug, instrument};
 use type_hash::TypeHash;
 
@@ -88,76 +80,10 @@ impl Task for DriveTask {
     }
 }
 
-// plugin! {
-//   DrivePlugin: Action {
-//     spec = spec! {type = action, name = "Drive", receivers = [Pose, desc = "Drive pose"] },
-//     factory_fn = |mut data: ActionReconstructionData| {
-//       let receivers = downcast! {receivers = &mut data.inner.receivers, expected = [Pose]}
-//       .map_err(|_| anyhow!("failed to obtain typed receivers"))?;
-//       Ok(Box::new(Drive::new(
-//          DriveReceivers::builder().pose(receivers.0).build())) as BoxActionBehavior)
-//       }
-//     }
-// }
-
-// plugin2! {
-//     DrivePlugin: Action {
-//         name: "Drive",
-//         receivers: {
-//             Pose => "Drive pose",
-//         }
-//     }
-// }
-
-pub struct DrivePlugin {
-    spec: NodeSpec,
-    factory: ActionFactory,
-}
-
-impl Plugin for DrivePlugin {
-    type Spec = NodeSpec;
-    type Factory = ActionFactory;
-
-    fn new() -> Self
-    where
-        Self: Sized,
-    {
-        let factory_fn = |mut data: ActionReconstructionData| {
-            let receivers = downcast! {receivers = &mut data.inner.receivers, expected = [Pose]}
-                .map_err(|_| anyhow!("failed to obtain typed receivers"))?;
-            Ok(Box::new(Drive::new(
-                DriveReceivers::builder().pose(receivers.0).build(),
-            )) as BoxActionBehavior)
-        };
-        let spec = NodeSpec::builder()
-            .key(NodeSpecKey::new(NodeName::new("Drive"), NodeKind::action()))
-            .ports(
-                [NodePortSpec {
-                    kind: NodePortKind::Receiver,
-                    msg_spec: MessageSpec::new::<Pose>("Drive pose"),
-                }]
-                .into_iter1()
-                .collect1(),
-            )
-            .build();
-
-        Self {
-            spec,
-            factory: Self::Factory::new(Box::new(factory_fn)),
-        }
-    }
-
-    fn spec(&self) -> &Self::Spec {
-        &self.spec
-    }
-
-    fn factory(&self) -> &Self::Factory {
-        &self.factory
-    }
-
-    fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
-        (self.spec, self.factory)
-    }
+action! {
+    DrivePlugin: "Drive";
+    receivers: [pose: Pose => "Drive pose"];
+    create: Drive::new(DriveReceivers::builder().pose(pose).build());
 }
 
 #[cfg(test)]
