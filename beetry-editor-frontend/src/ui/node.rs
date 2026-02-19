@@ -9,9 +9,9 @@ pub(super) mod control;
 pub(super) mod leaf;
 pub(super) mod root;
 
+use dioxus::prelude::*;
 pub use menu::Menu;
 pub use renderer::Renderer;
-use dioxus::prelude::*;
 
 pub fn style_defs() -> Element {
     rsx! {

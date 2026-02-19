@@ -6,8 +6,8 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
 use crate::components::sidebar::Sidebar;
-use crate::components::topbar::Topbar;
 use crate::components::toolbar::Toolbar;
+use crate::components::topbar::Topbar;
 use crate::components::workspace::Workspace;
 use crate::signals::RenderRequests;
 use crate::ui::theme::GlobalStyle;
