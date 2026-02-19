@@ -1,8 +1,8 @@
 [package]
 name = "beetry"
 description = "Behavior tree framework. Implementation details will come in the next release."
-license = "MIT/Apache-2.0"
 version = "0.1.0"
 edition = "2024"
+license.workspace = true
 
 [dependencies]
