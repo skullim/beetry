@@ -1,6 +1,6 @@
 use crate::task::ExecutorConcept;
-use crate::{Node, PeriodicTicker, TickStatus, Tree};
 use crate::tree::Error;
+use crate::{Node, PeriodicTicker, TickStatus, Tree};
 
 pub struct TreeEngine<N> {
     tree: Tree<N>,

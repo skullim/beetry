@@ -5,9 +5,9 @@ use crate::{
         edge::{EdgeQueryView, EdgeView},
         node::{
             NodeTrackerQueryView, NodeView, ParameterValueMut, ParameterValueQueryView,
-            ParameterValueView, ParameterValueViewMut,
-            PortConnectionDataView, PortStateQueryApi, SpecByNodeIdQuery,
-            SpecByNodeIdQueryView, SpecBySpecIdQuery, SpecBySpecIdQueryView, TrackerView,
+            ParameterValueView, ParameterValueViewMut, PortConnectionDataView, PortStateQueryApi,
+            SpecByNodeIdQuery, SpecByNodeIdQueryView, SpecBySpecIdQuery, SpecBySpecIdQueryView,
+            TrackerView,
         },
         repository::{
             ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
@@ -33,8 +33,8 @@ use beetry_editor_types::{
     id::{ChannelId, EdgeId, NodeId, NodePortId},
     output::{
         channel::{ChannelConfig, ChannelData},
-        node::Parameters,
         edge::NodeEdge,
+        node::Parameters,
         ui::{ChannelUiData, NodeUiData, Point},
     },
     persistence::{EditorStateStore, ValidTree},

@@ -1,13 +1,16 @@
+use crate::Point;
 use crate::definitions::EdgePos;
 use crate::ui::edge;
-use crate::Point;
 use beetry_editor_types::id::NodeId;
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum State {
     #[default]
     Idle,
-    Dragged { from: NodeId, pos: EdgePos },
+    Dragged {
+        from: NodeId,
+        pos: EdgePos,
+    },
 }
 
 impl From<&State> for edge::temporary::State {

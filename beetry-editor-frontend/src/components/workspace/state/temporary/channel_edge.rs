@@ -7,7 +7,10 @@ use beetry_editor_types::id::{NodeId, NodePortId};
 pub enum State {
     #[default]
     Idle,
-    Dragged { data: DraggedData, pos: EdgePos },
+    Dragged {
+        data: DraggedData,
+        pos: EdgePos,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -104,11 +104,13 @@ fn VisibleDialog(props: VisibleDialogProps) -> Element {
         handlers.on_cancel.call(());
     };
 
-    let param_fields = params_spec
-        .iter()
-        .map(|(name, _)| rsx!(
-            ParameterField { id, name: name.clone(), parameters }
-        ));
+    let param_fields = params_spec.iter().map(|(name, _)| {
+        rsx!(ParameterField {
+            id,
+            name: name.clone(),
+            parameters
+        })
+    });
 
     rsx! {
         div { class: "bt-dialog-overlay", onclick: on_cancel,

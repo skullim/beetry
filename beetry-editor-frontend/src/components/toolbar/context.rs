@@ -1,9 +1,9 @@
 use dioxus::prelude::*;
 
 use super::handlers;
+use crate::Backend;
 use crate::signals::RenderRequests;
 use crate::ui::error::ErrorQueueState;
-use crate::Backend;
 
 #[component]
 pub(super) fn Provider(children: Element) -> Element {
