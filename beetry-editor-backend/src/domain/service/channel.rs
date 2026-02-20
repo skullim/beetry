@@ -295,7 +295,6 @@ impl ChannelService {
                 conn_ctx.spec.msg_spec.desc(),
             );
         }
-        //@todo this check should be moved somewhere else, rationale: might want to hide different channels behind a feature gate at some point
         let channel_params = Self::config(channel_repo, conn_ctx.channel)?;
         if let ChannelKind::Tokio(TokioChannelKind::Mpsc) = channel_params.kind()
             && conn_ctx.spec.kind == NodePortKind::Receiver
