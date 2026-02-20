@@ -133,11 +133,10 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
             }
 
             text {
+                class: "bt-text-sm",
                 x: "{position.x + 40.0 + (body_width / 2.0)}",
                 y: "{position.y + 16.0}",
                 fill: "white",
-                font_family: text::font_family(),
-                font_size: "{font_size}",
                 font_weight: "medium",
                 text_anchor: "middle",
                 pointer_events: "none",

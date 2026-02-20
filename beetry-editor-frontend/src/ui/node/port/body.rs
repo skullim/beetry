@@ -13,23 +13,27 @@ use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 
 define_handlers!(on_mouse_down: (ConnectionOrigin, IndexedDragOffset, NodePortId),
-          on_menu: (Point, NodeId, NodePortId),
+          on_menu: (Point, NodeId, NodePortId, Signal<bool>),
 );
 
 #[derive(Props, PartialEq, Clone)]
-pub struct SenderProps {
+pub struct BodyProps {
     id: NodeId,
     port_id: NodePortId,
     position: Point,
+    origin: ConnectionOrigin,
 }
 
 #[component]
-pub fn Sender(props: SenderProps) -> Element {
-    debug!("rendering");
-
+pub fn Body(props: BodyProps) -> Element {
+    debug!(
+        "rendering (node id: {}, port id: {})",
+        props.id, props.port_id
+    );
     let position = props.position;
     let node_id = props.id;
     let port_id = props.port_id;
+    let origin = props.origin;
 
     let backend = use_context::<Backend>();
     let message_desc = use_hook(|| {
@@ -44,16 +48,27 @@ pub fn Sender(props: SenderProps) -> Element {
     let font_size = text::FONT_SIZE_SMALL;
     let port_width = text_width_from(&message_desc, font_size);
 
-    let is_external = backend
-        .with(|s| beetry_editor_backend::api::node::ports::is_external(s, node_id, port_id))
-        .unwrap_or(false);
-
+    let is_external = use_signal(|| {
+        backend
+            .with(|s| beetry_editor_backend::api::node::ports::is_external(s, node_id, port_id))
+            .unwrap_or(false)
+    });
     let mut is_hovered = use_signal(|| false);
-    let fill = match (is_hovered(), is_external) {
-        (true, true) => channel::GradientHoverUrl::SENDER_EXTERNAL,
-        (true, false) => channel::GradientHoverUrl::SENDER,
-        (false, true) => channel::GradientUrl::SENDER_EXTERNAL,
-        (false, false) => channel::GradientUrl::SENDER,
+
+    let fill = match (origin, is_hovered(), is_external()) {
+        (ConnectionOrigin::Receiver, true, true) => channel::GradientHoverUrl::RECEIVER_EXTERNAL,
+        (ConnectionOrigin::Receiver, true, false) => channel::GradientHoverUrl::RECEIVER,
+        (ConnectionOrigin::Receiver, false, true) => channel::GradientUrl::RECEIVER_EXTERNAL,
+        (ConnectionOrigin::Receiver, false, false) => channel::GradientUrl::RECEIVER,
+        (ConnectionOrigin::Sender, true, true) => channel::GradientHoverUrl::SENDER_EXTERNAL,
+        (ConnectionOrigin::Sender, true, false) => channel::GradientHoverUrl::SENDER,
+        (ConnectionOrigin::Sender, false, true) => channel::GradientUrl::SENDER_EXTERNAL,
+        (ConnectionOrigin::Sender, false, false) => channel::GradientUrl::SENDER,
+    };
+
+    let (x, text_x) = match origin {
+        ConnectionOrigin::Receiver => (position.x - port_width, position.x - (port_width / 2.0)),
+        ConnectionOrigin::Sender => (position.x, position.x + (port_width / 2.0)),
     };
 
     let handlers = use_context::<Handlers>();
@@ -61,21 +76,21 @@ pub fn Sender(props: SenderProps) -> Element {
     rsx! {
         g {
             rect {
-                x: "{position.x}",
+                x: "{x}",
                 y: "{position.y}",
                 width: "{port_width}",
                 height: "{layout::HEIGHT}",
                 rx: "4",
                 ry: "4",
                 fill,
-                filter: if *is_hovered.read() { shadow::FilterUrl::SHADOW_HOVER } else { shadow::FilterUrl::SHADOW },
+                filter: if is_hovered() { shadow::FilterUrl::SHADOW_HOVER } else { shadow::FilterUrl::SHADOW },
                 stroke: "rgba(255,255,255,0.2)",
                 stroke_width: "1",
                 onmouseenter: move |_| is_hovered.set(true),
                 onmouseleave: move |_| is_hovered.set(false),
                 onmousedown: move |evt| {
                     evt.stop_propagation();
-                    if evt.held_buttons().contains(MouseButton::Primary) && !is_external {
+                    if evt.held_buttons().contains(MouseButton::Primary) && !*is_external.peek() {
                         let mouse_coords = evt.element_coordinates();
                         let offset = Point {
                             x: mouse_coords.x,
@@ -84,7 +99,7 @@ pub fn Sender(props: SenderProps) -> Element {
                         handlers
                             .on_mouse_down
                             .call((
-                                ConnectionOrigin::Sender,
+                                origin,
                                 IndexedDragOffset {
                                     id: props.id,
                                     offset,
@@ -100,15 +115,14 @@ pub fn Sender(props: SenderProps) -> Element {
                         x: evt.element_coordinates().x,
                         y: evt.element_coordinates().y,
                     };
-                    handlers.on_menu.call((click_point, node_id, port_id))
+                    handlers.on_menu.call((click_point, node_id, port_id, is_external))
                 },
             }
             text {
-                x: "{position.x + (port_width / 2.0)}",
+                class: "bt-text-sm",
+                x: "{text_x}",
                 y: "{position.y + layout::TEXT_BASELINE_OFFSET}",
                 fill: "white",
-                font_family: text::font_family(),
-                font_size: "{font_size}",
                 font_weight: "medium",
                 text_anchor: "middle",
                 pointer_events: "none",

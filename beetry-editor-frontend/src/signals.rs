@@ -40,14 +40,10 @@ pub struct ChannelRenderTag;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ChannelEdgeRenderTag;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PortRenderTag;
-
 pub type RequestNodeRender = RenderTrigger<NodeRenderTag>;
 pub type RequestEdgeRender = RenderTrigger<EdgeRenderTag>;
 pub type RequestChannelRender = RenderTrigger<ChannelRenderTag>;
 pub type RequestChannelEdgeRender = RenderTrigger<ChannelEdgeRenderTag>;
-pub type RequestPortRender = RenderTrigger<PortRenderTag>;
 
 #[derive(Clone, Copy, PartialEq, Default)]
 pub(crate) struct RenderRequests {
@@ -55,7 +51,6 @@ pub(crate) struct RenderRequests {
     pub(crate) edges: RequestEdgeRender,
     pub(crate) channels: RequestChannelRender,
     pub(crate) channel_edges: RequestChannelEdgeRender,
-    pub(crate) ports: RequestPortRender,
 }
 
 impl RenderRequests {
@@ -64,6 +59,5 @@ impl RenderRequests {
         self.edges.request();
         self.channels.request();
         self.channel_edges.request();
-        self.ports.request();
     }
 }
