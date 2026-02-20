@@ -1,6 +1,5 @@
 use crate::Point;
 use crate::ui::text;
-use crate::ui::text::font_family;
 use dioxus::prelude::*;
 
 #[derive(Props, Clone, PartialEq)]
@@ -50,8 +49,6 @@ pub(crate) fn TooltipCard(props: TooltipCardProps) -> Element {
                     x: "{TEXT_X_PADDING}",
                     y: "{text_start_y + (idx as f64 * LINE_HEIGHT)}",
                     fill: "white",
-                    font_size: "{text::FONT_SIZE_NORMAL}",
-                    font_family: font_family(),
                     "{line}"
                 }
             }
