@@ -15,8 +15,8 @@ pub struct PortProps {
 
 #[component]
 pub(crate) fn Port(props: PortProps) -> Element {
+    const PORT_RADIUS: f64 = 7.0;
     let position = props.position;
-    static PORT_RADIUS: f64 = 7.0;
 
     let mut is_hovered = use_signal(|| false);
     let handlers = use_context::<Handlers>();

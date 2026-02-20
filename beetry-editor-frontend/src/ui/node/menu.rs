@@ -3,9 +3,6 @@ use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-const MENU_WIDTH: i32 = 160;
-const MENU_ROW_HEIGHT: i32 = 36;
-
 define_handlers!(on_delete: NodeId,
           on_edit_params: NodeId,
           on_close: (),
@@ -24,6 +21,9 @@ pub enum State {
 
 #[component]
 pub fn Menu(state: ReadSignal<State>) -> Element {
+    const WIDTH: u16 = 160;
+    const ROW_HEIGHT: u16 = 36;
+
     debug!("rendering");
     let state_read = state.read();
     let (position, id, can_edit_params) = match *state_read {
@@ -38,9 +38,9 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
     let menu_handlers = use_context::<Handlers>();
 
     let menu_height = if can_edit_params {
-        MENU_ROW_HEIGHT * 2
+        ROW_HEIGHT * 2
     } else {
-        MENU_ROW_HEIGHT
+        ROW_HEIGHT
     };
 
     rsx! {
@@ -48,7 +48,7 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
             rect {
                 x: "0",
                 y: "0",
-                width: "{MENU_WIDTH}",
+                width: "{WIDTH}",
                 height: "{menu_height}",
                 fill: "white",
                 stroke: "#ccc",
@@ -74,9 +74,9 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
             if can_edit_params {
                 rect {
                     x: "0",
-                    y: "{MENU_ROW_HEIGHT}",
-                    width: "{MENU_WIDTH}",
-                    height: "{MENU_ROW_HEIGHT}",
+                    y: "{ROW_HEIGHT}",
+                    width: "{WIDTH}",
+                    height: "{ROW_HEIGHT}",
                     fill: "white",
                     stroke: "#ccc",
                     style: "cursor: pointer;",
