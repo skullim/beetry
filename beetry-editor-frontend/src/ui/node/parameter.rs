@@ -1,6 +1,7 @@
 use crate::Backend;
 use crate::ui::error::ErrorQueueState;
 use crate::{Point, ui::handler::define_handlers};
+use anyhow::Context;
 use beetry_editor_backend::api::{ParameterValueParser, SpecByNodeIdQueryView};
 use beetry_editor_types::output::node::ParameterValue;
 use beetry_editor_types::{
@@ -9,7 +10,7 @@ use beetry_editor_types::{
     spec::node::{FieldName, FieldTypeSpec, ParamsSpec},
 };
 use dioxus::prelude::*;
-use dioxus_logger::tracing::{debug, error};
+use dioxus_logger::tracing::debug;
 use std::rc::Rc;
 
 pub const DEFAULT_DIALOG_POSITION: Point = Point { x: 300.0, y: 200.0 };
@@ -38,9 +39,8 @@ pub enum Mode {
 #[component]
 pub fn Dialog(state: ReadSignal<State>) -> Element {
     debug!("rendering");
-    let (id, position, mode) = match *state.read() {
-        State::Idle => return rsx! {},
-        State::Visible { position, id, mode } => (id, position, mode),
+    let State::Visible { position, id, mode } = *state.read() else {
+        return rsx! {};
     };
 
     rsx! {
@@ -78,18 +78,25 @@ fn VisibleDialog(props: VisibleDialogProps) -> Element {
     let initial_parameters = match mode {
         Mode::Create => Parameters::default(),
         Mode::Update => {
-            match backend.with_peek(|s| -> anyhow::Result<Parameters> {
-                Ok(beetry_editor_backend::api::node::parameters::get(s, id)?.clone())
-            }) {
-                Ok(parameters) => parameters,
-                Err(err) => {
-                    error!("failed to load existing node parameters for {id}: {err}");
-                    Parameters::default()
-                }
-            }
+            let Some(parameters) = backend
+                .with_peek(|s| -> anyhow::Result<Parameters> {
+                    Ok(beetry_editor_backend::api::node::parameters::get(s, id)?.clone())
+                })
+                .map_err(|err| {
+                    errors.push(format!(
+                        "failed to load existing node parameters for {id}: {err}"
+                    ));
+                })
+                .ok()
+            else {
+                return rsx! {};
+            };
+
+            parameters
         }
     };
-    let parameters = use_signal(move || initial_parameters.clone());
+    let parameters = use_signal(move || initial_parameters);
+
     let handlers = use_context::<Handlers>();
     let spec = Rc::clone(&params_spec);
     let on_confirm = move |_| {
@@ -166,24 +173,50 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
     let mut parameters = props.parameters;
 
     let backend = use_context::<Backend>();
-    let read = backend.read();
-    let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
-
     let mut errors = use_context::<ErrorQueueState>();
-    let Some(field_def) = (|| -> anyhow::Result<_> {
-        let spec = spec_query.spec(props.id)?;
-        let params_spec = spec.params().as_ref().context("node has no params spec")?;
-        let field_def = params_spec
-            .get(&props.name)
-            .context("param field not found in params spec")?;
-        Ok(field_def)
-    })()
-    .map_err(|e| errors.push(e))
-    .ok() else {
+    let id = props.id;
+
+    let Some(field_def) = use_hook(|| {
+        let read = backend.read();
+        let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
+        let field_def = (|| -> anyhow::Result<_> {
+            let spec = spec_query.spec(id)?;
+            let params_spec = spec.params().as_ref().context("node has no params spec")?;
+            let field_def = params_spec
+                .get(&props.name)
+                .context("param field not found in params spec")?;
+            Ok(Rc::new(field_def.clone()))
+        })();
+        match field_def {
+            Ok(field_def) => Some(field_def),
+            Err(err) => {
+                errors.push(err);
+                None
+            }
+        }
+    }) else {
         return rsx! {};
     };
 
     let mut error_msg = use_signal::<Option<String>>(|| None);
+    let field_name = props.name.clone();
+    let field_def_for_handler = Rc::clone(&field_def);
+    let make_parse_handler = move || {
+        let field_def = field_def_for_handler;
+        move |evt: Event<FormData>| match ParameterValueParser::parse(
+            &field_def.type_spec,
+            evt.value(),
+        ) {
+            Ok(val) => {
+                parameters.with_mut(|write| write.insert(field_name.clone(), val));
+                error_msg.set(None);
+            }
+            Err(e) => {
+                error_msg.set(Some(e.to_string()));
+            }
+        }
+    };
+
     let o_val = parameters.read().get(&props.name).cloned();
     rsx! {
         div { class: "bt-form-field",
@@ -193,126 +226,55 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                 div { class: "bt-form-description", {desc.as_str()} }
             }
 
-            //@todo avoid clone
-            match field_def.type_spec.clone() {
-                FieldTypeSpec::Bool(meta) => {
+            match &field_def.type_spec {
+                FieldTypeSpec::Bool(_) => {
                     rsx! {
                         input {
                             class: "bt-form-checkbox",
                             r#type: "checkbox",
                             checked: o_val.map(ParameterValue::into_bool).unwrap_or_default(),
-                            onchange: move |evt| {
-                                match ParameterValueParser::parse(
-                                    &FieldTypeSpec::Bool(meta.clone()),
-                                    evt.value(),
-                                ) {
-                                    Ok(val) => {
-                                        parameters.with_mut(|write| write.insert(props.name.clone(), val));
-                                        error_msg.set(None);
-                                    }
-                                    Err(e) => {
-                                        parameters.with_mut(|write| write.remove(&props.name));
-                                        error_msg.set(Some(e.to_string()));
-                                    }
-                                }
-                            },
+                            onchange: make_parse_handler(),
                         }
                     }
                 }
-                FieldTypeSpec::I64(meta) => {
+                FieldTypeSpec::I64(_) => {
                     rsx! {
                         input {
                             class: "bt-form-input",
                             r#type: "number",
                             value: o_val.map(ParameterValue::into_i64).unwrap_or_default(),
-                            oninput: move |evt| {
-                                match ParameterValueParser::parse(
-                                    &FieldTypeSpec::I64(meta.clone()),
-                                    evt.value(),
-                                ) {
-                                    Ok(val) => {
-                                        parameters.with_mut(|write| write.insert(props.name.clone(), val));
-                                        error_msg.set(None);
-                                    }
-                                    Err(e) => {
-                                        parameters.with_mut(|write| write.remove(&props.name));
-                                        error_msg.set(Some(e.to_string()));
-                                    }
-                                }
-                            },
+                            oninput: make_parse_handler(),
                         }
                     }
                 }
-                FieldTypeSpec::U64(meta) => {
+                FieldTypeSpec::U64(_) => {
                     rsx! {
                         input {
                             class: "bt-form-input",
                             r#type: "number",
                             value: o_val.map(ParameterValue::into_u64).unwrap_or_default(),
-                            oninput: move |evt| {
-                                match ParameterValueParser::parse(
-                                    &FieldTypeSpec::U64(meta.clone()),
-                                    evt.value(),
-                                ) {
-                                    Ok(val) => {
-                                        parameters.with_mut(|write| write.insert(props.name.clone(), val));
-                                        error_msg.set(None);
-                                    }
-                                    Err(e) => {
-                                        parameters.with_mut(|write| write.remove(&props.name));
-                                        error_msg.set(Some(e.to_string()));
-                                    }
-                                }
-                            },
+                            oninput: make_parse_handler(),
                         }
                     }
                 }
-                FieldTypeSpec::F64(meta) => {
+                FieldTypeSpec::F64(_) => {
                     rsx! {
                         input {
                             class: "bt-form-input",
                             r#type: "number",
                             step: "1.00",
                             value: o_val.map(ParameterValue::into_f64).unwrap_or_default(),
-                            oninput: move |evt| {
-                                match ParameterValueParser::parse(
-                                    &FieldTypeSpec::F64(meta.clone()),
-                                    evt.value(),
-                                ) {
-                                    Ok(val) => {
-                                        parameters.with_mut(|write| write.insert(props.name.clone(), val));
-                                        error_msg.set(None);
-                                    }
-                                    Err(e) => {
-                                        parameters.with_mut(|write| write.remove(&props.name));
-                                        error_msg.set(Some(e.to_string()));
-                                    }
-                                }
-                            },
+                            oninput: make_parse_handler(),
                         }
                     }
                 }
-                FieldTypeSpec::String(meta) => {
+                FieldTypeSpec::String(_) => {
                     rsx! {
                         input {
                             class: "bt-form-input",
                             r#type: "text",
                             value: o_val.map(ParameterValue::into_string).unwrap_or_default(),
-                            oninput: move |evt| {
-                                match ParameterValueParser::parse(
-                                    &FieldTypeSpec::String(meta.clone()),
-                                    evt.value(),
-                                ) {
-                                    Ok(val) => {
-                                        parameters.with_mut(|write| write.insert(props.name.clone(), val));
-                                        error_msg.set(None);
-                                    }
-                                    Err(e) => {
-                                        parameters.with_mut(|write| write.remove(&props.name));
-                                        error_msg.set(Some(e.to_string()));
-                                    }
-                                }
-                            },
+                            oninput: make_parse_handler(),
                         }
                     }
                 }

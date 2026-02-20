@@ -19,9 +19,93 @@ pub struct NodeDimensions {
     pub height: f64,
 }
 
-struct PortIdRowIdxPair {
-    port_id: NodePortId,
-    row_idx: usize,
+struct PortsMetadata {
+    sender: SenderMetadata,
+    receiver: ReceiverMetadata,
+}
+
+struct SenderMetadata {
+    count: usize,
+    port_ids: Vec<NodePortId>,
+}
+
+struct ReceiverMetadata {
+    count: usize,
+    port_ids: Vec<NodePortId>,
+}
+
+/// Renders ports for a single leaf node
+#[component]
+pub(crate) fn Renderer(props: RendererProps) -> Element {
+    let backend = use_context::<Backend>();
+    let mut errors = use_context::<ErrorQueueState>();
+
+    let id = props.id;
+    let Some(ports_meta) = use_hook(|| {
+        let read = backend.read();
+        let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
+        spec_query
+            .spec(id)
+            .inspect_err(|err| errors.push(err))
+            .ok()
+            .and_then(|spec| {
+                spec.ports().as_ref().map(|s| {
+                    Rc::new(PortsMetadata {
+                        sender: SenderMetadata {
+                            count: s.sender_ids().count(),
+                            port_ids: s.sender_ids().copied().collect(),
+                        },
+                        receiver: ReceiverMetadata {
+                            count: s.receiver_ids().count(),
+                            port_ids: s.receiver_ids().copied().collect(),
+                        },
+                    })
+                })
+            })
+    }) else {
+        return rsx!();
+    };
+
+    let position = props.position;
+    let width = props.dimensions.width;
+    let height = props.dimensions.height;
+
+    let receiver_step = step_for(height, ports_meta.receiver.count);
+    let sender_step = step_for(height, ports_meta.sender.count);
+
+    let render_port = |port_ids: &[NodePortId], step: f64, x: f64, origin: ConnectionOrigin| {
+        rsx! {
+            g {
+                for (row_idx, port_id) in port_ids.iter().copied().enumerate() {
+                    port::Body {
+                        key: "{port_id}",
+                        id,
+                        position: Point {
+                            x,
+                            y: position.y + row_idx as f64 * step,
+                        },
+                        port_id,
+                        origin,
+                    }
+                }
+            }
+        }
+    };
+
+    rsx! {
+        {render_port(
+            &ports_meta.receiver.port_ids,
+            receiver_step,
+            position.x,
+            ConnectionOrigin::Receiver
+        )}
+        {render_port(
+            &ports_meta.sender.port_ids,
+            sender_step,
+            position.x + width,
+            ConnectionOrigin::Sender
+        )}
+    }
 }
 
 fn step_for(height: f64, count: usize) -> f64 {
@@ -30,106 +114,5 @@ fn step_for(height: f64, count: usize) -> f64 {
         0.0
     } else {
         ((height - layout::HEIGHT) / intervals as f64).max(layout::HEIGHT + layout::MIN_GAP)
-    }
-}
-
-#[component]
-pub(crate) fn Renderer(props: RendererProps) -> Element {
-    let backend = use_context::<Backend>();
-    let read = backend.read();
-    let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
-    let errors = use_context::<ErrorQueueState>();
-
-    let id = props.id;
-    let height = props.dimensions.height;
-    let receiver_step = use_hook(|| {
-        step_for(
-            height,
-            spec_query
-                .ports(id)
-                .iter()
-                .flat_map(|ports_spec| ports_spec.receiver_ids())
-                .count(),
-        )
-    });
-    let sender_step = use_hook(|| {
-        step_for(
-            height,
-            spec_query
-                .ports(id)
-                .iter()
-                .flat_map(|ports_spec| ports_spec.sender_ids())
-                .count(),
-        )
-    });
-
-    let mut receiver_errors = errors;
-    let receiver_id_pairs: Rc<Vec<_>> = use_hook(|| match spec_query.ports(id) {
-        Ok(ports_spec) => Rc::new(
-            ports_spec
-                .receiver_ids()
-                .enumerate()
-                .map(|(row_idx, port_id)| PortIdRowIdxPair {
-                    port_id: *port_id,
-                    row_idx,
-                })
-                .collect(),
-        ),
-        Err(e) => {
-            receiver_errors.push(e);
-            Rc::new(Vec::new())
-        }
-    });
-
-    let mut sender_errors = errors;
-    let sender_id_pairs: Rc<Vec<_>> = use_hook(|| match spec_query.ports(id) {
-        Ok(ports_spec) => Rc::new(
-            ports_spec
-                .sender_ids()
-                .enumerate()
-                .map(|(row_idx, port_id)| PortIdRowIdxPair {
-                    port_id: *port_id,
-                    row_idx,
-                })
-                .collect(),
-        ),
-        Err(e) => {
-            sender_errors.push(e);
-            Rc::new(Vec::new())
-        }
-    });
-
-    let position = props.position;
-    let width = props.dimensions.width;
-
-    rsx! {
-        g {
-            for PortIdRowIdxPair { row_idx, port_id } in receiver_id_pairs.iter() {
-                port::Body {
-                    key: "{port_id}",
-                    id,
-                    position: Point {
-                        x: position.x,
-                        y: position.y + *row_idx as f64 * receiver_step,
-                    },
-                    port_id: *port_id,
-                    origin: ConnectionOrigin::Receiver,
-                }
-            }
-        }
-        g {
-            for PortIdRowIdxPair { row_idx, port_id } in sender_id_pairs.iter() {
-                port::Body {
-                    key: "{port_id}",
-                    id,
-                    position: Point {
-                        x: position.x + width,
-                        y: position.y + *row_idx as f64 * sender_step,
-                    },
-                    port_id: *port_id,
-                    origin: ConnectionOrigin::Sender,
-                }
-            }
-        }
     }
 }
