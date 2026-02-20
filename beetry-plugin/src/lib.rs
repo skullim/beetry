@@ -1,5 +1,6 @@
 pub mod channel;
 pub mod node;
+mod channel_macro;
 mod node_macro;
 
 pub trait Plugin {
@@ -108,6 +109,7 @@ pub mod __macro_support {
     pub use anyhow;
     pub use beetry_channel;
     pub use beetry_core::{BoxActionBehavior, BoxConditionBehavior};
+    pub use beetry_editor_types::spec::channel::ChannelSpec;
     pub use beetry_editor_types::spec::message::MessageSpec;
     pub use beetry_editor_types::spec::node::{
         NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey, PortsSpec,

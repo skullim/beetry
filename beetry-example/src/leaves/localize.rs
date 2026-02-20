@@ -5,11 +5,8 @@ use beetry_plugin::action;
 use std::time::Duration;
 use tokio::sync::mpsc::{Receiver, Sender, channel as mpsc_channel};
 use tracing::{debug, instrument};
-use type_hash::TypeHash;
 
-#[derive(TypeHash)]
 pub struct Localize<S> {
-    #[type_hash(skip)]
     task_pose_recv: Option<Receiver<Pose>>,
     pose_send: S,
     prev_pose: Pose,

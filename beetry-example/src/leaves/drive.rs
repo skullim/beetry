@@ -6,7 +6,6 @@ use beetry_core::{ActionBehavior, NodeTask, Receiver, Task, TickStatus};
 use beetry_macros::receivers;
 use beetry_plugin::action;
 use tracing::{debug, instrument};
-use type_hash::TypeHash;
 
 use bon::bon;
 
@@ -56,7 +55,6 @@ where
     }
 }
 
-#[derive(TypeHash)]
 struct DriveTask {
     pose: Pose,
 }

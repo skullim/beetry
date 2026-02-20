@@ -6,6 +6,7 @@ macro_rules! action {
                 plugin_name: $plugin_name,
                 node_name: $name,
                 factory_type: $crate::node::ActionFactory,
+                plugin_constructor: $crate::node::ActionPluginConstructor,
                 reconstruction_data: $crate::__macro_support::ActionReconstructionData,
                 behavior_box_type: $crate::__macro_support::BoxActionBehavior,
                 node_kind: $crate::__macro_support::NodeKind::action(),
@@ -27,6 +28,7 @@ macro_rules! condition {
                 plugin_name: $plugin_name,
                 node_name: $name,
                 factory_type: $crate::node::ConditionFactory,
+                plugin_constructor: $crate::node::ConditionPluginConstructor,
                 reconstruction_data: $crate::__macro_support::ConditionReconstructionData,
                 behavior_box_type: $crate::__macro_support::BoxConditionBehavior,
                 node_kind: $crate::__macro_support::NodeKind::condition(),
@@ -153,6 +155,7 @@ macro_rules! __leaf_plugin_impl {
             plugin_name: $plugin_name:ident,
             node_name: $name:expr,
             factory_type: $factory_type:ty,
+            plugin_constructor: $plugin_constructor:ty,
             reconstruction_data: $reconstruction_data:ty,
             behavior_box_type: $behavior_box_type:ty,
             node_kind: $node_kind:expr,
@@ -167,6 +170,7 @@ macro_rules! __leaf_plugin_impl {
             plugin_name: $plugin_name,
             node_name: $name,
             factory_type: $factory_type,
+            plugin_constructor: $plugin_constructor,
             reconstruction_data: $reconstruction_data,
             behavior_box_type: $behavior_box_type,
             node_kind: $node_kind,
@@ -181,6 +185,7 @@ macro_rules! __leaf_plugin_impl {
         plugin_name: $plugin_name:ident,
         node_name: $name:expr,
         factory_type: $factory_type:ty,
+        plugin_constructor: $plugin_constructor:ty,
         reconstruction_data: $reconstruction_data:ty,
         behavior_box_type: $behavior_box_type:ty,
         node_kind: $node_kind:expr,
@@ -240,6 +245,8 @@ macro_rules! __leaf_plugin_impl {
                 (self.spec, self.factory)
             }
         }
+
+        $crate::submit!(<$plugin_constructor>::new::<$plugin_name>());
     };
 }
 

@@ -4,7 +4,6 @@ use beetry_core::{self, ActionBehavior, NodeTask, Task, TickStatus};
 use beetry_macros::receivers;
 use beetry_plugin::action;
 use bon::bon;
-use type_hash::TypeHash;
 
 receivers! {ReadExternalDataReceivers {
     data: ExternalData,
@@ -34,7 +33,6 @@ where
     // no reset here, queue of messages on the external channel should not be drained
 }
 
-#[derive(TypeHash)]
 struct ReadExternalDataTask {
     data: ExternalData,
 }
