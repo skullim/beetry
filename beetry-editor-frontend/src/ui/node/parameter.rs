@@ -1,9 +1,9 @@
 use crate::Backend;
 use crate::ui::error::ErrorQueueState;
 use crate::{Point, ui::handler::define_handlers};
-use anyhow::Context;
 use beetry_editor_backend::api::{ParameterValueParser, SpecByNodeIdQueryView};
 use beetry_editor_types::output::node::ParameterValue;
+use beetry_editor_types::spec::node::FieldDefinition;
 use beetry_editor_types::{
     id::NodeId,
     output::node::Parameters,
@@ -61,22 +61,26 @@ fn VisibleDialog(props: VisibleDialogProps) -> Element {
     let position = props.position;
     let mode = props.mode;
     let backend = use_context::<Backend>();
-    let read = backend.read();
-    let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
 
     let mut errors = use_context::<ErrorQueueState>();
-    let Some((params_spec, node_name)) = (|| -> anyhow::Result<_> {
-        let params_spec = Rc::new(spec_query.params(id)?.clone());
-        let node_name = Rc::new(spec_query.name(id)?.clone());
-        Ok((params_spec, node_name))
-    })()
-    .map_err(|e| errors.push(e))
-    .ok() else {
+    let Some(param_spec_with_name) = use_hook(|| {
+        (|| -> anyhow::Result<_> {
+            let read = backend.read();
+            let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&*read);
+
+            let params_spec = spec_query.params(id)?.clone();
+            let node_name = spec_query.name(id)?.clone();
+
+            Ok(CopyValue::new((params_spec, node_name)))
+        })()
+        .map_err(|e| errors.push(e))
+        .ok()
+    }) else {
         return rsx! {};
     };
 
-    let initial_parameters = match mode {
-        Mode::Create => Parameters::default(),
+    let parameters = match mode {
+        Mode::Create => CopyValue::new(Parameters::default()),
         Mode::Update => {
             let Some(parameters) = backend
                 .with_peek(|s| -> anyhow::Result<Parameters> {
@@ -92,19 +96,17 @@ fn VisibleDialog(props: VisibleDialogProps) -> Element {
                 return rsx! {};
             };
 
-            parameters
+            CopyValue::new(parameters)
         }
     };
-    let parameters = use_signal(move || initial_parameters);
 
     let handlers = use_context::<Handlers>();
-    let spec = Rc::clone(&params_spec);
     let on_confirm = move |_| {
-        if !are_param_values_set(&spec, &parameters.read()) {
+        if !are_param_values_set(&param_spec_with_name.peek().0, &parameters.peek()) {
             return;
         }
 
-        let values = parameters.read();
+        let values = parameters.peek();
         handlers.on_confirm.call((id, values.cloned()));
     };
 
@@ -112,13 +114,25 @@ fn VisibleDialog(props: VisibleDialogProps) -> Element {
         handlers.on_cancel.call(());
     };
 
-    let param_fields = params_spec.iter().map(|(name, _)| {
-        rsx!(ParameterField {
-            id,
-            name: name.clone(),
-            parameters
-        })
+    let field_data_container = use_hook(|| {
+        let data: Vec<_> = param_spec_with_name
+            .peek()
+            .0
+            .iter()
+            .map(|(name, def)| {
+                CopyValue::new(FieldData {
+                    name: name.clone(),
+                    def: def.clone(),
+                })
+            })
+            .collect();
+        Rc::new(data)
     });
+
+    let param_fields = field_data_container
+        .iter()
+        .copied()
+        .map(|data| rsx!(ParameterField { data, parameters }));
 
     rsx! {
         div { class: "bt-dialog-overlay", onclick: on_cancel,
@@ -132,7 +146,7 @@ fn VisibleDialog(props: VisibleDialogProps) -> Element {
                 h3 { class: "bt-dialog-title",
                     "Configure Parameters:"
                     br {}
-                    span { class: "bt-dialog-subtitle", "{node_name}" }
+                    span { class: "bt-dialog-subtitle", "{param_spec_with_name.peek().1}" }
                 }
                 {param_fields}
 
@@ -161,54 +175,30 @@ fn are_param_values_set(spec: &ParamsSpec, values: &Parameters) -> bool {
         .all(|o_val| o_val.is_some())
 }
 
+struct FieldData {
+    name: FieldName,
+    def: FieldDefinition,
+}
+
 #[derive(Props, Clone, PartialEq)]
 struct ParameterFieldProps {
-    id: NodeId,
-    name: FieldName,
-    parameters: Signal<Parameters>,
+    data: CopyValue<FieldData>,
+    parameters: CopyValue<Parameters>,
 }
 
 #[component]
 fn ParameterField(props: ParameterFieldProps) -> Element {
     let mut parameters = props.parameters;
 
-    let backend = use_context::<Backend>();
-    let mut errors = use_context::<ErrorQueueState>();
-    let id = props.id;
-
-    let Some(field_def) = use_hook(|| {
-        let read = backend.read();
-        let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
-        let field_def = (|| -> anyhow::Result<_> {
-            let spec = spec_query.spec(id)?;
-            let params_spec = spec.params().as_ref().context("node has no params spec")?;
-            let field_def = params_spec
-                .get(&props.name)
-                .context("param field not found in params spec")?;
-            Ok(Rc::new(field_def.clone()))
-        })();
-        match field_def {
-            Ok(field_def) => Some(field_def),
-            Err(err) => {
-                errors.push(err);
-                None
-            }
-        }
-    }) else {
-        return rsx! {};
-    };
-
     let mut error_msg = use_signal::<Option<String>>(|| None);
-    let field_name = props.name.clone();
-    let field_def_for_handler = Rc::clone(&field_def);
     let make_parse_handler = move || {
-        let field_def = field_def_for_handler;
+        let data = props.data;
         move |evt: Event<FormData>| match ParameterValueParser::parse(
-            &field_def.type_spec,
+            &data.peek().def.type_spec,
             evt.value(),
         ) {
             Ok(val) => {
-                parameters.with_mut(|write| write.insert(field_name.clone(), val));
+                parameters.with_mut(|write| write.insert(data.peek().name.clone(), val));
                 error_msg.set(None);
             }
             Err(e) => {
@@ -216,17 +206,18 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
             }
         }
     };
-
-    let o_val = parameters.read().get(&props.name).cloned();
+    let name = &props.data.peek().name;
+    let def = &props.data.peek().def;
+    let o_val = parameters.peek().get(name).cloned();
     rsx! {
         div { class: "bt-form-field",
-            label { class: "bt-form-label", {props.name.as_str()} }
+            label { class: "bt-form-label", {name.as_str()} }
 
-            if let Some(desc) = &field_def.description {
+            if let Some(desc) = &def.description {
                 div { class: "bt-form-description", {desc.as_str()} }
             }
 
-            match &field_def.type_spec {
+            match &def.type_spec {
                 FieldTypeSpec::Bool(_) => {
                     rsx! {
                         input {
