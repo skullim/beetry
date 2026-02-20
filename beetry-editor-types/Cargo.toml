@@ -14,5 +14,6 @@ indexmap.workspace = true
 mitsein.workspace = true
 num-traits.workspace = true
 serde.workspace = true
+strum_macros.workspace = true
 tracing.workspace = true
 type_hash = "0.3.0"
