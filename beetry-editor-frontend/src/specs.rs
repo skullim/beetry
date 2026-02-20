@@ -54,7 +54,7 @@ fn load_node_specs() -> Result<NodeSpecMap> {
     }));
     let root_spec = NodeSpec::root();
     let iter = iter.chain(std::iter::once((root_spec.key().clone(), root_spec)));
-    Ok(NodeSpecMap::from_iter(iter))
+    Ok(iter.collect())
 }
 
 fn load_channel_specs() -> Result<ChannelSpecMap> {

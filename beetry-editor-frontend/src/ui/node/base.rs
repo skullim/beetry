@@ -76,7 +76,7 @@ pub fn NodeBase(props: NodeBaseProps) -> Element {
         g {
             onmousedown: move |evt| {
                 if evt.held_buttons().contains(MouseButton::Primary) {
-                    handlers.on_mouse_down.call((id, position, evt))
+                    handlers.on_mouse_down.call((id, position, evt));
                 }
             },
             onmouseenter: move |_| is_hovered.set(true),

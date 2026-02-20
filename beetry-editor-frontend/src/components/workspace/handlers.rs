@@ -16,7 +16,7 @@ use crate::ui::{channel as ui_channel, edge as ui_edge};
 pub(crate) use state::drag::{DragChannelState, DragNodeState};
 
 pub(crate) fn handlers(
-    state: workspace::State,
+    state: &workspace::State,
     mut element_spawn_point: Signal<Point>,
     mut backend: Backend,
     mut requests: RenderRequests,

@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-const THEME_CSS: &str = r#"
+const THEME_CSS: &str = "
     :root {
         --bt-font-family: system-ui, -apple-system, sans-serif;
         --bt-font-sm: 10px;
@@ -484,7 +484,7 @@ const THEME_CSS: &str = r#"
         white-space: pre-wrap;
         word-break: break-word;
     }
-"#;
+";
 
 #[component]
 pub(crate) fn GlobalStyle() -> Element {

@@ -96,7 +96,7 @@ where
 
         let nodes: Vec<_> = tracker.nodes().copied().collect();
         let node_store = self.export_node_store(&nodes)?;
-        let port_store = self.export_port_store(&nodes)?;
+        let port_store = self.export_port_store(&nodes);
         let param_store = self.export_parameter_store(&nodes)?;
 
         let channels: Vec<_> = self.channel_api.channels().copied().collect();
@@ -125,7 +125,7 @@ where
         let nodes_to_export: Vec<_> = self.node_api.tracker().nodes().copied().collect();
         let node_store = self.export_node_store(&nodes_to_export)?;
         let param_store = self.export_parameter_store(&nodes_to_export)?;
-        let port_store = self.export_port_store(&nodes_to_export)?;
+        let port_store = self.export_port_store(&nodes_to_export);
 
         let channels_to_export: Vec<_> = self.channel_api.channels().copied().collect();
         let channel_store = self.export_channel_store(&channels_to_export)?;
@@ -202,9 +202,9 @@ where
         Ok(ParameterStore::new(store))
     }
 
-    fn export_port_store(&mut self, nodes: &[NodeId]) -> Result<PortStateStore> {
+    fn export_port_store(&mut self, nodes: &[NodeId]) -> PortStateStore {
         let ports_api = self.node_api.port_state();
-        Ok(nodes
+        nodes
             .iter()
             .copied()
             .filter_map(|id| {
@@ -217,7 +217,7 @@ where
                 .ok()
                 .map(|collection| (id, collection))
             })
-            .collect())
+            .collect()
     }
 
     fn export_channel_store(&mut self, channels: &[ChannelId]) -> Result<ChannelStore> {
@@ -281,7 +281,7 @@ where
         };
 
         let mut valid_nodes = HashSet::new();
-        let mut to_visit = BTreeSet::from_iter(std::iter::once(root_id));
+        let mut to_visit = std::iter::once(root_id).collect::<BTreeSet<_>>();
         let port_state_api = self.node_api.port_state();
 
         while let Some(parent) = to_visit.pop_first() {
