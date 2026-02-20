@@ -22,7 +22,6 @@ pub fn Renderer(render_edges: RequestEdgeRender) -> Element {
     let mut node_pos = |node_id| {
         ui_node_query
             .data(node_id)
-            //@todo refine on API layer to get position of the port and not node
             .map(|d| d.position)
             .map_err(|e| errors.push(e))
             .ok()
