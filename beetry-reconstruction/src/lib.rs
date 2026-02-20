@@ -414,18 +414,21 @@ impl ParamsReconstructor {
         T: for<'de> Deserialize<'de>,
     {
         let deserializer = serde_value::ValueDeserializer::<serde_value::DeserializerError>::new(
-            serde_value::Value::Map(BTreeMap::from_iter(params.into_iter().map(
-                |(name, value)| {
-                    let value = match value {
-                        ParameterValue::Bool(b) => serde_value::Value::Bool(b),
-                        ParameterValue::U64(u) => serde_value::Value::U64(u),
-                        ParameterValue::I64(i) => serde_value::Value::I64(i),
-                        ParameterValue::F64(f) => serde_value::Value::F64(f),
-                        ParameterValue::String(s) => serde_value::Value::String(s),
-                    };
-                    (serde_value::Value::String(name), value)
-                },
-            ))),
+            serde_value::Value::Map(
+                params
+                    .into_iter()
+                    .map(|(name, value)| {
+                        let value = match value {
+                            ParameterValue::Bool(b) => serde_value::Value::Bool(b),
+                            ParameterValue::U64(u) => serde_value::Value::U64(u),
+                            ParameterValue::I64(i) => serde_value::Value::I64(i),
+                            ParameterValue::F64(f) => serde_value::Value::F64(f),
+                            ParameterValue::String(s) => serde_value::Value::String(s),
+                        };
+                        (serde_value::Value::String(name), value)
+                    })
+                    .collect::<BTreeMap<_, _>>(),
+            ),
         );
         Ok(T::deserialize(deserializer)?)
     }

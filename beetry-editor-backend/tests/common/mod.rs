@@ -165,12 +165,11 @@ impl TestSpecs {
     }
 
     pub fn node_spec_map(&self) -> NodeSpecMap {
-        NodeSpecMap::from_iter(
-            self.node_specs
-                .values()
-                .cloned()
-                .map(|spec| (spec.key().clone(), spec)),
-        )
+        self.node_specs
+            .values()
+            .cloned()
+            .map(|spec| (spec.key().clone(), spec))
+            .collect()
     }
 
     #[allow(dead_code)]

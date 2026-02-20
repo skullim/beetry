@@ -2,6 +2,7 @@ use crate::Backend;
 use crate::ui::error::ErrorQueueState;
 use crate::{Point, ui::handler::define_handlers};
 use beetry_editor_backend::api::{ParameterValueParser, SpecByNodeIdQueryView};
+use beetry_editor_types::output::node::ParameterValue;
 use beetry_editor_types::{
     id::NodeId,
     output::node::Parameters,
@@ -105,9 +106,11 @@ fn VisibleDialog(props: VisibleDialogProps) -> Element {
     };
 
     let param_fields = params_spec.iter().map(|(name, _)| {
-        rsx!(
-            ParameterField { id, name: name.clone(), parameters }
-        )
+        rsx!(ParameterField {
+            id,
+            name: name.clone(),
+            parameters
+        })
     });
 
     rsx! {
@@ -197,7 +200,7 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                         input {
                             class: "bt-form-checkbox",
                             r#type: "checkbox",
-                            checked: o_val.map(|v| v.into_bool()).unwrap_or_default(),
+                            checked: o_val.map(ParameterValue::into_bool).unwrap_or_default(),
                             onchange: move |evt| {
                                 match ParameterValueParser::parse(
                                     &FieldTypeSpec::Bool(meta.clone()),
@@ -221,7 +224,7 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                         input {
                             class: "bt-form-input",
                             r#type: "number",
-                            value: o_val.map(|v| v.into_i64()).unwrap_or_default(),
+                            value: o_val.map(ParameterValue::into_i64).unwrap_or_default(),
                             oninput: move |evt| {
                                 match ParameterValueParser::parse(
                                     &FieldTypeSpec::I64(meta.clone()),
@@ -245,7 +248,7 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                         input {
                             class: "bt-form-input",
                             r#type: "number",
-                            value: o_val.map(|v| v.into_u64()).unwrap_or_default(),
+                            value: o_val.map(ParameterValue::into_u64).unwrap_or_default(),
                             oninput: move |evt| {
                                 match ParameterValueParser::parse(
                                     &FieldTypeSpec::U64(meta.clone()),
@@ -270,7 +273,7 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                             class: "bt-form-input",
                             r#type: "number",
                             step: "1.00",
-                            value: o_val.map(|v| v.into_f64()).unwrap_or_default(),
+                            value: o_val.map(ParameterValue::into_f64).unwrap_or_default(),
                             oninput: move |evt| {
                                 match ParameterValueParser::parse(
                                     &FieldTypeSpec::F64(meta.clone()),
@@ -294,7 +297,7 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                         input {
                             class: "bt-form-input",
                             r#type: "text",
-                            value: o_val.map(|v| v.into_string()).unwrap_or_default(),
+                            value: o_val.map(ParameterValue::into_string).unwrap_or_default(),
                             oninput: move |evt| {
                                 match ParameterValueParser::parse(
                                     &FieldTypeSpec::String(meta.clone()),

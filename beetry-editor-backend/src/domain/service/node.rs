@@ -219,7 +219,7 @@ impl<'a, SR> SpecBySpecIdQuery<'a, SR> {
     }
 }
 
-impl<'a, SR> SpecBySpecIdQueryView for SpecBySpecIdQuery<'a, SR>
+impl<SR> SpecBySpecIdQueryView for SpecBySpecIdQuery<'_, SR>
 where
     SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
 {
@@ -268,7 +268,7 @@ pub trait SpecByNodeIdQueryView {
     fn params(&self, id: NodeId) -> Result<&ParamsSpec>;
 }
 
-impl<'a, SR, NR> SpecByNodeIdQueryView for SpecByNodeIdQuery<'a, SR, NR>
+impl<SR, NR> SpecByNodeIdQueryView for SpecByNodeIdQuery<'_, SR, NR>
 where
     SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
     NR: NodeRepositoryConcept,
@@ -345,7 +345,7 @@ where
     }
 
     fn load_parameters(&mut self, id: NodeId, value: ParameterValues) {
-        self.node_facade_view.parameters.create(id, value.params)
+        self.node_facade_view.parameters.create(id, value.params);
     }
 
     fn load_ports(&mut self, id: NodeId, state: PortConnectionCollection) -> Result<()> {
@@ -374,7 +374,7 @@ where
     edge_removal_service_api: edge::OnNodeRemovalServiceApi<'a, ER>,
 }
 
-impl<'a, NRF, CRF, ER> NodeLifecycleView<'a, NRF, CRF, ER>
+impl<NRF, CRF, ER> NodeLifecycleView<'_, NRF, CRF, ER>
 where
     NRF: NodeRepositoryFacadeConcept,
     CRF: ChannelRepositoryFacadeConcept,
@@ -563,7 +563,7 @@ where
     PVR: ParamValueRepositoryConcept,
 {
     fn create(&mut self, id: NodeId, params: Parameters) {
-        ParameterValueViewMut::create(self, id, params)
+        ParameterValueViewMut::create(self, id, params);
     }
 }
 
@@ -756,21 +756,16 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let (node_id, port_id, channel_id) = self.iter.next()?;
-        let spec_id = match self.node_repo.spec_id(node_id).copied() {
-            Some(spec_id) => spec_id,
-            None => {
-                return Some(Err(anyhow!(
-                    "no mapping between node id {node_id} and spec id exists"
-                )));
-            }
+        let Some(spec_id) = self.node_repo.spec_id(node_id).copied() else {
+            return Some(Err(anyhow!(
+                "no mapping between node id {node_id} and spec id exists"
+            )));
         };
-        let spec = match self.spec_repo.spec(spec_id) {
-            Some(spec) => spec,
-            None => return Some(Err(anyhow!("failed to obtain spec {spec_id}"))),
+        let Some(spec) = self.spec_repo.spec(spec_id) else {
+            return Some(Err(anyhow!("failed to obtain spec {spec_id}")));
         };
-        let ports_spec = match spec.ports().as_ref() {
-            Some(ports_spec) => ports_spec,
-            None => return Some(Err(anyhow!("node {node_id} has no ports spec"))),
+        let Some(ports_spec) = spec.ports().as_ref() else {
+            return Some(Err(anyhow!("node {node_id} has no ports spec")));
         };
         let port_spec = match ports_spec.spec(*port_id) {
             Ok(port_spec) => port_spec,
@@ -816,8 +811,7 @@ pub trait PortStateQueryApi {
         Ok(self
             .node_conns(node_id)
             .find(|(id, _)| **id == port_id)
-            .map(|(_, state)| state.is_external())
-            .unwrap_or(false))
+            .is_some_and(|(_, state)| state.is_external()))
     }
 }
 
@@ -931,7 +925,7 @@ where
             node: input.node,
             spec,
         };
-        self.channel_service_api.connect(ctx)?;
+        self.channel_service_api.connect(&ctx)?;
         if let Some(conn) = self.repo.state_mut(input.node, input.port) {
             conn.connect(input.channel)?;
         } else {
@@ -1000,15 +994,15 @@ impl NodeService {
     ) -> Result<NodeId> {
         let kind = spec.kind();
         self.validate_creation(kind)?;
-        let spec_id = match self.spec_cache.get(spec.key()) {
-            Some(id) => *id,
-            None => {
-                debug!("inserting new spec into spec repo");
-                let spec_id = spec_repo.create(spec.clone())?;
-                self.spec_cache.insert(spec.key.clone(), spec_id);
-                spec_id
-            }
+        let spec_id = if let Some(id) = self.spec_cache.get(spec.key()) {
+            *id
+        } else {
+            debug!("inserting new spec into spec repo");
+            let spec_id = spec_repo.create(spec.clone())?;
+            self.spec_cache.insert(spec.key.clone(), spec_id);
+            spec_id
         };
+
         let id = node_repo.create(spec_id)?;
         self.node_cache.entry(kind).or_default().insert(id);
         Ok(id)
@@ -1048,14 +1042,11 @@ impl NodeService {
         id: NodeSpecId,
         spec: NodeSpec,
     ) -> Result<()> {
-        match self.spec_cache.get(spec.key()) {
-            Some(id) => {
-                warn!("spec {id} is already loaded");
-            }
-            None => {
-                spec_repo.load(id, spec.clone())?;
-                self.spec_cache.insert(spec.key, id);
-            }
+        if let Some(id) = self.spec_cache.get(spec.key()) {
+            warn!("spec {id} is already loaded");
+        } else {
+            spec_repo.load(id, spec.clone())?;
+            self.spec_cache.insert(spec.key, id);
         }
         Ok(())
     }
