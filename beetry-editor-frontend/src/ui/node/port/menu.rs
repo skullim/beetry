@@ -6,7 +6,6 @@ use bon::bon;
 use dioxus::prelude::*;
 
 use crate::ui::handler::define_handlers;
-use crate::ui::text;
 
 define_handlers!(on_internal: (NodeId, NodePortId),
                  on_external: (NodeId, NodePortId)
@@ -34,7 +33,7 @@ pub(crate) enum State {
         position: Point,
         id: NodeId,
         port_id: NodePortId,
-        is_external: bool,
+        is_external: Signal<bool>,
     },
 }
 
@@ -50,7 +49,7 @@ pub fn Menu(state: Signal<State>) -> Element {
             position,
             id,
             port_id,
-            is_external,
+            mut is_external,
         } => {
             rsx! {
                 g {
@@ -86,22 +85,24 @@ pub fn Menu(state: Signal<State>) -> Element {
 
                         onclick: move |evt| {
                             evt.stop_propagation();
-                            if is_external {
+                            if *is_external.peek() {
                                 use_context::<Handlers>().on_internal.call((id, port_id));
+                                is_external.set(false);
                             } else {
                                 use_context::<Handlers>().on_external.call((id, port_id));
+                                is_external.set(true);
                             }
                             state
                                 .set(State::Visible {
                                     position,
                                     id,
                                     port_id,
-                                    is_external: !is_external,
+                                    is_external,
                                 });
                         },
                     }
 
-                    if is_external {
+                    if *is_external.peek() {
                         path {
                             d: "M3 8 L7 12 L13 4",
                             fill: "none",
@@ -115,7 +116,6 @@ pub fn Menu(state: Signal<State>) -> Element {
                     text {
                         x: "24",
                         y: "12",
-                        font_size: "{text::FONT_SIZE_NORMAL}",
                         fill: "#222",
                         dominant_baseline: "middle",
                         "External port"

@@ -1,12 +1,13 @@
+pub mod body;
 pub mod input;
 pub mod menu;
 pub mod output;
-pub mod receiver;
-pub mod sender;
+pub mod renderer;
 
+pub use body::Body;
 pub use menu::Menu;
-pub use receiver::Receiver;
-pub use sender::Sender;
+pub(crate) use renderer::Renderer;
+pub(crate) use renderer::NodeDimensions;
 
 use dioxus::prelude::*;
 

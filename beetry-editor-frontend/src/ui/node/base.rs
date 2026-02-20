@@ -1,7 +1,7 @@
 use crate::Point;
 use crate::ui::handler::define_handlers;
 use crate::ui::node::tooltip::Tooltip;
-use crate::ui::{shadow, text};
+use crate::ui::shadow;
 use beetry_editor_types::id::NodeId;
 use bon::Builder;
 use dioxus::html::input_data::MouseButton;
@@ -102,8 +102,6 @@ pub fn NodeBase(props: NodeBaseProps) -> Element {
                 y: "{position.y + style.height / 2.0}",
                 text_anchor: "middle",
                 dominant_baseline: "middle",
-                font_family: text::font_family(),
-                font_size: "{text::FONT_SIZE_NORMAL}",
                 font_weight: "semi-bold",
                 fill: "white",
                 "{style.label}"

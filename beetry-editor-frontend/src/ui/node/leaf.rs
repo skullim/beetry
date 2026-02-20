@@ -2,10 +2,9 @@ use crate::Backend;
 use crate::Point;
 use crate::ui::error::ErrorQueueState;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithMenu};
-use crate::ui::node::port::{self, input, layout as port_layout};
+use crate::ui::node::port::{self, input};
 use beetry_editor_backend::api::SpecByNodeIdQueryView;
 use beetry_editor_types::id::NodeId;
-use beetry_editor_types::id::NodePortId;
 use beetry_editor_types::spec::node::LeafKind;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
@@ -53,11 +52,6 @@ pub struct LeafProps {
     position: Point,
 }
 
-struct PortIdRowIdxPair {
-    port_id: NodePortId,
-    row_idx: usize,
-}
-
 #[component]
 pub(crate) fn Leaf(props: LeafProps) -> Element {
     let id = props.id;
@@ -83,65 +77,10 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
     let style = use_hook(|| Rc::new(style(kind, &name.0)));
 
     let half_width = style.width / 2.0;
-    let width = style.width;
-    let height = style.height;
-    let step_for = |count: usize| {
-        let intervals = count.saturating_sub(1);
-        if intervals == 0 {
-            0.0
-        } else {
-            ((height - port_layout::HEIGHT) / intervals as f64)
-                .max(port_layout::HEIGHT + port_layout::MIN_GAP)
-        }
+    let dimensions = port::NodeDimensions {
+        width: style.width,
+        height: style.height,
     };
-    let receiver_step = use_hook(|| {
-        step_for(
-            spec_query
-                .ports(id)
-                .iter()
-                .flat_map(|ports_spec| ports_spec.receiver_ids())
-                .count(),
-        )
-    });
-    let sender_step = use_hook(|| {
-        step_for(
-            spec_query
-                .ports(id)
-                .iter()
-                .flat_map(|ports_spec| ports_spec.sender_ids())
-                .count(),
-        )
-    });
-
-    let receiver_id_pairs: Rc<Vec<_>> = use_hook(|| {
-        Rc::new(
-            spec_query
-                .ports(id)
-                .unwrap()
-                .receiver_ids()
-                .enumerate()
-                .map(|(row_idx, port_id)| PortIdRowIdxPair {
-                    port_id: *port_id,
-                    row_idx,
-                })
-                .collect(),
-        )
-    });
-
-    let sender_id_pairs: Rc<Vec<_>> = use_hook(|| {
-        Rc::new(
-            spec_query
-                .ports(id)
-                .unwrap()
-                .sender_ids()
-                .enumerate()
-                .map(|(row_idx, port_id)| PortIdRowIdxPair {
-                    port_id: *port_id,
-                    row_idx,
-                })
-                .collect(),
-        )
-    });
 
     let position = props.position;
     rsx! {
@@ -157,32 +96,6 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
             input::Port { id, position }
         }
 
-        g {
-            for PortIdRowIdxPair { row_idx , port_id } in receiver_id_pairs.iter() {
-                port::Receiver {
-                    key: "{*port_id}",
-                    id,
-                    position: Point {
-                        x: position.x,
-                        y: position.y + *row_idx as f64 * receiver_step,
-                    },
-                    port_id: *port_id,
-                }
-            }
-        }
-
-        g {
-            for PortIdRowIdxPair { row_idx , port_id } in sender_id_pairs.iter() {
-                port::Sender {
-                    key: "{*port_id}",
-                    id,
-                    position: Point {
-                        x: position.x + width,
-                        y: position.y + *row_idx as f64 * sender_step,
-                    },
-                    port_id: *port_id,
-                }
-            }
-        }
+        port::Renderer { id, position, dimensions }
     }
 }

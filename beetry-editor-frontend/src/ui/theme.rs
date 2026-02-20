@@ -3,6 +3,8 @@ use dioxus::prelude::*;
 const THEME_CSS: &str = r#"
     :root {
         --bt-font-family: system-ui, -apple-system, sans-serif;
+        --bt-font-sm: 10px;
+        --bt-font-md: 12px;
         --bt-bg: #eef2f7;
         --bt-bg-soft: #e4ebf3;
         --bt-panel: #f1f6fc;
@@ -364,6 +366,18 @@ const THEME_CSS: &str = r#"
         width: 100%;
         min-height: 760px;
         max-height: calc(100vh - 140px);
+    }
+
+    .bt-workspace-canvas svg {
+        font-family: var(--bt-font-family);
+    }
+
+    .bt-workspace-canvas svg text {
+        font-size: var(--bt-font-md);
+    }
+
+    .bt-workspace-canvas svg .bt-text-sm {
+        font-size: var(--bt-font-sm);
     }
 
     .bt-topbar-chip {
