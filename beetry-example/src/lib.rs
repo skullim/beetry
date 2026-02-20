@@ -1,16 +1,13 @@
 mod leaves;
 
-pub use leaves::{
-    CheckBattery, CheckBatteryParams, Drive, DrivePlugin, DriveReceivers, Localize, LocalizePlugin,
-    MultiPosePorts, MultiPosePortsPlugin, MultiPosePortsReceivers, ReadExternalDataPlugin,
-    ReadExternalDataReceivers,
-};
-
-use beetry_macros::Message;
-
-use type_hash::TypeHash;
-
 use beetry_editor_types::spec::message::Message;
+use beetry_macros::Message;
+pub use leaves::{
+    CheckBattery, CheckBatteryParams, CheckBatteryPlugin, Drive, DrivePlugin, DriveReceivers,
+    Localize, LocalizePlugin, MultiPosePorts, MultiPosePortsPlugin, MultiPosePortsReceivers,
+    ReadExternalDataPlugin, ReadExternalDataReceivers,
+};
+use type_hash::TypeHash;
 
 #[derive(Debug, Clone, Copy, TypeHash, Message)]
 pub struct Pose {
