@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 use tracing::debug;
 use type_hash::TypeHash;
 
-#[derive(TypeHash)]
 pub struct CheckBattery {
     params: CheckBatteryParams,
 }
