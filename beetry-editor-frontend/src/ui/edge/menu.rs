@@ -19,14 +19,13 @@ pub enum State {
 
 #[component]
 pub fn Menu(state: ReadSignal<State>) -> Element {
+    const WIDTH: u16 = 160;
+    const HEIGHT: u16 = 36;
     debug!("rendering");
     let (position, edge_id) = match *state.read() {
         State::Idle => return rsx!(),
         State::Visible { position, edge_id } => (position, edge_id),
     };
-
-    let menu_width = 160;
-    let menu_height = 36;
 
     let menu_handlers = use_context::<Handlers>();
     rsx! {
@@ -34,8 +33,8 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
             rect {
                 x: "0",
                 y: "0",
-                width: "{menu_width}",
-                height: "{menu_height}",
+                width: "{WIDTH}",
+                height: "{HEIGHT}",
                 fill: "white",
                 stroke: "#ccc",
                 style: "cursor: pointer;",
