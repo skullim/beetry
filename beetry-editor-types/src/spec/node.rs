@@ -7,6 +7,7 @@ use derive_more::{Display, From};
 use getset::{CopyGetters, Getters, MutGetters};
 use mitsein::{btree_map1::BTreeMap1, iter1::FromIterator1};
 use serde::{Deserialize, Serialize};
+use strum_macros::AsRefStr;
 
 #[derive(Debug, Builder, Clone, Getters, MutGetters)]
 pub struct NodeSpec {
@@ -182,7 +183,7 @@ pub struct NodePortSpec {
     pub msg_spec: MessageSpec,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Display, AsRefStr, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodePortKind {
     Sender,
     Receiver,

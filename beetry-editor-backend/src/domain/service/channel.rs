@@ -290,10 +290,13 @@ impl ChannelService {
         let channel_spec = Self::spec(channel_spec_repo, channel_repo, conn_ctx.channel)?;
         if conn_ctx.spec.msg_spec.hash() != channel_spec.msg_hash() {
             bail!(
-                "attempted to connect mismatched channel {} and node {} of port name {}",
+                "failed to connect channel {} to node {} ({} port '{}'): type mismatch (channel type: '{}', port expects: '{}')",
                 conn_ctx.channel,
                 conn_ctx.node,
-                conn_ctx.spec.msg_spec.desc()
+                conn_ctx.spec.kind.as_ref(),
+                conn_ctx.spec.msg_spec.desc(),
+                channel_spec.as_str(),
+                conn_ctx.spec.msg_spec.desc(),
             );
         }
         //@todo this check should be moved somewhere else, rationale: might want to hide different channels behind a feature gate at some point
