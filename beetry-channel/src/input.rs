@@ -2,7 +2,6 @@ use std::marker::PhantomData;
 
 use beetry_core::{Receiver, TryRecvResult};
 
-//@todo move to beetry-macros
 pub struct Input<R, T> {
     receiver: R,
     _phantom: PhantomData<T>,
