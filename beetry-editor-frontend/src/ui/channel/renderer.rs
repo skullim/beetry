@@ -117,7 +117,7 @@ fn sender_edge_pos(
         start: Point {
             x: node_pos.x + 100.0 + port_width,
             // @todo port_id should be changed here
-            y: node_pos.y + 10.0 + 10.0 + 20.0 * port_id.raw_value() as f64,
+            y: node_pos.y + 10.0 + 10.0 + 20.0 * f64::from(port_id.raw_value()),
         },
         end: Point {
             x: channel_pos.x + 20.0,
@@ -137,7 +137,7 @@ fn receiver_edge_pos(
     EdgePos {
         start: Point {
             x: node_pos.x,
-            y: node_pos.y + 10.0 + 10.0 + 20.0 * port_id.raw_value() as f64, // Middle of port vertically
+            y: node_pos.y + 10.0 + 10.0 + 20.0 * f64::from(port_id.raw_value()), // Middle of port vertically
         },
         end: Point {
             x: channel_pos.x + 20.0 + port_width + 20.0, // Offset to center of receiver port dot

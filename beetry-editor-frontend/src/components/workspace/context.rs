@@ -14,7 +14,7 @@ pub(super) fn Provider(
     let backend = use_context();
     use_context_provider(|| {
         handlers::handlers(
-            state,
+            &state,
             editor_state.element_spawn_point,
             backend,
             render_requests,

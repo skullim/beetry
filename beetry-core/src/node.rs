@@ -24,11 +24,11 @@ impl Node for BoxNode {
     }
 
     fn reset(&mut self) {
-        (**self).reset()
+        (**self).reset();
     }
 
     fn abort(&mut self) {
-        (**self).abort()
+        (**self).abort();
     }
 }
 

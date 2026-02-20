@@ -19,6 +19,8 @@ pub enum State {
 
 #[component]
 pub fn Menu(state: ReadSignal<State>) -> Element {
+    const WIDTH: u16 = 160;
+    const HEIGHT: u16 = 36;
     debug!("rendering");
     let state_read = state.read();
     let (position, channel_id) = match *state_read {
@@ -29,25 +31,22 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
         } => (position, channel_id),
     };
 
-    let menu_handlers = use_context::<Handlers>();
-
-    let menu_width = 160;
-    let menu_height = 36;
+    let handlers = use_context::<Handlers>();
 
     rsx! {
         g { transform: "translate({position.x} {position.y})",
             rect {
                 x: "0",
                 y: "0",
-                width: "{menu_width}",
-                height: "{menu_height}",
+                width: "{WIDTH}",
+                height: "{HEIGHT}",
                 fill: "white",
                 stroke: "#ccc",
                 style: "cursor: pointer;",
                 onclick: move |evt| {
                     evt.stop_propagation();
-                    menu_handlers.on_delete.call(channel_id);
-                    menu_handlers.on_close.call(());
+                    handlers.on_delete.call(channel_id);
+                    handlers.on_close.call(());
                 },
                 onmouseup: move |evt| {
                     evt.stop_propagation();

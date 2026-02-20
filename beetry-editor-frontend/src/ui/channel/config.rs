@@ -43,7 +43,7 @@ pub fn Dialog(props: DialogProps) -> Element {
     if let Err(err) = specs.channels.spec(&spec_key) {
         error!("failed to open channel config dialog: {err:?}");
         return rsx! {};
-    };
+    }
 
     let mut capacity = use_signal(|| 1usize);
     let mut channel_type = use_signal(|| ChannelType::Mpsc);

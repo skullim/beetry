@@ -26,7 +26,7 @@ where
     }
 }
 
-impl<'a, UR> NodeUiQueryApi for NodeUiView<'a, UR>
+impl<UR> NodeUiQueryApi for NodeUiView<'_, UR>
 where
     UR: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
 {
@@ -135,7 +135,7 @@ pub trait ChannelUiQueryApi {
     fn iter(&self) -> impl Iterator<Item = (&ChannelId, &ChannelUiData)>;
 }
 
-impl<'a, UR> ChannelUiQueryApi for ChannelUiView<'a, UR>
+impl<UR> ChannelUiQueryApi for ChannelUiView<'_, UR>
 where
     UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
 {

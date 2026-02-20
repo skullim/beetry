@@ -239,8 +239,7 @@ impl<T> FieldMetadata<T> {
     pub fn validate(&self, val: &T) -> Result<()> {
         self.validation_fn
             .as_ref()
-            .map(|func| (func)(val))
-            .unwrap_or(Ok(()))
+            .map_or(Ok(()), |func| (func)(val))
     }
 }
 

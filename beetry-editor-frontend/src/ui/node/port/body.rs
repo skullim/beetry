@@ -105,7 +105,7 @@ pub fn Body(props: BodyProps) -> Element {
                                     offset,
                                 },
                                 port_id,
-                            ))
+                            ));
                     }
                 },
                 oncontextmenu: move |evt| {
@@ -115,7 +115,7 @@ pub fn Body(props: BodyProps) -> Element {
                         x: evt.element_coordinates().x,
                         y: evt.element_coordinates().y,
                     };
-                    handlers.on_menu.call((click_point, node_id, port_id, is_external))
+                    handlers.on_menu.call((click_point, node_id, port_id, is_external));
                 },
             }
             text {

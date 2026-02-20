@@ -45,7 +45,7 @@ pub(crate) fn Port(props: PortProps) -> Element {
                         .call(IndexedDragOffset {
                             id: props.id,
                             offset,
-                        })
+                        });
                 },
             }
 

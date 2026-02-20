@@ -107,9 +107,9 @@ pub struct NodeRepositoryFacadeView<'a, F: NodeRepositoryFacadeConcept> {
     pub ports: &'a F::PortStateRepo,
 }
 
-impl<'a, F: NodeRepositoryFacadeConcept> Copy for NodeRepositoryFacadeView<'a, F> {}
+impl<F: NodeRepositoryFacadeConcept> Copy for NodeRepositoryFacadeView<'_, F> {}
 
-impl<'a, F: NodeRepositoryFacadeConcept> Clone for NodeRepositoryFacadeView<'a, F> {
+impl<F: NodeRepositoryFacadeConcept> Clone for NodeRepositoryFacadeView<'_, F> {
     fn clone(&self) -> Self {
         *self
     }

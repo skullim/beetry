@@ -136,7 +136,8 @@ fn now_unix_secs() -> u64 {
 }
 
 fn format_timestamp(epoch_secs: u64) -> String {
-    DateTime::<Utc>::from_timestamp(epoch_secs as i64, 0)
-        .map(|dt| dt.with_timezone(&Local).format("%H:%M:%S").to_string())
-        .unwrap_or_else(|| String::from("--:--:--"))
+    DateTime::<Utc>::from_timestamp(epoch_secs.cast_signed(), 0).map_or_else(
+        || String::from("--:--:--"),
+        |dt| dt.with_timezone(&Local).format("%H:%M:%S").to_string(),
+    )
 }

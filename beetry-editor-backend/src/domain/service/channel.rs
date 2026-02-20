@@ -38,7 +38,7 @@ pub trait ChannelQueryView {
     fn spec(&self, id: ChannelId) -> Result<&ChannelSpec>;
 }
 
-impl<'a, CRF> ChannelQueryView for ChannelView<'a, CRF>
+impl<CRF> ChannelQueryView for ChannelView<'_, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
@@ -102,7 +102,7 @@ where
         ChannelService::set_capacity(self.facade_view.channel, id, capacity)
     }
 
-    pub(super) fn connect(&mut self, context: ConnectionContext) -> Result<()> {
+    pub(super) fn connect(&mut self, context: &ConnectionContext) -> Result<()> {
         ChannelService::connect(self.facade_view.spec, self.facade_view.channel, context)
     }
 
@@ -177,13 +177,12 @@ impl ChannelService {
         spec: &ChannelSpec,
         config: ChannelConfig,
     ) -> Result<ChannelId> {
-        let spec_id = match self.spec_cache.get(spec) {
-            Some(id) => *id,
-            None => {
-                let spec_id = spec_repo.create(spec.clone())?;
-                self.spec_cache.insert(spec.clone(), spec_id);
-                spec_id
-            }
+        let spec_id = if let Some(id) = self.spec_cache.get(spec) {
+            *id
+        } else {
+            let spec_id = spec_repo.create(spec.clone())?;
+            self.spec_cache.insert(spec.clone(), spec_id);
+            spec_id
         };
 
         channel_repo.create(ChannelData::new(spec_id, config))
@@ -194,15 +193,12 @@ impl ChannelService {
         spec_repo: &mut impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
         record: ChannelSpecRecord,
     ) -> Result<()> {
-        match self.spec_cache.get(&record.spec) {
-            Some(id) => {
-                warn!("spec {id} was already loaded");
-            }
-            None => {
-                let ChannelSpecRecord { id, spec } = record;
-                spec_repo.load(id, spec.clone())?;
-                self.spec_cache.insert(spec, id);
-            }
+        if let Some(id) = self.spec_cache.get(&record.spec) {
+            warn!("spec {id} was already loaded");
+        } else {
+            let ChannelSpecRecord { id, spec } = record;
+            spec_repo.load(id, spec.clone())?;
+            self.spec_cache.insert(spec, id);
         }
         Ok(())
     }
@@ -254,10 +250,10 @@ impl ChannelService {
     fn connect(
         channel_spec_repo: &impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
         channel_repo: &mut impl ChannelRepositoryConcept,
-        context: ConnectionContext,
+        context: &ConnectionContext,
     ) -> Result<()> {
         Self::ensure_exists(channel_repo, context.channel)?;
-        Self::validate_connection(channel_spec_repo, channel_repo, &context)?;
+        Self::validate_connection(channel_spec_repo, channel_repo, context)?;
         let count_mut = Self::config_mut(channel_repo, context.channel)?.count_mut();
         match context.spec.kind {
             NodePortKind::Receiver => {
