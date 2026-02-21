@@ -10,13 +10,12 @@ use std::sync::Arc;
 use beetry_reconstruction::ParamsReconstructor;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
-use type_hash::TypeHash;
 
 pub struct CheckBattery {
     params: CheckBatteryParams,
 }
 
-#[derive(Serialize, Deserialize, TypeHash)]
+#[derive(Serialize, Deserialize)]
 pub struct CheckBatteryParams {
     level: f32,
 }
