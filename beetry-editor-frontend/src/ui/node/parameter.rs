@@ -198,10 +198,11 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
             evt.value(),
         ) {
             Ok(val) => {
-                parameters.with_mut(|write| write.insert(data.peek().name.clone(), val));
+                parameters.with_mut(|p| p.insert(data.peek().name.clone(), val));
                 error_msg.set(None);
             }
             Err(e) => {
+                parameters.with_mut(|p| p.remove(&data.peek().name));
                 error_msg.set(Some(e.to_string()));
             }
         }
@@ -232,7 +233,8 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                     rsx! {
                         input {
                             class: "bt-form-input",
-                            r#type: "number",
+                            r#type: "text",
+                            inputmode: "numeric",
                             value: o_val.map(ParameterValue::into_i64).unwrap_or_default(),
                             oninput: make_parse_handler(),
                         }
@@ -242,7 +244,8 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                     rsx! {
                         input {
                             class: "bt-form-input",
-                            r#type: "number",
+                            r#type: "text",
+                            inputmode: "numeric",
                             value: o_val.map(ParameterValue::into_u64).unwrap_or_default(),
                             oninput: make_parse_handler(),
                         }
@@ -252,8 +255,8 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                     rsx! {
                         input {
                             class: "bt-form-input",
-                            r#type: "number",
-                            step: "1.00",
+                            r#type: "text",
+                            inputmode: "decimal",
                             value: o_val.map(ParameterValue::into_f64).unwrap_or_default(),
                             oninput: make_parse_handler(),
                         }
