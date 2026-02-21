@@ -4,8 +4,9 @@ use beetry_editor_types::spec::message::Message;
 use beetry_macros::Message;
 pub use leaves::{
     CheckBattery, CheckBatteryParams, CheckBatteryPlugin, Drive, DrivePlugin, DriveReceivers,
-    Localize, LocalizePlugin, MultiPosePorts, MultiPosePortsPlugin, MultiPosePortsReceivers,
-    ReadExternalDataPlugin, ReadExternalDataReceivers,
+    Localize, LocalizePlugin, MissionConfig, MissionConfigParams, MissionConfigPlugin,
+    MultiPosePorts, MultiPosePortsPlugin, MultiPosePortsReceivers, ReadExternalDataPlugin,
+    ReadExternalDataReceivers,
 };
 use type_hash::TypeHash;
 
