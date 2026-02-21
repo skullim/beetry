@@ -1,10 +1,18 @@
 use dioxus::prelude::*;
 
 const THEME_CSS: &str = "
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+    }
+
     :root {
         --bt-font-family: system-ui, -apple-system, sans-serif;
         --bt-font-sm: 10px;
         --bt-font-md: 12px;
+        --bt-font-lg: 14px;
         --bt-bg: #eef2f7;
         --bt-bg-soft: #e4ebf3;
         --bt-panel: #f1f6fc;
@@ -32,10 +40,12 @@ const THEME_CSS: &str = "
         --bt-radius-lg: 16px;
         --bt-radius-md: 10px;
         --bt-radius-sm: 8px;
+        --bt-sidebar-list-gap: 6px;
+        --bt-sidebar-item-height: 34px;
     }
 
     .bt-editor-shell {
-        min-height: 100vh;
+        height: 100vh;
         box-sizing: border-box;
         padding: 18px;
         background:
@@ -56,7 +66,9 @@ const THEME_CSS: &str = "
         display: grid;
         grid-template-columns: minmax(260px, 320px) minmax(720px, 1fr) minmax(180px, 240px);
         gap: 14px;
-        align-items: start;
+        height: 100%;
+        min-height: 0;
+        align-items: stretch;
     }
 
     .bt-panel {
@@ -65,11 +77,12 @@ const THEME_CSS: &str = "
         border-radius: var(--bt-radius-lg);
         box-shadow: var(--bt-shadow);
         padding: 14px;
+        min-height: 0;
     }
 
     .bt-panel-title {
         margin: 0 0 10px 0;
-        font-size: 13px;
+        font-size: var(--bt-font-lg);
         font-weight: 700;
         letter-spacing: 0.04em;
         color: var(--bt-text-soft);
@@ -88,7 +101,7 @@ const THEME_CSS: &str = "
         background: var(--bt-surface-soft);
         color: var(--bt-text);
         padding: 9px 10px;
-        font-size: 12px;
+        font-size: var(--bt-font-md);
         outline: none;
     }
 
@@ -108,7 +121,7 @@ const THEME_CSS: &str = "
 
     .bt-sidebar-section h3 {
         margin: 0;
-        font-size: 12px;
+        font-size: var(--bt-font-md);
         font-weight: 700;
         letter-spacing: 0.04em;
         color: var(--bt-text-soft);
@@ -116,17 +129,19 @@ const THEME_CSS: &str = "
 
     .bt-sidebar-list {
         display: grid;
-        gap: 6px;
-        max-height: 160px;
+        gap: var(--bt-sidebar-list-gap);
+        max-height: calc(
+            (4 * var(--bt-sidebar-item-height)) + (3 * var(--bt-sidebar-list-gap))
+        );
         overflow: auto;
-        padding-top: 2px;
+        padding-top: 0;
         padding-right: 2px;
     }
 
     .bt-sidebar-empty {
         margin: 0;
         padding: 6px 2px;
-        font-size: 12px;
+        font-size: var(--bt-font-md);
         color: #6b7d93;
     }
 
@@ -135,7 +150,7 @@ const THEME_CSS: &str = "
         border-radius: var(--bt-radius-sm);
         background: #f5f9ff;
         color: var(--bt-text);
-        font-size: 12px;
+        font-size: var(--bt-font-md);
         font-weight: 600;
         line-height: 1.1;
         padding: 8px 11px;
@@ -155,6 +170,8 @@ const THEME_CSS: &str = "
 
     .bt-btn--sidebar {
         width: 100%;
+        min-height: var(--bt-sidebar-item-height);
+        box-sizing: border-box;
         text-align: left;
         border-color: #d4e0ee;
         background: #edf4fc;
@@ -232,14 +249,14 @@ const THEME_CSS: &str = "
 
     .bt-dialog-title {
         margin: 0 0 14px 0;
-        font-size: 15px;
+        font-size: var(--bt-font-lg);
         font-weight: 700;
         line-height: 1.3;
         color: var(--bt-text);
     }
 
     .bt-dialog-subtitle {
-        font-size: 13px;
+        font-size: var(--bt-font-md);
         color: var(--bt-text-soft);
         font-weight: 600;
     }
@@ -258,14 +275,14 @@ const THEME_CSS: &str = "
     .bt-form-label {
         display: block;
         margin-bottom: 4px;
-        font-size: 12px;
+        font-size: var(--bt-font-md);
         font-weight: 700;
         color: var(--bt-text);
     }
 
     .bt-form-description {
         margin-bottom: 6px;
-        font-size: 12px;
+        font-size: var(--bt-font-md);
         color: var(--bt-text-soft);
     }
 
@@ -277,7 +294,7 @@ const THEME_CSS: &str = "
         background: var(--bt-surface);
         color: var(--bt-text);
         padding: 6px 8px;
-        font-size: 12px;
+        font-size: var(--bt-font-md);
         outline: none;
     }
 
@@ -295,7 +312,7 @@ const THEME_CSS: &str = "
     .bt-form-error {
         margin: 4px 0 0 0;
         color: var(--bt-danger);
-        font-size: 12px;
+        font-size: var(--bt-font-md);
         font-weight: 600;
     }
 
@@ -309,6 +326,7 @@ const THEME_CSS: &str = "
         gap: 10px;
         background: linear-gradient(180deg, #f5f9ff, #eef4fb);
         border-color: #c3d4e9;
+        min-height: 0;
     }
 
     .bt-topbar {
@@ -329,7 +347,7 @@ const THEME_CSS: &str = "
         border: 1px solid var(--bt-border-accent);
         background: rgba(255, 255, 255, 0.92);
         color: var(--bt-text-strong-soft);
-        font-size: 13px;
+        font-size: var(--bt-font-lg);
         font-weight: 700;
         display: grid;
         place-items: center;
@@ -347,7 +365,7 @@ const THEME_CSS: &str = "
         border: 1px solid var(--bt-border-accent);
         background: rgba(255, 255, 255, 0.96);
         color: var(--bt-text-strong-soft);
-        font-size: 12px;
+        font-size: var(--bt-font-md);
         font-weight: 600;
         white-space: normal;
         pointer-events: none;
@@ -364,8 +382,8 @@ const THEME_CSS: &str = "
         background: radial-gradient(700px 520px at 14% 12%, #25385d, #13203a 68%);
         box-shadow: inset 0 0 0 1px rgba(173, 198, 237, 0.08);
         width: 100%;
-        min-height: 760px;
-        max-height: calc(100vh - 140px);
+        height: calc(100vh - 140px);
+        min-height: 0;
     }
 
     .bt-workspace-canvas svg {
@@ -388,7 +406,7 @@ const THEME_CSS: &str = "
         border: 1px solid var(--bt-border-soft-hover);
         background: var(--bt-surface-muted);
         color: #1f3a5c;
-        font-size: 11px;
+        font-size: var(--bt-font-md);
         font-weight: 700;
         line-height: 1.2;
         vertical-align: baseline;
@@ -420,7 +438,7 @@ const THEME_CSS: &str = "
     }
 
     .bt-error-clear-btn {
-        font-size: var(--bt-font-sm);
+        font-size: var(--bt-font-md);
         border: 1px solid #d66;
         border-radius: 6px;
         background: var(--bt-surface);
@@ -459,12 +477,12 @@ const THEME_CSS: &str = "
     }
 
     .bt-error-timestamp {
-        font-size: var(--bt-font-sm);
+        ont-size: var(--bt-font-md);
         color: #9f5e5e;
     }
 
     .bt-error-dismiss-btn {
-        font-size: var(--bt-font-sm);
+        font-size: var(--bt-font-md);
         line-height: 1;
         color: #8b0000;
         border: 1px solid #efb8b8;
@@ -479,7 +497,7 @@ const THEME_CSS: &str = "
     }
 
     .bt-error-message {
-        font-size: var(--bt-font-sm);
+        font-size: var(--bt-font-md);
         color: #631f1f;
         white-space: pre-wrap;
         word-break: break-word;
