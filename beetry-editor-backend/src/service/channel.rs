@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::domain::repository::{
+use crate::repository::{
     ChannelRepositoryConcept, ChannelRepositoryFacadeConcept, ChannelRepositoryFacadeView,
     ChannelRepositoryFacadeViewMut, SpecRepositoryConcept,
 };

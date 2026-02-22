@@ -1,4 +1,4 @@
-use crate::domain::{
+use crate::{
     repository::{
         ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryConcept,
         NodeRepositoryFacadeConcept, NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut,

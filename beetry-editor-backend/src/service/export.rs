@@ -1,12 +1,10 @@
 use crate::{
     api::NodeTrackerQueryView,
-    domain::{
-        channel::ChannelQueryView,
-        node::{PortStateQueryApi, SpecByNodeIdQueryView},
-        repository::NodeRepositoryFacadeConcept,
-        service::{edge::EdgeQueryView, node::NodeView},
-        ui::{ChannelUiQueryApi, NodeUiQueryApi, NodeUiQueryProcessor},
-    },
+    channel::ChannelQueryView,
+    node::{PortStateQueryApi, SpecByNodeIdQueryView},
+    repository::NodeRepositoryFacadeConcept,
+    service::{edge::EdgeQueryView, node::NodeView},
+    ui::{ChannelUiQueryApi, NodeUiQueryApi, NodeUiQueryProcessor},
 };
 use anyhow::{Context, Result, anyhow, bail};
 use beetry_editor_types::{

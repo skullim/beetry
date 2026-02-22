@@ -1,4 +1,6 @@
-mod domain;
+pub mod api;
+mod repository;
+mod service;
 mod id;
 
 use anyhow::{Result, anyhow};
@@ -7,13 +9,12 @@ use beetry_editor_types::{
     spec::channel::ChannelSpec,
     spec::node::{NodeSpec, NodeSpecKey},
 };
-use domain::repository::{
-    ChannelRepositoryFacade, EdgeRepository, NodeRepositoryFacade, UiRepositoryFacade,
-};
+use crate::repository::{ChannelRepositoryFacade, EdgeRepository, NodeRepositoryFacade, UiRepositoryFacade};
 use std::collections::HashMap;
 
-pub use crate::domain::api;
-pub type EditorService = domain::service::editor::EditorService<
+pub use service::{channel, edge, editor, node, ui};
+
+pub type EditorService = service::editor::EditorService<
     NodeRepositoryFacade,
     EdgeRepository,
     ChannelRepositoryFacade,

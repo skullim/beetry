@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::domain::repository::{EdgeRepositoryConcept, NodeRepositoryFacadeConcept};
-use crate::domain::service::node::{SpecView, TrackerView};
+use crate::repository::{EdgeRepositoryConcept, NodeRepositoryFacadeConcept};
+use crate::service::node::{SpecView, TrackerView};
 use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{id::EdgeId, id::NodeId, output::edge::NodeEdge, spec::node::NodeKind};
 use tracing::warn;

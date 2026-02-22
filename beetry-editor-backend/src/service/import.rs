@@ -1,21 +1,19 @@
 use crate::{
     NodeSpecMap,
-    domain::{
-        channel::LoadChannelView,
-        edge::EdgeViewMut,
-        node,
-        repository::{
-            ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
-            EditorRepositoryViewMut, NodeRepositoryFacadeConcept, NodeRepositoryFacadeView,
-            UiRepositoryFacadeConcept,
-        },
-        service::{
-            channel::ChannelService,
-            edge::EdgeService,
-            node::{LoadNodeView, NodeService},
-        },
-        ui::{ChannelUiViewMut, NodeUiViewMut},
+    channel::LoadChannelView,
+    edge::EdgeViewMut,
+    node,
+    repository::{
+        ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
+        EditorRepositoryViewMut, NodeRepositoryFacadeConcept, NodeRepositoryFacadeView,
+        UiRepositoryFacadeConcept,
     },
+    service::{
+        channel::ChannelService,
+        edge::EdgeService,
+        node::{LoadNodeView, NodeService},
+    },
+    ui::{ChannelUiViewMut, NodeUiViewMut},
 };
 use anyhow::Result;
 use beetry_editor_types::{
