@@ -42,6 +42,9 @@ const THEME_CSS: &str = "
         --bt-radius-sm: 8px;
         --bt-sidebar-list-gap: 6px;
         --bt-sidebar-item-height: 34px;
+        --bt-menu-fill: #ffffff;
+        --bt-menu-stroke: #cccccc;
+        --bt-menu-text: #111111;
     }
 
     .bt-editor-shell {
