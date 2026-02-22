@@ -1,4 +1,4 @@
-pub mod config;
+pub mod dialog;
 pub mod menu;
 pub mod renderer;
 

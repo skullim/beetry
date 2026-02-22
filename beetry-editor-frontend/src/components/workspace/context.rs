@@ -38,7 +38,7 @@ pub(super) fn Provider(
             state.menu,
             backend,
             render_requests,
-            editor_state.channel_config,
+            editor_state.channel_dialog_state,
             errors,
         )
     });

@@ -45,16 +45,18 @@ pub(crate) fn handlers(
     };
 
     let on_new_channel = move |spec: ChannelSpec| -> Result<()> {
-        state.channel_config.set(channel::config::State::Visible {
-            position: channel::config::DEFAULT_DIALOG_POSITION,
-            mode: channel::config::Mode::Create {
-                spec_key: spec.msg_hash(),
-            },
-            config: CopyValue::new(ChannelConfig::new(ChannelConfigInput::new(
-                1,
-                ChannelKind::Tokio(TokioChannelKind::Mpsc),
-            ))),
-        });
+        state
+            .channel_dialog_state
+            .set(channel::dialog::State::Visible {
+                position: channel::dialog::DEFAULT_POSITION,
+                mode: channel::dialog::Mode::Create {
+                    spec_key: spec.msg_hash(),
+                },
+                config: CopyValue::new(ChannelConfig::new(ChannelConfigInput::new(
+                    1,
+                    ChannelKind::Tokio(TokioChannelKind::Mpsc),
+                ))),
+            });
         Ok(())
     };
 

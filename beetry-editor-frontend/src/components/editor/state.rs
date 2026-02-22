@@ -4,7 +4,7 @@ use crate::{Point, ui::channel, ui::node};
 
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) struct State {
-    pub(crate) channel_config: Signal<channel::config::State>,
+    pub(crate) channel_dialog_state: Signal<channel::dialog::State>,
     pub(crate) parameter: Signal<node::parameter::State>,
     pub(crate) element_spawn_point: Signal<Point>,
 }
@@ -12,7 +12,7 @@ pub(crate) struct State {
 impl State {
     pub(crate) fn new() -> Self {
         Self {
-            channel_config: Signal::new(channel::config::State::default()),
+            channel_dialog_state: Signal::new(channel::dialog::State::default()),
             parameter: Signal::new(node::parameter::State::default()),
             element_spawn_point: Signal::new(Point::default()),
         }

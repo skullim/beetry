@@ -7,7 +7,7 @@ use beetry_editor_types::output::channel::{
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
-pub const DEFAULT_DIALOG_POSITION: Point = Point { x: 200.0, y: 100.0 };
+pub const DEFAULT_POSITION: Point = Point { x: 200.0, y: 100.0 };
 
 define_handlers!(on_confirm: ConfirmAction,
                  on_cancel: (),

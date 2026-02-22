@@ -4,7 +4,6 @@ use dioxus::{html::input_data::MouseButton, prelude::*};
 
 use crate::components::workspace::{self, state::menu};
 use crate::ui::channel;
-use crate::ui::channel::config::DEFAULT_DIALOG_POSITION;
 use crate::ui::error::ErrorQueueState;
 use crate::ui::node::port::ConnectionOrigin;
 
@@ -111,7 +110,7 @@ pub(crate) fn menu_handlers(
     mut menu: menu::State,
     mut backend: Backend,
     mut requests: RenderRequests,
-    mut dialog_state: Signal<channel::config::State>,
+    mut dialog_state: Signal<channel::dialog::State>,
     mut errors: ErrorQueueState,
 ) -> channel::menu::Handlers {
     let on_delete = move |id: ChannelId| -> Result<()> {
@@ -126,12 +125,7 @@ pub(crate) fn menu_handlers(
         Ok(())
     };
 
-    let on_update = move |id: ChannelId| -> Result<()> {
-        let position = match *menu.channel.peek() {
-            channel::menu::State::Visible { position, .. } => position,
-            channel::menu::State::Idle => DEFAULT_DIALOG_POSITION,
-        };
-
+    let on_update = move |(id, position): (ChannelId, Point)| -> Result<()> {
         let Some(config) = backend.with(|s| {
             let query = beetry_editor_backend::api::channel::borrow(s);
             query.config(id).map_err(|e| errors.push(e)).ok().cloned()
@@ -139,9 +133,9 @@ pub(crate) fn menu_handlers(
             return Ok(());
         };
 
-        dialog_state.set(channel::config::State::Visible {
+        dialog_state.set(channel::dialog::State::Visible {
             position,
-            mode: channel::config::Mode::Update { channel_id: id },
+            mode: channel::dialog::Mode::Update { channel_id: id },
             config: CopyValue::new(config),
         });
         menu.channel.set(channel::menu::State::Idle);
