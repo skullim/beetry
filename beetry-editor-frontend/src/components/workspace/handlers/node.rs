@@ -1,3 +1,4 @@
+use beetry_editor_backend::api;
 use beetry_editor_backend::api::SpecByNodeIdQueryView;
 use beetry_editor_types::{id::NodeId, output::ui::Point};
 use dioxus::html::input_data::MouseButton;
@@ -22,7 +23,7 @@ pub(crate) fn handlers(
     let on_menu = move |(id, position): (NodeId, Point)| {
         let can_edit_params = backend
             .with(|s| -> anyhow::Result<bool> {
-                let spec_query = beetry_editor_backend::api::node::spec::by_node_id(s);
+                let spec_query = api::node::spec::by_node_id(s);
                 Ok(spec_query.spec(id)?.has_params())
             })
             .unwrap_or_else(|e| {
@@ -69,7 +70,7 @@ pub(crate) fn menu_handlers(
     mut parameter_state: Signal<node::parameter::State>,
 ) -> node::menu::Handlers {
     let on_delete = move |id: NodeId| -> Result<()> {
-        backend.with_mut(|s| beetry_editor_backend::api::node::remove(s, id))?;
+        backend.with_mut(|s| api::node::remove(s, id))?;
         requests.nodes.request();
         requests.edges.request();
         requests.channel_edges.request();

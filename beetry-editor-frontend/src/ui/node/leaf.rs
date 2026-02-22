@@ -3,6 +3,7 @@ use crate::Point;
 use crate::ui::error::ErrorQueueState;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithMenu};
 use crate::ui::node::port::{self, input};
+use beetry_editor_backend::api;
 use beetry_editor_backend::api::SpecByNodeIdQueryView;
 use beetry_editor_types::id::NodeId;
 use beetry_editor_types::spec::node::LeafKind;
@@ -58,7 +59,7 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
     debug!("rendering (node id: {id})");
     let backend = use_context::<Backend>();
     let read = backend.read();
-    let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
+    let spec_query = api::node::spec::by_node_id(&(*read));
 
     let mut errors = use_context::<ErrorQueueState>();
     let Some((name, kind)) = (|| -> anyhow::Result<_> {

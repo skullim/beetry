@@ -1,3 +1,4 @@
+use beetry_editor_backend::api;
 use beetry_editor_backend::api::ChannelQueryView;
 use beetry_editor_types::{id::ChannelId, output::ui::Point};
 use dioxus::{html::input_data::MouseButton, prelude::*};
@@ -20,9 +21,8 @@ pub(crate) fn handlers(
         if let Some(data) = channel.take_dragged()
             && matches!(data.origin, ConnectionOrigin::Receiver)
         {
-            match backend.with_mut(|s| {
-                beetry_editor_backend::api::node::ports::connect(s, data.node_id, data.port_id, id)
-            }) {
+            match backend.with_mut(|s| api::node::ports::connect(s, data.node_id, data.port_id, id))
+            {
                 Ok(()) => {
                     requests.channel_edges.request();
                     info!(
@@ -43,9 +43,8 @@ pub(crate) fn handlers(
         if let Some(data) = channel.take_dragged()
             && matches!(data.origin, ConnectionOrigin::Sender)
         {
-            match backend.with_mut(|s| {
-                beetry_editor_backend::api::node::ports::connect(s, data.node_id, data.port_id, id)
-            }) {
+            match backend.with_mut(|s| api::node::ports::connect(s, data.node_id, data.port_id, id))
+            {
                 Ok(()) => {
                     requests.channel_edges.request();
                     info!(
@@ -114,7 +113,7 @@ pub(crate) fn menu_handlers(
     mut errors: ErrorQueueState,
 ) -> channel::menu::Handlers {
     let on_delete = move |id: ChannelId| -> Result<()> {
-        backend.with_mut(|s| beetry_editor_backend::api::channel::remove(s, id))?;
+        backend.with_mut(|s| api::channel::remove(s, id))?;
         requests.channels.request();
         requests.channel_edges.request();
         Ok(())
@@ -127,7 +126,7 @@ pub(crate) fn menu_handlers(
 
     let on_update = move |(id, position): (ChannelId, Point)| -> Result<()> {
         let Some(config) = backend.with(|s| {
-            let query = beetry_editor_backend::api::channel::borrow(s);
+            let query = api::channel::borrow(s);
             query.config(id).map_err(|e| errors.push(e)).ok().cloned()
         }) else {
             return Ok(());

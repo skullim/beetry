@@ -7,6 +7,7 @@ use crate::Backend;
 use crate::components::workspace::state;
 use crate::signals::RenderRequests;
 use crate::{Point, components::workspace};
+use beetry_editor_backend::api;
 use beetry_editor_backend::api::NodeUiQueryApi;
 use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
@@ -37,15 +38,13 @@ pub(crate) fn handlers(
                 x: mouse_coords.x / zoom - offset.x,
                 y: mouse_coords.y / zoom - offset.y,
             };
-            backend.with_mut(|s| {
-                beetry_editor_backend::api::ui::node::update_position(s, id, updated_pos)
-            })?;
+            backend.with_mut(|s| api::ui::node::update_position(s, id, updated_pos))?;
             requests.nodes.request();
             requests.edges.request();
             requests.channel_edges.request();
 
             backend.with_peek(|s| {
-                let query = beetry_editor_backend::api::ui::node::borrow(s);
+                let query = api::ui::node::borrow(s);
                 dimensions_state.resize_if_needed(query.positions());
             });
         }
@@ -59,9 +58,7 @@ pub(crate) fn handlers(
                 y: mouse_coords.y / zoom - offset.y,
             };
 
-            backend.with_mut(|s| {
-                beetry_editor_backend::api::ui::channel::update_position(s, id, updated_pos)
-            })?;
+            backend.with_mut(|s| api::ui::channel::update_position(s, id, updated_pos))?;
             requests.channels.request();
             requests.channel_edges.request();
         }

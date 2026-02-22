@@ -1,3 +1,4 @@
+use beetry_editor_backend::api;
 use beetry_editor_types::{
     id::{NodeId, NodePortId},
     output::edge::NodeEdge,
@@ -23,8 +24,7 @@ pub(crate) fn input_handlers(
         if let Some(from) = edge.take_dragged()
             && from != to
         {
-            backend
-                .with_mut(|s| beetry_editor_backend::api::edge::create(s, NodeEdge { from, to }))?;
+            backend.with_mut(|s| api::edge::create(s, NodeEdge { from, to }))?;
             requests.edges.request();
             debug!("created edge from node {from}: to: {to}");
         }
@@ -100,9 +100,7 @@ pub(crate) fn menu_handlers(
 ) -> node::port::menu::Handlers {
     let on_external = move |(node_id, port_id): (NodeId, NodePortId)| -> Result<()> {
         backend
-            .with_mut(|s| {
-                beetry_editor_backend::api::node::ports::set_external(s, node_id, port_id)
-            })
+            .with_mut(|s| api::node::ports::set_external(s, node_id, port_id))
             .map_err(|e| errors.push(e))
             .ok();
         debug!("set port (node id: {node_id}, port id: {port_id}) as external");
@@ -111,9 +109,7 @@ pub(crate) fn menu_handlers(
 
     let on_internal = move |(node_id, port_id): (NodeId, NodePortId)| -> Result<()> {
         backend
-            .with_mut(|s| {
-                beetry_editor_backend::api::node::ports::set_internal(s, node_id, port_id)
-            })
+            .with_mut(|s| api::node::ports::set_internal(s, node_id, port_id))
             .map_err(|e| errors.push(e))
             .ok();
         debug!("set port (node id: {node_id}, port id: {port_id}) as internal");

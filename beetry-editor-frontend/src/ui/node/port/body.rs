@@ -1,3 +1,4 @@
+use beetry_editor_backend::api;
 use std::rc::Rc;
 
 use crate::Backend;
@@ -38,7 +39,7 @@ pub fn Body(props: BodyProps) -> Element {
     let backend = use_context::<Backend>();
     let message_desc = use_hook(|| {
         backend.with(|s| {
-            let query_api = beetry_editor_backend::api::node::spec::by_node_id(s);
+            let query_api = api::node::spec::by_node_id(s);
             let spec = query_api.ports(node_id).unwrap();
             let msg_spec = spec.spec(port_id).unwrap().msg_spec.desc().clone();
             Rc::new(msg_spec)
@@ -50,7 +51,7 @@ pub fn Body(props: BodyProps) -> Element {
 
     let is_external = use_signal(|| {
         backend
-            .with(|s| beetry_editor_backend::api::node::ports::is_external(s, node_id, port_id))
+            .with(|s| api::node::ports::is_external(s, node_id, port_id))
             .unwrap_or(false)
     });
     let mut is_hovered = use_signal(|| false);

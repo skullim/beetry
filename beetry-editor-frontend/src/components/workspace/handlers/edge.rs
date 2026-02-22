@@ -1,3 +1,4 @@
+use beetry_editor_backend::api;
 use beetry_editor_types::id::EdgeId;
 use dioxus::prelude::*;
 
@@ -19,7 +20,7 @@ pub(crate) fn menu_handlers(
     mut requests: RenderRequests,
 ) -> edge::menu::Handlers {
     let on_delete = move |id: EdgeId| -> Result<()> {
-        backend.with_mut(|s| beetry_editor_backend::api::edge::remove(s, id))?;
+        backend.with_mut(|s| api::edge::remove(s, id))?;
         requests.edges.request();
         Ok(())
     };

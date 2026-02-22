@@ -395,6 +395,8 @@ const THEME_CSS: &str = "
 
     .bt-workspace-canvas svg text {
         font-size: var(--bt-font-md);
+        user-select: none;
+        -webkit-user-select: none;
     }
 
     .bt-workspace-canvas svg .bt-text-sm {
@@ -480,7 +482,7 @@ const THEME_CSS: &str = "
     }
 
     .bt-error-timestamp {
-        ont-size: var(--bt-font-md);
+        font-size: var(--bt-font-md);
         color: #9f5e5e;
     }
 

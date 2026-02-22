@@ -1,3 +1,4 @@
+use beetry_editor_backend::api;
 use beetry_editor_types::output::ui::ChannelUiData;
 use dioxus::prelude::*;
 
@@ -17,9 +18,7 @@ pub(crate) fn handlers(
                 let ui_data = state
                     .element_spawn_point
                     .with_peek(|p| ChannelUiData { position: *p });
-                let id = backend.with_mut(|s| {
-                    beetry_editor_backend::api::channel::create(s, spec, input, ui_data)
-                })?;
+                let id = backend.with_mut(|s| api::channel::create(s, spec, input, ui_data))?;
 
                 info!(
                     "created channel {id} with message type {}",
@@ -27,9 +26,7 @@ pub(crate) fn handlers(
                 );
             }
             channel::dialog::ConfirmAction::Update { channel_id, update } => {
-                backend.with_mut(|s| {
-                    beetry_editor_backend::api::channel::update_config(s, channel_id, update)
-                })?;
+                backend.with_mut(|s| api::channel::update_config(s, channel_id, update))?;
             }
         }
         state.channel_dialog_state.take();
