@@ -70,6 +70,7 @@ pub mod node {
             id::{ChannelId, NodeId, NodePortId},
             spec::node::NodePortKind,
         };
+        pub type RowIndex = usize;
 
         pub fn is_external(
             api: &impl NodePortApi,
@@ -130,6 +131,15 @@ pub mod node {
             kind: NodePortKind,
         ) -> impl Iterator<Item = Result<PortConnectionDataView<'_>>> {
             api.connection_views_by_kind(kind)
+        }
+
+        pub fn port_order(
+            api: &impl NodePortApi,
+            kind: NodePortKind,
+            node_id: NodeId,
+            port_id: NodePortId,
+        ) -> Result<RowIndex> {
+            api.port_order(kind, node_id, port_id)
         }
     }
 }

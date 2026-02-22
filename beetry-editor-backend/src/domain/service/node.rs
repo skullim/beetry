@@ -622,6 +622,27 @@ where
             Err(err) => Some(Err(err)),
         })
     }
+
+    pub fn port_order(
+        &self,
+        kind: NodePortKind,
+        node_id: NodeId,
+        port_id: NodePortId,
+    ) -> Result<usize> {
+        let spec_query =
+            SpecByNodeIdQuery::new(SpecBySpecIdQuery::new(self.spec_repo), self.node_repo);
+        let ports = spec_query.ports(node_id)?;
+        match kind {
+            NodePortKind::Sender => ports
+                .sender_ids()
+                .position(|id| *id == port_id)
+                .ok_or_else(|| anyhow!("sender port {port_id} not found in node {node_id}")),
+            NodePortKind::Receiver => ports
+                .receiver_ids()
+                .position(|id| *id == port_id)
+                .ok_or_else(|| anyhow!("receiver port {port_id} not found in node {node_id}")),
+        }
+    }
 }
 
 pub struct PortStateViewMut<'a, NR, SR, PR, CRF>

@@ -85,6 +85,7 @@ fn Canvas(state: State, editor_state: editor::State, render_requests: RenderRequ
                 node::Menu { state: menus.node }
                 edge::Menu { state: menus.edge }
                 channel::Menu { state: menus.channel }
+                channel::edge_menu::Menu { state: menus.channel_edge }
                 node::port::Menu { state: menus.port }
             }
 

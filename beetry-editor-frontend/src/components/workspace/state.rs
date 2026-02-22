@@ -27,6 +27,7 @@ impl State {
                 node: Signal::new(ui_node::menu::State::default()),
                 edge: Signal::new(ui_edge::menu::State::default()),
                 channel: Signal::new(ui_channel::menu::State::default()),
+                channel_edge: Signal::new(ui_channel::edge_menu::State::default()),
                 port: Signal::new(ui_node::port::menu::State::default()),
             },
             svg: svg::State {

@@ -8,6 +8,9 @@ use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 use std::rc::Rc;
 
+pub const NODE_WIDTH: f64 = 100.0;
+pub const NODE_HEIGHT: f64 = 100.0;
+
 define_handlers!(on_menu: (NodeId, Point),
           on_mouse_down: (NodeId, Point, Event<MouseData>),
 );
@@ -20,9 +23,9 @@ pub(super) struct NodeStyle {
     pub hover_gradient: String,
     #[builder(into)]
     pub label: String,
-    #[builder(default = 100.0)]
+    #[builder(default = NODE_WIDTH)]
     pub width: f64,
-    #[builder(default = 100.0)]
+    #[builder(default = NODE_HEIGHT)]
     pub height: f64,
 }
 

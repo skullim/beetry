@@ -263,6 +263,9 @@ where
 pub trait NodePortApi: NodeApi {
     fn is_external(&self, node_id: NodeId, port_id: NodePortId) -> Result<bool>;
 
+    fn port_order(&self, kind: NodePortKind, node_id: NodeId, port_id: NodePortId)
+    -> Result<usize>;
+
     fn connect_port(
         &mut self,
         node_id: NodeId,
@@ -300,6 +303,17 @@ where
 {
     fn is_external(&self, node_id: NodeId, port_id: NodePortId) -> Result<bool> {
         self.node_view().port_state().is_external(node_id, port_id)
+    }
+
+    fn port_order(
+        &self,
+        kind: NodePortKind,
+        node_id: NodeId,
+        port_id: NodePortId,
+    ) -> Result<usize> {
+        self.node_view()
+            .port_state()
+            .port_order(kind, node_id, port_id)
     }
 
     fn connect_port(

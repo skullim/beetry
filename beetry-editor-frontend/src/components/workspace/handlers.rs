@@ -1,4 +1,5 @@
 pub(crate) mod channel;
+pub(crate) mod channel_edge;
 pub(crate) mod edge;
 pub(crate) mod node;
 pub(crate) mod port;
@@ -83,6 +84,7 @@ pub(crate) fn handlers(
         set_if_changed(&mut menus.node, crate::ui::node::menu::State::Idle);
         set_if_changed(&mut menus.edge, ui_edge::menu::State::Idle);
         set_if_changed(&mut menus.channel, ui_channel::menu::State::Idle);
+        set_if_changed(&mut menus.channel_edge, ui_channel::edge_menu::State::Idle);
         set_if_changed(&mut menus.port, crate::ui::node::port::menu::State::Idle);
 
         temp.edge.with_mut(|e| e.reset());
