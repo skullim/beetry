@@ -256,22 +256,19 @@ pub struct UiRepositoryFacadeViewMut<'a, F: UiRepositoryFacadeConcept> {
 }
 #[derive(Default)]
 pub struct UiRepositoryFacade {
-    node: UiRepository<NodeId, NodeUiData>,
-    channel: UiRepository<ChannelId, ChannelUiData>,
+    node: NodeUiRepository,
+    channel: ChannelUiRepository,
 }
 
 impl UiRepositoryFacade {
-    pub fn new(
-        node: UiRepository<NodeId, NodeUiData>,
-        channel: UiRepository<ChannelId, ChannelUiData>,
-    ) -> Self {
+    pub fn new(node: NodeUiRepository, channel: ChannelUiRepository) -> Self {
         Self { node, channel }
     }
 }
 
 impl UiRepositoryFacadeConcept for UiRepositoryFacade {
-    type UiNodeRepo = UiRepository<NodeId, NodeUiData>;
-    type UiChannelRepo = UiRepository<ChannelId, ChannelUiData>;
+    type UiNodeRepo = NodeUiRepository;
+    type UiChannelRepo = ChannelUiRepository;
 
     fn view(&self) -> UiRepositoryFacadeView<'_, Self>
     where
