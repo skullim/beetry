@@ -1,4 +1,4 @@
-use crate::domain::repository::UiRepositoryConcept;
+use crate::repository::UiRepositoryConcept;
 use anyhow::{Result, anyhow};
 use beetry_editor_types::{
     id::{ChannelId, NodeId},
