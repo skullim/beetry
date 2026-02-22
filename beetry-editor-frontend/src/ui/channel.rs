@@ -1,11 +1,11 @@
 pub mod dialog;
+pub mod edge;
+pub mod edge_menu;
 pub mod menu;
 pub mod renderer;
 
 use crate::Backend;
 use crate::Point;
-use crate::definitions::EdgePos;
-use crate::ui::curve::Curve;
 use crate::ui::error::ErrorQueueState;
 use crate::ui::handler::define_handlers;
 use crate::ui::shadow;
@@ -19,6 +19,18 @@ use dioxus::prelude::*;
 pub use menu::Menu;
 pub use renderer::ConnectionRenderer;
 pub use renderer::Renderer;
+
+pub mod layout {
+    use crate::Point;
+
+    pub const PORT_WIDTH: f64 = 40.0;
+    pub const HEIGHT: f64 = 25.0;
+    pub const TOOLTIP_GAP: Point = Point { x: 8.0, y: 0.0 };
+    pub const PORT_CENTER: Point = Point {
+        x: PORT_WIDTH / 2.0,
+        y: HEIGHT / 2.0,
+    };
+}
 
 define_handlers!(receiver_on_mouse_up: ChannelId,
           sender_on_mouse_up: ChannelId,
@@ -81,8 +93,8 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
                 onmouseleave: move |_| sender_hovered.set(false),
                 x: "{position.x}",
                 y: "{position.y}",
-                width: "40",
-                height: "25",
+                width: "{layout::PORT_WIDTH}",
+                height: "{layout::HEIGHT}",
                 rx: "10",
                 ry: "10",
                 fill: if *sender_hovered.read() { GradientHoverUrl::SENDER } else { GradientUrl::SENDER },
@@ -101,10 +113,10 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
                 onmouseleave: move |_| {
                     body_hovered.set(false);
                 },
-                x: "{position.x + 40.0}",
+                x: "{position.x + layout::PORT_WIDTH}",
                 y: "{position.y}",
                 width: "{body_width}",
-                height: "25",
+                height: "{layout::HEIGHT}",
                 rx: "10",
                 ry: "10",
                 fill: if *body_hovered.read() { GradientHoverUrl::BODY } else { GradientUrl::BODY },
@@ -120,10 +132,10 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
                 oncontextmenu: on_menu,
                 onmouseenter: move |_| receiver_hovered.set(true),
                 onmouseleave: move |_| receiver_hovered.set(false),
-                x: "{position.x + 40.0 + body_width}",
+                x: "{position.x + layout::PORT_WIDTH + body_width}",
                 y: "{position.y}",
-                width: "40",
-                height: "25",
+                width: "{layout::PORT_WIDTH}",
+                height: "{layout::HEIGHT}",
                 rx: "10",
                 ry: "10",
                 fill: if *receiver_hovered.read() { GradientHoverUrl::RECEIVER } else { GradientUrl::RECEIVER },
@@ -135,7 +147,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
 
             text {
                 class: "bt-text-sm",
-                x: "{position.x + 40.0 + (body_width / 2.0)}",
+                x: "{position.x + layout::PORT_WIDTH + (body_width / 2.0)}",
                 y: "{position.y + 16.0}",
                 fill: "white",
                 font_weight: "medium",
@@ -147,8 +159,11 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
             if *body_hovered.read() {
                 TooltipCard {
                     anchor: Point {
-                        x: position.x + 80.0 + body_width + 8.0,
-                        y: position.y,
+                        x: position.x
+                            + (layout::PORT_WIDTH * 2.0)
+                            + body_width
+                            + layout::TOOLTIP_GAP.x,
+                        y: position.y + layout::TOOLTIP_GAP.y,
                     },
                     lines: vec![
                         format!("ID : {id}"),
@@ -161,44 +176,20 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
             // Port indicators (small dots)
             // Sender
             circle {
-                cx: "{position.x + 20.0}",
-                cy: "{position.y + 12.0}",
+                cx: "{position.x + layout::PORT_CENTER.x}",
+                cy: "{position.y + layout::PORT_CENTER.y}",
                 r: "3",
                 fill: "rgba(255,255,255,0.8)",
                 pointer_events: "none",
             }
             // Receiver
             circle {
-                cx: "{position.x + 38.0 + body_width + 20.0}",
-                cy: "{position.y + 12.0}",
+                cx: "{position.x + layout::PORT_WIDTH + body_width + layout::PORT_CENTER.x}",
+                cy: "{position.y + layout::PORT_CENTER.y}",
                 r: "3",
                 fill: "rgba(255,255,255,0.8)",
                 pointer_events: "none",
             }
-        }
-    }
-}
-
-#[component]
-pub(crate) fn SenderConnection(edge: EdgePos) -> Element {
-    rsx! {
-        path {
-            d: "{Curve::calculate_horizontal(&edge.start, &edge.end)}",
-            stroke: "#10B981", // color matching channel sender gradient
-            stroke_width: "3",
-            fill: "none",
-        }
-    }
-}
-
-#[component]
-pub(crate) fn ReceiverConnection(edge: EdgePos) -> Element {
-    rsx! {
-        path {
-            d: "{Curve::calculate_horizontal(&edge.start, &edge.end)}",
-            stroke: "#6B7280", // color matching channel receiver gradient
-            stroke_width: "3",
-            fill: "none",
         }
     }
 }
