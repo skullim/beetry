@@ -344,3 +344,73 @@ macro_rules! __leaf_plugin_build_params {
         Some($params)
     };
 }
+
+#[macro_export]
+macro_rules! control {
+    ($plugin_name:ident : $name:expr; children($children_binding:ident),create: $create:expr,) => {
+        $crate::__control_plugin_impl! {
+            $plugin_name,
+            $name,
+            $children_binding,
+            none,
+             _parameters,
+            $create
+        }
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __control_plugin_impl {
+    (
+        $plugin_name:ident,
+        $name:expr,
+        $children_binding:ident,
+        $params:tt,
+        $params_binding:ident,
+        $create:expr $(,)?
+    ) => {
+        struct $plugin_name {
+            spec: NodeSpec,
+            factory: ControlFactory,
+        }
+
+        impl Plugin for $plugin_name {
+            type Spec = NodeSpec;
+            type Factory = ControlFactory;
+
+            fn new() -> Self
+            where
+                Self: Sized,
+            {
+                Self {
+                    spec: NodeSpec::builder()
+                        .key(NodeSpecKey::new(NodeName::new($name), NodeKind::Control))
+                        .maybe_params($crate::__leaf_plugin_build_params!($params))
+                        .build(),
+
+                    factory: ControlFactory::new(Box::new(|data: ControlReconstructionData| {
+                        let $params_binding = data.parameters;
+                        let $children_binding = data.inner.children;
+
+                        Ok(Box::new($create) as BoxNode)
+                    })),
+                }
+            }
+
+            fn spec(&self) -> &Self::Spec {
+                &self.spec
+            }
+
+            fn factory(&self) -> &Self::Factory {
+                &self.factory
+            }
+
+            fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
+                (self.spec, self.factory)
+            }
+        }
+
+        $crate::submit!(ControlPluginConstructor::new::<$plugin_name>());
+    };
+}
