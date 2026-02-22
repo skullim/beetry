@@ -1,3 +1,4 @@
+use beetry_editor_backend::api;
 use beetry_editor_backend::api::{NodeTrackerQueryView, NodeUiQueryProcessor};
 use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
@@ -23,10 +24,10 @@ pub fn Renderer(render_nodes: RequestNodeRender) -> Element {
     let backend = use_context::<Backend>();
     let read = backend.read();
 
-    let query = beetry_editor_backend::api::ui::node::borrow(&(*read));
+    let query = api::ui::node::borrow(&(*read));
     let query_processor = NodeUiQueryProcessor::new(&query);
 
-    let tracker = beetry_editor_backend::api::node::tracker::query_view(&(*read));
+    let tracker = api::node::tracker::query_view(&(*read));
     let mapped_nodes = |kind| {
         let ids = tracker.nodes_by_kind(kind);
         query_processor.map_to_positions(ids)

@@ -1,3 +1,4 @@
+use beetry_editor_backend::api;
 use beetry_editor_types::{id::NodeId, output::node::Parameters};
 use dioxus::prelude::*;
 
@@ -11,8 +12,7 @@ pub(crate) fn handlers(
     mut render_nodes: RequestNodeRender,
 ) -> node::parameter::Handlers {
     let on_confirm = move |(node_id, params): (NodeId, Parameters)| {
-        backend
-            .with_mut(|s| beetry_editor_backend::api::node::parameters::create(s, node_id, params));
+        backend.with_mut(|s| api::node::parameters::create(s, node_id, params));
         state.take();
         Ok(())
     };
@@ -22,7 +22,7 @@ pub(crate) fn handlers(
         if let node::parameter::State::Visible { id, mode, .. } = state
             && mode == node::parameter::Mode::Create
         {
-            backend.with_mut(|s| beetry_editor_backend::api::node::remove(s, id))?;
+            backend.with_mut(|s| api::node::remove(s, id))?;
             render_nodes.request();
         }
         Ok(())

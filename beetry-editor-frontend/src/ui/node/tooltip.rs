@@ -1,6 +1,7 @@
 use crate::Backend;
 use crate::Point;
 use crate::ui::tooltip::TooltipCard;
+use beetry_editor_backend::api;
 use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 
@@ -21,9 +22,7 @@ pub(crate) fn Tooltip(props: TooltipProps) -> Element {
     let mut lines = vec![format!("ID : {node_id}")];
 
     let backend = use_context::<Backend>();
-    if let Ok(params) = backend
-        .with_peek(|s| beetry_editor_backend::api::node::parameters::get(s, node_id).cloned())
-    {
+    if let Ok(params) = backend.with_peek(|s| api::node::parameters::get(s, node_id).cloned()) {
         lines.extend(
             params
                 .into_iter()

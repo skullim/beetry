@@ -1,6 +1,7 @@
 use crate::ui::error::ErrorQueueState;
 use crate::ui::node::port::{self, ConnectionOrigin, layout};
 use crate::{Backend, Point};
+use beetry_editor_backend::api;
 use beetry_editor_backend::api::SpecByNodeIdQueryView;
 use beetry_editor_types::id::{NodeId, NodePortId};
 use dioxus::prelude::*;
@@ -43,7 +44,7 @@ pub(crate) fn Renderer(props: RendererProps) -> Element {
     let id = props.id;
     let Some(ports_meta) = use_hook(|| {
         let read = backend.read();
-        let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
+        let spec_query = api::node::spec::by_node_id(&(*read));
         spec_query
             .spec(id)
             .inspect_err(|err| errors.push(err))

@@ -11,6 +11,7 @@ use crate::ui::handler::define_handlers;
 use crate::ui::shadow;
 use crate::ui::text::{self, text_width_from};
 use crate::ui::tooltip::TooltipCard;
+use beetry_editor_backend::api;
 use beetry_editor_backend::api::ChannelQueryView;
 use beetry_editor_types::id::ChannelId;
 use beetry_plugin::Named;
@@ -39,7 +40,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
 
     let backend = use_context::<Backend>();
     let backend_peek = backend.peek();
-    let channel_query_api = beetry_editor_backend::api::channel::borrow(&(*backend_peek));
+    let channel_query_api = api::channel::borrow(&(*backend_peek));
 
     let mut errors = use_context::<ErrorQueueState>();
     let Ok(spec) = channel_query_api.spec(id).map_err(|e| {

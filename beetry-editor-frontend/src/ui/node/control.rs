@@ -3,6 +3,7 @@ use crate::Point;
 use crate::ui::error::ErrorQueueState;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithMenu};
 use crate::ui::node::port::{input, output};
+use beetry_editor_backend::api;
 use beetry_editor_backend::api::SpecByNodeIdQueryView;
 use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
@@ -45,7 +46,7 @@ pub fn Control(props: ControlProps) -> Element {
     debug!("rendering (node id: {id})");
     let backend = use_context::<Backend>();
     let read = backend.read();
-    let spec_query = beetry_editor_backend::api::node::spec::by_node_id(&(*read));
+    let spec_query = api::node::spec::by_node_id(&(*read));
 
     let mut errors = use_context::<ErrorQueueState>();
     let Some(name) = spec_query.name(id).map_err(|e| errors.push(e)).ok() else {

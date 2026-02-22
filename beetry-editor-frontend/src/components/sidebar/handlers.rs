@@ -1,3 +1,4 @@
+use beetry_editor_backend::api;
 use beetry_editor_types::output::channel::{
     ChannelConfig, ChannelConfigInput, ChannelKind, TokioChannelKind,
 };
@@ -24,8 +25,7 @@ pub(crate) fn handlers(
         let ui_data = state
             .element_spawn_point
             .with_peek(|p| NodeUiData { position: *p });
-        let id = backend
-            .with_mut(|s| beetry_editor_backend::api::node::create(s, node_spec, ui_data))?;
+        let id = backend.with_mut(|s| api::node::create(s, node_spec, ui_data))?;
 
         if node_spec.has_params() {
             state.parameter.set(node::parameter::State::Visible {

@@ -1,3 +1,4 @@
+use beetry_editor_backend::api;
 use std::io::Read;
 use std::path::PathBuf;
 
@@ -54,13 +55,13 @@ pub(super) fn import_handlers(
 }
 
 fn do_export_project(backend: Backend) -> Result<()> {
-    let state = backend.with_peek(beetry_editor_backend::api::project::export)?;
+    let state = backend.with_peek(api::project::export)?;
     export_project_to_file(state)?;
     Ok(())
 }
 
 fn do_export_valid_tree(backend: Backend) -> Result<()> {
-    let tree = backend.with_peek(beetry_editor_backend::api::project::export_valid_tree)?;
+    let tree = backend.with_peek(api::project::export_valid_tree)?;
     export_valid_tree_to_file(tree)?;
     Ok(())
 }
@@ -83,7 +84,7 @@ fn export_valid_tree_to_file(valid_tree: ValidTree) -> Result<()> {
 
 fn do_import(mut backend: Backend) -> Result<()> {
     let state = import_project_from_file()?;
-    backend.with_mut(|s| beetry_editor_backend::api::project::import(s, state))?;
+    backend.with_mut(|s| api::project::import(s, state))?;
     Ok(())
 }
 

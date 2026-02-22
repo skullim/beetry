@@ -1,4 +1,5 @@
 use crate::Point;
+use beetry_editor_backend::api;
 use beetry_editor_backend::api::{ChannelUiQueryApi, NodeUiQueryApi};
 use beetry_editor_types::{id::NodePortId, spec::node::NodePortKind};
 use dioxus::prelude::*;
@@ -20,7 +21,7 @@ pub fn Renderer(render_channels: RequestChannelRender) -> Element {
 
     let backend = use_context::<Backend>();
     let read = backend.read();
-    let query_api = beetry_editor_backend::api::ui::channel::borrow(&(*read));
+    let query_api = api::ui::channel::borrow(&(*read));
 
     let channels = query_api.iter().map(|(id, data)| {
         rsx! {
@@ -43,61 +44,57 @@ pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Ele
 
     let backend = use_context::<Backend>();
     let backend_peek = backend.peek();
-    let channel_query_api = beetry_editor_backend::api::ui::channel::borrow(&(*backend_peek));
-    let node_query_api = beetry_editor_backend::api::ui::node::borrow(&(*backend_peek));
+    let channel_query_api = api::ui::channel::borrow(&(*backend_peek));
+    let node_query_api = api::ui::node::borrow(&(*backend_peek));
     let mut errors = use_context::<ErrorQueueState>();
 
-    let sender_connections = beetry_editor_backend::api::node::ports::connection_views_by_kind(
-        &(*backend_peek),
-        NodePortKind::Sender,
-    )
-    .filter_map(move |conn| {
-        conn.map_err(|e| {
-            errors.push(e);
-        })
-        .ok()
-    })
-    .filter_map(|conn| {
-        let node_pos = node_query_api.position(conn.node_id).ok()?;
-        let channel_pos = channel_query_api.position(conn.channel_id).ok()?;
-        Some(sender_edge_pos(
-            node_pos,
-            channel_pos,
-            conn.msg_desc,
-            conn.port_id,
-        ))
-    })
-    .map(|edge| {
-        rsx! {
-            SenderConnection { edge }
-        }
-    });
+    let sender_connections =
+        api::node::ports::connection_views_by_kind(&(*backend_peek), NodePortKind::Sender)
+            .filter_map(move |conn| {
+                conn.map_err(|e| {
+                    errors.push(e);
+                })
+                .ok()
+            })
+            .filter_map(|conn| {
+                let node_pos = node_query_api.position(conn.node_id).ok()?;
+                let channel_pos = channel_query_api.position(conn.channel_id).ok()?;
+                Some(sender_edge_pos(
+                    node_pos,
+                    channel_pos,
+                    conn.msg_desc,
+                    conn.port_id,
+                ))
+            })
+            .map(|edge| {
+                rsx! {
+                    SenderConnection { edge }
+                }
+            });
 
-    let receiver_connections = beetry_editor_backend::api::node::ports::connection_views_by_kind(
-        &(*backend_peek),
-        NodePortKind::Receiver,
-    )
-    .filter_map(move |conn| {
-        conn.map_err(|e| {
-            errors.push(e);
-        })
-        .ok()
-    })
-    .filter_map(|conn| {
-        let node_pos = node_query_api.position(conn.node_id).ok()?;
-        let channel_pos = channel_query_api.position(conn.channel_id).ok()?;
-        Some(receiver_edge_pos(
-            node_pos,
-            channel_pos,
-            conn.msg_desc,
-            conn.port_id,
-        ))
-    })
-    .map(|edge| {
-        rsx! {
-            ReceiverConnection { edge }
-        }
-    });
+    let receiver_connections =
+        api::node::ports::connection_views_by_kind(&(*backend_peek), NodePortKind::Receiver)
+            .filter_map(move |conn| {
+                conn.map_err(|e| {
+                    errors.push(e);
+                })
+                .ok()
+            })
+            .filter_map(|conn| {
+                let node_pos = node_query_api.position(conn.node_id).ok()?;
+                let channel_pos = channel_query_api.position(conn.channel_id).ok()?;
+                Some(receiver_edge_pos(
+                    node_pos,
+                    channel_pos,
+                    conn.msg_desc,
+                    conn.port_id,
+                ))
+            })
+            .map(|edge| {
+                rsx! {
+                    ReceiverConnection { edge }
+                }
+            });
 
     rsx! {
         {sender_connections}
