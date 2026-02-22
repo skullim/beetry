@@ -9,10 +9,10 @@ pub(crate) fn handlers(
     mut request: RequestChannelRender,
     mut backend: Backend,
     mut state: state::State,
-) -> channel::config::Handlers {
-    let on_confirm = move |action: channel::config::ConfirmAction| -> Result<()> {
+) -> channel::dialog::Handlers {
+    let on_confirm = move |action: channel::dialog::ConfirmAction| -> Result<()> {
         match action {
-            channel::config::ConfirmAction::Create { spec_key, input } => {
+            channel::dialog::ConfirmAction::Create { spec_key, input } => {
                 let spec = specs.channels.spec(&spec_key)?;
                 let ui_data = state
                     .element_spawn_point
@@ -26,21 +26,21 @@ pub(crate) fn handlers(
                     spec.msg_type_name()
                 );
             }
-            channel::config::ConfirmAction::Update { channel_id, update } => {
+            channel::dialog::ConfirmAction::Update { channel_id, update } => {
                 backend.with_mut(|s| {
                     beetry_editor_backend::api::channel::update_config(s, channel_id, update)
                 })?;
             }
         }
-        state.channel_config.take();
+        state.channel_dialog_state.take();
         request.request();
         Ok(())
     };
 
     let on_cancel = move |_| {
-        state.channel_config.take();
+        state.channel_dialog_state.take();
         Ok(())
     };
 
-    channel::config::Handlers::new(on_confirm, on_cancel)
+    channel::dialog::Handlers::new(on_confirm, on_cancel)
 }

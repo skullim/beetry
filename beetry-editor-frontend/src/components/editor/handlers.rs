@@ -1,2 +1,2 @@
-pub mod channel_config;
+pub mod channel_dialog;
 pub mod parameter;

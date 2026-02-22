@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
 define_handlers!(on_delete: ChannelId,
-                 on_update: ChannelId,
+                 on_update: (ChannelId, Point),
                  on_close: (),
 );
 
@@ -76,7 +76,7 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
                 style: "cursor: pointer;",
                 onclick: move |evt| {
                     evt.stop_propagation();
-                    handlers.on_update.call(channel_id);
+                    handlers.on_update.call((channel_id, position));
                     handlers.on_close.call(());
                 },
                 onmouseup: move |evt| {
