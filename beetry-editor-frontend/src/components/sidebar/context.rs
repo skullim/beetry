@@ -12,7 +12,13 @@ pub(super) fn Provider(editor_state: editor::State, children: Element) -> Elemen
     let render_requests = use_context::<RenderRequests>();
 
     use_context_provider(move || {
-        handlers::handlers(specs, render_requests.nodes, backend, editor_state)
+        handlers::handlers(
+            specs,
+            render_requests.nodes,
+            backend,
+            editor_state,
+            editor_state.default_channel_config,
+        )
     });
 
     children
