@@ -32,7 +32,7 @@ use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{
     id::{ChannelId, EdgeId, NodeId, NodePortId},
     output::{
-        channel::{ChannelConfig, ChannelData},
+        channel::{ChannelConfigInput, ChannelConfigUpdate, ChannelData},
         edge::NodeEdge,
         node::Parameters,
         ui::{ChannelUiData, NodeUiData, Point},
@@ -432,8 +432,9 @@ where
 }
 
 pub trait ChannelApi {
-    fn create(&mut self, spec: &ChannelSpec, config: ChannelConfig) -> Result<ChannelId>;
+    fn create(&mut self, spec: &ChannelSpec, input: ChannelConfigInput) -> Result<ChannelId>;
     fn remove(&mut self, id: ChannelId) -> Option<ChannelData>;
+    fn update_config(&mut self, id: ChannelId, update: ChannelConfigUpdate) -> Result<()>;
 
     fn borrow(&self) -> impl ChannelQueryView;
 }
@@ -445,12 +446,16 @@ where
     CRF: ChannelRepositoryFacadeConcept,
     URF: UiRepositoryFacadeConcept,
 {
-    fn create(&mut self, spec: &ChannelSpec, config: ChannelConfig) -> Result<ChannelId> {
-        self.channel_view_mut().create(spec, config)
+    fn create(&mut self, spec: &ChannelSpec, input: ChannelConfigInput) -> Result<ChannelId> {
+        self.channel_view_mut().create(spec, input)
     }
 
     fn remove(&mut self, id: ChannelId) -> Option<ChannelData> {
         self.channel_view_mut().remove(id)
+    }
+
+    fn update_config(&mut self, id: ChannelId, update: ChannelConfigUpdate) -> Result<()> {
+        self.channel_view_mut().update_config(id, update)
     }
 
     fn borrow(&self) -> impl ChannelQueryView {
@@ -497,10 +502,10 @@ pub trait ChannelLifecycleApi: ChannelApi + ChannelUiApi + NodePortApi {
     fn create_with_ui(
         &mut self,
         spec: &ChannelSpec,
-        config: ChannelConfig,
+        input: ChannelConfigInput,
         ui_data: ChannelUiData,
     ) -> Result<ChannelId> {
-        let id = ChannelApi::create(self, spec, config)?;
+        let id = ChannelApi::create(self, spec, input)?;
         if ChannelUiApi::create(self, id, ui_data).is_err() {
             ChannelApi::remove(self, id);
         }

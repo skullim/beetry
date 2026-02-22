@@ -4,7 +4,8 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
 define_handlers!(on_delete: ChannelId,
-          on_close: (),
+                 on_update: ChannelId,
+                 on_close: (),
 );
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -20,7 +21,11 @@ pub enum State {
 #[component]
 pub fn Menu(state: ReadSignal<State>) -> Element {
     const WIDTH: u16 = 160;
-    const HEIGHT: u16 = 36;
+    const ROW_HEIGHT: u16 = 36;
+    const SECOND_ROW_Y: u16 = ROW_HEIGHT;
+    const TEXT_X: u16 = 12;
+    const FIRST_TEXT_Y: u16 = 24;
+    const SECOND_TEXT_Y: u16 = FIRST_TEXT_Y + SECOND_ROW_Y;
     debug!("rendering");
     let state_read = state.read();
     let (position, channel_id) = match *state_read {
@@ -39,9 +44,9 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
                 x: "0",
                 y: "0",
                 width: "{WIDTH}",
-                height: "{HEIGHT}",
-                fill: "white",
-                stroke: "#ccc",
+                height: "{ROW_HEIGHT}",
+                fill: "var(--bt-menu-fill)",
+                stroke: "var(--bt-menu-stroke)",
                 style: "cursor: pointer;",
                 onclick: move |evt| {
                     evt.stop_propagation();
@@ -54,11 +59,37 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
             }
 
             text {
-                x: "12",
-                y: "24",
-                fill: "#111",
+                x: "{TEXT_X}",
+                y: "{FIRST_TEXT_Y}",
+                fill: "var(--bt-menu-text)",
                 style: "pointer-events: none;",
                 "Delete Channel"
+            }
+
+            rect {
+                x: "0",
+                y: "{SECOND_ROW_Y}",
+                width: "{WIDTH}",
+                height: "{ROW_HEIGHT}",
+                fill: "var(--bt-menu-fill)",
+                stroke: "var(--bt-menu-stroke)",
+                style: "cursor: pointer;",
+                onclick: move |evt| {
+                    evt.stop_propagation();
+                    handlers.on_update.call(channel_id);
+                    handlers.on_close.call(());
+                },
+                onmouseup: move |evt| {
+                    evt.stop_propagation();
+                },
+            }
+
+            text {
+                x: "{TEXT_X}",
+                y: "{SECOND_TEXT_Y}",
+                fill: "var(--bt-menu-text)",
+                style: "pointer-events: none;",
+                "Update Configuration"
             }
         }
     }

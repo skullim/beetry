@@ -1,12 +1,29 @@
-use crate::{Point, SharedSpecs, ui::handler::define_handlers};
+use crate::{Point, ui::handler::define_handlers};
 use beetry_core::MessageHash;
-use beetry_editor_types::output::channel::{ChannelConfig, ChannelKind, TokioChannelKind};
+use beetry_editor_types::id::ChannelId;
+use beetry_editor_types::output::channel::{
+    ChannelConfig, ChannelConfigInput, ChannelConfigUpdate, ChannelKind, TokioChannelKind,
+};
 use dioxus::prelude::*;
-use dioxus_logger::tracing::{debug, error};
+use dioxus_logger::tracing::debug;
 
-define_handlers!(on_confirm: (MessageHash, ChannelConfig),
-          on_cancel: (),
+pub const DEFAULT_DIALOG_POSITION: Point = Point { x: 200.0, y: 100.0 };
+
+define_handlers!(on_confirm: ConfirmAction,
+                 on_cancel: (),
 );
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ConfirmAction {
+    Create {
+        spec_key: MessageHash,
+        input: ChannelConfigInput,
+    },
+    Update {
+        channel_id: ChannelId,
+        update: ChannelConfigUpdate,
+    },
+}
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum State {
@@ -14,52 +31,51 @@ pub enum State {
     Idle,
     Visible {
         position: Point,
-        spec_key: MessageHash,
+        mode: Mode,
+        // Current config snapshot at Dialog render time
+        // Dialog is free to mutate the config, but to write back
+        // to backend it has to convert to concrete DTO expected by backend API.
+        // This allows to precisely control what config fields are updatable.
+        config: CopyValue<ChannelConfig>,
     },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum ChannelType {
-    Mpsc,
-    Broadcast,
-}
-
-#[derive(Debug, Props, Clone, PartialEq, Eq)]
-pub struct DialogProps {
-    state: Signal<State>,
+pub enum Mode {
+    Create { spec_key: MessageHash },
+    Update { channel_id: ChannelId },
 }
 
 #[component]
-pub fn Dialog(props: DialogProps) -> Element {
+pub fn Dialog(state: Signal<State>) -> Element {
     debug!("rendering");
-    let state_read = props.state.read();
+    let state_read = state.read();
 
-    let (position, spec_key) = match *state_read {
+    let (position, mode, mut config) = match *state_read {
         State::Idle => return rsx! {},
-        State::Visible { position, spec_key } => (position, spec_key),
+        State::Visible {
+            position,
+            mode,
+            config,
+        } => (position, mode, config),
     };
-
-    let specs = use_context::<SharedSpecs>();
-    if let Err(err) = specs.channels.spec(&spec_key) {
-        error!("failed to open channel config dialog: {err:?}");
-        return rsx! {};
-    }
-
-    let mut capacity = use_signal(|| 1usize);
-    let mut channel_type = use_signal(|| ChannelType::Mpsc);
 
     let handlers = use_context::<Handlers>();
 
     let on_confirm = move |_| {
-        let capacity = *capacity.read();
-        let ty = *channel_type.read();
-        let channel_kind = match ty {
-            ChannelType::Mpsc => ChannelKind::Tokio(TokioChannelKind::Mpsc),
-            ChannelType::Broadcast => ChannelKind::Tokio(TokioChannelKind::Broadcast),
-        };
-
-        let channel_config = ChannelConfig::new(capacity, channel_kind);
-        handlers.on_confirm.call((spec_key, channel_config));
+        let config = config.peek().cloned();
+        match mode {
+            Mode::Create { spec_key } => {
+                handlers.on_confirm.call(ConfirmAction::Create {
+                    spec_key,
+                    input: config.into(),
+                });
+            }
+            Mode::Update { channel_id } => handlers.on_confirm.call(ConfirmAction::Update {
+                channel_id,
+                update: config.into(),
+            }),
+        }
     };
 
     let on_cancel = move |_| {
@@ -82,36 +98,38 @@ pub fn Dialog(props: DialogProps) -> Element {
                     input {
                         class: "bt-form-input",
                         r#type: "number",
+                        value: "{config.peek().capacity()}",
                         min: "0",
-                        value: "{capacity}",
                         oninput: move |evt| {
                             if let Ok(val) = evt.value().parse::<usize>() {
-                                capacity.set(val);
+                                config.with_mut(|c| {c.set_capacity(val);})
                             }
                         },
                     }
                 }
 
-                div { class: "bt-form-field",
-                    label { class: "bt-form-label", "Channel Type:" }
-                    select {
-                        class: "bt-form-input",
-                        onchange: move |evt| {
-                            match evt.value().as_str() {
-                                "Mpsc" => channel_type.set(ChannelType::Mpsc),
-                                "Broadcast" => channel_type.set(ChannelType::Broadcast),
-                                _ => {}
+                if matches!(mode, Mode::Create { .. }) {
+                    div { class: "bt-form-field",
+                        label { class: "bt-form-label", "Channel Type:" }
+                        select {
+                            class: "bt-form-input",
+                            onchange: move |evt| {
+                                match evt.value().as_str() {
+                                    "Mpsc" =>  config.with_mut(|c| {c.set_kind(ChannelKind::Tokio(TokioChannelKind::Mpsc));}),
+                                    "Broadcast" => config.with_mut(|c| {c.set_kind(ChannelKind::Tokio(TokioChannelKind::Broadcast));}),
+                                    _ => {}
+                                }
+                            },
+                            option {
+                                value: "Mpsc",
+                                selected: matches!(config.peek().kind(), ChannelKind::Tokio(TokioChannelKind::Mpsc)),
+                                "Multi-Producer, Single-Consumer (MPSC)"
                             }
-                        },
-                        option {
-                            value: "Mpsc",
-                            selected: matches!(*channel_type.read(), ChannelType::Mpsc),
-                            "Multi-Producer, Single-Consumer (MPSC)"
-                        }
-                        option {
-                            value: "Broadcast",
-                            selected: matches!(*channel_type.read(), ChannelType::Broadcast),
-                            "Broadcast"
+                            option {
+                                value: "Broadcast",
+                                selected: matches!(config.peek().kind(), ChannelKind::Tokio(TokioChannelKind::Broadcast)),
+                                "Broadcast"
+                            }
                         }
                     }
                 }

@@ -1,4 +1,6 @@
-use beetry_editor_types::output::ui::Point;
+use beetry_editor_types::output::channel::{
+    ChannelConfig, ChannelConfigInput, ChannelKind, TokioChannelKind,
+};
 use beetry_editor_types::spec::channel::ChannelSpec;
 use beetry_editor_types::{output::ui::NodeUiData, spec::node::NodeSpecKey};
 use dioxus::prelude::*;
@@ -6,11 +8,9 @@ use dioxus::prelude::*;
 use super::Handlers;
 use crate::components::editor;
 use crate::signals::RequestNodeRender;
-use crate::ui::node::parameter::DEFAULT_DIALOG_POSITION;
-use crate::{
-    Backend, SharedSpecs,
-    ui::{channel, node},
-};
+use crate::ui::channel;
+use crate::ui::node::parameter;
+use crate::{Backend, SharedSpecs, ui::node};
 
 pub(crate) fn handlers(
     specs: SharedSpecs,
@@ -29,7 +29,7 @@ pub(crate) fn handlers(
 
         if node_spec.has_params() {
             state.parameter.set(node::parameter::State::Visible {
-                position: DEFAULT_DIALOG_POSITION,
+                position: parameter::DEFAULT_DIALOG_POSITION,
                 id,
                 mode: node::parameter::Mode::Create,
             });
@@ -46,8 +46,14 @@ pub(crate) fn handlers(
 
     let on_new_channel = move |spec: ChannelSpec| -> Result<()> {
         state.channel_config.set(channel::config::State::Visible {
-            position: Point { x: 200.0, y: 100.0 },
-            spec_key: spec.msg_hash(),
+            position: channel::config::DEFAULT_DIALOG_POSITION,
+            mode: channel::config::Mode::Create {
+                spec_key: spec.msg_hash(),
+            },
+            config: CopyValue::new(ChannelConfig::new(ChannelConfigInput::new(
+                1,
+                ChannelKind::Tokio(TokioChannelKind::Mpsc),
+            ))),
         });
         Ok(())
     };

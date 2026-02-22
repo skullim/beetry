@@ -22,23 +22,52 @@ pub struct ChannelConfig {
     capacity: usize, // there might be channels with 0 capacity
     #[getset(get_copy = "pub", get_mut = "pub")]
     count: SenderReceiverCount,
-    #[getset(get_copy = "pub")]
+    #[getset(get_copy = "pub", set = "pub")]
     kind: ChannelKind,
 }
 
 impl ChannelConfig {
-    pub fn new(capacity: usize, kind: ChannelKind) -> Self {
+    pub fn new(input: ChannelConfigInput) -> Self {
         Self {
-            capacity,
-            kind,
+            capacity: input.capacity,
+            kind: input.kind,
             count: <_>::default(),
         }
     }
+}
 
-    // backend has to guarantee that invalid connections are handled when changing the channel kind
-    pub fn set_kind(&mut self, kind: ChannelKind) {
-        self.kind = kind;
+impl From<ChannelConfig> for ChannelConfigInput {
+    fn from(value: ChannelConfig) -> Self {
+        Self {
+            capacity: value.capacity(),
+            kind: value.kind(),
+        }
     }
+}
+
+impl From<ChannelConfig> for ChannelConfigUpdate {
+    fn from(value: ChannelConfig) -> Self {
+        Self {
+            capacity: value.capacity(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct ChannelConfigInput {
+    pub capacity: usize,
+    pub kind: ChannelKind,
+}
+
+impl ChannelConfigInput {
+    pub fn new(capacity: usize, kind: ChannelKind) -> Self {
+        Self { capacity, kind }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct ChannelConfigUpdate {
+    pub capacity: usize,
 }
 
 #[derive(Debug, Display, From, Clone, Copy, PartialEq, Serialize, Deserialize)]
