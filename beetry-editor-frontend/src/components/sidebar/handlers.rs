@@ -1,7 +1,5 @@
 use beetry_editor_backend::api;
-use beetry_editor_types::output::channel::{
-    ChannelConfig, ChannelConfigInput, ChannelKind, TokioChannelKind,
-};
+use beetry_editor_types::output::channel::ChannelConfig;
 use beetry_editor_types::spec::channel::ChannelSpec;
 use beetry_editor_types::{output::ui::NodeUiData, spec::node::NodeSpecKey};
 use dioxus::prelude::*;
@@ -18,6 +16,7 @@ pub(crate) fn handlers(
     mut request: RequestNodeRender,
     mut backend: Backend,
     mut state: editor::State,
+    default_channel_config: CopyValue<ChannelConfig>,
 ) -> Handlers {
     let on_new_node = move |node_spec_key: NodeSpecKey| -> Result<()> {
         let node_spec = specs.nodes.spec(&node_spec_key)?;
@@ -52,10 +51,7 @@ pub(crate) fn handlers(
                 mode: channel::dialog::Mode::Create {
                     spec_key: spec.msg_hash(),
                 },
-                config: CopyValue::new(ChannelConfig::new(ChannelConfigInput::new(
-                    1,
-                    ChannelKind::Tokio(TokioChannelKind::Mpsc),
-                ))),
+                config: default_channel_config,
             });
         Ok(())
     };
