@@ -80,7 +80,7 @@ pub(crate) fn menu_handlers(
         menu.node.set(node::menu::State::Idle);
         Ok(())
     };
-    let on_edit_params = move |id: NodeId| {
+    let on_update = move |id: NodeId| {
         parameter_state.set(node::parameter::State::Visible {
             position: DEFAULT_DIALOG_POSITION,
             id,
@@ -89,5 +89,5 @@ pub(crate) fn menu_handlers(
         Ok(())
     };
 
-    node::menu::Handlers::new(on_delete, on_edit_params, on_close)
+    node::menu::Handlers::new(on_delete, on_update, on_close)
 }

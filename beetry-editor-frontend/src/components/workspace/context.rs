@@ -33,7 +33,15 @@ pub(super) fn Provider(
 
     use_context_provider(|| handlers::edge::handlers(state.menu));
     use_context_provider(|| handlers::edge::menu_handlers(state.menu, backend, render_requests));
-    use_context_provider(|| handlers::channel::menu_handlers(state.menu, backend, render_requests));
+    use_context_provider(|| {
+        handlers::channel::menu_handlers(
+            state.menu,
+            backend,
+            render_requests,
+            editor_state.channel_config,
+            errors,
+        )
+    });
 
     use_context_provider(|| handlers::port::body_handlers(state.menu, state.temp));
     use_context_provider(|| handlers::port::menu_handlers(backend, errors));

@@ -7,7 +7,10 @@ use crate::domain::repository::{
 use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{
     id::{ChannelId, ChannelSpecId, NodeId},
-    output::channel::{ChannelConfig, ChannelData, ChannelKind, TokioChannelKind},
+    output::channel::{
+        ChannelConfig, ChannelConfigInput, ChannelConfigUpdate, ChannelData, ChannelKind,
+        TokioChannelKind,
+    },
     persistence::{ChannelRecord, ChannelSpecRecord},
     spec::channel::ChannelSpec,
     spec::node::{NodePortKind, NodePortSpec},
@@ -85,21 +88,17 @@ where
         }
     }
 
-    pub fn create(&mut self, spec: &ChannelSpec, config: ChannelConfig) -> Result<ChannelId> {
-        self.channel.create(
-            self.facade_view.spec,
-            self.facade_view.channel,
-            spec,
-            config,
-        )
+    pub fn create(&mut self, spec: &ChannelSpec, input: ChannelConfigInput) -> Result<ChannelId> {
+        self.channel
+            .create(self.facade_view.spec, self.facade_view.channel, spec, input)
     }
 
     pub fn remove(&mut self, id: ChannelId) -> Option<ChannelData> {
         ChannelService::remove(self.facade_view.channel, id)
     }
 
-    pub fn set_capacity(&mut self, id: ChannelId, capacity: usize) -> Result<()> {
-        ChannelService::set_capacity(self.facade_view.channel, id, capacity)
+    pub fn update_config(&mut self, id: ChannelId, update: ChannelConfigUpdate) -> Result<()> {
+        ChannelService::update_config(self.facade_view.channel, id, update)
     }
 
     pub(super) fn connect(&mut self, context: &ConnectionContext) -> Result<()> {
@@ -175,7 +174,7 @@ impl ChannelService {
         spec_repo: &mut impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
         channel_repo: &mut impl ChannelRepositoryConcept,
         spec: &ChannelSpec,
-        config: ChannelConfig,
+        input: ChannelConfigInput,
     ) -> Result<ChannelId> {
         let spec_id = if let Some(id) = self.spec_cache.get(spec) {
             *id
@@ -185,7 +184,7 @@ impl ChannelService {
             spec_id
         };
 
-        channel_repo.create(ChannelData::new(spec_id, config))
+        channel_repo.create(ChannelData::new(spec_id, ChannelConfig::new(input)))
     }
 
     fn load_spec(
@@ -214,12 +213,12 @@ impl ChannelService {
         Ok(&Self::data(repo, id)?.config)
     }
 
-    fn set_capacity(
+    fn update_config(
         repo: &mut impl ChannelRepositoryConcept,
         id: ChannelId,
-        capacity: usize,
+        update: ChannelConfigUpdate,
     ) -> Result<()> {
-        Self::config_mut(repo, id)?.set_capacity(capacity);
+        Self::config_mut(repo, id)?.set_capacity(update.capacity);
         Ok(())
     }
 

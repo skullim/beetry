@@ -160,21 +160,32 @@ pub mod channel {
     use anyhow::Result;
     use beetry_editor_types::{
         id::ChannelId,
-        output::{channel::ChannelConfig, ui::ChannelUiData},
+        output::{
+            channel::{ChannelConfigInput, ChannelConfigUpdate},
+            ui::ChannelUiData,
+        },
         spec::channel::ChannelSpec,
     };
 
     pub fn create(
         api: &mut impl ChannelLifecycleApi,
         spec: &ChannelSpec,
-        config: ChannelConfig,
+        input: ChannelConfigInput,
         ui_data: ChannelUiData,
     ) -> Result<ChannelId> {
-        api.create_with_ui(spec, config, ui_data)
+        api.create_with_ui(spec, input, ui_data)
     }
 
     pub fn remove(api: &mut impl ChannelLifecycleApi, id: ChannelId) -> Result<()> {
         api.remove_with_ui(id)
+    }
+
+    pub fn update_config(
+        api: &mut impl ChannelApi,
+        id: ChannelId,
+        update: ChannelConfigUpdate,
+    ) -> Result<()> {
+        ChannelApi::update_config(api, id, update)
     }
 
     pub fn borrow(api: &impl ChannelApi) -> impl ChannelQueryView {

@@ -1,7 +1,7 @@
 use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
 use beetry_editor_backend::{EditorService, NodeSpecMap};
-use beetry_editor_types::output::channel::{ChannelConfig, ChannelKind, TokioChannelKind};
+use beetry_editor_types::output::channel::{ChannelConfigInput, ChannelKind, TokioChannelKind};
 use beetry_editor_types::output::ui::Point;
 use beetry_editor_types::spec::channel::ChannelSpec;
 use beetry_editor_types::spec::message::{MessageHashProvider, MessageSpec, MessageTypeProvider};
@@ -173,13 +173,13 @@ impl TestSpecs {
     }
 
     #[allow(dead_code)]
-    pub fn default_mpsc_config(&self) -> ChannelConfig {
-        ChannelConfig::new(8, ChannelKind::Tokio(TokioChannelKind::Mpsc))
+    pub fn default_mpsc_config(&self) -> ChannelConfigInput {
+        ChannelConfigInput::new(8, ChannelKind::Tokio(TokioChannelKind::Mpsc))
     }
 
     #[allow(dead_code)]
-    pub fn default_broadcast_config(&self) -> ChannelConfig {
-        ChannelConfig::new(8, ChannelKind::Tokio(TokioChannelKind::Broadcast))
+    pub fn default_broadcast_config(&self) -> ChannelConfigInput {
+        ChannelConfigInput::new(8, ChannelKind::Tokio(TokioChannelKind::Broadcast))
     }
 }
 

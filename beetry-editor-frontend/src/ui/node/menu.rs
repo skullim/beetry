@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 
 define_handlers!(on_delete: NodeId,
-          on_edit_params: NodeId,
+          on_update: NodeId,
           on_close: (),
 );
 
@@ -50,8 +50,8 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
                 y: "0",
                 width: "{WIDTH}",
                 height: "{menu_height}",
-                fill: "white",
-                stroke: "#ccc",
+                fill: "var(--bt-menu-fill)",
+                stroke: "var(--bt-menu-stroke)",
                 style: "cursor: pointer;",
                 onclick: move |evt| {
                     evt.stop_propagation();
@@ -66,7 +66,7 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
             text {
                 x: "12",
                 y: "24",
-                fill: "#111",
+                fill: "var(--bt-menu-text)",
                 style: "pointer-events: none;",
                 "Delete Node"
             }
@@ -77,12 +77,12 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
                     y: "{ROW_HEIGHT}",
                     width: "{WIDTH}",
                     height: "{ROW_HEIGHT}",
-                    fill: "white",
-                    stroke: "#ccc",
+                    fill: "var(--bt-menu-fill)",
+                    stroke: "var(--bt-menu-stroke)",
                     style: "cursor: pointer;",
                     onclick: move |evt| {
                         evt.stop_propagation();
-                        menu_handlers.on_edit_params.call(id);
+                        menu_handlers.on_update.call(id);
                         menu_handlers.on_close.call(());
                     },
                     onmouseup: move |evt| {
@@ -93,9 +93,9 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
                 text {
                     x: "12",
                     y: "60",
-                    fill: "#111",
+                    fill: "var(--bt-menu-text)",
                     style: "pointer-events: none;",
-                    "Edit Parameters"
+                    "Update Parameters"
                 }
             }
         }
