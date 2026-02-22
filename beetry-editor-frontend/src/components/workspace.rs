@@ -89,7 +89,7 @@ fn Canvas(state: State, editor_state: editor::State, render_requests: RenderRequ
             }
 
             node::parameter::Dialog { state: editor_state.parameter }
-            channel::config::Dialog { state: editor_state.channel_config }
+            channel::dialog::Dialog { state: editor_state.channel_dialog_state }
         }
     }
 }
