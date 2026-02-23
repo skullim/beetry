@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use anyhow::{Result, anyhow};
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
-use beetry_core::{MessageHash, NonEmptyNodes};
+use beetry_core::{BoxNode, MessageHash, NonEmptyNodes};
 use beetry_editor_types::{
     id::{ChannelId, NodeId, NodePortId},
     output::node::Parameters,
@@ -52,6 +52,7 @@ impl NodeSnapshot {
 #[derive(Debug, Clone, Serialize, Deserialize, From)]
 pub enum NodeSnapshotData {
     Control(ControlSnapshot),
+    Decorator(DecoratorSnapshot),
     Leaf(LeafSnapshot),
 }
 
@@ -70,6 +71,26 @@ impl ControlSnapshot {
 
     pub fn into_children_iter(self) -> impl IntoIterator<Item = NodeSnapshot> {
         self.children.into_iter()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DecoratorSnapshot {
+    // box to prevent infinite type recursion
+    child: Box<NodeSnapshot>,
+}
+
+impl DecoratorSnapshot {
+    pub fn new(child: NodeSnapshot) -> Self {
+        Self {
+            child: Box::new(child),
+        }
+    }
+}
+
+impl From<DecoratorSnapshot> for NodeSnapshot {
+    fn from(value: DecoratorSnapshot) -> Self {
+        *value.child
     }
 }
 
@@ -111,6 +132,7 @@ pub type LeafReconstructionData = NodeReconstructionData<LeafMetadata>;
 pub type ActionReconstructionData = LeafReconstructionData;
 pub type ConditionReconstructionData = LeafReconstructionData;
 pub type ControlReconstructionData = NodeReconstructionData<ControlMetadata>;
+pub type DecoratorReconstructionData = NodeReconstructionData<DecoratorMetadata>;
 
 #[derive(Debug, Builder)]
 pub struct NodeReconstructionData<D> {
@@ -140,6 +162,16 @@ pub struct ControlMetadata {
 impl ControlMetadata {
     pub fn new(children: NonEmptyNodes) -> Self {
         Self { children }
+    }
+}
+
+pub struct DecoratorMetadata {
+    pub child: BoxNode,
+}
+
+impl DecoratorMetadata {
+    pub fn new(child: BoxNode) -> Self {
+        Self { child }
     }
 }
 

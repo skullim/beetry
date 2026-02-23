@@ -12,12 +12,14 @@ use beetry_editor_types::{
 use beetry_plugin::channel::{BoxChannelPlugin, ChannelPluginConstructor, TypeErasedChannel};
 use beetry_plugin::node::{
     ActionPluginConstructor, BoxActionPlugin, BoxConditionPlugin, BoxControlPlugin,
-    ConditionPluginConstructor, ControlPluginConstructor,
+    BoxDecoratorPlugin, ConditionPluginConstructor, ControlPluginConstructor,
+    DecoratorPluginConstructor,
 };
 use beetry_plugin::{BoxPlugin, Named, Plugin};
 use beetry_reconstruction_types::node::{
-    ControlMetadata, ControlReconstructionData, ControlSnapshot, LeafMetadata,
-    LeafReconstructionData, LeafSnapshot, RootSnapshot,
+    ControlMetadata, ControlReconstructionData, ControlSnapshot, DecoratorMetadata,
+    DecoratorReconstructionData, DecoratorSnapshot, LeafMetadata, LeafReconstructionData,
+    LeafSnapshot, RootSnapshot,
 };
 use beetry_reconstruction_types::node::{NodeSnapshot, NodeSnapshotData};
 use serde::Deserialize;
@@ -119,15 +121,17 @@ impl TreeReconstructor {
                 }
             })
             .next()
-            .ok_or_else(|| anyhow!("failed to find root id"))?;
+            .with_context(|| anyhow!("failed to find root id"))?;
 
-        let root_child = *node_store
+        let root_node = node_store
             .nodes
             .get(root_id)
-            .expect("root id should exist")
+            .with_context(|| anyhow!("root node with id {root_id:?} does not exist in node store"))?;
+
+        let root_child = *root_node
             .children()
             .next()
-            .expect("root should have a child node");
+            .with_context(|| anyhow!("root node {root_id:?} does not have a child node"))?;
 
         let node_snapshot = Self::try_create_node_snapshot(
             root_child,
@@ -146,12 +150,20 @@ impl TreeReconstructor {
         port_store: &mut PortStateStore,
         node_plugins: &NodePluginRegistry,
     ) -> Result<NodeSnapshot> {
-        let spec_id = node_store.nodes.get(&node_id).unwrap().spec_id();
-        let kind = node_store.specs.get(&spec_id).unwrap().kind();
-        let name = node_store.specs.get(&spec_id).unwrap().name().clone();
+        let node_record = node_store
+            .nodes
+            .get(&node_id)
+            .with_context(|| anyhow!("node with id {node_id:?} does not exist in node store"))?;
+        let spec_id = node_record.spec_id();
+        let spec_key = node_store
+            .specs
+            .get(&spec_id)
+            .with_context(|| anyhow!("node spec with id {spec_id} does not exist"))?;
+        let kind = spec_key.kind();
+        let name = spec_key.name().clone();
         match kind {
             NodeKind::Control => {
-                let children_id = node_store.nodes.get(&node_id).unwrap().children();
+                let children_id = node_record.children();
                 let mut children = vec![];
                 for child_id in children_id {
                     children.push(Self::try_create_node_snapshot(
@@ -165,6 +177,28 @@ impl TreeReconstructor {
                 Ok(NodeSnapshot::builder()
                     .name(name)
                     .data(NodeSnapshotData::Control(ControlSnapshot::new(children)?))
+                    .build())
+            }
+            NodeKind::Decorator => {
+                let children: Vec<_> = node_record.children().copied().collect();
+                if children.len() != 1 {
+                    return Err(anyhow!(
+                        "expected exactly one child for decorator node {name}, got {}",
+                        children.len()
+                    ));
+                }
+
+                let child = Self::try_create_node_snapshot(
+                    children[0],
+                    node_store,
+                    param_store,
+                    port_store,
+                    node_plugins,
+                )?;
+
+                Ok(NodeSnapshot::builder()
+                    .name(name)
+                    .data(NodeSnapshotData::Decorator(DecoratorSnapshot::new(child)))
                     .build())
             }
             NodeKind::Leaf(leaf_kind) => {
@@ -270,6 +304,28 @@ impl TreeReconstructor {
                     .build();
                 factory.try_create(data)
             }
+            NodeSnapshotData::Decorator(decorator) => {
+                let child = Self::try_reconstruct_tree(
+                    decorator.into(),
+                    node_plugins,
+                    channel_map,
+                    ext_receivers_registry,
+                    builder,
+                )?;
+
+                let factory = node_plugins
+                    .decorator
+                    .get(&node_name)
+                    .with_context(|| {
+                        anyhow!("decorator factory for node: {node_name} does not exist")
+                    })?
+                    .factory();
+                let data = DecoratorReconstructionData::builder()
+                    .inner(DecoratorMetadata::new(child))
+                    .parameters(parameters)
+                    .build();
+                factory.try_create(data)
+            }
             NodeSnapshotData::Leaf(mut leaf) => {
                 let mut receivers: Vec<_> = leaf
                     .take_receivers()
@@ -345,6 +401,7 @@ struct NodePluginRegistry {
     action: ActionToPluginMap,
     condition: ConditionToPluginMap,
     control: ControlToPluginMap,
+    decorator: DecoratorToPluginMap,
 }
 
 impl NodePluginRegistry {
@@ -353,6 +410,7 @@ impl NodePluginRegistry {
             action: ActionToPluginMap::new(ActionPluginConstructor::plugins()?),
             condition: ConditionToPluginMap::new(ConditionPluginConstructor::plugins()?),
             control: ControlToPluginMap::new(ControlPluginConstructor::plugins()?),
+            decorator: DecoratorToPluginMap::new(DecoratorPluginConstructor::plugins()?),
         })
     }
 }
@@ -360,6 +418,7 @@ impl NodePluginRegistry {
 type ConditionToPluginMap = NodeNameToPluginMap<BoxConditionPlugin>;
 type ActionToPluginMap = NodeNameToPluginMap<BoxActionPlugin>;
 type ControlToPluginMap = NodeNameToPluginMap<BoxControlPlugin>;
+type DecoratorToPluginMap = NodeNameToPluginMap<BoxDecoratorPlugin>;
 
 struct ChannelHashToPluginMap {
     map: HashMap<MessageHash, BoxChannelPlugin>,
