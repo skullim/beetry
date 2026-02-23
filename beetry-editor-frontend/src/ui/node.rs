@@ -6,6 +6,7 @@ pub mod renderer;
 pub(crate) mod tooltip;
 
 pub(super) mod control;
+pub(super) mod decorator;
 pub(super) mod leaf;
 pub(super) mod root;
 
@@ -17,6 +18,7 @@ pub fn style_defs() -> Element {
     rsx! {
         {root::style_defs()}
         {control::style_defs()}
+        {decorator::style_defs()}
         {leaf::style_defs()}
         {port::style_defs()}
     }

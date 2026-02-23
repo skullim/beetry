@@ -63,6 +63,7 @@ fn Layout() -> Element {
     };
 
     let controls = node_items(NodeKind::Control);
+    let decorators = node_items(NodeKind::Decorator);
     let actions = node_items(NodeKind::action());
     let conditions = node_items(NodeKind::condition());
     let channels = channel_items();
@@ -73,6 +74,7 @@ fn Layout() -> Element {
             Search { query: search_query }
 
             NodeSection { title: "Control Nodes", items: controls }
+            NodeSection { title: "Decorator Nodes", items: decorators }
             NodeSection { title: "Action Nodes", items: actions }
             NodeSection { title: "Condition Nodes", items: conditions }
             ChannelSection { title: "Channels", items: channels }

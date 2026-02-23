@@ -9,6 +9,7 @@ use crate::Point;
 use crate::signals::RequestNodeRender;
 use crate::ui::error::ErrorQueueState;
 use crate::ui::node::control::Control;
+use crate::ui::node::decorator::Decorator;
 use crate::ui::node::leaf::Leaf;
 use crate::ui::node::root::Root;
 use beetry_editor_types::spec::node::NodeKind;
@@ -34,6 +35,18 @@ pub fn Renderer(render_nodes: RequestNodeRender) -> Element {
     };
 
     let error_queue = use_context::<ErrorQueueState>();
+
+    let root = mapped_nodes(NodeKind::Root).map(|result| {
+        render_node_result(result, error_queue, |id, pos| {
+            rsx! {
+                Root {
+                    key: "{id}",
+                    id: *id,
+                    position: Point { x: pos.x, y: pos.y },
+                }
+            }
+        })
+    });
 
     let controls = mapped_nodes(NodeKind::Control).map(|result| {
         render_node_result(result, error_queue, |id, pos| {
@@ -71,10 +84,10 @@ pub fn Renderer(render_nodes: RequestNodeRender) -> Element {
         })
     });
 
-    let root = mapped_nodes(NodeKind::Root).map(|result| {
+    let decorators = mapped_nodes(NodeKind::Decorator).map(|result| {
         render_node_result(result, error_queue, |id, pos| {
             rsx! {
-                Root {
+                Decorator {
                     key: "{id}",
                     id: *id,
                     position: Point { x: pos.x, y: pos.y },
@@ -88,6 +101,7 @@ pub fn Renderer(render_nodes: RequestNodeRender) -> Element {
         {actions}
         {conditions}
         {controls}
+        {decorators}
     }
 }
 
