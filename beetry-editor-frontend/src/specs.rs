@@ -4,7 +4,10 @@ use beetry_editor_backend::{ChannelSpecMap, NodeSpecMap};
 use beetry_editor_types::spec::node::NodeSpec;
 use beetry_plugin::{
     channel::ChannelPluginConstructor,
-    node::{ActionPluginConstructor, ConditionPluginConstructor, ControlPluginConstructor},
+    node::{
+        ActionPluginConstructor, ConditionPluginConstructor, ControlPluginConstructor,
+        DecoratorPluginConstructor,
+    },
 };
 use dioxus::prelude::*;
 
@@ -39,6 +42,7 @@ fn load_node_specs() -> Result<NodeSpecMap> {
     let action_plugins = ActionPluginConstructor::plugins()?;
     let condition_plugins = ConditionPluginConstructor::plugins()?;
     let control_plugins = ControlPluginConstructor::plugins()?;
+    let decorator_plugins = DecoratorPluginConstructor::plugins()?;
 
     let iter = action_plugins.into_iter().map(|p| {
         let spec = p.into_parts().0;
@@ -49,6 +53,10 @@ fn load_node_specs() -> Result<NodeSpecMap> {
         (spec.key().clone(), spec)
     }));
     let iter = iter.chain(control_plugins.into_iter().map(|p| {
+        let spec = p.into_parts().0;
+        (spec.key().clone(), spec)
+    }));
+    let iter = iter.chain(decorator_plugins.into_iter().map(|p| {
         let spec = p.into_parts().0;
         (spec.key().clone(), spec)
     }));
