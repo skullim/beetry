@@ -359,6 +359,20 @@ macro_rules! control {
     };
 }
 
+#[macro_export]
+macro_rules! decorator {
+    ($plugin_name:ident : $name:expr; child($child_binding:ident),create: $create:expr,) => {
+        $crate::__decorator_plugin_impl! {
+            $plugin_name,
+            $name,
+            $child_binding,
+            none,
+            _parameters,
+            $create
+        }
+    };
+}
+
 #[doc(hidden)]
 #[macro_export]
 macro_rules! __control_plugin_impl {
@@ -412,5 +426,61 @@ macro_rules! __control_plugin_impl {
         }
 
         $crate::submit!(ControlPluginConstructor::new::<$plugin_name>());
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __decorator_plugin_impl {
+    (
+        $plugin_name:ident,
+        $name:expr,
+        $child_binding:ident,
+        $params:tt,
+        $params_binding:ident,
+        $create:expr $(,)?
+    ) => {
+        struct $plugin_name {
+            spec: NodeSpec,
+            factory: DecoratorFactory,
+        }
+
+        impl Plugin for $plugin_name {
+            type Spec = NodeSpec;
+            type Factory = DecoratorFactory;
+
+            fn new() -> Self
+            where
+                Self: Sized,
+            {
+                Self {
+                    spec: NodeSpec::builder()
+                        .key(NodeSpecKey::new(NodeName::new($name), NodeKind::Decorator))
+                        .maybe_params($crate::__leaf_plugin_build_params!($params))
+                        .build(),
+
+                    factory: DecoratorFactory::new(Box::new(|data: DecoratorReconstructionData| {
+                        let $params_binding = data.parameters;
+                        let $child_binding = data.inner.child;
+
+                        Ok(Box::new($create) as BoxNode)
+                    })),
+                }
+            }
+
+            fn spec(&self) -> &Self::Spec {
+                &self.spec
+            }
+
+            fn factory(&self) -> &Self::Factory {
+                &self.factory
+            }
+
+            fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
+                (self.spec, self.factory)
+            }
+        }
+
+        $crate::submit!(DecoratorPluginConstructor::new::<$plugin_name>());
     };
 }

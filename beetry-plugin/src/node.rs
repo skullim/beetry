@@ -4,6 +4,7 @@ use beetry_core::{BoxActionBehavior, BoxConditionBehavior, BoxNode};
 use beetry_editor_types::spec::node::NodeSpec;
 use beetry_reconstruction_types::node::{
     ActionReconstructionData, ConditionReconstructionData, ControlReconstructionData,
+    DecoratorReconstructionData,
 };
 use std::marker::PhantomData;
 
@@ -17,6 +18,9 @@ type BoxConditionFactoryFn =
 
 type BoxControlFactoryFn = Box<dyn Fn(ControlReconstructionData) -> Result<BoxNode>>;
 pub type ControlFactory = Factory<BoxControlFactoryFn, ControlReconstructionData, BoxNode>;
+type BoxDecoratorFactoryFn = Box<dyn Fn(DecoratorReconstructionData) -> Result<BoxNode>>;
+pub type DecoratorFactory =
+    Factory<BoxDecoratorFactoryFn, DecoratorReconstructionData, BoxNode>;
 
 pub struct Factory<F, I, O> {
     func: F,
@@ -45,6 +49,7 @@ where
 pub type BoxActionPlugin = BoxPlugin<NodeSpec, ActionFactory>;
 pub type BoxConditionPlugin = BoxPlugin<NodeSpec, ConditionFactory>;
 pub type BoxControlPlugin = BoxPlugin<NodeSpec, ControlFactory>;
+pub type BoxDecoratorPlugin = BoxPlugin<NodeSpec, DecoratorFactory>;
 
 impl Named for NodeSpec {
     fn name(&self) -> &str {
@@ -55,6 +60,7 @@ impl Named for NodeSpec {
 pub type ActionPluginConstructor = PluginConstructor<NodeSpec, ActionFactory>;
 pub type ConditionPluginConstructor = PluginConstructor<NodeSpec, ConditionFactory>;
 pub type ControlPluginConstructor = PluginConstructor<NodeSpec, ControlFactory>;
+pub type DecoratorPluginConstructor = PluginConstructor<NodeSpec, DecoratorFactory>;
 
 impl ActionPluginConstructor {
     pub fn plugins() -> Result<Vec<BoxActionPlugin>, PluginError> {
@@ -77,9 +83,17 @@ impl ControlPluginConstructor {
     }
 }
 
+impl DecoratorPluginConstructor {
+    pub fn plugins() -> Result<Vec<BoxDecoratorPlugin>, PluginError> {
+        unique_plugins::<Self, <Self as ConstructPlugin>::Spec, <Self as ConstructPlugin>::Factory>(
+        )
+    }
+}
+
 inventory::collect! {ActionPluginConstructor}
 inventory::collect! {ConditionPluginConstructor}
 inventory::collect! {ControlPluginConstructor}
+inventory::collect! {DecoratorPluginConstructor}
 
 #[cfg(test)]
 mod tests {
