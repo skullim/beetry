@@ -33,30 +33,30 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mock_test::mock;
-    use beetry_core::{MockNode, Node, TickStatus};
+    use crate::mock_test::mock_returns;
+    use beetry_core::{Node, TickStatus};
 
     #[test]
     fn success_stays_success() {
-        let mut node = UntilSuccess::new(mock().status(TickStatus::Success).times(1).call());
+        let mut node = UntilSuccess::new(mock_returns([TickStatus::Success]));
         assert_eq!(node.tick(), TickStatus::Success);
     }
 
     #[test]
     fn failure_becomes_running() {
-        let mut node = UntilSuccess::new(mock().status(TickStatus::Failure).times(1).call());
+        let mut node = UntilSuccess::new(mock_returns([TickStatus::Failure]));
         assert_eq!(node.tick(), TickStatus::Running);
     }
 
     #[test]
     fn running_stays_running() {
-        let mut node = UntilSuccess::new(mock().status(TickStatus::Running).times(1).call());
+        let mut node = UntilSuccess::new(mock_returns([TickStatus::Running]));
         assert_eq!(node.tick(), TickStatus::Running);
     }
 
     #[test]
     fn abort_is_propagated() {
-        let mut child = MockNode::new();
+        let mut child = mock_returns([]);
         child.expect_abort().once().return_const(());
         let mut node = UntilSuccess::new(child);
         node.abort();
@@ -64,7 +64,7 @@ mod tests {
 
     #[test]
     fn reset_is_propagated() {
-        let mut child = MockNode::new();
+        let mut child = mock_returns([]);
         child.expect_reset().once().return_const(());
         let mut node = UntilSuccess::new(child);
         node.reset();
