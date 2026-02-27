@@ -22,4 +22,3 @@ beetry-reconstruction-types = { version = "0.1.0", path = "../beetry-reconstruct
 beetry-core = { version = "0.1.0", features = [
     "mock",
 ], path = "../beetry-core" }
-bon.workspace = true
