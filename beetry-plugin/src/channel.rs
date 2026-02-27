@@ -49,7 +49,7 @@ impl std::fmt::Debug for Factory {
 }
 
 impl Factory {
-    pub fn from_msg_type<T: Clone + 'static>() -> Self {
+    pub fn from_msg_type<T: Clone + Default + 'static>() -> Self {
         Self {
             func: (Box::new(|config| {
                 let capacity = config.capacity();
@@ -84,6 +84,22 @@ impl Factory {
                             .map(|_| Box::new(sender.clone()) as BoxSender<T>)
                             .collect();
                         let receivers = vec![Box::new(receiver) as BoxReceiver<T>];
+
+                        (senders, receivers)
+                    }
+                    ChannelKind::Tokio(TokioChannelKind::Watch) => {
+                        let (sender, receiver) = beetry_channel::tokio::watch::channel::<T>();
+
+                        let receivers: Vec<_> =
+                            std::iter::once(Box::new(receiver) as BoxReceiver<T>)
+                                .chain(
+                                    (1..n_receivers)
+                                        .map(|_| Box::new(sender.subscribe()) as BoxReceiver<T>),
+                                )
+                                .collect();
+                        let senders: Vec<_> = (0..n_senders)
+                            .map(|_| Box::new(sender.clone()) as BoxSender<T>)
+                            .collect();
 
                         (senders, receivers)
                     }

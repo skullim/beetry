@@ -117,6 +117,7 @@ pub fn Dialog(state: Signal<State>) -> Element {
                                 match evt.value().as_str() {
                                     "Mpsc" =>  config.with_mut(|c| {c.set_kind(ChannelKind::Tokio(TokioChannelKind::Mpsc));}),
                                     "Broadcast" => config.with_mut(|c| {c.set_kind(ChannelKind::Tokio(TokioChannelKind::Broadcast));}),
+                                    "Watch" => config.with_mut(|c| {c.set_kind(ChannelKind::Tokio(TokioChannelKind::Watch));}),
                                     _ => {}
                                 }
                             },
@@ -129,6 +130,11 @@ pub fn Dialog(state: Signal<State>) -> Element {
                                 value: "Broadcast",
                                 selected: matches!(config.peek().kind(), ChannelKind::Tokio(TokioChannelKind::Broadcast)),
                                 "Broadcast"
+                            }
+                            option {
+                                value: "Watch",
+                                selected: matches!(config.peek().kind(), ChannelKind::Tokio(TokioChannelKind::Watch)),
+                                "Watch"
                             }
                         }
                     }

@@ -79,6 +79,7 @@ pub enum ChannelKind {
 pub enum TokioChannelKind {
     Mpsc,
     Broadcast,
+    Watch,
 }
 
 /// Represents the current state of connected senders and receivers

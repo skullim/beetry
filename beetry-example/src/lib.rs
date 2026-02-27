@@ -10,7 +10,7 @@ pub use leaves::{
 };
 use type_hash::TypeHash;
 
-#[derive(Debug, Clone, Copy, TypeHash, Message)]
+#[derive(Debug, Clone, Copy, Default, TypeHash, Message)]
 pub struct Pose {
     x: f32,
     y: f32,
@@ -24,13 +24,14 @@ impl Pose {
 
 beetry_plugin::channel! {PoseChannel: Pose}
 
-#[derive(Debug, Clone, Copy, TypeHash)]
+#[derive(Debug, Clone, Copy, Default, TypeHash)]
 pub enum ChargeCommand {
+    #[default]
     Start,
     Stop,
 }
 
-#[derive(Debug, Clone, Copy, TypeHash, Message)]
+#[derive(Debug, Clone, Copy, Default, TypeHash, Message)]
 pub struct ExternalData {
     pub charge_command: ChargeCommand,
     pub is_charger_present: bool,
