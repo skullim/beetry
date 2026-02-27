@@ -32,7 +32,9 @@ pub mod mpsc {
 
     use crate::tokio::mpsc::error::{TokioTryRecvError, TokioTrySendError};
 
+    #[derive(Debug)]
     pub struct Receiver<T>(tokio::sync::mpsc::Receiver<T>);
+
     impl<T> super::Receiver<T> for Receiver<T> {
         fn try_recv(&mut self) -> TryRecvResult<T> {
             Ok(self.0.try_recv().map_err(TokioTryRecvError)?)
@@ -41,6 +43,7 @@ pub mod mpsc {
 
     #[derive(Debug, Clone)]
     pub struct Sender<T>(tokio::sync::mpsc::Sender<T>);
+
     impl<T> super::Sender<T> for Sender<T> {
         fn try_send(&mut self, message: T) -> TrySendResult<T> {
             Ok(self.0.try_send(message).map_err(TokioTrySendError)?)
@@ -83,10 +86,11 @@ pub mod broadcast {
     use beetry_core::{TryRecvResult, TrySendResult};
     use tokio::sync::broadcast::channel as tokio_channel;
 
-    use crate::tokio::broadcast::error::{TokioSendError, TokioTryRecvError};
+    use error::{TokioSendError, TokioTryRecvError};
 
     #[derive(Debug)]
     pub struct Receiver<T>(tokio::sync::broadcast::Receiver<T>);
+
     impl<T> super::Receiver<T> for Receiver<T>
     where
         T: Clone,
@@ -98,6 +102,7 @@ pub mod broadcast {
 
     #[derive(Debug, Clone)]
     pub struct Sender<T>(tokio::sync::broadcast::Sender<T>);
+
     impl<T> Sender<T> {
         pub fn subscribe(&self) -> Receiver<T> {
             Receiver(self.0.subscribe())
@@ -118,5 +123,73 @@ pub mod broadcast {
     {
         let (send, recv) = tokio_channel(buffer);
         (Sender(send), Receiver(recv))
+    }
+}
+
+pub mod watch {
+    mod error {
+        use beetry_core::error;
+        use tokio::sync::watch::error::{RecvError, SendError};
+
+        pub struct TokioSendError<T>(pub SendError<T>);
+        pub struct TokioRecvError(pub RecvError);
+
+        impl<T> From<TokioSendError<T>> for error::TrySendError<T> {
+            fn from(value: TokioSendError<T>) -> Self {
+                // error is returned only if there are no active receivers
+                Self::Disconnected(value.0.0)
+            }
+        }
+
+        impl From<TokioRecvError> for error::TryRecvError {
+            fn from(_value: TokioRecvError) -> Self {
+                // error returned only when channel closed
+                Self::Disconnected
+            }
+        }
+    }
+
+    use beetry_core::{TryRecvResult, TrySendResult, error::TryRecvError};
+    use error::{TokioRecvError, TokioSendError};
+    use tokio::sync::watch::channel as tokio_channel;
+
+    #[derive(Debug)]
+    pub struct Receiver<T>(tokio::sync::watch::Receiver<T>);
+
+    impl<T> super::Receiver<T> for Receiver<T>
+    where
+        T: Clone,
+    {
+        fn try_recv(&mut self) -> TryRecvResult<T> {
+            if self.0.has_changed().map_err(TokioRecvError)? {
+                Ok((*self.0.borrow_and_update()).clone())
+            } else {
+                Err(TryRecvError::Empty)
+            }
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct Sender<T>(tokio::sync::watch::Sender<T>);
+
+    impl<T> Sender<T> {
+        pub fn subscribe(&self) -> Receiver<T> {
+            Receiver(self.0.subscribe())
+        }
+    }
+
+    impl<T> super::Sender<T> for Sender<T> {
+        fn try_send(&mut self, message: T) -> TrySendResult<T> {
+            Ok(self.0.send(message).map_err(TokioSendError)?)
+        }
+    }
+
+    pub fn channel<T>() -> (Sender<T>, Receiver<T>)
+    where
+        T: Default + Clone,
+    {
+        // watch channel puts default value in the channel, but it is marked as seen, therefore no need to update it
+        let (sender, receiver) = tokio_channel(T::default());
+        (Sender(sender), Receiver(receiver))
     }
 }

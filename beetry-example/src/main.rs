@@ -43,7 +43,7 @@ async fn main() -> Result<()> {
     let (mut ready_exec, registry) = executor.into_ready_with_registry();
     let builder = Builder::new(registry);
 
-    let creation_type = BtCreationType::Code;
+    let creation_type = BtCreationType::Editor;
     let bt = match creation_type {
         BtCreationType::Editor => bt_from_editor(&builder, receiver_registry).await?,
         BtCreationType::Code => bt_from_code(&builder)?,
