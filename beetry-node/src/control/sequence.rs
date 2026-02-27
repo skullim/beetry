@@ -57,17 +57,67 @@ impl Node for Sequence {
 
 impl ControlNode for Sequence {}
 
+pub struct MemSequence {
+    nodes: NonEmptyNodes,
+    running_idx: Option<usize>,
+}
+
+impl MemSequence {
+    pub fn new(nodes: impl Into<NonEmptyNodes>) -> Self {
+        Self {
+            nodes: nodes.into(),
+            running_idx: None,
+        }
+    }
+}
+
+impl Node for MemSequence {
+    fn tick(&mut self) -> TickStatus {
+        let start_idx = self.running_idx.take().unwrap_or(0);
+        for idx in start_idx..self.nodes.len().into() {
+            let node = &mut self.nodes[idx];
+            match node.tick() {
+                TickStatus::Success => {}
+                TickStatus::Running => {
+                    self.running_idx = Some(idx);
+                    return TickStatus::Running;
+                }
+                TickStatus::Failure => {
+                    return TickStatus::Failure;
+                }
+            }
+        }
+        TickStatus::Success
+    }
+
+    fn abort(&mut self) {
+        self.running_idx = None;
+        for node in &mut self.nodes {
+            node.abort();
+        }
+    }
+
+    fn reset(&mut self) {
+        self.running_idx = None;
+        for node in &mut self.nodes {
+            node.reset();
+        }
+    }
+}
+
+impl ControlNode for MemSequence {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mock_test::{boxed, mock, tick_returns};
-    use beetry_core::{MockNode, Node, TickStatus};
+    use crate::mock_test::{boxed, mock_returns};
+    use beetry_core::{Node, TickStatus};
 
     #[test]
     fn success_with_all_success() {
         let nodes = NonEmptyNodes::from([
-            boxed(mock().status(TickStatus::Success).times(1).call()),
-            boxed(mock().status(TickStatus::Success).times(1).call()),
+            boxed(mock_returns([TickStatus::Success])),
+            boxed(mock_returns([TickStatus::Success])),
         ]);
         let mut sq = Sequence::new(nodes);
 
@@ -77,9 +127,9 @@ mod tests {
     #[test]
     fn running_with_first_running() {
         let nodes = NonEmptyNodes::from([
-            boxed(mock().status(TickStatus::Success).times(1).call()),
-            boxed(mock().status(TickStatus::Running).times(1).call()),
-            boxed(mock().status(TickStatus::Success).times(0).call()),
+            boxed(mock_returns([TickStatus::Success])),
+            boxed(mock_returns([TickStatus::Running])),
+            boxed(mock_returns([])),
         ]);
         let mut sq = Sequence::new(nodes);
         assert_eq!(sq.tick(), TickStatus::Running);
@@ -88,9 +138,9 @@ mod tests {
     #[test]
     fn failure_with_first_failed() {
         let nodes = NonEmptyNodes::from([
-            boxed(mock().status(TickStatus::Success).times(1).call()),
-            boxed(mock().status(TickStatus::Failure).times(1).call()),
-            boxed(mock().status(TickStatus::Success).times(0).call()),
+            boxed(mock_returns([TickStatus::Success])),
+            boxed(mock_returns([TickStatus::Failure])),
+            boxed(mock_returns([])),
         ]);
         let mut sq = Sequence::new(nodes);
 
@@ -99,17 +149,13 @@ mod tests {
 
     #[test]
     fn resets_running() {
-        let (mut m1, mut m2, mut m3) = (MockNode::new(), MockNode::new(), MockNode::new());
-        tick_returns(
-            &mut m1,
-            vec![
-                TickStatus::Success,
-                TickStatus::Success,
-                TickStatus::Running,
-            ],
-        );
-        tick_returns(&mut m2, vec![TickStatus::Success, TickStatus::Running]);
-        tick_returns(&mut m3, vec![TickStatus::Running]);
+        let m1 = mock_returns([
+            TickStatus::Success,
+            TickStatus::Success,
+            TickStatus::Running,
+        ]);
+        let mut m2 = mock_returns([TickStatus::Success, TickStatus::Running]);
+        let mut m3 = mock_returns([TickStatus::Running]);
         m2.expect_abort().once().return_const(());
         m3.expect_abort().once().return_const(());
 
@@ -119,5 +165,38 @@ mod tests {
         assert_eq!(sq.tick(), TickStatus::Running);
         assert_eq!(sq.tick(), TickStatus::Running);
         assert_eq!(sq.tick(), TickStatus::Running);
+    }
+
+    #[test]
+    fn mem_sequence_resumes_from_running_child() {
+        let m1 = mock_returns([TickStatus::Success]);
+        let m2 = mock_returns([
+            TickStatus::Running,
+            TickStatus::Running,
+            TickStatus::Success,
+        ]);
+        let m3 = mock_returns([TickStatus::Success]);
+
+        let nodes = NonEmptyNodes::from([boxed(m1), boxed(m2), boxed(m3)]);
+        let mut msq = MemSequence::new(nodes);
+
+        assert_eq!(msq.tick(), TickStatus::Running);
+        assert_eq!(msq.tick(), TickStatus::Running);
+        assert_eq!(msq.tick(), TickStatus::Success);
+    }
+
+    #[test]
+    fn mem_sequence_reset_clears_memory() {
+        let mut m1 = mock_returns([TickStatus::Success, TickStatus::Success]);
+        m1.expect_reset().once().return_const(());
+        let mut m2 = mock_returns([TickStatus::Running, TickStatus::Running]);
+        m2.expect_reset().once().return_const(());
+
+        let nodes = NonEmptyNodes::from([boxed(m1), boxed(m2)]);
+        let mut msq = MemSequence::new(nodes);
+
+        assert_eq!(msq.tick(), TickStatus::Running);
+        msq.reset();
+        assert_eq!(msq.tick(), TickStatus::Running);
     }
 }

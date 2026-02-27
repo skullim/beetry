@@ -5,7 +5,7 @@ mod decorator;
 mod registry;
 
 use beetry_core::NonEmptyNodes;
-pub use control::{Fallback, Parallel, Sequence};
+pub use control::{Fallback, MemSequence, Parallel, Sequence};
 pub use decorator::{Invert, Succeed, UntilFailure, UntilSuccess};
 
 #[cfg(test)]

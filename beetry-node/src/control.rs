@@ -6,7 +6,7 @@ use std::collections::BTreeSet;
 
 pub use fallback::Fallback;
 pub use parallel::Parallel;
-pub use sequence::Sequence;
+pub use sequence::{MemSequence, Sequence};
 
 use beetry_core::BoxNode;
 
