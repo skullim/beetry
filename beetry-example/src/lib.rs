@@ -1,12 +1,17 @@
-mod leaves;
+mod domain;
 
 use beetry_editor_types::spec::message::Message;
 use beetry_macros::Message;
-pub use leaves::{
-    CheckBattery, CheckBatteryParams, CheckBatteryPlugin, Drive, DrivePlugin, DriveReceivers,
-    Localize, LocalizePlugin, MissionConfig, MissionConfigParams, MissionConfigPlugin,
-    MultiPosePorts, MultiPosePortsPlugin, MultiPosePortsReceivers, ReadExternalDataPlugin,
-    ReadExternalDataReceivers,
+pub use domain::{
+    BrakePublisher, BrakePublisherPlugin, BrakeState, CheckSystemReady, CheckSystemReadyPlugin,
+    ConfirmParkedState, ConfirmParkedStatePlugin, DetectParkingSlots, DetectParkingSlotsPlugin,
+    FollowTrajectory, FollowTrajectoryPlugin, LocalizationPublisher, LocalizationPublisherPlugin,
+    ManeuverStatus, MultiParams, MultiParamsParams, MultiParamsPlugin, MultiPorts,
+    MultiPortsPlugin, MultiPortsReceivers, PlanParkingTrajectory, PlanParkingTrajectoryPlugin,
+    ProximityPublisher, ProximityPublisherPlugin, ProximityState, SafetyMonitor,
+    SafetyMonitorPlugin, SafetyStatus, SelectBestSlot, SelectBestSlotPlugin, SlotCandidates,
+    TargetSlot, Trajectory, VehicleState, VehicleStatePublisher, VehicleStatePublisherPlugin,
+    VerifyClearance, VerifyClearancePlugin, VerifyFinalPose, VerifyFinalPosePlugin,
 };
 use type_hash::TypeHash;
 

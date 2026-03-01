@@ -12,15 +12,18 @@ beetry-core = { version = "0.1.0", path = "../beetry-core" }
 beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
 beetry-exec = { version = "0.1.0", path = "../beetry-exec" }
 beetry-macros = { version = "0.1.0", path = "../beetry-macros" }
+beetry-node = { version = "0.1.0", path = "../beetry-node" }
 beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
 beetry-reconstruction = { version = "0.1.0", path = "../beetry-reconstruction" }
 beetry-reconstruction-types = { version = "0.1.0", path = "../beetry-reconstruction-types" }
 beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }
 bon.workspace = true
 mitsein.workspace = true
-rfd = { version = "0.17.2", default-features = false, features = ["xdg-portal"] }
+rfd = { version = "0.17.2", default-features = false, features = [
+    "xdg-portal",
+] }
 serde.workspace = true
-tokio = { workspace = true, features = ["macros", "rt"] }
+tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread"] }
 tracing.workspace = true
 tracing-subscriber = "0.3.20"
 tracing-tree = "0.4.0"

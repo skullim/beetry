@@ -10,12 +10,12 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tracing::debug;
 
-pub struct MissionConfig {
-    params: MissionConfigParams,
+pub struct MultiParams {
+    params: MultiParamsParams,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MissionConfigParams {
+pub struct MultiParamsParams {
     enabled: bool,
     retry_limit: u64,
     altitude_offset_m: i64,
@@ -23,7 +23,7 @@ pub struct MissionConfigParams {
     profile_name: String,
 }
 
-impl Default for MissionConfigParams {
+impl Default for MultiParamsParams {
     fn default() -> Self {
         Self {
             enabled: true,
@@ -35,36 +35,36 @@ impl Default for MissionConfigParams {
     }
 }
 
-impl MissionConfig {
-    pub fn new(params: MissionConfigParams) -> Self {
+impl MultiParams {
+    pub fn new(params: MultiParamsParams) -> Self {
         Self { params }
     }
 }
 
-impl ActionBehavior for MissionConfig {
+impl ActionBehavior for MultiParams {
     fn task(&mut self) -> anyhow::Result<NodeTask> {
-        Ok(NodeTask::new(MissionConfigTask::new(self.params.clone())))
+        Ok(NodeTask::new(MultiParamsTask::new(self.params.clone())))
     }
 }
 
-struct MissionConfigTask {
-    params: MissionConfigParams,
+struct MultiParamsTask {
+    params: MultiParamsParams,
 }
 
-impl MissionConfigTask {
-    fn new(params: MissionConfigParams) -> Self {
+impl MultiParamsTask {
+    fn new(params: MultiParamsParams) -> Self {
         Self { params }
     }
 }
 
-impl Task for MissionConfigTask {
+impl Task for MultiParamsTask {
     async fn run(self) -> TickStatus {
-        debug!("applying mission config: {:?}", self.params);
+        debug!("applying multi params: {:?}", self.params);
         TickStatus::Success
     }
 }
 
-impl ProvideParamSpec for MissionConfigParams {
+impl ProvideParamSpec for MultiParamsParams {
     fn provide() -> ParamsSpec {
         [
             (
@@ -137,7 +137,7 @@ impl ProvideParamSpec for MissionConfigParams {
 }
 
 action! {
-    MissionConfigPlugin: "Mission Config";
-    params(parameters): MissionConfigParams::provide();
-    create: MissionConfig::new(ParamsReconstructor::reconstruct(parameters)?);
+    MultiParamsPlugin: "Multi Params";
+    params(parameters): MultiParamsParams::provide();
+    create: MultiParams::new(ParamsReconstructor::reconstruct(parameters)?);
 }

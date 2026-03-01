@@ -7,7 +7,7 @@ use bon::bon;
 use crate::Pose;
 
 receivers! {
-    MultiPosePortsReceivers {
+    MultiPortsReceivers {
         in1: Pose,
         in2: Pose,
         in3: Pose,
@@ -16,7 +16,7 @@ receivers! {
     }
 }
 
-pub struct MultiPosePorts<R1, R2, R3, R4, R5, S1, S2, S3, S4, S5>
+pub struct MultiPorts<R1, R2, R3, R4, R5, S1, S2, S3, S4, S5>
 where
     R1: Receiver<Pose>,
     R2: Receiver<Pose>,
@@ -29,7 +29,7 @@ where
     S4: Sender<Pose>,
     S5: Sender<Pose>,
 {
-    receivers: MultiPosePortsReceivers<R1, R2, R3, R4, R5>,
+    receivers: MultiPortsReceivers<R1, R2, R3, R4, R5>,
     out1: S1,
     out2: S2,
     out3: S3,
@@ -37,7 +37,7 @@ where
     out5: S5,
 }
 
-impl<R1, R2, R3, R4, R5, S1, S2, S3, S4, S5> MultiPosePorts<R1, R2, R3, R4, R5, S1, S2, S3, S4, S5>
+impl<R1, R2, R3, R4, R5, S1, S2, S3, S4, S5> MultiPorts<R1, R2, R3, R4, R5, S1, S2, S3, S4, S5>
 where
     R1: Receiver<Pose>,
     R2: Receiver<Pose>,
@@ -52,7 +52,7 @@ where
 {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        receivers: MultiPosePortsReceivers<R1, R2, R3, R4, R5>,
+        receivers: MultiPortsReceivers<R1, R2, R3, R4, R5>,
         out1: S1,
         out2: S2,
         out3: S3,
@@ -75,7 +75,7 @@ where
 }
 
 impl<R1, R2, R3, R4, R5, S1, S2, S3, S4, S5> ActionBehavior
-    for MultiPosePorts<R1, R2, R3, R4, R5, S1, S2, S3, S4, S5>
+    for MultiPorts<R1, R2, R3, R4, R5, S1, S2, S3, S4, S5>
 where
     R1: Receiver<Pose>,
     R2: Receiver<Pose>,
@@ -111,7 +111,7 @@ where
             .try_send(in5)
             .map_err(|error| anyhow::anyhow!("failed to send out5: {error}"))?;
 
-        Ok(NodeTask::new(MultiPosePortsTask))
+        Ok(NodeTask::new(MultiPortsTask))
     }
 
     fn reset(&mut self) {
@@ -123,16 +123,16 @@ where
     }
 }
 
-struct MultiPosePortsTask;
+struct MultiPortsTask;
 
-impl Task for MultiPosePortsTask {
+impl Task for MultiPortsTask {
     async fn run(self) -> TickStatus {
         TickStatus::Success
     }
 }
 
 action! {
-    MultiPosePortsPlugin: "MultiPosePorts";
+    MultiPortsPlugin: "Multi Ports";
     receivers: [
         in1: Pose => "Pose input 1",
         in2: Pose => "Pose input 2",
@@ -147,8 +147,8 @@ action! {
         out4: Pose => "Pose output 4",
         out5: Pose => "Pose output 5",
     ];
-    create: MultiPosePorts::new(
-        MultiPosePortsReceivers::builder()
+    create: MultiPorts::new(
+        MultiPortsReceivers::builder()
             .in1(in1)
             .in2(in2)
             .in3(in3)
