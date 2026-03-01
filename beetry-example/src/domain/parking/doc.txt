@@ -1,0 +1,31 @@
+Root
+└── Parallel
+    ├── UntilSuccess
+    │   └── Sequence
+    │       ├── CheckSystemReady                     <- VehicleState
+    │       └── SequenceWithMemory
+    │           ├── DetectParkingSlots               <- Pose
+    │           │                                    -> SlotCandidates
+    │           ├── SelectBestSlot                   <- SlotCandidates, VehicleState
+    │           │                                    -> TargetSlot
+    │           ├── UntilSuccess
+    │           │   └── SequenceWithMemory           // plan-follow-verify loop
+    │           │       ├── PlanParkingTrajectory    <- Pose, TargetSlot
+    │           │       │                            -> Trajectory
+    │           │       ├── FollowTrajectory         <- Trajectory, Pose, SafetyStatus
+    │           │       │                            -> ManeuverStatus
+    │           │       ├── VerifyFinalPose          <- Pose, TargetSlot
+    │           │       └── VerifyClearance          <- ProximityAlert
+    │           └── ConfirmParkedState               <- VehicleState, ManeuverStatus
+    │
+    ├── Fail
+    │   └── SafetyMonitor                            <- ProximityAlert, EmergencyBrake
+    │                                                -> SafetyStatus
+    ├── Fail
+    │   └── VehicleStatePublisher                    -> VehicleState
+    ├── Fail
+    │   └── LocalizationPublisher                    -> Pose
+    ├── Fail
+    │   └── ProximityPublisher                       -> ProximityAlert
+    └── Fail
+        └── BrakePublisher

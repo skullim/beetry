@@ -102,7 +102,6 @@ where
             },
             State::Running(handle) => {
                 let status = handle.query();
-                debug!("queried status: {status:?}");
                 visit_status(&mut self.behavior, status);
 
                 let status: TickStatus = status.try_into().unwrap();
