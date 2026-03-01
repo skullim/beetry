@@ -1,6 +1,6 @@
 use crate::Indices;
 use crate::control::RunningNodesAborter;
-use beetry_core::{ControlNode, Node, NonEmptyNodes, TickStatus};
+use beetry_core::{Node, NonEmptyNodes, TickStatus};
 
 pub struct Sequence {
     nodes: NonEmptyNodes,
@@ -55,8 +55,6 @@ impl Node for Sequence {
     }
 }
 
-impl ControlNode for Sequence {}
-
 pub struct MemSequence {
     nodes: NonEmptyNodes,
     running_idx: Option<usize>,
@@ -104,8 +102,6 @@ impl Node for MemSequence {
         }
     }
 }
-
-impl ControlNode for MemSequence {}
 
 #[cfg(test)]
 mod tests {
