@@ -1,6 +1,6 @@
 use crate::Indices;
 use crate::control::RunningNodesAborter;
-use beetry_core::{ControlNode, Node, NonEmptyNodes, TickStatus};
+use beetry_core::{Node, NonEmptyNodes, TickStatus};
 
 pub struct Fallback {
     nodes: NonEmptyNodes,
@@ -53,8 +53,6 @@ impl Node for Fallback {
         }
     }
 }
-
-impl ControlNode for Fallback {}
 
 #[cfg(test)]
 mod tests {

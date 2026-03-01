@@ -1,6 +1,6 @@
 use crate::Indices;
 use crate::control::RunningNodesAborter;
-use beetry_core::{ControlNode, Node, NonEmptyNodes, TickStatus};
+use beetry_core::{Node, NonEmptyNodes, TickStatus};
 
 /// Parallel node succeeds when all nodes succeed
 pub struct Parallel {
@@ -58,8 +58,6 @@ impl Node for Parallel {
         }
     }
 }
-
-impl ControlNode for Parallel {}
 
 #[cfg(test)]
 mod tests {

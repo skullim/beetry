@@ -16,8 +16,6 @@ pub trait Node {
 
 pub type BoxNode = Box<dyn Node>;
 
-pub trait ControlNode: Node {}
-
 impl Node for BoxNode {
     fn tick(&mut self) -> TickStatus {
         (**self).tick()
