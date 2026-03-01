@@ -1,4 +1,4 @@
-use crate::{Invert, Succeed, UntilFailure, UntilSuccess};
+use crate::{Fail, Invert, Succeed, UntilFailure, UntilSuccess};
 use beetry_core::BoxNode;
 use beetry_editor_types::spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey};
 use beetry_plugin::node::{DecoratorFactory, DecoratorPluginConstructor};
@@ -15,6 +15,12 @@ decorator!(
     SucceedPlugin: "Succeed";
     child(child),
     create: Succeed::new(child),
+);
+
+decorator!(
+    FailPlugin: "Fail";
+    child(child),
+    create: Fail::new(child),
 );
 
 decorator!(

@@ -6,7 +6,7 @@ mod registry;
 
 use beetry_core::NonEmptyNodes;
 pub use control::{Fallback, MemSequence, Parallel, Sequence};
-pub use decorator::{Invert, Succeed, UntilFailure, UntilSuccess};
+pub use decorator::{Fail, Invert, Succeed, UntilFailure, UntilSuccess};
 
 #[cfg(test)]
 mod mock;
