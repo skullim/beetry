@@ -123,10 +123,9 @@ impl TreeReconstructor {
             .next()
             .with_context(|| anyhow!("failed to find root id"))?;
 
-        let root_node = node_store
-            .nodes
-            .get(root_id)
-            .with_context(|| anyhow!("root node with id {root_id:?} does not exist in node store"))?;
+        let root_node = node_store.nodes.get(root_id).with_context(|| {
+            anyhow!("root node with id {root_id:?} does not exist in node store")
+        })?;
 
         let root_child = *root_node
             .children()
@@ -212,8 +211,18 @@ impl TreeReconstructor {
                     .into_iter()
                     .flat_map(|state| state.conns.into_iter())
                 {
-                    let plugin = node_plugins.action.get(&name)?;
-                    let spec = plugin.spec();
+                    let spec = {
+                        match leaf_kind {
+                            LeafKind::Action => {
+                                let plugin = node_plugins.action.get(&name)?;
+                                plugin.spec()
+                            }
+                            LeafKind::Condition => {
+                                let plugin = node_plugins.condition.get(&name)?;
+                                plugin.spec()
+                            }
+                        }
+                    };
                     let ports_spec = spec
                         .ports()
                         .as_ref()
