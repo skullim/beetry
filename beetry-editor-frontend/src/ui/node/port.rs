@@ -6,8 +6,8 @@ pub mod renderer;
 
 pub use body::Body;
 pub use menu::Menu;
-pub(crate) use renderer::Renderer;
 pub(crate) use renderer::NodeDimensions;
+pub(crate) use renderer::Renderer;
 
 use dioxus::prelude::*;
 

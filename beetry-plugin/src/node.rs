@@ -19,8 +19,7 @@ type BoxConditionFactoryFn =
 type BoxControlFactoryFn = Box<dyn Fn(ControlReconstructionData) -> Result<BoxNode>>;
 pub type ControlFactory = Factory<BoxControlFactoryFn, ControlReconstructionData, BoxNode>;
 type BoxDecoratorFactoryFn = Box<dyn Fn(DecoratorReconstructionData) -> Result<BoxNode>>;
-pub type DecoratorFactory =
-    Factory<BoxDecoratorFactoryFn, DecoratorReconstructionData, BoxNode>;
+pub type DecoratorFactory = Factory<BoxDecoratorFactoryFn, DecoratorReconstructionData, BoxNode>;
 
 pub struct Factory<F, I, O> {
     func: F,

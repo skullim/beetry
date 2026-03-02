@@ -1,7 +1,7 @@
-use dioxus::prelude::*;
 use beetry_editor_types::output::channel::{
     ChannelConfig, ChannelConfigInput, ChannelKind, TokioChannelKind,
 };
+use dioxus::prelude::*;
 
 use crate::{Point, ui::channel, ui::node};
 

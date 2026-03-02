@@ -8,7 +8,7 @@ use dioxus::prelude::*;
 use crate::ui::handler::define_handlers;
 
 define_handlers!(on_internal: (NodeId, NodePortId),
-                 on_external: (NodeId, NodePortId)
+                 on_external: (NodeId, NodePortId),
 );
 
 #[bon]
