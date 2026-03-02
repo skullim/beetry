@@ -1,6 +1,6 @@
 pub mod channel;
-pub mod node;
 mod channel_macro;
+pub mod node;
 mod node_macro;
 
 pub trait Plugin {

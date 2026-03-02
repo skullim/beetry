@@ -459,12 +459,14 @@ macro_rules! __decorator_plugin_impl {
                         .maybe_params($crate::__leaf_plugin_build_params!($params))
                         .build(),
 
-                    factory: DecoratorFactory::new(Box::new(|data: DecoratorReconstructionData| {
-                        let $params_binding = data.parameters;
-                        let $child_binding = data.inner.child;
+                    factory: DecoratorFactory::new(Box::new(
+                        |data: DecoratorReconstructionData| {
+                            let $params_binding = data.parameters;
+                            let $child_binding = data.inner.child;
 
-                        Ok(Box::new($create) as BoxNode)
-                    })),
+                            Ok(Box::new($create) as BoxNode)
+                        },
+                    )),
                 }
             }
 
