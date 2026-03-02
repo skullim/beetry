@@ -4,6 +4,7 @@ use std::rc::Rc;
 use crate::Backend;
 use crate::Point;
 use crate::definitions::IndexedDragOffset;
+use crate::signals::RenderRequests;
 use crate::ui::handler::define_handlers;
 use crate::ui::node::port::{ConnectionOrigin, layout};
 use crate::ui::text::{self, text_width_from};
@@ -14,7 +15,7 @@ use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 
 define_handlers!(on_mouse_down: (ConnectionOrigin, IndexedDragOffset, NodePortId),
-          on_menu: (Point, NodeId, NodePortId, Signal<bool>),
+                 on_menu: (Point, NodeId, NodePortId, Signal<bool>),
 );
 
 #[derive(Props, PartialEq, Clone)]
@@ -54,17 +55,49 @@ pub fn Body(props: BodyProps) -> Element {
             .with(|s| api::node::ports::is_external(s, node_id, port_id))
             .unwrap_or(false)
     });
+    let mut is_connected = use_signal(|| {
+        backend.with(|s| {
+            api::node::ports::connection_views(s)
+                .filter_map(Result::ok)
+                .any(|conn| conn.node_id == node_id && conn.port_id == port_id)
+        })
+    });
     let mut is_hovered = use_signal(|| false);
+    let render_requests = use_context::<RenderRequests>();
 
-    let fill = match (origin, is_hovered(), is_external()) {
-        (ConnectionOrigin::Receiver, true, true) => channel::GradientHoverUrl::RECEIVER_EXTERNAL,
-        (ConnectionOrigin::Receiver, true, false) => channel::GradientHoverUrl::RECEIVER,
-        (ConnectionOrigin::Receiver, false, true) => channel::GradientUrl::RECEIVER_EXTERNAL,
-        (ConnectionOrigin::Receiver, false, false) => channel::GradientUrl::RECEIVER,
-        (ConnectionOrigin::Sender, true, true) => channel::GradientHoverUrl::SENDER_EXTERNAL,
-        (ConnectionOrigin::Sender, true, false) => channel::GradientHoverUrl::SENDER,
-        (ConnectionOrigin::Sender, false, true) => channel::GradientUrl::SENDER_EXTERNAL,
-        (ConnectionOrigin::Sender, false, false) => channel::GradientUrl::SENDER,
+    use_memo(move || {
+        render_requests.channel_edges.track();
+        let connected = backend.with(|s| {
+            api::node::ports::connection_views(s)
+                .filter_map(Result::ok)
+                .any(|conn| conn.node_id == node_id && conn.port_id == port_id)
+        });
+        is_connected.set(connected);
+    });
+
+    let fill = match (origin, is_hovered(), is_external(), is_connected()) {
+        (ConnectionOrigin::Sender, true, false, false) => {
+            channel::GradientHoverUrl::DISCONNECTED_SENDER
+        }
+        (ConnectionOrigin::Sender, false, false, false) => {
+            channel::GradientUrl::DISCONNECTED_SENDER
+        }
+        (ConnectionOrigin::Receiver, true, false, false) => {
+            channel::GradientHoverUrl::DISCONNECTED_RECEIVER
+        }
+        (ConnectionOrigin::Receiver, false, false, false) => {
+            channel::GradientUrl::DISCONNECTED_RECEIVER
+        }
+
+        (ConnectionOrigin::Sender, true, true, _) => channel::GradientHoverUrl::SENDER_EXTERNAL,
+        (ConnectionOrigin::Sender, false, true, _) => channel::GradientUrl::SENDER_EXTERNAL,
+        (ConnectionOrigin::Receiver, true, true, _) => channel::GradientHoverUrl::RECEIVER_EXTERNAL,
+        (ConnectionOrigin::Receiver, false, true, _) => channel::GradientUrl::RECEIVER_EXTERNAL,
+
+        (ConnectionOrigin::Sender, true, false, true) => channel::GradientHoverUrl::SENDER,
+        (ConnectionOrigin::Sender, false, false, true) => channel::GradientUrl::SENDER,
+        (ConnectionOrigin::Receiver, true, false, true) => channel::GradientHoverUrl::RECEIVER,
+        (ConnectionOrigin::Receiver, false, false, true) => channel::GradientUrl::RECEIVER,
     };
 
     let (x, text_x) = match origin {

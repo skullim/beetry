@@ -61,13 +61,19 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
         return rsx! {};
     };
     let name = spec.name();
-    let (kind_label, capacity_label) = match channel_query_api.config(id) {
-        Ok(config) => (config.kind().to_string(), config.capacity().to_string()),
-        Err(e) => {
-            errors.push(e);
-            ("unknown".to_string(), "unknown".to_string())
-        }
-    };
+    let (kind_label, capacity_label, sender_connected, receiver_connected) =
+        match channel_query_api.config(id) {
+            Ok(config) => (
+                config.kind().to_string(),
+                config.capacity().to_string(),
+                config.count().sender() > 0,
+                config.count().receiver() > 0,
+            ),
+            Err(e) => {
+                errors.push(e);
+                ("unknown".to_string(), "unknown".to_string(), false, false)
+            }
+        };
 
     let font_size = text::FONT_SIZE_SMALL;
     let body_width = text_width_from(name, font_size);
@@ -97,7 +103,17 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
                 height: "{layout::HEIGHT}",
                 rx: "10",
                 ry: "10",
-                fill: if *sender_hovered.read() { GradientHoverUrl::SENDER } else { GradientUrl::SENDER },
+                fill: if sender_connected {
+                    if *sender_hovered.read() {
+                        GradientHoverUrl::SENDER
+                    } else {
+                        GradientUrl::SENDER
+                    }
+                } else if *sender_hovered.read() {
+                    GradientHoverUrl::DISCONNECTED_SENDER
+                } else {
+                    GradientUrl::DISCONNECTED_SENDER
+                },
                 filter: if *sender_hovered.read() { shadow::FilterUrl::SHADOW_HOVER } else { shadow::FilterUrl::SHADOW },
                 stroke: "rgba(255,255,255,0.3)",
                 stroke_width: "1",
@@ -138,7 +154,17 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
                 height: "{layout::HEIGHT}",
                 rx: "10",
                 ry: "10",
-                fill: if *receiver_hovered.read() { GradientHoverUrl::RECEIVER } else { GradientUrl::RECEIVER },
+                fill: if receiver_connected {
+                    if *receiver_hovered.read() {
+                        GradientHoverUrl::RECEIVER
+                    } else {
+                        GradientUrl::RECEIVER
+                    }
+                } else if *receiver_hovered.read() {
+                    GradientHoverUrl::DISCONNECTED_RECEIVER
+                } else {
+                    GradientUrl::DISCONNECTED_RECEIVER
+                },
                 filter: if *receiver_hovered.read() { shadow::FilterUrl::SHADOW_HOVER } else { shadow::FilterUrl::SHADOW },
                 stroke: "rgba(255,255,255,0.3)",
                 stroke_width: "1",
@@ -217,6 +243,16 @@ pub fn style_defs() -> Element {
                 stop { offset: "95%", stop_color: "#374151" }
             }
 
+            linearGradient { id: "channel-disconnected-sender-gradient",
+                stop { offset: "5%", stop_color: "#b45309" }
+                stop { offset: "95%", stop_color: "#92400e" }
+            }
+
+            linearGradient { id: "channel-disconnected-receiver-gradient",
+                stop { offset: "5%", stop_color: "#f43f5e" }
+                stop { offset: "95%", stop_color: "#e11d48" }
+            }
+
             linearGradient { id: "channel-external-receiver-gradient",
                 stop { offset: "5%", stop_color: "#24272cff" }
                 stop { offset: "95%", stop_color: "#0a0c0fff" }
@@ -242,6 +278,16 @@ pub fn style_defs() -> Element {
                 stop { offset: "95%", stop_color: "#6B7280" }
             }
 
+            linearGradient { id: "channel-disconnected-sender-gradient-hover",
+                stop { offset: "5%", stop_color: "#d97706" }
+                stop { offset: "95%", stop_color: "#b45309" }
+            }
+
+            linearGradient { id: "channel-disconnected-receiver-gradient-hover",
+                stop { offset: "5%", stop_color: "#fb7185" }
+                stop { offset: "95%", stop_color: "#f43f5e" }
+            }
+
             linearGradient { id: "channel-external-receiver-gradient-hover",
                 stop { offset: "5%", stop_color: "#393d44ff" }
                 stop { offset: "95%", stop_color: "#14171bff" }
@@ -258,6 +304,8 @@ impl GradientUrl {
     pub const BODY: &'static str = "url(#channel-body-gradient)";
     pub const RECEIVER: &'static str = "url(#channel-receiver-gradient)";
     pub const RECEIVER_EXTERNAL: &'static str = "url(#channel-external-receiver-gradient)";
+    pub const DISCONNECTED_SENDER: &'static str = "url(#channel-disconnected-sender-gradient)";
+    pub const DISCONNECTED_RECEIVER: &'static str = "url(#channel-disconnected-receiver-gradient)";
 }
 
 pub struct GradientHoverUrl;
@@ -268,4 +316,8 @@ impl GradientHoverUrl {
     pub const BODY: &'static str = "url(#channel-body-gradient-hover)";
     pub const RECEIVER: &'static str = "url(#channel-receiver-gradient-hover)";
     pub const RECEIVER_EXTERNAL: &'static str = "url(#channel-external-receiver-gradient-hover)";
+    pub const DISCONNECTED_SENDER: &'static str =
+        "url(#channel-disconnected-sender-gradient-hover)";
+    pub const DISCONNECTED_RECEIVER: &'static str =
+        "url(#channel-disconnected-receiver-gradient-hover)";
 }

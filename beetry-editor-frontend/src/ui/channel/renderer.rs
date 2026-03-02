@@ -16,6 +16,7 @@ use crate::ui::channel::edge_menu::ConnectionId;
 use crate::ui::channel::layout as channel_layout;
 use crate::ui::error::ErrorQueueState;
 use crate::ui::node::base::{NODE_HEIGHT, NODE_WIDTH};
+use crate::ui::node::port::ConnectionOrigin;
 use crate::ui::node::port::layout;
 use crate::ui::text;
 use beetry_editor_backend::api::SpecByNodeIdQueryView;
@@ -24,6 +25,7 @@ use beetry_editor_backend::api::node::ports::RowIndex;
 struct ConnectionEntry {
     channel_id: ChannelId,
     node_port_center: Point,
+    port_width: f64,
     channel_pos: Point,
     connection: ConnectionId,
 }
@@ -68,13 +70,22 @@ pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Ele
     let spec_query_api = api::node::spec::by_node_id(editor);
     let errors = use_context::<ErrorQueueState>();
 
-    let render_edge = |pos: EdgePos, connection: ConnectionId, stroke: &'static str| {
+    let render_edge = |pos: EdgePos,
+                       port_center: Point,
+                       connection: ConnectionId,
+                       stroke: &'static str,
+                       origin: ConnectionOrigin,
+                       port_width: f64| {
         rsx! {
             Edge {
                 key: "{connection.node_id}:{connection.port_id}:{connection.channel_id}",
-                pos,
+                start: pos.start,
+                end: pos.end,
+                port_center,
                 connection,
                 stroke,
+                origin,
+                port_width,
             }
         }
     };
@@ -88,10 +99,14 @@ pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Ele
         &spec_query_api,
     )
     .map(|entry| {
+        let pos = sender_edge_pos(entry.node_port_center, &entry.channel_pos);
         render_edge(
-            sender_edge_pos(entry.node_port_center, &entry.channel_pos),
+            pos,
+            entry.node_port_center,
             entry.connection,
             "#10B981",
+            ConnectionOrigin::Sender,
+            entry.port_width,
         )
     });
 
@@ -106,14 +121,18 @@ pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Ele
     .filter_map(|entry| {
         let channel_name = channel_data_query_api.spec(entry.channel_id).ok()?.name();
         let channel_body_width = text::text_width_from(channel_name, text::FONT_SIZE_NORMAL);
+        let pos = receiver_edge_pos(
+            entry.node_port_center,
+            &entry.channel_pos,
+            channel_body_width,
+        );
         Some(render_edge(
-            receiver_edge_pos(
-                entry.node_port_center,
-                &entry.channel_pos,
-                channel_body_width,
-            ),
+            pos,
+            entry.node_port_center,
             entry.connection,
             "#6B7280",
+            ConnectionOrigin::Receiver,
+            entry.port_width,
         ))
     });
 
@@ -186,6 +205,7 @@ fn resolve_connection_entry(
     Some(ConnectionEntry {
         channel_id: connection.channel_id,
         node_port_center,
+        port_width,
         channel_pos: *channel_pos,
         connection,
     })
