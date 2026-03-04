@@ -1,7 +1,7 @@
 use crate::{
     api::NodeTrackerQueryView,
     channel::ChannelQueryView,
-    node::{PortStateQueryApi, SpecByNodeIdQueryView},
+    node::{PortStateQueryView, SpecByNodeIdQueryView},
     repository::NodeRepositoryFacadeConcept,
     service::{edge::EdgeQueryView, node::NodeView},
     ui::{ChannelUiQueryApi, NodeUiQueryApi, NodeUiQueryProcessor},

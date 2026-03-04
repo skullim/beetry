@@ -1,4 +1,5 @@
 use beetry_editor_backend::api;
+use beetry_editor_backend::api::node::ports::Source;
 use beetry_editor_types::{
     id::{NodeId, NodePortId},
     output::edge::NodeEdge,
@@ -18,7 +19,7 @@ pub(crate) fn input_handlers(
     mut temp: temporary::State,
     mut backend: Backend,
     mut requests: RenderRequests,
-) -> node::port::input::Handlers {
+) -> node::pin::input::Handlers {
     let on_mouse_up = move |to: NodeId| -> Result<()> {
         let mut edge = temp.edge.write();
         if let Some(from) = edge.take_dragged()
@@ -30,10 +31,10 @@ pub(crate) fn input_handlers(
         }
         Ok(())
     };
-    node::port::input::Handlers::new(on_mouse_up)
+    node::pin::input::Handlers::new(on_mouse_up)
 }
 
-pub(crate) fn output_handlers(mut temp: temporary::State) -> node::port::output::Handlers {
+pub(crate) fn output_handlers(mut temp: temporary::State) -> node::pin::output::Handlers {
     let on_mouse_down = move |indexed_drag_offset: IndexedDragOffset| {
         let (id, offset) = (indexed_drag_offset.id, indexed_drag_offset.offset);
         temp.edge.with_mut(|e| {
@@ -47,7 +48,7 @@ pub(crate) fn output_handlers(mut temp: temporary::State) -> node::port::output:
         });
         Ok(())
     };
-    node::port::output::Handlers::new(on_mouse_down)
+    node::pin::output::Handlers::new(on_mouse_down)
 }
 
 pub(crate) fn body_handlers(
@@ -100,7 +101,7 @@ pub(crate) fn menu_handlers(
 ) -> node::port::menu::Handlers {
     let on_external = move |(node_id, port_id): (NodeId, NodePortId)| -> Result<()> {
         backend
-            .with_mut(|s| api::node::ports::set_external(s, node_id, port_id))
+            .with_mut(|s| api::node::ports::set_source(s, node_id, port_id, Source::External))
             .map_err(|e| errors.push(e))
             .ok();
         debug!("set port (node id: {node_id}, port id: {port_id}) as external");
@@ -109,7 +110,7 @@ pub(crate) fn menu_handlers(
 
     let on_internal = move |(node_id, port_id): (NodeId, NodePortId)| -> Result<()> {
         backend
-            .with_mut(|s| api::node::ports::set_internal(s, node_id, port_id))
+            .with_mut(|s| api::node::ports::set_source(s, node_id, port_id, Source::Internal))
             .map_err(|e| errors.push(e))
             .ok();
         debug!("set port (node id: {node_id}, port id: {port_id}) as internal");

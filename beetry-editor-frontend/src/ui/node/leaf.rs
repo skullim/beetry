@@ -2,7 +2,7 @@ use crate::Backend;
 use crate::Point;
 use crate::ui::error::ErrorQueueState;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithMenu};
-use crate::ui::node::port::{self, input};
+use crate::ui::node::{pin::input, port};
 use beetry_editor_backend::api;
 use beetry_editor_backend::api::SpecByNodeIdQueryView;
 use beetry_editor_types::id::NodeId;
@@ -94,7 +94,7 @@ pub(crate) fn Leaf(props: LeafProps) -> Element {
             }
         }
         g { transform: "translate({half_width}, 0)",
-            input::Port { id, position }
+            input::Pin { id, position }
         }
 
         port::Renderer { id, position, dimensions }

@@ -29,16 +29,16 @@ pub(crate) fn Edge(props: EdgeProps) -> Element {
     let edge_id = props.edge_id;
 
     let curve_start = Point {
-        x: start.x + 50.0, // Center of node + offset to output port
+        x: start.x + 50.0, // Center of node + offset to output pin
         y: start.y + 70.0,
     };
 
     let curve_end = Point {
-        x: end.x + 50.0, // Center of node + offset to input port,
-        y: end.y - 10.0, // Top of node (input port),
+        x: end.x + 50.0, // Center of node + offset to input pin,
+        y: end.y - 10.0, // Top of node (input pin),
     };
 
-    let stroke_color = "#8B5CF6"; // matches output ports
+    let stroke_color = "#8B5CF6"; // matches output pins
     let stroke_width = "3";
 
     let handlers = use_context::<Handlers>();

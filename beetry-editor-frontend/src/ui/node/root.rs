@@ -6,7 +6,7 @@ use dioxus_logger::tracing::debug;
 
 use crate::Point;
 use crate::ui::node::base::{NodeBase, NodeStyle};
-use crate::ui::node::port::output;
+use crate::ui::node::pin::output;
 
 #[derive(Props, PartialEq, Clone)]
 pub struct RootProps {
@@ -29,7 +29,7 @@ pub(crate) fn Root(props: RootProps) -> Element {
             NodeBase { id, position, style }
         }
         g { transform: "translate({half_width}, {height})",
-            output::Port { id, position }
+            output::Pin { id, position }
         }
     }
 }

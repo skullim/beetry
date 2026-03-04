@@ -1,4 +1,6 @@
 use beetry_editor_backend::api;
+use beetry_editor_backend::node::PortStateQueryView;
+use beetry_editor_types::output::node::PortConnectionState;
 use std::rc::Rc;
 
 use crate::Backend;
@@ -51,9 +53,13 @@ pub fn Body(props: BodyProps) -> Element {
     let port_width = text_width_from(&message_desc, font_size);
 
     let is_external = use_signal(|| {
-        backend
-            .with(|s| api::node::ports::is_external(s, node_id, port_id))
-            .unwrap_or(false)
+        backend.with(|s| {
+            let query = api::node::ports::state_query(s);
+            query
+                .state(node_id, port_id)
+                .map(PortConnectionState::is_external)
+                .unwrap_or(false)
+        })
     });
     let mut is_connected = use_signal(|| {
         backend.with(|s| {

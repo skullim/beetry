@@ -3,6 +3,7 @@ mod common;
 use anyhow::Result;
 use beetry_editor_backend::api;
 use beetry_editor_backend::api::ChannelQueryView;
+use beetry_editor_backend::api::node::ports::Source;
 use beetry_editor_types::id::{ChannelId, NodePortId};
 use beetry_editor_types::output::ui::{ChannelUiData, NodeUiData, Point};
 use common::{
@@ -212,7 +213,7 @@ fn connecting_external_port_to_channel_fails(
     )?;
     let port_id = NodePortId::new(0);
 
-    api::node::ports::set_external(&mut service, node_id, port_id)?;
+    api::node::ports::set_source(&mut service, node_id, port_id, Source::External)?;
     let result = api::node::ports::connect(&mut service, node_id, port_id, channel_id);
     assert!(result.is_err());
     Ok(())

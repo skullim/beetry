@@ -2,7 +2,7 @@ use crate::Backend;
 use crate::Point;
 use crate::ui::error::ErrorQueueState;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithMenu};
-use crate::ui::node::port::{input, output};
+use crate::ui::node::pin::{input, output};
 use beetry_editor_backend::api;
 use beetry_editor_backend::api::SpecByNodeIdQueryView;
 use beetry_editor_types::id::NodeId;
@@ -68,10 +68,10 @@ pub fn Control(props: ControlProps) -> Element {
             }
         }
         g { transform: "translate({half_width}, 0)",
-            input::Port { id, position }
+            input::Pin { id, position }
         }
         g { transform: "translate({half_width}, {height})",
-            output::Port { id, position }
+            output::Pin { id, position }
         }
     }
 }
