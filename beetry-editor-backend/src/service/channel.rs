@@ -28,7 +28,7 @@ impl<'a, CRF> ChannelView<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
-    pub(super) fn new(facade_view: ChannelRepositoryFacadeView<'a, CRF>) -> Self {
+    pub(crate) fn new(facade_view: ChannelRepositoryFacadeView<'a, CRF>) -> Self {
         Self { facade_view }
     }
 }
@@ -78,7 +78,7 @@ impl<'a, CRF> ChannelViewMut<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
-    pub(super) fn new(
+    pub(crate) fn new(
         facade: ChannelRepositoryFacadeViewMut<'a, CRF>,
         channel: &'a mut ChannelService,
     ) -> Self {
@@ -101,11 +101,11 @@ where
         ChannelService::update_config(self.facade_view.channel, id, update)
     }
 
-    pub(super) fn connect(&mut self, context: &ConnectionContext) -> Result<()> {
+    pub(crate) fn connect(&mut self, context: &ConnectionContext) -> Result<()> {
         ChannelService::connect(self.facade_view.spec, self.facade_view.channel, context)
     }
 
-    pub(super) fn disconnect(&mut self, id: ChannelId, kind: NodePortKind) -> Result<()> {
+    pub(crate) fn disconnect(&mut self, id: ChannelId, kind: NodePortKind) -> Result<()> {
         ChannelService::disconnect(self.facade_view.channel, id, kind)
     }
 }
@@ -117,7 +117,7 @@ pub struct ConnectionContext<'a> {
 }
 
 // This is only needed by import/export API which is user-facing API, therefore this is not public
-pub(super) struct LoadChannelView<'a, CRF>
+pub(crate) struct LoadChannelView<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
@@ -129,7 +129,7 @@ impl<'a, CRF> LoadChannelView<'a, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
-    pub(super) fn new(
+    pub(crate) fn new(
         facade_view: ChannelRepositoryFacadeViewMut<'a, CRF>,
         channel: &'a mut ChannelService,
     ) -> Self {
@@ -139,22 +139,22 @@ where
         }
     }
 
-    pub(super) fn load_spec(&mut self, record: ChannelSpecRecord) -> Result<()> {
+    pub(crate) fn load_spec(&mut self, record: ChannelSpecRecord) -> Result<()> {
         self.channel.load_spec(self.facade_view.spec, record)
     }
 
-    pub(super) fn load_channel(&mut self, record: ChannelRecord) -> Result<()> {
+    pub(crate) fn load_channel(&mut self, record: ChannelRecord) -> Result<()> {
         self.facade_view.channel.load(record.id, record.data)
     }
 }
 
 #[derive(Default)]
-pub(super) struct ChannelService {
+pub(crate) struct ChannelService {
     spec_cache: HashMap<ChannelSpec, ChannelSpecId>,
 }
 
 impl ChannelService {
-    pub(super) fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self::default()
     }
 

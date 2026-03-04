@@ -21,7 +21,7 @@ impl<'a, UR> NodeUiView<'a, UR>
 where
     UR: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
 {
-    pub(super) fn new(repo: &'a UR) -> Self {
+    pub(crate) fn new(repo: &'a UR) -> Self {
         Self { repo }
     }
 }
@@ -94,7 +94,7 @@ impl<'a, UR> NodeUiViewMut<'a, UR>
 where
     UR: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
 {
-    pub(super) fn new(repo: &'a mut UR) -> Self {
+    pub(crate) fn new(repo: &'a mut UR) -> Self {
         Self { repo }
     }
 
@@ -124,7 +124,7 @@ impl<'a, UR> ChannelUiView<'a, UR>
 where
     UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
 {
-    pub(super) fn new(repo: &'a UR) -> Self {
+    pub(crate) fn new(repo: &'a UR) -> Self {
         Self { repo }
     }
 }
@@ -162,7 +162,7 @@ impl<'a, UR> ChannelUiViewMut<'a, UR>
 where
     UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
 {
-    pub(super) fn new(repo: &'a mut UR) -> Self {
+    pub(crate) fn new(repo: &'a mut UR) -> Self {
         Self { repo }
     }
 

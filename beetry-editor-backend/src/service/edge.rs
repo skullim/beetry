@@ -16,7 +16,7 @@ impl<'a, ER> EdgeView<'a, ER>
 where
     ER: EdgeRepositoryConcept,
 {
-    pub(super) fn new(edge_repo: &'a ER, edge_service: &'a EdgeService) -> Self {
+    pub(crate) fn new(edge_repo: &'a ER, edge_service: &'a EdgeService) -> Self {
         Self {
             edge_repo,
             edge_service,
@@ -47,7 +47,7 @@ where
     }
 }
 
-pub(super) struct EdgeViewMut<'a, ER, NRF>
+pub(crate) struct EdgeViewMut<'a, ER, NRF>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
@@ -62,7 +62,7 @@ where
     ER: EdgeRepositoryConcept,
     NRF: NodeRepositoryFacadeConcept,
 {
-    pub(super) fn new(
+    pub(crate) fn new(
         edge_repo: &'a mut ER,
         edge_service: &'a mut EdgeService,
         node_tracker_view: TrackerView<'a, NRF::NodeRepo>,
@@ -76,7 +76,7 @@ where
         }
     }
 
-    pub(super) fn create(&mut self, edge: NodeEdge) -> Result<EdgeId> {
+    pub(crate) fn create(&mut self, edge: NodeEdge) -> Result<EdgeId> {
         self.edge_service.create::<NRF>(
             self.edge_repo,
             &self.node_tracker_view,
@@ -85,12 +85,12 @@ where
         )
     }
 
-    pub(super) fn remove(&mut self, id: EdgeId) -> Result<()> {
+    pub(crate) fn remove(&mut self, id: EdgeId) -> Result<()> {
         self.edge_service.remove(self.edge_repo, id)
     }
 }
 
-pub(super) struct OnNodeRemovalServiceApi<'a, ER> {
+pub(crate) struct OnNodeRemovalServiceApi<'a, ER> {
     service: &'a mut EdgeService,
     repo: &'a mut ER,
 }
@@ -99,11 +99,11 @@ impl<'a, ER> OnNodeRemovalServiceApi<'a, ER>
 where
     ER: EdgeRepositoryConcept,
 {
-    pub(super) fn new(service: &'a mut EdgeService, repo: &'a mut ER) -> Self {
+    pub(crate) fn new(service: &'a mut EdgeService, repo: &'a mut ER) -> Self {
         Self { service, repo }
     }
 
-    pub(super) fn on_removal(&mut self, id: NodeId) -> Result<()> {
+    pub(crate) fn on_removal(&mut self, id: NodeId) -> Result<()> {
         let filtered: Vec<_> = self
             .repo
             .iter()
@@ -123,7 +123,7 @@ where
 }
 
 #[derive(Debug, Default)]
-pub(super) struct EdgeService {
+pub(crate) struct EdgeService {
     // not strictly necessary, but good for performance to cache the tree hierarchy
     // Here the exact order is not kept, as it can change dynamically based on the position of any child
     parent_children_map: HashMap<NodeId, HashSet<NodeId>>,
@@ -131,7 +131,7 @@ pub(super) struct EdgeService {
 }
 
 impl EdgeService {
-    pub(super) fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self::default()
     }
 
