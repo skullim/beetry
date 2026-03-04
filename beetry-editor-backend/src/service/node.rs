@@ -396,7 +396,7 @@ where
         if let Some(ports_spec) = spec.ports() {
             let channel_service_api =
                 ChannelViewMut::new(self.channel_facade.view_mut(), self.channel_service);
-            let mut port_connection_service_api = PortConnectionView::new(
+            let mut port_connection_service_api = PortConnectionOps::new(
                 self.node_facade_view.ports,
                 ports_spec,
                 channel_service_api,
@@ -587,9 +587,7 @@ where
         }
     }
 
-    pub fn internal_connections(
-        self,
-    ) -> impl Iterator<Item = (&'a NodeId, &'a NodePortId, &'a ChannelId)> {
+    pub fn connections(self) -> impl Iterator<Item = (&'a NodeId, &'a NodePortId, &'a ChannelId)> {
         self.port_repo
             .iter()
             .flat_map(|(node_id, port_iter): (&'a NodeId, _)| {
@@ -609,7 +607,7 @@ where
     }
 
     pub fn connection_views(self) -> impl Iterator<Item = Result<PortConnectionDataView<'a>>> {
-        PortConnectionViewIter::new(self.node_repo, self.spec_repo, self.internal_connections())
+        PortConnectionViewIter::new(self.node_repo, self.spec_repo, self.connections())
     }
 
     pub fn connection_views_by_kind(
@@ -656,6 +654,12 @@ where
     channel_service: &'a mut ChannelService,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PortSource {
+    Internal,
+    External,
+}
+
 impl<'a, NR, SR, PR, CRF> PortStateViewMut<'a, NR, SR, PR, CRF>
 where
     NR: NodeRepositoryConcept,
@@ -679,33 +683,20 @@ where
         }
     }
 
-    fn port_connection_by_node(
-        &mut self,
-        node_id: NodeId,
-    ) -> Result<PortConnectionView<'_, PR, CRF>> {
-        let spec = SpecView::spec_by_node_id(self.spec_repo, self.node_repo, node_id)?;
-        let ports_spec = spec
-            .ports()
-            .as_ref()
-            .ok_or_else(|| anyhow!("expected port specification for node {node_id}"))?;
-
-        Ok(PortConnectionView::new(
-            self.port_repo,
-            ports_spec,
-            ChannelViewMut::new(self.channel_facade.view_mut(), self.channel_service),
-        ))
-    }
-
     pub fn connect_port(
         &mut self,
         node_id: NodeId,
         port_id: NodePortId,
         channel_id: ChannelId,
     ) -> Result<()> {
-        if PortStateQueryApi::is_external(self, node_id, port_id)? {
+        //@todo this check should be moved to PortConnectionOps
+        if self
+            .state(node_id, port_id)
+            .is_ok_and(PortConnectionState::is_external)
+        {
             bail!("attempted to connect port that is marked as external");
         }
-        let mut port_connection = self.port_connection_by_node(node_id)?;
+        let mut port_connection = self.port_connection_ops(node_id)?;
         port_connection.connect(PortConnectionInput::new(node_id, port_id, channel_id))
     }
 
@@ -715,18 +706,35 @@ where
         port_id: NodePortId,
         channel_id: ChannelId,
     ) -> Result<()> {
-        let mut port_connection = self.port_connection_by_node(node_id)?;
+        let mut port_connection = self.port_connection_ops(node_id)?;
         port_connection.disconnect(PortConnectionInput::new(node_id, port_id, channel_id))
     }
 
-    pub fn set_port_external(&'a mut self, node_id: NodeId, port_id: NodePortId) -> Result<()> {
-        let mut port_connection = self.port_connection_by_node(node_id)?;
-        port_connection.set_external(node_id, port_id)
+    pub fn set_port_source(
+        &'a mut self,
+        node_id: NodeId,
+        port_id: NodePortId,
+        source: PortSource,
+    ) -> Result<()> {
+        let mut port_connection = self.port_connection_ops(node_id)?;
+        match source {
+            PortSource::External => port_connection.set_external(node_id, port_id),
+            PortSource::Internal => port_connection.disconnect_port(node_id, port_id),
+        }
     }
 
-    pub fn set_port_internal(&'a mut self, node_id: NodeId, port_id: NodePortId) -> Result<()> {
-        let mut port_connection = self.port_connection_by_node(node_id)?;
-        port_connection.disconnect_port(node_id, port_id)
+    fn port_connection_ops(&mut self, node_id: NodeId) -> Result<PortConnectionOps<'_, PR, CRF>> {
+        let spec = SpecView::spec_by_node_id(self.spec_repo, self.node_repo, node_id)?;
+        let ports_spec = spec
+            .ports()
+            .as_ref()
+            .ok_or_else(|| anyhow!("expected port specification for node {node_id}"))?;
+
+        Ok(PortConnectionOps::new(
+            self.port_repo,
+            ports_spec,
+            ChannelViewMut::new(self.channel_facade.view_mut(), self.channel_service),
+        ))
     }
 }
 
@@ -811,7 +819,7 @@ pub struct PortConnectionDataView<'a> {
     pub msg_desc: &'a str,
 }
 
-pub trait PortStateQueryApi {
+pub trait PortStateQueryView {
     fn state(&self, node_id: NodeId, port_id: NodePortId) -> Result<&PortConnectionState>;
 
     fn node_conns(
@@ -827,16 +835,9 @@ pub trait PortStateQueryApi {
             impl Iterator<Item = (&NodePortId, &PortConnectionState)>,
         ),
     >;
-
-    fn is_external(&self, node_id: NodeId, port_id: NodePortId) -> Result<bool> {
-        Ok(self
-            .node_conns(node_id)
-            .find(|(id, _)| **id == port_id)
-            .is_some_and(|(_, state)| state.is_external()))
-    }
 }
 
-impl<NR, SR, PR> PortStateQueryApi for PortStateView<'_, NR, SR, PR>
+impl<NR, SR, PR> PortStateQueryView for PortStateView<'_, NR, SR, PR>
 where
     NR: NodeRepositoryConcept,
     SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
@@ -867,7 +868,7 @@ where
     }
 }
 
-impl<NR, SR, PR, CRF> PortStateQueryApi for PortStateViewMut<'_, NR, SR, PR, CRF>
+impl<NR, SR, PR, CRF> PortStateQueryView for PortStateViewMut<'_, NR, SR, PR, CRF>
 where
     NR: NodeRepositoryConcept,
     SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
@@ -899,7 +900,7 @@ where
     }
 }
 
-pub struct PortConnectionView<'a, PR, CRF>
+pub struct PortConnectionOps<'a, PR, CRF>
 where
     CRF: ChannelRepositoryFacadeConcept,
 {
@@ -908,7 +909,7 @@ where
     channel_service_api: ChannelViewMut<'a, CRF>,
 }
 
-impl<'a, PR, CRF> PortConnectionView<'a, PR, CRF>
+impl<'a, PR, CRF> PortConnectionOps<'a, PR, CRF>
 where
     PR: PortStateRepositoryConcept,
     CRF: ChannelRepositoryFacadeConcept,
@@ -926,15 +927,7 @@ where
     }
 }
 
-pub trait PortConnectionOps {
-    fn connect(&mut self, input: PortConnectionInput) -> Result<()>;
-    fn set_external(&mut self, id: NodeId, port: NodePortId) -> Result<()>;
-    fn disconnect(&mut self, input: PortConnectionInput) -> Result<()>;
-    fn disconnect_all_ports(&mut self, id: NodeId) -> Result<()>;
-    fn disconnect_port(&mut self, id: NodeId, port: NodePortId) -> Result<()>;
-}
-
-impl<PR, CRF> PortConnectionOps for PortConnectionView<'_, PR, CRF>
+impl<PR, CRF> PortConnectionOps<'_, PR, CRF>
 where
     PR: PortStateRepositoryConcept,
     CRF: ChannelRepositoryFacadeConcept,

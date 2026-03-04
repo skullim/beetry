@@ -1,6 +1,7 @@
 pub mod base;
 pub mod menu;
 pub mod parameter;
+pub mod pin;
 pub mod port;
 pub mod renderer;
 pub(crate) mod tooltip;
@@ -20,6 +21,6 @@ pub fn style_defs() -> Element {
         {control::style_defs()}
         {decorator::style_defs()}
         {leaf::style_defs()}
-        {port::style_defs()}
+        {pin::style_defs()}
     }
 }

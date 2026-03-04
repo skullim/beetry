@@ -4,15 +4,14 @@ use crate::{
     edge::{EdgeQueryView, EdgeView},
     node::{
         NodeTrackerQueryView, NodeView, ParameterValueMut, ParameterValueQueryView,
-        ParameterValueView, ParameterValueViewMut, PortConnectionDataView, PortStateQueryApi,
-        SpecByNodeIdQuery, SpecByNodeIdQueryView, SpecBySpecIdQuery, SpecBySpecIdQueryView,
-        TrackerView,
+        ParameterValueView, ParameterValueViewMut, PortConnectionDataView, PortSource,
+        PortStateQueryView, SpecByNodeIdQuery, SpecByNodeIdQueryView, SpecBySpecIdQuery,
+        SpecBySpecIdQueryView, TrackerView,
     },
     repository::{
         ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, EditorRepository,
         EditorRepositoryView, EditorRepositoryViewMut, NodeRepositoryFacadeConcept,
-        NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut, ParamValueRepositoryConcept,
-        UiRepositoryFacadeConcept,
+        NodeRepositoryFacadeView, NodeRepositoryFacadeViewMut, UiRepositoryFacadeConcept,
     },
     service::{
         channel::{ChannelService, ChannelViewMut},
@@ -26,13 +25,12 @@ use crate::{
         NodeUiViewMut,
     },
 };
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Result, bail};
 use beetry_editor_types::{
     id::{ChannelId, EdgeId, NodeId, NodePortId},
     output::{
         channel::{ChannelConfigInput, ChannelConfigUpdate, ChannelData},
         edge::NodeEdge,
-        node::Parameters,
         ui::{ChannelUiData, NodeUiData, Point},
     },
     persistence::{EditorStateStore, ValidTree},
@@ -193,10 +191,9 @@ pub trait NodeApi {
 
     fn tracker(&self) -> impl NodeTrackerQueryView;
 
-    fn port_state(&self) -> impl PortStateQueryApi;
+    fn port_state(&self) -> impl PortStateQueryView;
 
     fn parameters(&self) -> impl ParameterValueQueryView;
-    fn parameters_by_node_id(&self, id: NodeId) -> Result<&Parameters>;
     fn parameters_mut(&mut self) -> impl ParameterValueMut;
 }
 
@@ -212,7 +209,6 @@ where
     }
 
     fn remove(&mut self, id: NodeId) -> Result<()> {
-        //@todo needs refactoring to do without cloning
         let spec = self.spec_by_node_id().spec(id)?.clone();
         self.node_view_mut().lifecycle().remove(&spec, id)
     }
@@ -233,7 +229,7 @@ where
         TrackerView::new(&self.node_service, nodes)
     }
 
-    fn port_state(&self) -> impl PortStateQueryApi {
+    fn port_state(&self) -> impl PortStateQueryView {
         self.node_view().into_port_state()
     }
 
@@ -243,14 +239,6 @@ where
         ParameterValueView::new(parameters)
     }
 
-    fn parameters_by_node_id(&self, id: NodeId) -> Result<&Parameters> {
-        let EditorRepositoryView { node, .. } = self.repo.view();
-        let NodeRepositoryFacadeView { parameters, .. } = node.view();
-        parameters
-            .params(id)
-            .ok_or_else(|| anyhow!("failed to obtain parameters for node {id}"))
-    }
-
     fn parameters_mut(&mut self) -> impl ParameterValueMut {
         let EditorRepositoryViewMut { node, .. } = self.repo.view_mut();
         let NodeRepositoryFacadeViewMut { parameters, .. } = node.view_mut();
@@ -258,9 +246,7 @@ where
     }
 }
 
-pub trait NodePortApi: NodeApi {
-    fn is_external(&self, node_id: NodeId, port_id: NodePortId) -> Result<bool>;
-
+pub trait PortApi: NodeApi {
     fn port_order(&self, kind: NodePortKind, node_id: NodeId, port_id: NodePortId)
     -> Result<usize>;
 
@@ -278,11 +264,14 @@ pub trait NodePortApi: NodeApi {
         channel_id: ChannelId,
     ) -> Result<()>;
 
-    fn set_port_external(&mut self, node_id: NodeId, port_id: NodePortId) -> Result<()>;
+    fn set_port_source(
+        &mut self,
+        node_id: NodeId,
+        port_id: NodePortId,
+        source: PortSource,
+    ) -> Result<()>;
 
-    fn set_port_internal(&mut self, node_id: NodeId, port_id: NodePortId) -> Result<()>;
-
-    fn internal_connections(&self) -> impl Iterator<Item = (&NodeId, &NodePortId, &ChannelId)>;
+    fn connections(&self) -> impl Iterator<Item = (&NodeId, &NodePortId, &ChannelId)>;
 
     fn connection_views(&self) -> impl Iterator<Item = Result<PortConnectionDataView<'_>>>;
 
@@ -292,17 +281,13 @@ pub trait NodePortApi: NodeApi {
     ) -> impl Iterator<Item = Result<PortConnectionDataView<'_>>>;
 }
 
-impl<NRF, ER, CRF, URF> NodePortApi for EditorService<NRF, ER, CRF, URF>
+impl<NRF, ER, CRF, URF> PortApi for EditorService<NRF, ER, CRF, URF>
 where
     NRF: NodeRepositoryFacadeConcept,
     ER: EdgeRepositoryConcept,
     CRF: ChannelRepositoryFacadeConcept,
     URF: UiRepositoryFacadeConcept,
 {
-    fn is_external(&self, node_id: NodeId, port_id: NodePortId) -> Result<bool> {
-        self.node_view().port_state().is_external(node_id, port_id)
-    }
-
     fn port_order(
         &self,
         kind: NodePortKind,
@@ -335,18 +320,18 @@ where
             .disconnect_port(node_id, port_id, channel_id)
     }
 
-    fn set_port_external(&mut self, node_id: NodeId, port_id: NodePortId) -> Result<()> {
+    fn set_port_source(
+        &mut self,
+        node_id: NodeId,
+        port_id: NodePortId,
+        source: PortSource,
+    ) -> Result<()> {
         let mut node = self.node_view_mut();
-        node.port_state().set_port_external(node_id, port_id)
+        node.port_state().set_port_source(node_id, port_id, source)
     }
 
-    fn set_port_internal(&mut self, node_id: NodeId, port_id: NodePortId) -> Result<()> {
-        let mut node = self.node_view_mut();
-        node.port_state().set_port_internal(node_id, port_id)
-    }
-
-    fn internal_connections(&self) -> impl Iterator<Item = (&NodeId, &NodePortId, &ChannelId)> {
-        self.node_view().into_port_state().internal_connections()
+    fn connections(&self) -> impl Iterator<Item = (&NodeId, &NodePortId, &ChannelId)> {
+        self.node_view().into_port_state().connections()
     }
 
     fn connection_views(&self) -> impl Iterator<Item = Result<PortConnectionDataView<'_>>> {
@@ -510,7 +495,7 @@ where
     }
 }
 
-pub trait ChannelLifecycleApi: ChannelApi + ChannelUiApi + NodePortApi {
+pub trait ChannelLifecycleApi: ChannelApi + ChannelUiApi + PortApi {
     fn create_with_ui(
         &mut self,
         spec: &ChannelSpec,
@@ -526,7 +511,7 @@ pub trait ChannelLifecycleApi: ChannelApi + ChannelUiApi + NodePortApi {
 
     fn remove_with_ui(&mut self, id: ChannelId) -> Result<()> {
         let to_disconnect: Vec<_> = self
-            .internal_connections()
+            .connections()
             .filter(|(_, _, channel_id)| **channel_id == id)
             .map(|(node_id, port_id, _)| (*node_id, *port_id))
             .collect();
@@ -545,4 +530,4 @@ pub trait ChannelLifecycleApi: ChannelApi + ChannelUiApi + NodePortApi {
     }
 }
 
-impl<T> ChannelLifecycleApi for T where T: ChannelApi + ChannelUiApi + NodePortApi {}
+impl<T> ChannelLifecycleApi for T where T: ChannelApi + ChannelUiApi + PortApi {}

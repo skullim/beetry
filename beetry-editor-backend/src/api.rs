@@ -2,7 +2,7 @@ pub use crate::{
     channel::ChannelQueryView,
     edge::EdgeQueryView,
     node::{
-        NodeTrackerQueryView, ParameterValueParser, ParameterValueQueryView, PortConnectionView,
+        NodeTrackerQueryView, ParameterValueParser, ParameterValueQueryView, PortConnectionOps,
         SpecByNodeIdQueryView, SpecBySpecIdQueryView,
     },
     ui::{ChannelUiQueryApi, NodeUiQueryApi, NodeUiQueryProcessor},
@@ -52,7 +52,7 @@ pub mod node {
     }
 
     pub mod parameters {
-        use crate::api::contract::NodeApi;
+        use crate::api::{ParameterValueQueryView, contract::NodeApi};
         use crate::service::node::ParameterValueMut;
         use beetry_editor_types::{id::NodeId, output::node::Parameters};
 
@@ -60,30 +60,30 @@ pub mod node {
             NodeApi::parameters_mut(api).create(id, params);
         }
 
-        pub fn get(api: &impl NodeApi, id: NodeId) -> anyhow::Result<&Parameters> {
-            NodeApi::parameters_by_node_id(api, id)
+        pub fn query(api: &impl NodeApi) -> impl ParameterValueQueryView {
+            api.parameters()
         }
     }
 
     pub mod ports {
-        use crate::{api::contract::NodePortApi, node::PortConnectionDataView};
+        use crate::{
+            api::contract::PortApi,
+            node::{PortConnectionDataView, PortStateQueryView},
+        };
         use anyhow::Result;
         use beetry_editor_types::{
             id::{ChannelId, NodeId, NodePortId},
             spec::node::NodePortKind,
         };
         pub type RowIndex = usize;
+        pub type Source = crate::service::node::PortSource;
 
-        pub fn is_external(
-            api: &impl NodePortApi,
-            node_id: NodeId,
-            port_id: NodePortId,
-        ) -> Result<bool> {
-            api.is_external(node_id, port_id)
+        pub fn state_query(api: &impl PortApi) -> impl PortStateQueryView {
+            api.port_state()
         }
 
         pub fn connect(
-            api: &mut impl NodePortApi,
+            api: &mut impl PortApi,
             node_id: NodeId,
             port_id: NodePortId,
             channel_id: ChannelId,
@@ -92,7 +92,7 @@ pub mod node {
         }
 
         pub fn disconnect(
-            api: &mut impl NodePortApi,
+            api: &mut impl PortApi,
             node_id: NodeId,
             port_id: NodePortId,
             channel_id: ChannelId,
@@ -100,43 +100,36 @@ pub mod node {
             api.disconnect_port(node_id, port_id, channel_id)
         }
 
-        pub fn set_external(
-            api: &mut impl NodePortApi,
+        pub fn set_source(
+            api: &mut impl PortApi,
             node_id: NodeId,
             port_id: NodePortId,
+            source: Source,
         ) -> Result<()> {
-            api.set_port_external(node_id, port_id)
-        }
-
-        pub fn set_internal(
-            api: &mut impl NodePortApi,
-            node_id: NodeId,
-            port_id: NodePortId,
-        ) -> Result<()> {
-            api.set_port_internal(node_id, port_id)
+            api.set_port_source(node_id, port_id, source)
         }
 
         pub fn internal_connections(
-            api: &impl NodePortApi,
+            api: &impl PortApi,
         ) -> impl Iterator<Item = (&NodeId, &NodePortId, &ChannelId)> {
-            api.internal_connections()
+            api.connections()
         }
 
         pub fn connection_views(
-            api: &impl NodePortApi,
+            api: &impl PortApi,
         ) -> impl Iterator<Item = Result<PortConnectionDataView<'_>>> {
             api.connection_views()
         }
 
         pub fn connection_views_by_kind(
-            api: &impl NodePortApi,
+            api: &impl PortApi,
             kind: NodePortKind,
         ) -> impl Iterator<Item = Result<PortConnectionDataView<'_>>> {
             api.connection_views_by_kind(kind)
         }
 
         pub fn port_order(
-            api: &impl NodePortApi,
+            api: &impl PortApi,
             kind: NodePortKind,
             node_id: NodeId,
             port_id: NodePortId,

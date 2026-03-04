@@ -1,7 +1,7 @@
 use crate::Backend;
 use crate::ui::error::ErrorQueueState;
 use crate::{Point, ui::handler::define_handlers};
-use beetry_editor_backend::api;
+use beetry_editor_backend::api::{self, ParameterValueQueryView};
 use beetry_editor_backend::api::{ParameterValueParser, SpecByNodeIdQueryView};
 use beetry_editor_types::output::node::ParameterValue;
 use beetry_editor_types::spec::node::FieldDefinition;
@@ -85,7 +85,7 @@ fn VisibleDialog(props: VisibleDialogProps) -> Element {
         Mode::Update => {
             let Some(parameters) = backend
                 .with_peek(|s| -> anyhow::Result<Parameters> {
-                    Ok(api::node::parameters::get(s, id)?.clone())
+                    Ok(api::node::parameters::query(s).parameters(id)?.clone())
                 })
                 .map_err(|err| {
                     errors.push(format!(

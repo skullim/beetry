@@ -1,16 +1,16 @@
 use crate::Point;
-use crate::ui::channel::edge_menu::ConnectionId;
 use crate::ui::curve::Curve;
 use crate::ui::handler::define_handlers;
 use crate::ui::node::port::ConnectionOrigin;
+use beetry_editor_types::id::ChannelEdgeId;
 use dioxus::prelude::*;
 
 define_handlers!(
-    on_menu: (ConnectionId, Point)
+    on_menu: (ChannelEdgeId, Point)
 );
 
 impl Handlers {
-    pub(crate) fn on_menu_handler(&self) -> EventHandler<(ConnectionId, Point)> {
+    pub(crate) fn on_menu_handler(&self) -> EventHandler<(ChannelEdgeId, Point)> {
         self.on_menu
     }
 }
@@ -20,7 +20,7 @@ pub struct EdgeProps {
     pub start: Point,
     pub end: Point,
     pub port_center: Point,
-    pub connection: ConnectionId,
+    pub edge: ChannelEdgeId,
     pub stroke: &'static str,
     pub origin: ConnectionOrigin,
     pub port_width: f64,
@@ -52,7 +52,7 @@ pub fn Edge(props: EdgeProps) -> Element {
                         x: evt.element_coordinates().x,
                         y: evt.element_coordinates().y,
                     };
-                    on_menu.call((props.connection, click_point));
+                    on_menu.call((props.edge, click_point));
                 },
             }
         } else {

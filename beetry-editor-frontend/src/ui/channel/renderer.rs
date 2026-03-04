@@ -2,8 +2,8 @@ use crate::Point;
 use beetry_editor_backend::EditorService;
 use beetry_editor_backend::api;
 use beetry_editor_backend::api::{ChannelQueryView, ChannelUiQueryApi, NodeUiQueryApi};
-use beetry_editor_types::id::ChannelId;
-use beetry_editor_types::{id::NodeId, spec::node::NodePortKind};
+use beetry_editor_types::id::{ChannelEdgeId, ChannelId, NodeId};
+use beetry_editor_types::spec::node::NodePortKind;
 use beetry_plugin::Named;
 use dioxus::prelude::*;
 
@@ -12,7 +12,6 @@ use crate::definitions::EdgePos;
 use crate::signals::{RequestChannelEdgeRender, RequestChannelRender};
 use crate::ui::channel::Channel;
 use crate::ui::channel::edge::Edge;
-use crate::ui::channel::edge_menu::ConnectionId;
 use crate::ui::channel::layout as channel_layout;
 use crate::ui::error::ErrorQueueState;
 use crate::ui::node::base::{NODE_HEIGHT, NODE_WIDTH};
@@ -27,7 +26,7 @@ struct ConnectionEntry {
     node_port_center: Point,
     port_width: f64,
     channel_pos: Point,
-    connection: ConnectionId,
+    edge: ChannelEdgeId,
 }
 
 // Conditions to re-render channel elements:
@@ -72,17 +71,17 @@ pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Ele
 
     let render_edge = |pos: EdgePos,
                        port_center: Point,
-                       connection: ConnectionId,
+                       edge: ChannelEdgeId,
                        stroke: &'static str,
                        origin: ConnectionOrigin,
                        port_width: f64| {
         rsx! {
             Edge {
-                key: "{connection.node_id}:{connection.port_id}:{connection.channel_id}",
+                key: "{edge.node_id}:{edge.port_id}:{edge.channel_id}",
                 start: pos.start,
                 end: pos.end,
                 port_center,
-                connection,
+                edge,
                 stroke,
                 origin,
                 port_width,
@@ -103,7 +102,7 @@ pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Ele
         render_edge(
             pos,
             entry.node_port_center,
-            entry.connection,
+            entry.edge,
             "#10B981",
             ConnectionOrigin::Sender,
             entry.port_width,
@@ -129,7 +128,7 @@ pub fn ConnectionRenderer(render_channel_edges: RequestChannelEdgeRender) -> Ele
         Some(render_edge(
             pos,
             entry.node_port_center,
-            entry.connection,
+            entry.edge,
             "#6B7280",
             ConnectionOrigin::Receiver,
             entry.port_width,
@@ -163,7 +162,7 @@ where
             .ok()
         })
         .filter_map(move |conn| {
-            let connection = ConnectionId {
+            let edge = ChannelEdgeId {
                 node_id: conn.node_id,
                 port_id: conn.port_id,
                 channel_id: conn.channel_id,
@@ -173,7 +172,7 @@ where
                 node_query_api,
                 channel_query_api,
                 spec_query_api,
-                connection,
+                edge,
                 conn.msg_desc,
                 kind,
             )
@@ -185,29 +184,29 @@ fn resolve_connection_entry(
     node_query_api: &impl NodeUiQueryApi,
     channel_query_api: &impl ChannelUiQueryApi,
     spec_query_api: &impl SpecByNodeIdQueryView,
-    connection: ConnectionId,
+    edge: ChannelEdgeId,
     msg_desc: &str,
     kind: NodePortKind,
 ) -> Option<ConnectionEntry> {
-    let node_pos = node_query_api.position(connection.node_id).ok()?;
-    let channel_pos = channel_query_api.position(connection.channel_id).ok()?;
+    let node_pos = node_query_api.position(edge.node_id).ok()?;
+    let channel_pos = channel_query_api.position(edge.channel_id).ok()?;
     let port_width = text::text_width_from(msg_desc, text::FONT_SIZE_NORMAL);
     let row_idx: RowIndex =
-        api::node::ports::port_order(editor, kind, connection.node_id, connection.port_id).ok()?;
+        api::node::ports::port_order(editor, kind, edge.node_id, edge.port_id).ok()?;
     let node_port_center = node_port_center(
         spec_query_api,
-        connection.node_id,
+        edge.node_id,
         kind,
         row_idx,
         node_pos,
         port_width,
     )?;
     Some(ConnectionEntry {
-        channel_id: connection.channel_id,
+        channel_id: edge.channel_id,
         node_port_center,
         port_width,
         channel_pos: *channel_pos,
-        connection,
+        edge,
     })
 }
 

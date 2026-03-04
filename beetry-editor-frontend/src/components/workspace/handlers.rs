@@ -2,7 +2,7 @@ pub(crate) mod channel;
 pub(crate) mod channel_edge;
 pub(crate) mod edge;
 pub(crate) mod node;
-pub(crate) mod port;
+pub(crate) mod pin;
 
 use crate::Backend;
 use crate::components::workspace::state;

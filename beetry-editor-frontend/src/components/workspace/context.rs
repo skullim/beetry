@@ -25,8 +25,8 @@ pub(super) fn Provider(
     use_context_provider(|| {
         handlers::node::handlers(state.drag, state.menu, state.svg, backend, errors)
     });
-    use_context_provider(|| handlers::port::input_handlers(state.temp, backend, render_requests));
-    use_context_provider(|| handlers::port::output_handlers(state.temp));
+    use_context_provider(|| handlers::pin::input_handlers(state.temp, backend, render_requests));
+    use_context_provider(|| handlers::pin::output_handlers(state.temp));
     use_context_provider(|| {
         handlers::node::menu_handlers(state.menu, backend, render_requests, editor_state.parameter)
     });
@@ -47,8 +47,8 @@ pub(super) fn Provider(
         )
     });
 
-    use_context_provider(|| handlers::port::body_handlers(state.menu, state.temp));
-    use_context_provider(|| handlers::port::menu_handlers(backend, errors));
+    use_context_provider(|| handlers::pin::body_handlers(state.menu, state.temp));
+    use_context_provider(|| handlers::pin::menu_handlers(backend, errors));
 
     use_context_provider(|| handlers::channel::handlers(state, backend, render_requests, errors));
 

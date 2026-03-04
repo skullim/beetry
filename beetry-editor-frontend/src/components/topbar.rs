@@ -19,8 +19,8 @@ pub(crate) fn Topbar() -> Element {
                         "Zoom: "
                         span { class: "bt-topbar-chip", "Ctrl + Wheel" }
                     }
-                    p { "Create node edge: Drag parent -> child port." }
-                    p { "Create channel edge: Drag node data port -> matching channel port." }
+                    p { "Create node edge: Drag parent -> child pin." }
+                    p { "Create port connection: Drag node port -> matching channel port." }
                 }
             }
         }

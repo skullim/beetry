@@ -1,16 +1,9 @@
 use crate::{Point, ui::handler::define_handlers};
-use beetry_editor_types::id::{ChannelId, NodeId, NodePortId};
+use beetry_editor_types::id::ChannelEdgeId;
 use dioxus::prelude::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ConnectionId {
-    pub node_id: NodeId,
-    pub port_id: NodePortId,
-    pub channel_id: ChannelId,
-}
-
 define_handlers!(
-    on_delete: ConnectionId,
+    on_delete: ChannelEdgeId,
     on_close: (),
 );
 
@@ -20,7 +13,7 @@ pub enum State {
     Idle,
     Visible {
         position: Point,
-        connection: ConnectionId,
+        edge: ChannelEdgeId,
     },
 }
 
@@ -29,12 +22,12 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
     const WIDTH: u16 = 160;
     const HEIGHT: u16 = 36;
 
-    let (position, connection) = match *state.read() {
+    let (position, edge) = match *state.read() {
         State::Idle => return rsx!(),
         State::Visible {
             position,
-            connection,
-        } => (position, connection),
+            edge,
+        } => (position, edge),
     };
 
     let handlers = use_context::<Handlers>();
@@ -50,7 +43,7 @@ pub fn Menu(state: ReadSignal<State>) -> Element {
                 style: "cursor: pointer;",
                 onclick: move |evt| {
                     evt.stop_propagation();
-                    handlers.on_delete.call(connection);
+                    handlers.on_delete.call(edge);
                     handlers.on_close.call(());
                 },
                 onmouseup: move |evt| {

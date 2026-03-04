@@ -62,3 +62,10 @@ derive_id!(EdgeId as u16);
 
 derive_id!(ChannelId as u16);
 derive_id!(ChannelSpecId as u16);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct ChannelEdgeId {
+    pub node_id: NodeId,
+    pub port_id: NodePortId,
+    pub channel_id: ChannelId,
+}
