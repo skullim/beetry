@@ -1,20 +1,22 @@
 pub mod api;
+mod id;
 mod repository;
 mod service;
-mod id;
 
+use crate::repository::{
+    ChannelRepositoryFacade, EdgeRepository, NodeRepositoryFacade, UiRepositoryFacade,
+};
 use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
 use beetry_editor_types::{
     spec::channel::ChannelSpec,
     spec::node::{NodeSpec, NodeSpecKey},
 };
-use crate::repository::{ChannelRepositoryFacade, EdgeRepository, NodeRepositoryFacade, UiRepositoryFacade};
 use std::collections::HashMap;
 
-pub use service::{channel, edge, editor, node, ui};
+pub use service::{channel, edge, node, ui};
 
-pub type EditorService = service::editor::EditorService<
+pub type EditorService = api::contract::EditorService<
     NodeRepositoryFacade,
     EdgeRepository,
     ChannelRepositoryFacade,

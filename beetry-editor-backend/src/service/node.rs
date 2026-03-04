@@ -35,7 +35,7 @@ impl<'a, NRF> NodeView<'a, NRF>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
-    pub(super) fn new(
+    pub(crate) fn new(
         facade_view: NodeRepositoryFacadeView<'a, NRF>,
         node_service: &'a NodeService,
     ) -> Self {
@@ -104,7 +104,7 @@ where
     ER: EdgeRepositoryConcept,
     CRF: ChannelRepositoryFacadeConcept,
 {
-    pub(super) fn new(
+    pub(crate) fn new(
         facade_view: NodeRepositoryFacadeViewMut<'a, NRF>,
         node_service: &'a mut NodeService,
         edge_repo: &'a mut ER,
@@ -158,7 +158,7 @@ where
     SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
     NR: NodeRepositoryConcept,
 {
-    pub(super) fn new(spec_repo: &'a SR, node_repo: &'a NR) -> Self {
+    pub(crate) fn new(spec_repo: &'a SR, node_repo: &'a NR) -> Self {
         Self {
             spec_repo,
             node_repo,
@@ -214,7 +214,7 @@ pub struct SpecBySpecIdQuery<'a, SR> {
 }
 
 impl<'a, SR> SpecBySpecIdQuery<'a, SR> {
-    pub(super) fn new(repo: &'a SR) -> Self {
+    pub(crate) fn new(repo: &'a SR) -> Self {
         Self { repo }
     }
 }
@@ -300,7 +300,7 @@ where
 /// API used to load the given record from the storage. It is assumed that valid entities are loaded, i.e.
 /// entities that have been created only using the provided interface. Therefore no further validation is implemented (as opposed to
 /// the interface that is used to create the entities).
-pub(super) struct LoadNodeView<'a, NRF>
+pub(crate) struct LoadNodeView<'a, NRF>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
@@ -312,7 +312,7 @@ impl<'a, NRF> LoadNodeView<'a, NRF>
 where
     NRF: NodeRepositoryFacadeConcept,
 {
-    pub(super) fn new(
+    pub(crate) fn new(
         node_service: &'a mut NodeService,
         node_facade_view: NodeRepositoryFacadeViewMut<'a, NRF>,
     ) -> Self {
@@ -322,7 +322,7 @@ where
         }
     }
 
-    pub(super) fn load_node(
+    pub(crate) fn load_node(
         &mut self,
         node: NodeRecord,
         param_value: Option<ParameterValues>,
@@ -357,7 +357,7 @@ where
         Ok(())
     }
 
-    pub(super) fn load_spec(&mut self, id: NodeSpecId, spec: NodeSpec) -> Result<()> {
+    pub(crate) fn load_spec(&mut self, id: NodeSpecId, spec: NodeSpec) -> Result<()> {
         self.node_service
             .load_spec(self.node_facade_view.specs, id, spec)
     }
@@ -420,11 +420,11 @@ impl<'a, NR> TrackerView<'a, NR>
 where
     NR: NodeRepositoryConcept,
 {
-    pub(super) fn new(service: &'a NodeService, repo: &'a NR) -> Self {
+    pub(crate) fn new(service: &'a NodeService, repo: &'a NR) -> Self {
         Self { service, repo }
     }
 
-    pub(super) fn ensure_exists(&self, id: NodeId) -> Result<()> {
+    pub(crate) fn ensure_exists(&self, id: NodeId) -> Result<()> {
         if !self.repo.contains(&id) {
             bail!("node {id} does not exist");
         }
@@ -484,7 +484,7 @@ impl<'a, PVR> ParameterValueView<'a, PVR>
 where
     PVR: ParamValueRepositoryConcept,
 {
-    pub(super) fn new(repo: &'a PVR) -> Self {
+    pub(crate) fn new(repo: &'a PVR) -> Self {
         Self { repo }
     }
 
@@ -549,7 +549,7 @@ impl<'a, PVR> ParameterValueViewMut<'a, PVR>
 where
     PVR: ParamValueRepositoryConcept,
 {
-    pub(super) fn new(repo: &'a mut PVR) -> Self {
+    pub(crate) fn new(repo: &'a mut PVR) -> Self {
         Self { repo }
     }
 
@@ -579,7 +579,7 @@ where
     SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
     PR: PortStateRepositoryConcept,
 {
-    pub(super) fn new(node_repo: &'a NR, spec_repo: &'a SR, port_repo: &'a PR) -> Self {
+    pub(crate) fn new(node_repo: &'a NR, spec_repo: &'a SR, port_repo: &'a PR) -> Self {
         Self {
             node_repo,
             spec_repo,
@@ -913,7 +913,7 @@ where
     PR: PortStateRepositoryConcept,
     CRF: ChannelRepositoryFacadeConcept,
 {
-    pub(super) fn new(
+    pub(crate) fn new(
         repo: &'a mut PR,
         ports_spec: &'a PortsSpec,
         channel_service_api: ChannelViewMut<'a, CRF>,
@@ -997,13 +997,13 @@ where
 }
 
 #[derive(Debug, Default)]
-pub(super) struct NodeService {
+pub(crate) struct NodeService {
     spec_cache: HashMap<NodeSpecKey, NodeSpecId>,
     node_cache: HashMap<NodeKind, HashSet<NodeId>>,
 }
 
 impl NodeService {
-    pub(super) fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self::default()
     }
 
@@ -1079,7 +1079,7 @@ impl NodeService {
         Ok(())
     }
 
-    pub(super) fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId> {
+    pub(crate) fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId> {
         self.node_cache
             .get(&kind)
             .into_iter()

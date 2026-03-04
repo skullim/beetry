@@ -36,7 +36,7 @@ where
     CRF: ChannelRepositoryFacadeConcept,
     URF: UiRepositoryFacadeConcept,
 {
-    pub(super) fn new(
+    pub(crate) fn new(
         node_service: &'a mut NodeService,
         edge_service: &'a mut EdgeService,
         channel_service: &'a mut ChannelService,
