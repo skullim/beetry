@@ -174,8 +174,9 @@ impl EdgeService {
 
         //implicit re-parenting (more convenient to use for client)
         if let Some(old_parent_id) = self.child_parent_map.get(&child).copied()
-            && let Some(edge_id) =
-                Self::find_edge_id_from(edge_repo, |(_, e)| e.from == old_parent_id)
+            && let Some(edge_id) = Self::find_edge_id_from(edge_repo, |(_, e)| {
+                e.from == old_parent_id && e.to == child
+            })
         {
             warn!("re-parenting node {child} from {old_parent_id} to {parent}");
             self.remove(edge_repo, edge_id)?;

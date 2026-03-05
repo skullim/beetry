@@ -4,7 +4,7 @@ use crate::ui::error::ErrorQueueState;
 use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithMenu};
 use crate::ui::node::pin::{input, output};
 use beetry_editor_backend::api;
-use beetry_editor_backend::api::SpecByNodeIdQueryView;
+use beetry_editor_backend::api::SpecByNodeIdQuery;
 use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;

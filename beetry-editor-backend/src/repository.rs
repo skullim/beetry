@@ -1,12 +1,12 @@
 use crate::id::IdProvider;
 use anyhow::{Result, bail};
 use beetry_editor_types::{
-    id::{ChannelId, ChannelSpecId, EdgeId, NodeId, NodePortId, NodeSpecId},
+    id::{ChannelId, ChannelSpecId, EdgeId, NodeId, NodePortId, NodeSpecId, PortConnectionId},
     output::{
         channel::ChannelData,
         edge::NodeEdge,
-        node::{ParameterValue, Parameters, PortConnectionState},
-        ui::{ChannelUiData, NodeUiData},
+        node::{ParameterValue, Parameters, PortState},
+        ui::{ChannelUiData, NodeUiData, PortConnectionUiData},
     },
     spec::{
         channel::ChannelSpec,
@@ -15,7 +15,12 @@ use beetry_editor_types::{
 };
 use getset::{Getters, MutGetters};
 use num_traits::One;
-use std::{collections::HashMap, fmt::Display, hash::Hash, ops::AddAssign};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Display,
+    hash::Hash,
+    ops::AddAssign,
+};
 
 #[derive(Debug, Default, Getters, MutGetters)]
 pub struct EditorRepository<NRF, ER, CRF, UR> {
@@ -89,6 +94,7 @@ pub trait NodeRepositoryFacadeConcept: Default {
     type SpecRepo: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>;
 
     type ParamValuesRepo: ParamValueRepositoryConcept;
+    type PortConnectionRepo: PortConnectionRepositoryConcept;
     type PortStateRepo: PortStateRepositoryConcept;
 
     fn view(&self) -> NodeRepositoryFacadeView<'_, Self>
@@ -104,6 +110,7 @@ pub struct NodeRepositoryFacadeView<'a, F: NodeRepositoryFacadeConcept> {
     pub nodes: &'a F::NodeRepo,
     pub specs: &'a F::SpecRepo,
     pub parameters: &'a F::ParamValuesRepo,
+    pub port_connections: &'a F::PortConnectionRepo,
     pub ports: &'a F::PortStateRepo,
 }
 
@@ -119,6 +126,7 @@ pub struct NodeRepositoryFacadeViewMut<'a, F: NodeRepositoryFacadeConcept> {
     pub nodes: &'a mut F::NodeRepo,
     pub specs: &'a mut F::SpecRepo,
     pub parameters: &'a mut F::ParamValuesRepo,
+    pub port_connections: &'a mut F::PortConnectionRepo,
     pub ports: &'a mut F::PortStateRepo,
 }
 
@@ -127,6 +135,7 @@ pub struct NodeRepositoryFacade {
     node: NodeRepository,
     spec: NodeSpecRepository,
     parameter: ParamValuesRepository,
+    port_connection: PortConnectionRepository,
     port: PortStateRepository,
 }
 
@@ -135,12 +144,14 @@ impl NodeRepositoryFacade {
         node: NodeRepository,
         spec: NodeSpecRepository,
         parameter: ParamValuesRepository,
+        port_connection: PortConnectionRepository,
         port: PortStateRepository,
     ) -> Self {
         Self {
             node,
             spec,
             parameter,
+            port_connection,
             port,
         }
     }
@@ -150,6 +161,7 @@ impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
     type NodeRepo = NodeRepository;
     type SpecRepo = NodeSpecRepository;
     type ParamValuesRepo = ParamValuesRepository;
+    type PortConnectionRepo = PortConnectionRepository;
     type PortStateRepo = PortStateRepository;
 
     fn view(&self) -> NodeRepositoryFacadeView<'_, Self> {
@@ -157,6 +169,7 @@ impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
             nodes: &self.node,
             specs: &self.spec,
             parameters: &self.parameter,
+            port_connections: &self.port_connection,
             ports: &self.port,
         }
     }
@@ -166,6 +179,7 @@ impl NodeRepositoryFacadeConcept for NodeRepositoryFacade {
             nodes: &mut self.node,
             specs: &mut self.spec,
             parameters: &mut self.parameter,
+            port_connections: &mut self.port_connection,
             ports: &mut self.port,
         }
     }
@@ -235,6 +249,7 @@ impl ChannelRepositoryFacadeConcept for ChannelRepositoryFacade {
 pub trait UiRepositoryFacadeConcept: Default {
     type UiNodeRepo: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>;
     type UiChannelRepo: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>;
+    type UiPortConnectionRepo: UiRepositoryConcept<Id = PortConnectionId, Data = PortConnectionUiData>;
 
     fn view(&self) -> UiRepositoryFacadeView<'_, Self>
     where
@@ -248,27 +263,39 @@ pub trait UiRepositoryFacadeConcept: Default {
 pub struct UiRepositoryFacadeView<'a, F: UiRepositoryFacadeConcept> {
     pub node: &'a F::UiNodeRepo,
     pub channel: &'a F::UiChannelRepo,
+    pub port_connection: &'a F::UiPortConnectionRepo,
 }
 
 pub struct UiRepositoryFacadeViewMut<'a, F: UiRepositoryFacadeConcept> {
     pub node: &'a mut F::UiNodeRepo,
     pub channel: &'a mut F::UiChannelRepo,
+    pub port_connection: &'a mut F::UiPortConnectionRepo,
 }
 #[derive(Default)]
 pub struct UiRepositoryFacade {
     node: NodeUiRepository,
     channel: ChannelUiRepository,
+    port_connection: PortConnectionUiRepository,
 }
 
 impl UiRepositoryFacade {
-    pub fn new(node: NodeUiRepository, channel: ChannelUiRepository) -> Self {
-        Self { node, channel }
+    pub fn new(
+        node: NodeUiRepository,
+        channel: ChannelUiRepository,
+        port_connection: PortConnectionUiRepository,
+    ) -> Self {
+        Self {
+            node,
+            channel,
+            port_connection,
+        }
     }
 }
 
 impl UiRepositoryFacadeConcept for UiRepositoryFacade {
     type UiNodeRepo = NodeUiRepository;
     type UiChannelRepo = ChannelUiRepository;
+    type UiPortConnectionRepo = PortConnectionUiRepository;
 
     fn view(&self) -> UiRepositoryFacadeView<'_, Self>
     where
@@ -277,6 +304,7 @@ impl UiRepositoryFacadeConcept for UiRepositoryFacade {
         UiRepositoryFacadeView {
             node: &self.node,
             channel: &self.channel,
+            port_connection: &self.port_connection,
         }
     }
 
@@ -287,6 +315,7 @@ impl UiRepositoryFacadeConcept for UiRepositoryFacade {
         UiRepositoryFacadeViewMut {
             node: &mut self.node,
             channel: &mut self.channel,
+            port_connection: &mut self.port_connection,
         }
     }
 }
@@ -434,71 +463,146 @@ impl NodeRepositoryConcept for NodeRepository {
 }
 
 pub trait PortStateRepositoryConcept: Default {
-    fn insert(&mut self, node: NodeId, port: NodePortId, state: PortConnectionState) -> Result<()>;
+    fn insert(&mut self, node: NodeId, port: NodePortId, state: PortState) -> Result<()>;
 
-    fn remove(&mut self, node: NodeId, port: NodePortId) -> Option<PortConnectionState>;
+    fn remove(&mut self, node: NodeId, port: NodePortId) -> Option<PortState>;
 
-    fn state(&self, node: NodeId, port: NodePortId) -> Option<&PortConnectionState>;
-    fn state_mut(&mut self, node: NodeId, port: NodePortId) -> Option<&mut PortConnectionState>;
-
-    fn node_conns(&self, node: NodeId)
-    -> impl Iterator<Item = (&NodePortId, &PortConnectionState)>;
-
-    fn iter(
-        &self,
-    ) -> impl Iterator<
-        Item = (
-            &NodeId,
-            impl Iterator<Item = (&NodePortId, &PortConnectionState)>,
-        ),
-    >;
+    fn state(&self, node: NodeId, port: NodePortId) -> Option<&PortState>;
+    fn state_mut(&mut self, node: NodeId, port: NodePortId) -> Option<&mut PortState>;
 }
 
 #[derive(Default)]
 pub struct PortStateRepository {
-    connections: HashMap<NodeId, HashMap<NodePortId, PortConnectionState>>,
+    states: HashMap<(NodeId, NodePortId), PortState>,
 }
 
 impl PortStateRepositoryConcept for PortStateRepository {
-    fn insert(&mut self, node: NodeId, port: NodePortId, state: PortConnectionState) -> Result<()> {
-        self.connections
-            .entry(node)
-            .or_default()
-            .insert(port, state);
+    fn insert(&mut self, node: NodeId, port: NodePortId, state: PortState) -> Result<()> {
+        self.states.insert((node, port), state);
         Ok(())
     }
 
-    fn remove(&mut self, node: NodeId, port: NodePortId) -> Option<PortConnectionState> {
-        self.connections.get_mut(&node).map(|hm| hm.remove(&port))?
+    fn remove(&mut self, node: NodeId, port: NodePortId) -> Option<PortState> {
+        self.states.remove(&(node, port))
     }
 
-    fn state(&self, node: NodeId, port: NodePortId) -> Option<&PortConnectionState> {
-        self.connections.get(&node)?.get(&port)
+    fn state(&self, node: NodeId, port: NodePortId) -> Option<&PortState> {
+        self.states.get(&(node, port))
     }
 
-    fn state_mut(&mut self, node: NodeId, port: NodePortId) -> Option<&mut PortConnectionState> {
-        self.connections.get_mut(&node)?.get_mut(&port)
+    fn state_mut(&mut self, node: NodeId, port: NodePortId) -> Option<&mut PortState> {
+        self.states.get_mut(&(node, port))
     }
+}
 
-    fn node_conns(
-        &self,
+pub trait PortConnectionRepositoryConcept: Default {
+    fn insert(&mut self, conn: PortConnectionId) -> Result<()>;
+
+    fn remove(&mut self, conn: PortConnectionId);
+    fn remove_port_conns(
+        &mut self,
         node: NodeId,
-    ) -> impl Iterator<Item = (&NodePortId, &PortConnectionState)> {
-        self.connections
+        port: NodePortId,
+    ) -> Option<impl IntoIterator<Item = ChannelId> + use<Self>>;
+    fn remove_node_conns(
+        &mut self,
+        id: NodeId,
+    ) -> Option<impl IntoIterator<Item = (NodePortId, ChannelId)> + use<Self>>;
+
+    fn conn_exists(&self, conn: PortConnectionId) -> bool;
+    fn is_port_connected(&self, node: NodeId, port: NodePortId) -> bool;
+    fn node_conns(&self, node: NodeId) -> impl Iterator<Item = (&NodePortId, &ChannelId)>;
+
+    fn iter(
+        &self,
+    ) -> impl Iterator<Item = (&NodeId, impl Iterator<Item = (&NodePortId, &ChannelId)>)>;
+}
+
+#[derive(Default)]
+pub struct PortConnectionRepository {
+    conns: HashMap<NodeId, HashMap<NodePortId, HashSet<ChannelId>>>,
+}
+
+impl PortConnectionRepositoryConcept for PortConnectionRepository {
+    fn insert(&mut self, conn: PortConnectionId) -> Result<()> {
+        self.conns
+            .entry(conn.node_id)
+            .or_default()
+            .entry(conn.port_id)
+            .or_default()
+            .insert(conn.channel_id);
+        Ok(())
+    }
+
+    fn remove(&mut self, conn: PortConnectionId) {
+        if let Some(port_conns) = self.conns.get_mut(&conn.node_id)
+            && let Some(channel_ids) = port_conns.get_mut(&conn.port_id)
+        {
+            {
+                channel_ids.remove(&conn.channel_id);
+            }
+        }
+    }
+
+    fn remove_port_conns(
+        &mut self,
+        node: NodeId,
+        port: NodePortId,
+    ) -> Option<impl IntoIterator<Item = ChannelId> + use<>> {
+        if let Some(node_conns) = self.conns.get_mut(&node)
+            && let Some(port_conns) = node_conns.remove(&port)
+        {
+            {
+                return Some(port_conns.into_iter());
+            }
+        }
+        None
+    }
+
+    fn remove_node_conns(
+        &mut self,
+        id: NodeId,
+    ) -> Option<impl IntoIterator<Item = (NodePortId, ChannelId)> + use<>> {
+        self.conns.remove(&id).map(|node_conns| {
+            node_conns.into_iter().flat_map(|(port_id, channel_ids)| {
+                channel_ids
+                    .into_iter()
+                    .map(move |channel_id| (port_id, channel_id))
+            })
+        })
+    }
+
+    fn conn_exists(&self, conn: PortConnectionId) -> bool {
+        self.conns
+            .get(&conn.node_id)
+            .and_then(|ports| ports.get(&conn.port_id))
+            .is_some_and(|channels| channels.contains(&conn.channel_id))
+    }
+
+    fn is_port_connected(&self, node: NodeId, port: NodePortId) -> bool {
+        self.conns
             .get(&node)
-            .into_iter()
-            .flat_map(|hm| hm.iter())
+            .and_then(|ports| ports.get(&port))
+            .is_some_and(|channels| !channels.is_empty())
+    }
+
+    fn node_conns(&self, node: NodeId) -> impl Iterator<Item = (&NodePortId, &ChannelId)> {
+        self.conns.get(&node).into_iter().flat_map(|ports| {
+            ports.iter().flat_map(|(port_id, channels)| {
+                channels.iter().map(move |channel_id| (port_id, channel_id))
+            })
+        })
     }
 
     fn iter(
         &self,
-    ) -> impl Iterator<
-        Item = (
-            &NodeId,
-            impl Iterator<Item = (&NodePortId, &PortConnectionState)>,
-        ),
-    > {
-        self.connections.iter().map(|(k, v)| (k, v.iter()))
+    ) -> impl Iterator<Item = (&NodeId, impl Iterator<Item = (&NodePortId, &ChannelId)>)> {
+        self.conns.iter().map(|(node_id, ports)| {
+            let it = ports.iter().flat_map(|(port_id, channels)| {
+                channels.iter().map(move |channel_id| (port_id, channel_id))
+            });
+            (node_id, it)
+        })
     }
 }
 
@@ -604,7 +708,6 @@ pub trait ChannelRepositoryConcept: Default {
     fn data(&self, id: ChannelId) -> Option<&ChannelData>;
     fn data_mut(&mut self, id: ChannelId) -> Option<&mut ChannelData>;
 
-    fn data_iter(&self) -> impl Iterator<Item = &ChannelData>;
     fn channels(&self) -> impl Iterator<Item = &ChannelId>;
 }
 
@@ -647,10 +750,6 @@ impl ChannelRepositoryConcept for ChannelRepository {
 
     fn data(&self, id: ChannelId) -> Option<&ChannelData> {
         self.channels.get(&id)
-    }
-
-    fn data_iter(&self) -> impl Iterator<Item = &ChannelData> {
-        self.channels.values()
     }
 
     fn channels(&self) -> impl Iterator<Item = &ChannelId> {
@@ -725,3 +824,5 @@ where
 
 pub type NodeUiRepository = UiRepository<NodeId, NodeUiData>;
 pub type ChannelUiRepository = UiRepository<ChannelId, ChannelUiData>;
+
+pub type PortConnectionUiRepository = UiRepository<PortConnectionId, PortConnectionUiData>;

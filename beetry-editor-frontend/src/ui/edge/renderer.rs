@@ -3,7 +3,7 @@ use crate::signals::RequestEdgeRender;
 use crate::ui::edge::Edge;
 use crate::{Backend, ui::error::ErrorQueueState};
 use beetry_editor_backend::api;
-use beetry_editor_backend::api::{EdgeQueryView, NodeUiQueryApi};
+use beetry_editor_backend::api::{EdgeQueryView, NodeUiQuery};
 use dioxus::prelude::*;
 
 // Conditions to re-render the edges:
@@ -16,8 +16,8 @@ pub fn Renderer(render_edges: RequestEdgeRender) -> Element {
     let backend = use_context::<Backend>();
     let read = backend.read();
 
-    let edge_query = api::edge::borrow(&(*read));
-    let ui_node_query = api::ui::node::borrow(&(*read));
+    let edge_query = api::edge::query(&(*read));
+    let ui_node_query = api::ui::node::query(&(*read));
 
     let mut errors = use_context::<ErrorQueueState>();
     let mut node_pos = |node_id| {

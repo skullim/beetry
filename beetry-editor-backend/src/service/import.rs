@@ -13,7 +13,7 @@ use crate::{
         edge::EdgeService,
         node::{LoadNodeView, NodeService},
     },
-    ui::{ChannelUiViewMut, NodeUiViewMut},
+    ui::{ChannelUiViewMut, NodeUiViewMut, PortConnectionUiStateViewMut},
 };
 use anyhow::Result;
 use beetry_editor_types::{
@@ -95,9 +95,10 @@ where
                 edges.extend(edge_iter);
 
                 let param_value = tree.parameter.take(&record.id);
-                let port_state = tree.ports.take(&record.id);
-                load_node_view.load_node(record, param_value, port_state)?;
+                let ports_state = tree.port.take_state(&record.id);
+                load_node_view.load_node(record, param_value, ports_state)?;
             }
+            load_node_view.load_port_connections(tree.port.take_connections())?;
         }
         let NodeRepositoryFacadeView { nodes, specs, .. } = node.view();
         let tracker_view = node::TrackerView::new(self.node_service, nodes);
@@ -111,14 +112,29 @@ where
     }
 
     pub fn import_ui(&mut self, ui: UiElementStore) -> Result<()> {
+        let UiElementStore {
+            nodes,
+            channels,
+            port_connections,
+        } = ui;
+
         let mut node_mut_api = NodeUiViewMut::new(self.repo.ui_mut().view_mut().node);
-        for node in ui.nodes {
+        for node in nodes {
             node_mut_api.create(node.id, node.data)?;
         }
 
         let mut channel_mut_api = ChannelUiViewMut::new(self.repo.ui_mut().view_mut().channel);
-        for channel in ui.channels {
+        for channel in channels {
             channel_mut_api.create(channel.id, channel.data)?;
+        }
+
+        let EditorRepositoryViewMut { node, ui, .. } = self.repo.view_mut();
+        let mut port_conn_ui_api = PortConnectionUiStateViewMut::new(
+            ui.view_mut().port_connection,
+            node.view().port_connections,
+        );
+        for conn in port_connections {
+            port_conn_ui_api.create(conn.id, conn.data)?;
         }
 
         Ok(())

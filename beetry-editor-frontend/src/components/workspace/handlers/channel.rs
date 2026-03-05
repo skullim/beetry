@@ -1,6 +1,9 @@
 use beetry_editor_backend::api;
 use beetry_editor_backend::api::ChannelQueryView;
-use beetry_editor_types::{id::ChannelId, output::ui::Point};
+use beetry_editor_types::{
+    id::{ChannelId, PortConnectionId},
+    output::ui::{Point, PortConnectionUiData, VisibilityKind},
+};
 use dioxus::{html::input_data::MouseButton, prelude::*};
 
 use crate::components::workspace::{self, state::menu};
@@ -21,8 +24,13 @@ pub(crate) fn handlers(
         if let Some(data) = channel.take_dragged()
             && matches!(data.origin, ConnectionOrigin::Receiver)
         {
-            match backend.with_mut(|s| api::node::ports::connect(s, data.node_id, data.port_id, id))
-            {
+            match backend.with_mut(|s| {
+                api::node::ports::connect(
+                    s,
+                    PortConnectionId::new(data.node_id, data.port_id, id),
+                    PortConnectionUiData::new(VisibilityKind::Visible),
+                )
+            }) {
                 Ok(()) => {
                     requests.channel_edges.request();
                     info!(
@@ -43,8 +51,13 @@ pub(crate) fn handlers(
         if let Some(data) = channel.take_dragged()
             && matches!(data.origin, ConnectionOrigin::Sender)
         {
-            match backend.with_mut(|s| api::node::ports::connect(s, data.node_id, data.port_id, id))
-            {
+            match backend.with_mut(|s| {
+                api::node::ports::connect(
+                    s,
+                    PortConnectionId::new(data.node_id, data.port_id, id),
+                    PortConnectionUiData::new(VisibilityKind::Visible),
+                )
+            }) {
                 Ok(()) => {
                     requests.channel_edges.request();
                     info!(
@@ -126,7 +139,7 @@ pub(crate) fn menu_handlers(
 
     let on_update = move |(id, position): (ChannelId, Point)| -> Result<()> {
         let Some(config) = backend.with(|s| {
-            let query = api::channel::borrow(s);
+            let query = api::channel::query(s);
             query.config(id).map_err(|e| errors.push(e)).ok().cloned()
         }) else {
             return Ok(());

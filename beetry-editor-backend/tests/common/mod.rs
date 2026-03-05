@@ -1,8 +1,9 @@
 use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
-use beetry_editor_backend::{EditorService, NodeSpecMap};
+use beetry_editor_backend::{EditorService, NodeSpecMap, api};
+use beetry_editor_types::id::{ChannelId, NodeId};
 use beetry_editor_types::output::channel::{ChannelConfigInput, ChannelKind, TokioChannelKind};
-use beetry_editor_types::output::ui::Point;
+use beetry_editor_types::output::ui::{ChannelUiData, NodeUiData, Point};
 use beetry_editor_types::spec::channel::ChannelSpec;
 use beetry_editor_types::spec::message::{MessageHashProvider, MessageSpec, MessageTypeProvider};
 use beetry_editor_types::spec::node::{
@@ -184,6 +185,38 @@ impl TestSpecs {
 }
 
 pub type TestEditorService = EditorService;
+
+#[allow(dead_code)]
+pub fn create_node(
+    service: &mut TestEditorService,
+    specs: &TestSpecs,
+    case: NodeSpecCase,
+) -> Result<NodeId> {
+    api::node::create(
+        service,
+        specs.node_spec(case)?,
+        NodeUiData {
+            position: Point { x: 0.0, y: 0.0 },
+        },
+    )
+}
+
+#[allow(dead_code)]
+pub fn create_channel(
+    service: &mut TestEditorService,
+    specs: &TestSpecs,
+    case: ChannelSpecCase,
+    input: ChannelConfigInput,
+) -> Result<ChannelId> {
+    api::channel::create(
+        service,
+        specs.channel_spec(case)?,
+        input,
+        ChannelUiData {
+            position: Point { x: 0.0, y: 0.0 },
+        },
+    )
+}
 
 #[fixture]
 pub fn specs() -> TestSpecs {

@@ -64,8 +64,18 @@ derive_id!(ChannelId as u16);
 derive_id!(ChannelSpecId as u16);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct ChannelEdgeId {
+pub struct PortConnectionId {
     pub node_id: NodeId,
     pub port_id: NodePortId,
     pub channel_id: ChannelId,
+}
+
+impl PortConnectionId {
+    pub fn new(node_id: NodeId, port_id: NodePortId, channel_id: ChannelId) -> Self {
+        Self {
+            node_id,
+            port_id,
+            channel_id,
+        }
+    }
 }

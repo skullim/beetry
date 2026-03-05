@@ -1,17 +1,16 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::{
-    id::{ChannelId, ChannelSpecId, NodeId, NodePortId, NodeSpecId},
+    id::{ChannelId, ChannelSpecId, NodeId, NodePortId, NodeSpecId, PortConnectionId},
     output::{
         channel::ChannelData,
-        node::{Parameters, PortConnectionState},
-        ui::{ChannelUiData, NodeUiData},
+        node::{Parameters, PortState},
+        ui::{ChannelUiData, NodeUiData, PortConnectionUiData},
     },
     spec::{channel::ChannelSpec, node::NodeSpecKey},
 };
 use getset::{CopyGetters, Getters};
 use indexmap::IndexSet;
-use mitsein::{iter1::FromIterator1, vec1::Vec1};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -48,7 +47,7 @@ impl ValidTree {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TreeStore {
     pub node: NodeStore,
-    pub ports: PortStateStore,
+    pub port: PortStore,
     pub parameter: ParameterStore,
     pub channel: ChannelStore,
 }
@@ -56,13 +55,13 @@ pub struct TreeStore {
 impl TreeStore {
     pub fn new(
         node: NodeStore,
-        ports: PortStateStore,
+        port: PortStore,
         parameter: ParameterStore,
         channel: ChannelStore,
     ) -> Self {
         Self {
             node,
-            ports,
+            port,
             parameter,
             channel,
         }
@@ -196,50 +195,42 @@ pub struct ParameterValues {
     pub params: Parameters,
 }
 
+pub type PortsStateMap = HashMap<NodePortId, PortState>;
+
+pub struct PortsStateRecord {
+    id: NodeId,
+    state: PortsStateMap,
+}
+
+impl PortsStateRecord {
+    pub fn new(id: NodeId, state: PortsStateMap) -> Self {
+        Self { id, state }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PortStateStore {
-    ports: BTreeMap<NodeId, PortConnectionCollection>,
+pub struct PortStore {
+    states: HashMap<NodeId, PortsStateMap>,
+    connections: HashSet<PortConnectionId>,
 }
 
-impl FromIterator<(NodeId, PortConnectionCollection)> for PortStateStore {
-    fn from_iter<T: IntoIterator<Item = (NodeId, PortConnectionCollection)>>(iter: T) -> Self {
+impl PortStore {
+    pub fn new(
+        records: impl IntoIterator<Item = PortsStateRecord>,
+        connections: impl IntoIterator<Item = PortConnectionId>,
+    ) -> Self {
         Self {
-            ports: iter.into_iter().collect(),
+            states: records.into_iter().map(|r| (r.id, r.state)).collect(),
+            connections: connections.into_iter().collect(),
         }
     }
-}
 
-impl PortStateStore {
-    pub fn take(&mut self, id: &NodeId) -> Option<PortConnectionCollection> {
-        self.ports.remove(id)
+    pub fn take_state(&mut self, id: &NodeId) -> Option<PortsStateMap> {
+        self.states.remove(id)
     }
-}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PortConnectionCollection {
-    pub conns: Vec1<PortConnectionRecord>,
-}
-
-impl FromIterator1<PortConnectionRecord> for PortConnectionCollection {
-    fn from_iter1<I>(items: I) -> Self
-    where
-        I: mitsein::prelude::IntoIterator1<Item = PortConnectionRecord>,
-    {
-        Self {
-            conns: items.into_iter1().collect1(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PortConnectionRecord {
-    pub port_id: NodePortId,
-    pub conn: PortConnectionState,
-}
-
-impl PortConnectionRecord {
-    pub fn new(port_id: NodePortId, conn: PortConnectionState) -> Self {
-        Self { port_id, conn }
+    pub fn take_connections(&mut self) -> HashSet<PortConnectionId> {
+        std::mem::take(&mut self.connections)
     }
 }
 
@@ -329,16 +320,19 @@ pub struct ChannelRecord {
 pub struct UiElementStore {
     pub nodes: Vec<NodeUiRecord>,
     pub channels: Vec<ChannelUiRecord>,
+    pub port_connections: Vec<PortConnectionUiRecord>,
 }
 
 impl UiElementStore {
     pub fn new(
         nodes: impl IntoIterator<Item = NodeUiRecord>,
         channels: impl IntoIterator<Item = ChannelUiRecord>,
+        port_connections: impl IntoIterator<Item = PortConnectionUiRecord>,
     ) -> Self {
         Self {
             nodes: nodes.into_iter().collect(),
             channels: channels.into_iter().collect(),
+            port_connections: port_connections.into_iter().collect(),
         }
     }
 }
@@ -353,4 +347,10 @@ pub struct NodeUiRecord {
 pub struct ChannelUiRecord {
     pub id: ChannelId,
     pub data: ChannelUiData,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PortConnectionUiRecord {
+    pub id: PortConnectionId,
+    pub data: PortConnectionUiData,
 }

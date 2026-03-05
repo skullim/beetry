@@ -52,7 +52,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
 
     let backend = use_context::<Backend>();
     let backend_peek = backend.peek();
-    let channel_query_api = api::channel::borrow(&(*backend_peek));
+    let channel_query_api = api::channel::query(&(*backend_peek));
 
     let mut errors = use_context::<ErrorQueueState>();
     let Ok(spec) = channel_query_api.spec(id).map_err(|e| {
