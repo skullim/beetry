@@ -9,7 +9,7 @@ use crate::components::workspace::state;
 use crate::signals::RenderRequests;
 use crate::{Point, components::workspace};
 use beetry_editor_backend::api;
-use beetry_editor_backend::api::NodeUiQueryApi;
+use beetry_editor_backend::api::NodeUiQuery;
 use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
 
@@ -45,7 +45,7 @@ pub(crate) fn handlers(
             requests.channel_edges.request();
 
             backend.with_peek(|s| {
-                let query = api::ui::node::borrow(s);
+                let query = api::ui::node::query(s);
                 dimensions_state.resize_if_needed(query.positions());
             });
         }

@@ -2,7 +2,7 @@ use crate::ui::error::ErrorQueueState;
 use crate::ui::node::port::{self, ConnectionOrigin, layout};
 use crate::{Backend, Point};
 use beetry_editor_backend::api;
-use beetry_editor_backend::api::SpecByNodeIdQueryView;
+use beetry_editor_backend::api::SpecByNodeIdQuery;
 use beetry_editor_types::id::{NodeId, NodePortId};
 use dioxus::prelude::*;
 use std::rc::Rc;

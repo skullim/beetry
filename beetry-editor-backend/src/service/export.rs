@@ -1,24 +1,24 @@
 use crate::{
-    api::NodeTrackerQueryView,
+    api::{NodeTrackerQuery, ParameterValueQuery},
     channel::ChannelQueryView,
-    node::{PortStateQueryView, SpecByNodeIdQueryView},
-    repository::NodeRepositoryFacadeConcept,
+    node::{PortConnectionQuery, PortStateQuery, SpecByNodeIdQuery},
+    repository::{NodeRepositoryFacadeConcept, UiRepositoryConcept},
     service::{edge::EdgeQueryView, node::NodeView},
-    ui::{ChannelUiQueryApi, NodeUiQueryApi, NodeUiQueryProcessor},
+    ui::{ChannelUiQuery, NodeUiQuery, NodeUiQueryProcessor},
 };
 use anyhow::{Context, Result, anyhow, bail};
 use beetry_editor_types::{
-    id::{ChannelId, NodeId, NodePortId},
+    id::{ChannelId, NodeId, NodePortId, PortConnectionId},
+    output::ui::PortConnectionUiData,
     persistence::{
         ChannelDataStore, ChannelSpecStore, ChannelStore, ChannelUiRecord, EditorStateStore,
         MaybeValidTree, NodeRecordStore, NodeRecordValue, NodeSpecStore, NodeStore, NodeUiRecord,
-        ParameterStore, ParameterValues, PortConnectionCollection, PortConnectionRecord,
-        PortStateStore, TreeStore, UiElementStore, ValidTree,
+        ParameterStore, ParameterValues, PortConnectionUiRecord, PortStore, PortsStateMap,
+        PortsStateRecord, TreeStore, UiElementStore, ValidTree,
     },
     spec::node::NodeSpecKey,
 };
 use bon::Builder;
-use mitsein::iter1::FromIterator1;
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 #[derive(Debug, Builder)]
@@ -44,14 +44,15 @@ impl TreeValidationResult {
     }
 }
 
-pub struct ExportView<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ>
+pub struct ExportView<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ, PCU>
 where
     NRF: NodeRepositoryFacadeConcept,
-    NSQ: SpecByNodeIdQueryView,
+    NSQ: SpecByNodeIdQuery,
     EQ: EdgeQueryView,
     CQ: ChannelQueryView,
-    NUQ: NodeUiQueryApi,
-    CUQ: ChannelUiQueryApi,
+    NUQ: NodeUiQuery,
+    CUQ: ChannelUiQuery,
+    PCU: UiRepositoryConcept<Id = PortConnectionId, Data = PortConnectionUiData>,
 {
     channel_api: CQ,
     node_api: NodeView<'a, NRF>,
@@ -59,16 +60,18 @@ where
     edge_api: EQ,
     node_ui_api: NUQ,
     channel_ui_api: CUQ,
+    port_connection_ui_api: &'a PCU,
 }
 
-impl<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ> ExportView<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ>
+impl<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ, PCU> ExportView<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ, PCU>
 where
     NRF: NodeRepositoryFacadeConcept,
-    NSQ: SpecByNodeIdQueryView,
+    NSQ: SpecByNodeIdQuery,
     EQ: EdgeQueryView,
     CQ: ChannelQueryView,
-    NUQ: NodeUiQueryApi,
-    CUQ: ChannelUiQueryApi,
+    NUQ: NodeUiQuery,
+    CUQ: ChannelUiQuery,
+    PCU: UiRepositoryConcept<Id = PortConnectionId, Data = PortConnectionUiData>,
 {
     pub fn new(
         channel_api: CQ,
@@ -77,6 +80,7 @@ where
         edge_api: EQ,
         node_ui_api: NUQ,
         channel_ui_api: CUQ,
+        port_connection_ui_api: &'a PCU,
     ) -> Self {
         Self {
             channel_api,
@@ -85,6 +89,7 @@ where
             edge_api,
             node_ui_api,
             channel_ui_api,
+            port_connection_ui_api,
         }
     }
 
@@ -200,22 +205,27 @@ where
         Ok(ParameterStore::new(store))
     }
 
-    fn export_port_store(&mut self, nodes: &[NodeId]) -> PortStateStore {
+    fn export_port_store(&mut self, nodes: &[NodeId]) -> PortStore {
         let ports_api = self.node_api.port_state();
-        nodes
-            .iter()
-            .copied()
-            .filter_map(|id| {
-                PortConnectionCollection::try_from_iter(
+        let mut state_records = Vec::with_capacity(nodes.len());
+        for node_id in nodes.iter().copied() {
+            let ports_state: PortsStateMap = self
+                .node_spec_query_api
+                .ports(node_id)
+                .iter()
+                .flat_map(|ports| ports.ids().copied())
+                .filter_map(|port_id| {
                     ports_api
-                        .node_conns(id)
-                        .map(|(id, conn)| PortConnectionRecord::new(*id, conn.clone())),
-                )
-                // filter collections that actually have any ports
-                .ok()
-                .map(|collection| (id, collection))
-            })
-            .collect()
+                        .state(node_id, port_id)
+                        .ok()
+                        .map(|state| (port_id, state.clone()))
+                })
+                .collect();
+            state_records.push(PortsStateRecord::new(node_id, ports_state));
+        }
+        let port_connection_view = self.node_api.port_connection_query();
+        let connections: Vec<_> = port_connection_view.all_connections().collect();
+        PortStore::new(state_records, connections)
     }
 
     fn export_channel_store(&mut self, channels: &[ChannelId]) -> Result<ChannelStore> {
@@ -258,7 +268,15 @@ where
                 })
                 .collect()
         };
-        UiElementStore::new(nodes, channels)
+        let port_connections: Vec<_> = self
+            .port_connection_ui_api
+            .iter()
+            .map(|(id, data)| PortConnectionUiRecord {
+                id: *id,
+                data: data.clone(),
+            })
+            .collect();
+        UiElementStore::new(nodes, channels, port_connections)
     }
 
     /// Validation rules:
@@ -281,6 +299,7 @@ where
         let mut valid_nodes = HashSet::new();
         let mut to_visit = std::iter::once(root_id).collect::<BTreeSet<_>>();
         let port_state_api = self.node_api.port_state();
+        let port_connection_api = self.node_api.port_connection_query();
 
         while let Some(parent) = to_visit.pop_first() {
             let mut children = self.edge_api.children_of(parent).copied().peekable();
@@ -298,11 +317,22 @@ where
                 if let Some(ports_spec) = self
                     .node_spec_query_api
                     .spec(child)
-                    .expect("leaf node must have a spec")
+                    .expect("leaf node must have spec")
                     .ports()
                 {
                     for port_id in ports_spec.ids() {
-                        if port_state_api.state(child, *port_id).is_err() {
+                        let state = match port_state_api.state(child, *port_id) {
+                            Ok(state) => state,
+                            Err(_) => {
+                                return TreeValidationResult::builder()
+                                    .unconnected_port((child, *port_id))
+                                    .build();
+                            }
+                        };
+
+                        if !state.is_external()
+                            && !port_connection_api.is_port_connected(child, *port_id)
+                        {
                             return TreeValidationResult::builder()
                                 .unconnected_port((child, *port_id))
                                 .build();

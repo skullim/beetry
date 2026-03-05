@@ -1,23 +1,23 @@
-use crate::repository::UiRepositoryConcept;
-use anyhow::{Result, anyhow};
+use crate::repository::{PortConnectionRepositoryConcept, UiRepositoryConcept};
+use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{
-    id::{ChannelId, NodeId},
-    output::ui::{ChannelUiData, NodeUiData, Point},
+    id::{ChannelId, NodeId, PortConnectionId},
+    output::ui::{ChannelUiData, NodeUiData, Point, PortConnectionUiData},
 };
 use std::collections::HashMap;
 
-pub struct NodeUiView<'a, UR> {
+pub struct NodeUiQueryView<'a, UR> {
     repo: &'a UR,
 }
 
-pub trait NodeUiQueryApi {
+pub trait NodeUiQuery {
     fn data(&self, id: NodeId) -> Result<&NodeUiData>;
     fn position(&self, id: NodeId) -> Result<&Point>;
     fn positions(&self) -> impl Iterator<Item = &Point>;
     fn iter(&self) -> impl Iterator<Item = (&NodeId, &NodeUiData)>;
 }
 
-impl<'a, UR> NodeUiView<'a, UR>
+impl<'a, UR> NodeUiQueryView<'a, UR>
 where
     UR: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
 {
@@ -26,7 +26,7 @@ where
     }
 }
 
-impl<UR> NodeUiQueryApi for NodeUiView<'_, UR>
+impl<UR> NodeUiQuery for NodeUiQueryView<'_, UR>
 where
     UR: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
 {
@@ -55,7 +55,7 @@ pub struct NodeUiQueryProcessor<'a, Q> {
 
 impl<'a, Q> NodeUiQueryProcessor<'a, Q>
 where
-    Q: NodeUiQueryApi,
+    Q: NodeUiQuery,
 {
     pub fn new(query: &'a Q) -> Self {
         Self { query }
@@ -116,11 +116,11 @@ where
     }
 }
 
-pub struct ChannelUiView<'a, UR> {
+pub struct ChannelUiQueryView<'a, UR> {
     repo: &'a UR,
 }
 
-impl<'a, UR> ChannelUiView<'a, UR>
+impl<'a, UR> ChannelUiQueryView<'a, UR>
 where
     UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
 {
@@ -129,13 +129,13 @@ where
     }
 }
 
-pub trait ChannelUiQueryApi {
+pub trait ChannelUiQuery {
     fn position(&self, id: ChannelId) -> Result<&Point>;
     fn positions(&self) -> impl Iterator<Item = &Point>;
     fn iter(&self) -> impl Iterator<Item = (&ChannelId, &ChannelUiData)>;
 }
 
-impl<UR> ChannelUiQueryApi for ChannelUiView<'_, UR>
+impl<UR> ChannelUiQuery for ChannelUiQueryView<'_, UR>
 where
     UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
 {
@@ -181,5 +181,68 @@ where
             .ok_or_else(|| anyhow!("unable to retrieve channel {id} data"))?;
         data.position = position;
         Ok(())
+    }
+}
+
+pub struct PortConnectionUiStateViewMut<'a, UR, PC> {
+    ui_repo: &'a mut UR,
+    port_conn_repo: &'a PC,
+}
+
+impl<'a, UR, PC> PortConnectionUiStateViewMut<'a, UR, PC>
+where
+    UR: UiRepositoryConcept<Id = PortConnectionId, Data = PortConnectionUiData>,
+    PC: PortConnectionRepositoryConcept,
+{
+    pub(crate) fn new(ui_repo: &'a mut UR, port_conn_repo: &'a PC) -> Self {
+        Self {
+            ui_repo,
+            port_conn_repo,
+        }
+    }
+
+    pub fn create(&mut self, id: PortConnectionId, data: PortConnectionUiData) -> Result<()> {
+        if !self.port_conn_repo.conn_exists(id) {
+            bail!("attempted to create ui connection state for non existing connection {id:?}")
+        }
+        self.ui_repo.create(id, data)
+    }
+
+    pub fn remove(&mut self, id: PortConnectionId) -> Option<PortConnectionUiData> {
+        self.ui_repo.remove(id)
+    }
+
+    pub fn update(&mut self, id: PortConnectionId, new_data: PortConnectionUiData) -> Result<()> {
+        let state = self
+            .ui_repo
+            .data_mut(id)
+            .ok_or_else(|| anyhow!("unable to retrieve port connection {id:?} state"))?;
+        *state = new_data;
+        Ok(())
+    }
+}
+
+pub trait PortConnectionUiQuery {
+    fn data(&self, id: PortConnectionId) -> Result<&PortConnectionUiData>;
+}
+
+pub struct PortConnectionUiQueryView<'a, PUR> {
+    repo: &'a PUR,
+}
+
+impl<'a, PUR> PortConnectionUiQueryView<'a, PUR> {
+    pub fn new(repo: &'a PUR) -> Self {
+        Self { repo }
+    }
+}
+
+impl<'a, PUR> PortConnectionUiQuery for PortConnectionUiQueryView<'a, PUR>
+where
+    PUR: UiRepositoryConcept<Id = PortConnectionId, Data = PortConnectionUiData>,
+{
+    fn data(&self, id: PortConnectionId) -> Result<&PortConnectionUiData> {
+        self.repo
+            .data(id)
+            .ok_or_else(|| anyhow!("unable to retrieve ui port connection {id:?} data"))
     }
 }

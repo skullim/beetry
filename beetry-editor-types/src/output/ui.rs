@@ -10,6 +10,27 @@ pub struct ChannelUiData {
     pub position: Point,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PortConnectionUiData {
+    visibility: VisibilityKind,
+}
+
+impl PortConnectionUiData {
+    pub fn new(visibility: VisibilityKind) -> Self {
+        Self { visibility }
+    }
+
+    pub fn visibility(&self) -> &VisibilityKind {
+        &self.visibility
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum VisibilityKind {
+    Visible,
+    Hidden,
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Point {
     pub x: f64,

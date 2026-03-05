@@ -1,8 +1,8 @@
 use beetry_editor_backend::api;
-use beetry_editor_backend::api::node::ports::Source;
 use beetry_editor_types::{
     id::{NodeId, NodePortId},
     output::edge::NodeEdge,
+    output::node::{PortSource, PortState},
     output::ui::Point,
 };
 use dioxus::logger::tracing::debug;
@@ -101,7 +101,14 @@ pub(crate) fn menu_handlers(
 ) -> node::port::menu::Handlers {
     let on_external = move |(node_id, port_id): (NodeId, NodePortId)| -> Result<()> {
         backend
-            .with_mut(|s| api::node::ports::set_source(s, node_id, port_id, Source::External))
+            .with_mut(|s| {
+                api::node::ports::set_state(
+                    s,
+                    node_id,
+                    port_id,
+                    PortState::new(PortSource::External),
+                )
+            })
             .map_err(|e| errors.push(e))
             .ok();
         debug!("set port (node id: {node_id}, port id: {port_id}) as external");
@@ -110,7 +117,14 @@ pub(crate) fn menu_handlers(
 
     let on_internal = move |(node_id, port_id): (NodeId, NodePortId)| -> Result<()> {
         backend
-            .with_mut(|s| api::node::ports::set_source(s, node_id, port_id, Source::Internal))
+            .with_mut(|s| {
+                api::node::ports::set_state(
+                    s,
+                    node_id,
+                    port_id,
+                    PortState::new(PortSource::Internal),
+                )
+            })
             .map_err(|e| errors.push(e))
             .ok();
         debug!("set port (node id: {node_id}, port id: {port_id}) as internal");

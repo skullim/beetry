@@ -2,12 +2,12 @@ use anyhow::{Context, Result, anyhow};
 use beetry_builder::Builder as BehaviorTreeBuilder;
 use beetry_channel::external;
 use beetry_core::{BoxNode, MessageHash, NonEmptyNodes, RegisterTask, Root, TaskHandle, Tree};
-use beetry_editor_types::id::ChannelId;
-use beetry_editor_types::output::node::{ParameterValue, Parameters, PortConnectionState};
+use beetry_editor_types::id::{ChannelId, PortConnectionId};
+use beetry_editor_types::output::node::{ParameterValue, Parameters};
 use beetry_editor_types::spec::node::{LeafKind, NodeKind, NodeName, NodePortKind};
 use beetry_editor_types::{
     id::NodeId,
-    persistence::{ChannelStore, NodeStore, ParameterStore, PortStateStore, ValidTree},
+    persistence::{ChannelStore, NodeStore, ParameterStore, PortStore, ValidTree},
 };
 use beetry_plugin::channel::{BoxChannelPlugin, ChannelPluginConstructor, TypeErasedChannel};
 use beetry_plugin::node::{
@@ -67,7 +67,7 @@ impl TreeReconstructor {
         let root = Self::try_create_root_snapshot(
             tree.node,
             tree.parameter,
-            tree.ports,
+            tree.port,
             &self.node_plugins,
         )?;
 
@@ -102,7 +102,7 @@ impl TreeReconstructor {
     fn try_create_root_snapshot(
         node_store: NodeStore,
         mut param_store: ParameterStore,
-        mut port_store: PortStateStore,
+        mut port_store: PortStore,
         node_plugins: &NodePluginRegistry,
     ) -> Result<RootSnapshot> {
         let root_id = node_store
@@ -131,12 +131,14 @@ impl TreeReconstructor {
             .children()
             .next()
             .with_context(|| anyhow!("root node {root_id:?} does not have a child node"))?;
+        let connections = port_store.take_connections();
 
         let node_snapshot = Self::try_create_node_snapshot(
             root_child,
             &node_store,
             &mut param_store,
             &mut port_store,
+            &connections,
             node_plugins,
         )?;
         Ok(RootSnapshot::new(node_snapshot))
@@ -146,7 +148,8 @@ impl TreeReconstructor {
         node_id: NodeId,
         node_store: &NodeStore,
         param_store: &mut ParameterStore,
-        port_store: &mut PortStateStore,
+        port_store: &mut PortStore,
+        connections: &std::collections::HashSet<PortConnectionId>,
         node_plugins: &NodePluginRegistry,
     ) -> Result<NodeSnapshot> {
         let node_record = node_store
@@ -170,6 +173,7 @@ impl TreeReconstructor {
                         node_store,
                         param_store,
                         port_store,
+                        connections,
                         node_plugins,
                     )?);
                 }
@@ -192,6 +196,7 @@ impl TreeReconstructor {
                     node_store,
                     param_store,
                     port_store,
+                    connections,
                     node_plugins,
                 )?;
 
@@ -206,11 +211,7 @@ impl TreeReconstructor {
                 let mut ext_receivers = Vec::new();
                 let mut ext_senders = Vec::new();
 
-                for conn_record in port_store
-                    .take(&node_id)
-                    .into_iter()
-                    .flat_map(|state| state.conns.into_iter())
-                {
+                for (port_id, port_state) in port_store.take_state(&node_id).into_iter().flatten() {
                     let spec = {
                         match leaf_kind {
                             LeafKind::Action => {
@@ -227,20 +228,22 @@ impl TreeReconstructor {
                         .ports()
                         .as_ref()
                         .ok_or_else(|| anyhow!("expected port specification for node {name}"))?;
-                    let port_spec = ports_spec.spec(conn_record.port_id)?;
-                    match conn_record.conn {
-                        PortConnectionState::External => match port_spec.kind {
+                    let port_spec = ports_spec.spec(port_id)?;
+                    if port_state.is_external() {
+                        match port_spec.kind {
                             NodePortKind::Receiver => ext_receivers.push(port_spec.msg_spec.hash()),
-                            NodePortKind::Sender => {
-                                ext_senders.push(port_spec.msg_spec.hash());
-                            }
-                        },
-                        PortConnectionState::Internal(connections) => match port_spec.kind {
-                            NodePortKind::Receiver => receivers.extend(connections.iter()),
-                            NodePortKind::Sender => {
-                                senders.extend(connections.iter());
-                            }
-                        },
+                            NodePortKind::Sender => ext_senders.push(port_spec.msg_spec.hash()),
+                        }
+                        continue;
+                    }
+
+                    let port_connections = connections.iter().filter_map(|conn| {
+                        (conn.node_id == node_id && conn.port_id == port_id)
+                            .then_some(&conn.channel_id)
+                    });
+                    match port_spec.kind {
+                        NodePortKind::Receiver => receivers.extend(port_connections),
+                        NodePortKind::Sender => senders.extend(port_connections),
                     }
                 }
 
