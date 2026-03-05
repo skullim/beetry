@@ -1,6 +1,6 @@
 use beetry_editor_backend::api;
-use beetry_editor_backend::node::PortStateQueryView;
-use beetry_editor_types::output::node::PortConnectionState;
+use beetry_editor_backend::node::PortConnectionQuery;
+use beetry_editor_backend::node::PortStateQuery;
 use std::rc::Rc;
 
 use crate::Backend;
@@ -11,7 +11,7 @@ use crate::ui::handler::define_handlers;
 use crate::ui::node::port::{ConnectionOrigin, layout};
 use crate::ui::text::{self, text_width_from};
 use crate::ui::{channel, shadow};
-use beetry_editor_backend::api::SpecByNodeIdQueryView;
+use beetry_editor_backend::api::SpecByNodeIdQuery;
 use beetry_editor_types::{id::NodeId, id::NodePortId};
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
@@ -57,27 +57,20 @@ pub fn Body(props: BodyProps) -> Element {
             let query = api::node::ports::state_query(s);
             query
                 .state(node_id, port_id)
-                .map(PortConnectionState::is_external)
+                .map(|state| state.is_external())
                 .unwrap_or(false)
         })
     });
     let mut is_connected = use_signal(|| {
-        backend.with(|s| {
-            api::node::ports::connection_views(s)
-                .filter_map(Result::ok)
-                .any(|conn| conn.node_id == node_id && conn.port_id == port_id)
-        })
+        backend.with(|s| api::node::ports::connections_query(s).is_port_connected(node_id, port_id))
     });
     let mut is_hovered = use_signal(|| false);
     let render_requests = use_context::<RenderRequests>();
 
     use_memo(move || {
         render_requests.channel_edges.track();
-        let connected = backend.with(|s| {
-            api::node::ports::connection_views(s)
-                .filter_map(Result::ok)
-                .any(|conn| conn.node_id == node_id && conn.port_id == port_id)
-        });
+        let connected = backend
+            .with(|s| api::node::ports::connections_query(s).is_port_connected(node_id, port_id));
         is_connected.set(connected);
     });
 

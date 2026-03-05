@@ -1,5 +1,5 @@
 use beetry_editor_backend::api;
-use beetry_editor_backend::api::SpecByNodeIdQueryView;
+use beetry_editor_backend::api::SpecByNodeIdQuery;
 use beetry_editor_types::{id::NodeId, output::ui::Point};
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;

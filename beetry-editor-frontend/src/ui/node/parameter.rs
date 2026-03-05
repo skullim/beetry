@@ -1,8 +1,8 @@
 use crate::Backend;
 use crate::ui::error::ErrorQueueState;
 use crate::{Point, ui::handler::define_handlers};
-use beetry_editor_backend::api::{self, ParameterValueQueryView};
-use beetry_editor_backend::api::{ParameterValueParser, SpecByNodeIdQueryView};
+use beetry_editor_backend::api::{self, ParameterValueQuery};
+use beetry_editor_backend::api::{ParameterValueParser, SpecByNodeIdQuery};
 use beetry_editor_types::output::node::ParameterValue;
 use beetry_editor_types::spec::node::FieldDefinition;
 use beetry_editor_types::{

@@ -2,10 +2,10 @@ pub use crate::{
     channel::ChannelQueryView,
     edge::EdgeQueryView,
     node::{
-        NodeTrackerQueryView, ParameterValueParser, ParameterValueQueryView, PortConnectionOps,
-        SpecByNodeIdQueryView, SpecBySpecIdQueryView,
+        NodeTrackerQuery, ParameterValueParser, ParameterValueQuery, SpecByNodeIdQuery,
+        SpecBySpecIdQuery,
     },
-    ui::{ChannelUiQueryApi, NodeUiQueryApi, NodeUiQueryProcessor},
+    ui::{ChannelUiQuery, NodeUiQuery, NodeUiQueryProcessor},
 };
 
 pub mod contract;
@@ -20,39 +20,39 @@ pub mod node {
         spec: &NodeSpec,
         ui_data: NodeUiData,
     ) -> Result<NodeId> {
-        api.create_with_ui(spec, ui_data)
+        NodeLifecycleApi::create(api, spec, ui_data)
     }
 
     pub fn remove(api: &mut impl NodeLifecycleApi, id: NodeId) -> Result<()> {
-        api.remove_with_ui(id)
+        NodeLifecycleApi::remove(api, id)
     }
 
     pub mod spec {
         use crate::{
             api::contract::NodeApi,
-            node::{SpecByNodeIdQueryView, SpecBySpecIdQueryView},
+            node::{SpecByNodeIdQuery, SpecBySpecIdQuery},
         };
 
-        pub fn by_spec_id(api: &impl NodeApi) -> impl SpecBySpecIdQueryView {
+        pub fn by_spec_id(api: &impl NodeApi) -> impl SpecBySpecIdQuery {
             NodeApi::spec_by_spec_id(api)
         }
 
-        pub fn by_node_id(api: &impl NodeApi) -> impl SpecByNodeIdQueryView {
+        pub fn by_node_id(api: &impl NodeApi) -> impl SpecByNodeIdQuery {
             NodeApi::spec_by_node_id(api)
         }
     }
 
     pub mod tracker {
         use crate::api::contract::NodeApi;
-        use crate::service::node::NodeTrackerQueryView;
+        use crate::service::node::NodeTrackerQuery;
 
-        pub fn query_view(api: &impl NodeApi) -> impl NodeTrackerQueryView {
+        pub fn query(api: &impl NodeApi) -> impl NodeTrackerQuery {
             NodeApi::tracker(api)
         }
     }
 
     pub mod parameters {
-        use crate::api::{ParameterValueQueryView, contract::NodeApi};
+        use crate::api::{ParameterValueQuery, contract::NodeApi};
         use crate::service::node::ParameterValueMut;
         use beetry_editor_types::{id::NodeId, output::node::Parameters};
 
@@ -60,72 +60,54 @@ pub mod node {
             NodeApi::parameters_mut(api).create(id, params);
         }
 
-        pub fn query(api: &impl NodeApi) -> impl ParameterValueQueryView {
+        pub fn query(api: &impl NodeApi) -> impl ParameterValueQuery {
             api.parameters()
         }
     }
 
     pub mod ports {
         use crate::{
-            api::contract::PortApi,
-            node::{PortConnectionDataView, PortStateQueryView},
+            api::contract::{PortApi, PortLifecycleApi},
+            node::{PortConnectionQuery, PortStateQuery},
         };
         use anyhow::Result;
         use beetry_editor_types::{
-            id::{ChannelId, NodeId, NodePortId},
+            id::{NodeId, NodePortId, PortConnectionId},
+            output::{node::PortState, ui::PortConnectionUiData},
             spec::node::NodePortKind,
         };
         pub type RowIndex = usize;
-        pub type Source = crate::service::node::PortSource;
-
-        pub fn state_query(api: &impl PortApi) -> impl PortStateQueryView {
-            api.port_state()
-        }
 
         pub fn connect(
-            api: &mut impl PortApi,
-            node_id: NodeId,
-            port_id: NodePortId,
-            channel_id: ChannelId,
+            api: &mut impl PortLifecycleApi,
+            conn_id: PortConnectionId,
+            ui_data: PortConnectionUiData,
         ) -> Result<()> {
-            api.connect_port(node_id, port_id, channel_id)
+            PortLifecycleApi::connect_port(api, conn_id, ui_data)
         }
 
         pub fn disconnect(
+            api: &mut impl PortLifecycleApi,
+            conn_id: PortConnectionId,
+        ) -> Result<()> {
+            PortLifecycleApi::disconnect(api, conn_id)
+        }
+
+        pub fn set_state(
             api: &mut impl PortApi,
             node_id: NodeId,
             port_id: NodePortId,
-            channel_id: ChannelId,
+            state: PortState,
         ) -> Result<()> {
-            api.disconnect_port(node_id, port_id, channel_id)
+            api.set_state(node_id, port_id, state)
         }
 
-        pub fn set_source(
-            api: &mut impl PortApi,
-            node_id: NodeId,
-            port_id: NodePortId,
-            source: Source,
-        ) -> Result<()> {
-            api.set_port_source(node_id, port_id, source)
+        pub fn state_query(api: &impl PortApi) -> impl PortStateQuery {
+            api.port_state_query()
         }
 
-        pub fn internal_connections(
-            api: &impl PortApi,
-        ) -> impl Iterator<Item = (&NodeId, &NodePortId, &ChannelId)> {
-            api.connections()
-        }
-
-        pub fn connection_views(
-            api: &impl PortApi,
-        ) -> impl Iterator<Item = Result<PortConnectionDataView<'_>>> {
-            api.connection_views()
-        }
-
-        pub fn connection_views_by_kind(
-            api: &impl PortApi,
-            kind: NodePortKind,
-        ) -> impl Iterator<Item = Result<PortConnectionDataView<'_>>> {
-            api.connection_views_by_kind(kind)
+        pub fn connections_query(api: &impl PortApi) -> impl PortConnectionQuery {
+            api.connections_query()
         }
 
         pub fn port_order(
@@ -152,8 +134,8 @@ pub mod edge {
         EdgeApi::remove(api, id)
     }
 
-    pub fn borrow(api: &impl EdgeApi) -> impl EdgeQueryView {
-        EdgeApi::borrow(api)
+    pub fn query(api: &impl EdgeApi) -> impl EdgeQueryView {
+        EdgeApi::query(api)
     }
 }
 
@@ -178,11 +160,11 @@ pub mod channel {
         input: ChannelConfigInput,
         ui_data: ChannelUiData,
     ) -> Result<ChannelId> {
-        api.create_with_ui(spec, input, ui_data)
+        ChannelLifecycleApi::create(api, spec, input, ui_data)
     }
 
     pub fn remove(api: &mut impl ChannelLifecycleApi, id: ChannelId) -> Result<()> {
-        api.remove_with_ui(id)
+        ChannelLifecycleApi::remove(api, id)
     }
 
     pub fn update_config(
@@ -193,14 +175,14 @@ pub mod channel {
         ChannelApi::update_config(api, id, update)
     }
 
-    pub fn borrow(api: &impl ChannelApi) -> impl ChannelQueryView {
-        ChannelApi::borrow(api)
+    pub fn query(api: &impl ChannelApi) -> impl ChannelQueryView {
+        ChannelApi::query(api)
     }
 }
 
 pub mod ui {
     pub mod node {
-        use crate::{api::contract::NodeUiApi, ui::NodeUiQueryApi};
+        use crate::{api::contract::NodeUiApi, ui::NodeUiQuery};
         use anyhow::Result;
         use beetry_editor_types::{id::NodeId, output::ui::Point};
 
@@ -212,13 +194,13 @@ pub mod ui {
             NodeUiApi::update_position(api, id, position)
         }
 
-        pub fn borrow(api: &impl NodeUiApi) -> impl NodeUiQueryApi {
-            NodeUiApi::borrow(api)
+        pub fn query(api: &impl NodeUiApi) -> impl NodeUiQuery {
+            NodeUiApi::query(api)
         }
     }
 
     pub mod channel {
-        use crate::{api::contract::ChannelUiApi, ui::ChannelUiQueryApi};
+        use crate::{api::contract::ChannelUiApi, ui::ChannelUiQuery};
         use anyhow::Result;
         use beetry_editor_types::{id::ChannelId, output::ui::Point};
 
@@ -230,8 +212,26 @@ pub mod ui {
             ChannelUiApi::update_position(api, id, position)
         }
 
-        pub fn borrow(api: &impl ChannelUiApi) -> impl ChannelUiQueryApi {
-            ChannelUiApi::borrow(api)
+        pub fn query(api: &impl ChannelUiApi) -> impl ChannelUiQuery {
+            ChannelUiApi::query(api)
+        }
+    }
+
+    pub mod port {
+        use crate::{api::contract::PortConnectionUiApi, ui::PortConnectionUiQuery};
+        use anyhow::Result;
+        use beetry_editor_types::{id::PortConnectionId, output::ui::PortConnectionUiData};
+
+        pub fn update_data(
+            api: &mut impl PortConnectionUiApi,
+            id: PortConnectionId,
+            data: PortConnectionUiData,
+        ) -> Result<()> {
+            PortConnectionUiApi::update_data(api, id, data)
+        }
+
+        pub fn query(api: &impl PortConnectionUiApi) -> impl PortConnectionUiQuery {
+            PortConnectionUiApi::query(api)
         }
     }
 }

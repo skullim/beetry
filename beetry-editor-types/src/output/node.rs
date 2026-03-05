@@ -185,3 +185,24 @@ impl PortConnectionState {
         }
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PortState {
+    source: PortSource,
+}
+
+impl PortState {
+    pub fn new(source: PortSource) -> Self {
+        Self { source }
+    }
+
+    pub fn is_external(&self) -> bool {
+        matches!(self.source, PortSource::External)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PortSource {
+    Internal,
+    External,
+}

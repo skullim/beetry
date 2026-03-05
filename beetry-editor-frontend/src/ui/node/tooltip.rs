@@ -2,7 +2,7 @@ use crate::Backend;
 use crate::Point;
 use crate::ui::tooltip::TooltipCard;
 use beetry_editor_backend::api;
-use beetry_editor_backend::api::ParameterValueQueryView;
+use beetry_editor_backend::api::ParameterValueQuery;
 use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 

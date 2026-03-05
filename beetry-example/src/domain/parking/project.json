@@ -100,6 +100,10 @@
                         "kind": {
                             "Leaf": "Condition"
                         }
+                    },
+                    "18": {
+                        "name": "Fail",
+                        "kind": "Decorator"
                     }
                 }
             },
@@ -114,11 +118,11 @@
                     "1": {
                         "spec_id": 1,
                         "children": [
-                            6,
-                            7,
-                            2,
-                            10,
-                            5,
+                            20,
+                            21,
+                            22,
+                            23,
+                            24,
                             19
                         ]
                     },
@@ -210,341 +214,288 @@
                         "children": [
                             8
                         ]
+                    },
+                    "20": {
+                        "spec_id": 18,
+                        "children": [
+                            6
+                        ]
+                    },
+                    "21": {
+                        "spec_id": 18,
+                        "children": [
+                            7
+                        ]
+                    },
+                    "22": {
+                        "spec_id": 18,
+                        "children": [
+                            2
+                        ]
+                    },
+                    "23": {
+                        "spec_id": 18,
+                        "children": [
+                            10
+                        ]
+                    },
+                    "24": {
+                        "spec_id": 18,
+                        "children": [
+                            5
+                        ]
                     }
                 }
             }
         },
-        "ports": {
-            "ports": {
-                "2": {
-                    "conns": [
-                        {
-                            "port_id": 1,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        12
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "port_id": 2,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        6
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "port_id": 0,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        9
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                },
-                "3": {
-                    "conns": [
-                        {
-                            "port_id": 0,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        2
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                },
-                "5": {
-                    "conns": [
-                        {
-                            "port_id": 0,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        2
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                },
-                "6": {
-                    "conns": [
-                        {
-                            "port_id": 0,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        12
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                },
-                "7": {
-                    "conns": [
-                        {
-                            "port_id": 0,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        9
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                },
-                "9": {
-                    "conns": [
-                        {
-                            "port_id": 0,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        3
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "port_id": 1,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        4
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                },
-                "10": {
-                    "conns": [
-                        {
-                            "port_id": 0,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        3
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                },
-                "11": {
-                    "conns": [
-                        {
-                            "port_id": 0,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        4
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "port_id": 2,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        8
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "port_id": 1,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        2
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                },
-                "14": {
-                    "conns": [
-                        {
-                            "port_id": 0,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        3
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "port_id": 1,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        8
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "port_id": 2,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        7
-                                    ]
-                                }
-                            }
-                        }
-                    ]
+        "port": {
+            "states": {
+                "18": {
+                    "0": {
+                        "source": "Internal"
+                    },
+                    "1": {
+                        "source": "Internal"
+                    }
                 },
                 "15": {
-                    "conns": [
-                        {
-                            "port_id": 0,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        7
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "port_id": 3,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        11
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "port_id": 2,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        6
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "port_id": 1,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        3
-                                    ]
-                                }
-                            }
-                        }
-                    ]
+                    "0": {
+                        "source": "Internal"
+                    },
+                    "1": {
+                        "source": "Internal"
+                    },
+                    "2": {
+                        "source": "Internal"
+                    },
+                    "3": {
+                        "source": "Internal"
+                    }
+                },
+                "2": {
+                    "0": {
+                        "source": "Internal"
+                    },
+                    "1": {
+                        "source": "Internal"
+                    },
+                    "2": {
+                        "source": "Internal"
+                    }
+                },
+                "6": {
+                    "0": {
+                        "source": "Internal"
+                    }
+                },
+                "7": {
+                    "0": {
+                        "source": "Internal"
+                    }
+                },
+                "11": {
+                    "0": {
+                        "source": "Internal"
+                    },
+                    "1": {
+                        "source": "Internal"
+                    },
+                    "2": {
+                        "source": "Internal"
+                    }
+                },
+                "9": {
+                    "0": {
+                        "source": "Internal"
+                    },
+                    "1": {
+                        "source": "Internal"
+                    }
+                },
+                "10": {
+                    "0": {
+                        "source": "Internal"
+                    }
+                },
+                "3": {
+                    "0": {
+                        "source": "Internal"
+                    }
+                },
+                "5": {
+                    "0": {
+                        "source": "Internal"
+                    }
+                },
+                "14": {
+                    "0": {
+                        "source": "Internal"
+                    },
+                    "1": {
+                        "source": "Internal"
+                    },
+                    "2": {
+                        "source": "Internal"
+                    }
                 },
                 "16": {
-                    "conns": [
-                        {
-                            "port_id": 0,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        3
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "port_id": 1,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        8
-                                    ]
-                                }
-                            }
-                        }
-                    ]
+                    "0": {
+                        "source": "Internal"
+                    },
+                    "1": {
+                        "source": "Internal"
+                    }
                 },
                 "17": {
-                    "conns": [
-                        {
-                            "port_id": 0,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        9
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                },
-                "18": {
-                    "conns": [
-                        {
-                            "port_id": 0,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        2
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "port_id": 1,
-                            "conn": {
-                                "Internal": {
-                                    "conns": [
-                                        11
-                                    ]
-                                }
-                            }
-                        }
-                    ]
+                    "0": {
+                        "source": "Internal"
+                    }
                 }
-            }
+            },
+            "connections": [
+                {
+                    "node_id": 7,
+                    "port_id": 0,
+                    "channel_id": 9
+                },
+                {
+                    "node_id": 5,
+                    "port_id": 0,
+                    "channel_id": 2
+                },
+                {
+                    "node_id": 15,
+                    "port_id": 3,
+                    "channel_id": 11
+                },
+                {
+                    "node_id": 14,
+                    "port_id": 0,
+                    "channel_id": 3
+                },
+                {
+                    "node_id": 11,
+                    "port_id": 2,
+                    "channel_id": 8
+                },
+                {
+                    "node_id": 9,
+                    "port_id": 0,
+                    "channel_id": 3
+                },
+                {
+                    "node_id": 11,
+                    "port_id": 1,
+                    "channel_id": 2
+                },
+                {
+                    "node_id": 16,
+                    "port_id": 1,
+                    "channel_id": 8
+                },
+                {
+                    "node_id": 11,
+                    "port_id": 0,
+                    "channel_id": 0
+                },
+                {
+                    "node_id": 14,
+                    "port_id": 2,
+                    "channel_id": 1
+                },
+                {
+                    "node_id": 2,
+                    "port_id": 0,
+                    "channel_id": 9
+                },
+                {
+                    "node_id": 2,
+                    "port_id": 1,
+                    "channel_id": 12
+                },
+                {
+                    "node_id": 17,
+                    "port_id": 0,
+                    "channel_id": 9
+                },
+                {
+                    "node_id": 14,
+                    "port_id": 1,
+                    "channel_id": 8
+                },
+                {
+                    "node_id": 9,
+                    "port_id": 1,
+                    "channel_id": 0
+                },
+                {
+                    "node_id": 18,
+                    "port_id": 1,
+                    "channel_id": 11
+                },
+                {
+                    "node_id": 16,
+                    "port_id": 0,
+                    "channel_id": 3
+                },
+                {
+                    "node_id": 18,
+                    "port_id": 0,
+                    "channel_id": 2
+                },
+                {
+                    "node_id": 15,
+                    "port_id": 2,
+                    "channel_id": 6
+                },
+                {
+                    "node_id": 15,
+                    "port_id": 1,
+                    "channel_id": 3
+                },
+                {
+                    "node_id": 10,
+                    "port_id": 0,
+                    "channel_id": 3
+                },
+                {
+                    "node_id": 6,
+                    "port_id": 0,
+                    "channel_id": 12
+                },
+                {
+                    "node_id": 2,
+                    "port_id": 2,
+                    "channel_id": 6
+                },
+                {
+                    "node_id": 15,
+                    "port_id": 0,
+                    "channel_id": 1
+                },
+                {
+                    "node_id": 3,
+                    "port_id": 0,
+                    "channel_id": 2
+                }
+            ]
         },
         "parameter": {
             "parameters": {
-                "2": {
-                    "params": {
-                        "map": {
-                            "interval_ms": {
-                                "U64": 100
-                            }
-                        }
-                    }
-                },
-                "7": {
-                    "params": {
-                        "map": {
-                            "interval_ms": {
-                                "U64": 40
-                            }
-                        }
-                    }
-                },
                 "6": {
                     "params": {
                         "map": {
                             "interval_ms": {
                                 "U64": 50
+                            }
+                        }
+                    }
+                },
+                "2": {
+                    "params": {
+                        "map": {
+                            "interval_ms": {
+                                "U64": 100
                             }
                         }
                     }
@@ -563,6 +514,15 @@
                         "map": {
                             "interval_ms": {
                                 "U64": 200
+                            }
+                        }
+                    }
+                },
+                "7": {
+                    "params": {
+                        "map": {
+                            "interval_ms": {
+                                "U64": 40
                             }
                         }
                     }
@@ -630,33 +590,7 @@
             },
             "channels": {
                 "store": {
-                    "2": {
-                        "spec_id": 2,
-                        "config": {
-                            "capacity": 1,
-                            "count": {
-                                "sender": 1,
-                                "receiver": 3
-                            },
-                            "kind": {
-                                "Tokio": "Watch"
-                            }
-                        }
-                    },
-                    "3": {
-                        "spec_id": 3,
-                        "config": {
-                            "capacity": 1,
-                            "count": {
-                                "sender": 1,
-                                "receiver": 4
-                            },
-                            "kind": {
-                                "Tokio": "Watch"
-                            }
-                        }
-                    },
-                    "4": {
+                    "0": {
                         "spec_id": 4,
                         "config": {
                             "capacity": 1,
@@ -669,20 +603,7 @@
                             }
                         }
                     },
-                    "6": {
-                        "spec_id": 6,
-                        "config": {
-                            "capacity": 1,
-                            "count": {
-                                "sender": 1,
-                                "receiver": 1
-                            },
-                            "kind": {
-                                "Tokio": "Watch"
-                            }
-                        }
-                    },
-                    "7": {
+                    "1": {
                         "spec_id": 7,
                         "config": {
                             "capacity": 1,
@@ -695,13 +616,52 @@
                             }
                         }
                     },
+                    "2": {
+                        "spec_id": 2,
+                        "config": {
+                            "capacity": 1,
+                            "count": {
+                                "sender": 2,
+                                "receiver": 6
+                            },
+                            "kind": {
+                                "Tokio": "Watch"
+                            }
+                        }
+                    },
+                    "3": {
+                        "spec_id": 3,
+                        "config": {
+                            "capacity": 1,
+                            "count": {
+                                "sender": 2,
+                                "receiver": 8
+                            },
+                            "kind": {
+                                "Tokio": "Watch"
+                            }
+                        }
+                    },
+                    "6": {
+                        "spec_id": 6,
+                        "config": {
+                            "capacity": 1,
+                            "count": {
+                                "sender": 2,
+                                "receiver": 2
+                            },
+                            "kind": {
+                                "Tokio": "Watch"
+                            }
+                        }
+                    },
                     "8": {
                         "spec_id": 5,
                         "config": {
                             "capacity": 1,
                             "count": {
-                                "sender": 1,
-                                "receiver": 2
+                                "sender": 2,
+                                "receiver": 4
                             },
                             "kind": {
                                 "Tokio": "Watch"
@@ -713,8 +673,8 @@
                         "config": {
                             "capacity": 1,
                             "count": {
-                                "sender": 1,
-                                "receiver": 2
+                                "sender": 2,
+                                "receiver": 4
                             },
                             "kind": {
                                 "Tokio": "Watch"
@@ -726,8 +686,8 @@
                         "config": {
                             "capacity": 1,
                             "count": {
-                                "sender": 1,
-                                "receiver": 1
+                                "sender": 2,
+                                "receiver": 2
                             },
                             "kind": {
                                 "Tokio": "Watch"
@@ -739,8 +699,8 @@
                         "config": {
                             "capacity": 1,
                             "count": {
-                                "sender": 1,
-                                "receiver": 1
+                                "sender": 2,
+                                "receiver": 2
                             },
                             "kind": {
                                 "Tokio": "Watch"
@@ -754,101 +714,11 @@
     "ui_elements": {
         "nodes": [
             {
-                "id": 5,
+                "id": 24,
                 "data": {
                     "position": {
-                        "x": 1433.998070463271,
-                        "y": 471.746691480893
-                    }
-                }
-            },
-            {
-                "id": 3,
-                "data": {
-                    "position": {
-                        "x": 1861.2552736442133,
-                        "y": 660.0461169626469
-                    }
-                }
-            },
-            {
-                "id": 4,
-                "data": {
-                    "position": {
-                        "x": 2075.696897151775,
-                        "y": 665.6570339265638
-                    }
-                }
-            },
-            {
-                "id": 0,
-                "data": {
-                    "position": {
-                        "x": 468.0,
-                        "y": 24.0
-                    }
-                }
-            },
-            {
-                "id": 14,
-                "data": {
-                    "position": {
-                        "x": 2215.0915248226756,
-                        "y": 1288.302635759542
-                    }
-                }
-            },
-            {
-                "id": 7,
-                "data": {
-                    "position": {
-                        "x": 385.1469586544837,
-                        "y": 468.4685876071976
-                    }
-                }
-            },
-            {
-                "id": 19,
-                "data": {
-                    "position": {
-                        "x": 2076.2119587072634,
-                        "y": 414.49555290738533
-                    }
-                }
-            },
-            {
-                "id": 2,
-                "data": {
-                    "position": {
-                        "x": 915.5885873813928,
-                        "y": 468.03564125322526
-                    }
-                }
-            },
-            {
-                "id": 13,
-                "data": {
-                    "position": {
-                        "x": 2758.551753059931,
-                        "y": 1042.775829194363
-                    }
-                }
-            },
-            {
-                "id": 1,
-                "data": {
-                    "position": {
-                        "x": 467.0,
-                        "y": 197.0
-                    }
-                }
-            },
-            {
-                "id": 10,
-                "data": {
-                    "position": {
-                        "x": 1129.8617660943207,
-                        "y": 476.6897856058406
+                        "x": 1433.4086143753725,
+                        "y": 359.9757555842359
                     }
                 }
             },
@@ -862,29 +732,11 @@
                 }
             },
             {
-                "id": 17,
+                "id": 5,
                 "data": {
                     "position": {
-                        "x": 3664.1908152677993,
-                        "y": 1341.1299387901356
-                    }
-                }
-            },
-            {
-                "id": 16,
-                "data": {
-                    "position": {
-                        "x": 3316.1231267359353,
-                        "y": 1348.1908634786753
-                    }
-                }
-            },
-            {
-                "id": 18,
-                "data": {
-                    "position": {
-                        "x": 3243.9255949489566,
-                        "y": 901.0154178112076
+                        "x": 1433.998070463271,
+                        "y": 471.746691480893
                     }
                 }
             },
@@ -898,20 +750,83 @@
                 }
             },
             {
-                "id": 9,
+                "id": 10,
                 "data": {
                     "position": {
-                        "x": 1368.224758814447,
-                        "y": 875.4819599647672
+                        "x": 1129.8617660943207,
+                        "y": 476.6897856058406
                     }
                 }
             },
             {
-                "id": 8,
+                "id": 6,
                 "data": {
                     "position": {
-                        "x": 2076.0662779810045,
-                        "y": 538.370543234441
+                        "x": 42.77310649232686,
+                        "y": 463.0857245305083
+                    }
+                }
+            },
+            {
+                "id": 22,
+                "data": {
+                    "position": {
+                        "x": 914.78375001561,
+                        "y": 345.13139452921587
+                    }
+                }
+            },
+            {
+                "id": 13,
+                "data": {
+                    "position": {
+                        "x": 2758.551753059931,
+                        "y": 1042.775829194363
+                    }
+                }
+            },
+            {
+                "id": 18,
+                "data": {
+                    "position": {
+                        "x": 3243.9255949489566,
+                        "y": 901.0154178112076
+                    }
+                }
+            },
+            {
+                "id": 9,
+                "data": {
+                    "position": {
+                        "x": 1423.0483223661154,
+                        "y": 866.8517510767256
+                    }
+                }
+            },
+            {
+                "id": 1,
+                "data": {
+                    "position": {
+                        "x": 1132.451614457752,
+                        "y": 151.43754711820796
+                    }
+                }
+            },
+            {
+                "id": 16,
+                "data": {
+                    "position": {
+                        "x": 3316.1231267359353,
+                        "y": 1348.1908634786753
+                    }
+                }
+            },
+            {
+                "id": 20,
+                "data": {
+                    "position": {
+                        "x": 42.574211522258,
+                        "y": 340.85417448775837
                     }
                 }
             },
@@ -925,40 +840,29 @@
                 }
             },
             {
-                "id": 6,
-                "data": {
-                    "position": {
-                        "x": 42.77310649232686,
-                        "y": 463.0857245305083
-                    }
-                }
-            }
-        ],
-        "channels": [
-            {
                 "id": 4,
                 "data": {
                     "position": {
-                        "x": 1607.2260496061958,
-                        "y": 876.2628890688966
+                        "x": 2075.696897151775,
+                        "y": 665.6570339265638
                     }
                 }
             },
             {
-                "id": 12,
+                "id": 21,
                 "data": {
                     "position": {
-                        "x": 266.7077161010933,
-                        "y": 611.858878114273
+                        "x": 383.953387430521,
+                        "y": 332.2148060401346
                     }
                 }
             },
             {
-                "id": 7,
+                "id": 0,
                 "data": {
                     "position": {
-                        "x": 2472.024931425655,
-                        "y": 1289.4815514349775
+                        "x": 1132.25260253981,
+                        "y": 26.398023835883805
                     }
                 }
             },
@@ -966,35 +870,35 @@
                 "id": 2,
                 "data": {
                     "position": {
-                        "x": 1563.2073318363143,
-                        "y": 614.4547235452358
+                        "x": 915.5885873813928,
+                        "y": 468.03564125322526
                     }
                 }
             },
             {
-                "id": 9,
+                "id": 23,
                 "data": {
                     "position": {
-                        "x": 577.6064339338402,
-                        "y": 628.1469969030513
+                        "x": 1129.0992127474617,
+                        "y": 349.77025735890965
                     }
                 }
             },
             {
-                "id": 6,
+                "id": 7,
                 "data": {
                     "position": {
-                        "x": 1113.9107455578703,
-                        "y": 1356.8972918578402
+                        "x": 385.1469586544837,
+                        "y": 468.4685876071976
                     }
                 }
             },
             {
-                "id": 11,
+                "id": 14,
                 "data": {
                     "position": {
-                        "x": 2998.1383961378397,
-                        "y": 1111.8923853226424
+                        "x": 2215.0915248226756,
+                        "y": 1288.302635759542
                     }
                 }
             },
@@ -1002,8 +906,17 @@
                 "id": 8,
                 "data": {
                     "position": {
-                        "x": 2015.7299403812576,
-                        "y": 1063.757011644734
+                        "x": 2076.0662779810045,
+                        "y": 538.370543234441
+                    }
+                }
+            },
+            {
+                "id": 17,
+                "data": {
+                    "position": {
+                        "x": 3664.1908152677993,
+                        "y": 1341.1299387901356
                     }
                 }
             },
@@ -1011,9 +924,353 @@
                 "id": 3,
                 "data": {
                     "position": {
-                        "x": 1188.4196551350394,
-                        "y": 1002.0665496132456
+                        "x": 1861.2552736442133,
+                        "y": 660.0461169626469
                     }
+                }
+            },
+            {
+                "id": 19,
+                "data": {
+                    "position": {
+                        "x": 2076.2119587072634,
+                        "y": 414.4955529073854
+                    }
+                }
+            }
+        ],
+        "channels": [
+            {
+                "id": 6,
+                "data": {
+                    "position": {
+                        "x": 1049.1566599049747,
+                        "y": 618.7007154148306
+                    }
+                }
+            },
+            {
+                "id": 0,
+                "data": {
+                    "position": {
+                        "x": 1626.6653495361572,
+                        "y": 910.120824164664
+                    }
+                }
+            },
+            {
+                "id": 9,
+                "data": {
+                    "position": {
+                        "x": 610.0212612831613,
+                        "y": 467.29262995554075
+                    }
+                }
+            },
+            {
+                "id": 2,
+                "data": {
+                    "position": {
+                        "x": 1624.277719441631,
+                        "y": 568.8818217062914
+                    }
+                }
+            },
+            {
+                "id": 12,
+                "data": {
+                    "position": {
+                        "x": 231.1033238696034,
+                        "y": 581.1654365354024
+                    }
+                }
+            },
+            {
+                "id": 8,
+                "data": {
+                    "position": {
+                        "x": 2139.113430105151,
+                        "y": 974.2623977624467
+                    }
+                }
+            },
+            {
+                "id": 1,
+                "data": {
+                    "position": {
+                        "x": 2480.5866030834495,
+                        "y": 1305.078917670084
+                    }
+                }
+            },
+            {
+                "id": 11,
+                "data": {
+                    "position": {
+                        "x": 3014.7939563938353,
+                        "y": 1330.2652864568045
+                    }
+                }
+            },
+            {
+                "id": 3,
+                "data": {
+                    "position": {
+                        "x": 1279.7839070861528,
+                        "y": 622.8789624619492
+                    }
+                }
+            }
+        ],
+        "port_connections": [
+            {
+                "id": {
+                    "node_id": 18,
+                    "port_id": 0,
+                    "channel_id": 2
+                },
+                "data": {
+                    "visibility": "Hidden"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 6,
+                    "port_id": 0,
+                    "channel_id": 12
+                },
+                "data": {
+                    "visibility": "Visible"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 14,
+                    "port_id": 0,
+                    "channel_id": 3
+                },
+                "data": {
+                    "visibility": "Hidden"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 15,
+                    "port_id": 1,
+                    "channel_id": 3
+                },
+                "data": {
+                    "visibility": "Hidden"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 16,
+                    "port_id": 0,
+                    "channel_id": 3
+                },
+                "data": {
+                    "visibility": "Hidden"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 16,
+                    "port_id": 1,
+                    "channel_id": 8
+                },
+                "data": {
+                    "visibility": "Hidden"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 3,
+                    "port_id": 0,
+                    "channel_id": 2
+                },
+                "data": {
+                    "visibility": "Visible"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 15,
+                    "port_id": 3,
+                    "channel_id": 11
+                },
+                "data": {
+                    "visibility": "Visible"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 14,
+                    "port_id": 2,
+                    "channel_id": 1
+                },
+                "data": {
+                    "visibility": "Visible"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 2,
+                    "port_id": 0,
+                    "channel_id": 9
+                },
+                "data": {
+                    "visibility": "Visible"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 7,
+                    "port_id": 0,
+                    "channel_id": 9
+                },
+                "data": {
+                    "visibility": "Visible"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 5,
+                    "port_id": 0,
+                    "channel_id": 2
+                },
+                "data": {
+                    "visibility": "Visible"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 9,
+                    "port_id": 1,
+                    "channel_id": 0
+                },
+                "data": {
+                    "visibility": "Visible"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 11,
+                    "port_id": 2,
+                    "channel_id": 8
+                },
+                "data": {
+                    "visibility": "Visible"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 2,
+                    "port_id": 2,
+                    "channel_id": 6
+                },
+                "data": {
+                    "visibility": "Visible"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 10,
+                    "port_id": 0,
+                    "channel_id": 3
+                },
+                "data": {
+                    "visibility": "Visible"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 9,
+                    "port_id": 0,
+                    "channel_id": 3
+                },
+                "data": {
+                    "visibility": "Hidden"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 11,
+                    "port_id": 0,
+                    "channel_id": 0
+                },
+                "data": {
+                    "visibility": "Visible"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 15,
+                    "port_id": 0,
+                    "channel_id": 1
+                },
+                "data": {
+                    "visibility": "Visible"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 15,
+                    "port_id": 2,
+                    "channel_id": 6
+                },
+                "data": {
+                    "visibility": "Hidden"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 2,
+                    "port_id": 1,
+                    "channel_id": 12
+                },
+                "data": {
+                    "visibility": "Hidden"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 11,
+                    "port_id": 1,
+                    "channel_id": 2
+                },
+                "data": {
+                    "visibility": "Hidden"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 14,
+                    "port_id": 1,
+                    "channel_id": 8
+                },
+                "data": {
+                    "visibility": "Hidden"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 18,
+                    "port_id": 1,
+                    "channel_id": 11
+                },
+                "data": {
+                    "visibility": "Hidden"
+                }
+            },
+            {
+                "id": {
+                    "node_id": 17,
+                    "port_id": 0,
+                    "channel_id": 9
+                },
+                "data": {
+                    "visibility": "Hidden"
                 }
             }
         ]

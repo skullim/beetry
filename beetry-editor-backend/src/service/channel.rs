@@ -101,8 +101,16 @@ where
         ChannelService::update_config(self.facade_view.channel, id, update)
     }
 
-    pub(crate) fn connect(&mut self, context: &ConnectionContext) -> Result<()> {
-        ChannelService::connect(self.facade_view.spec, self.facade_view.channel, context)
+    pub(crate) fn validate_connection(&self, context: &ConnectionContext) -> Result<()> {
+        ChannelService::validate_connection(
+            self.facade_view.spec,
+            self.facade_view.channel,
+            context,
+        )
+    }
+
+    pub(crate) fn on_connected(&mut self, context: &ConnectionContext) -> Result<()> {
+        ChannelService::on_connected(self.facade_view.channel, context)
     }
 
     pub(crate) fn disconnect(&mut self, id: ChannelId, kind: NodePortKind) -> Result<()> {
@@ -246,13 +254,10 @@ impl ChannelService {
             .ok_or_else(|| anyhow!("failed to obtain data for channel {id}"))
     }
 
-    fn connect(
-        channel_spec_repo: &impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
+    fn on_connected(
         channel_repo: &mut impl ChannelRepositoryConcept,
         context: &ConnectionContext,
     ) -> Result<()> {
-        Self::ensure_exists(channel_repo, context.channel)?;
-        Self::validate_connection(channel_spec_repo, channel_repo, context)?;
         let count_mut = Self::config_mut(channel_repo, context.channel)?.count_mut();
         match context.spec.kind {
             NodePortKind::Receiver => {
@@ -282,6 +287,7 @@ impl ChannelService {
         channel_repo: &impl ChannelRepositoryConcept,
         conn_ctx: &ConnectionContext,
     ) -> Result<()> {
+        Self::ensure_exists(channel_repo, conn_ctx.channel)?;
         let channel_spec = Self::spec(channel_spec_repo, channel_repo, conn_ctx.channel)?;
         if conn_ctx.spec.msg_spec.hash() != channel_spec.msg_hash() {
             bail!(
