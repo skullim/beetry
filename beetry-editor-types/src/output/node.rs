@@ -12,6 +12,7 @@ use tracing::error;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ParameterValue {
     Bool(bool),
+    U16(u16),
     U64(u64),
     I64(i64),
     F64(f64),
@@ -22,6 +23,14 @@ impl ParameterValue {
     pub fn into_bool(self) -> Option<bool> {
         if let Self::Bool(b) = self {
             Some(b)
+        } else {
+            None
+        }
+    }
+
+    pub fn into_u16(self) -> Option<u16> {
+        if let Self::U16(v) = self {
+            Some(v)
         } else {
             None
         }
@@ -64,6 +73,7 @@ impl fmt::Display for ParameterValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Bool(v) => write!(f, "{v}"),
+            Self::U16(v) => write!(f, "{v}"),
             Self::U64(v) => write!(f, "{v}"),
             Self::I64(v) => write!(f, "{v}"),
             Self::F64(v) => write!(f, "{v}"),

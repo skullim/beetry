@@ -2,8 +2,8 @@ use anyhow::{Context, Result, anyhow, bail};
 use beetry_builder::Builder as BehaviorTreeBuilder;
 use beetry_channel::external;
 use beetry_core::{BoxNode, MessageHash, NonEmptyNodes, RegisterTask, Root, TaskHandle, Tree};
-use beetry_editor_types::id::{ChannelId, PortConnectionId};
-use beetry_editor_types::output::node::{ParameterValue, Parameters};
+use beetry_editor_types::id::ChannelId;
+use beetry_editor_types::output::node::Parameters;
 use beetry_editor_types::spec::node::{LeafKind, NodeKind, NodeName, NodePortKind, NodeSpecKey};
 use beetry_editor_types::{
     id::NodeId,
@@ -22,14 +22,21 @@ use beetry_reconstruction_types::node::{
     LeafSnapshot, RootSnapshot,
 };
 use beetry_reconstruction_types::node::{NodeSnapshot, NodeSnapshotData};
+pub use beetry_reconstruction_types::params::ParamsReconstructor;
 use itertools::Itertools;
-use serde::Deserialize;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap};
 use tracing::debug;
 
 pub struct TreeReconstructor {
     ext_receivers: external::ReceiverRegistry,
     node_plugins: NodePluginRegistry,
+}
+
+struct ReconstructionContext<'a> {
+    node_store: &'a NodeStore,
+    param_store: &'a mut ParameterStore,
+    port_store: &'a mut PortStore,
+    node_plugins: &'a NodePluginRegistry,
 }
 
 impl TreeReconstructor {
@@ -135,48 +142,38 @@ impl TreeReconstructor {
             .children()
             .next()
             .with_context(|| anyhow!("root node {root_id:?} does not have a child node"))?;
-        let connections = port_store.take_connections();
 
-        let node_snapshot = Self::try_create_node_snapshot(
-            root_child,
-            &node_store,
-            &mut param_store,
-            &mut port_store,
-            &connections,
+        let mut context = ReconstructionContext {
+            node_store: &node_store,
+            param_store: &mut param_store,
+            port_store: &mut port_store,
             node_plugins,
-        )?;
+        };
+
+        let node_snapshot = Self::try_create_node_snapshot(root_child, &mut context)?;
         Ok(RootSnapshot::new(node_snapshot))
     }
 
     fn try_create_node_snapshot(
         node_id: NodeId,
-        node_store: &NodeStore,
-        param_store: &mut ParameterStore,
-        port_store: &mut PortStore,
-        connections: &std::collections::HashSet<PortConnectionId>,
-        node_plugins: &NodePluginRegistry,
+        context: &mut ReconstructionContext<'_>,
     ) -> Result<NodeSnapshot> {
-        let node_record = node_store
-            .nodes
-            .get(&node_id)
-            .with_context(|| anyhow!("node with id {node_id:?} does not exist in node store"))?;
+        let node_record =
+            context.node_store.nodes.get(&node_id).with_context(|| {
+                anyhow!("node with id {node_id:?} does not exist in node store")
+            })?;
         let spec_id = node_record.spec_id();
-        let spec_key = node_store
+        let spec_key = context
+            .node_store
             .specs
             .get(&spec_id)
             .with_context(|| anyhow!("node spec with id {spec_id} does not exist"))?;
         let kind = spec_key.kind();
         let name = spec_key.name().clone();
         match kind {
-            NodeKind::Control => Self::try_create_control_snapshot(
-                name,
-                node_record.children(),
-                node_store,
-                param_store,
-                port_store,
-                connections,
-                node_plugins,
-            ),
+            NodeKind::Control => {
+                Self::try_create_control_snapshot(node_id, name, node_record.children(), context)
+            }
             NodeKind::Decorator => {
                 let child_id = node_record
                     .children()
@@ -187,79 +184,57 @@ impl TreeReconstructor {
                             children_iter.count()
                         )
                     })?;
-                Self::try_create_decorator_snapshot(
-                    name,
-                    *child_id,
-                    node_store,
-                    param_store,
-                    port_store,
-                    connections,
-                    node_plugins,
-                )
+                Self::try_create_decorator_snapshot(node_id, name, *child_id, context)
             }
 
-            NodeKind::Leaf(leaf_kind) => Self::try_create_leaf_snapshot(
-                node_id,
-                name,
-                leaf_kind,
-                param_store,
-                port_store,
-                connections,
-                node_plugins,
-            ),
+            NodeKind::Leaf(leaf_kind) => {
+                Self::try_create_leaf_snapshot(node_id, name, leaf_kind, context)
+            }
             NodeKind::Root => bail!("unexpected Root node found during tree traversal"),
         }
     }
 
     fn try_create_control_snapshot<'a>(
+        node_id: NodeId,
         name: NodeName,
         children_iter: impl Iterator<Item = &'a NodeId>,
-        node_store: &NodeStore,
-        param_store: &mut ParameterStore,
-        port_store: &mut PortStore,
-        connections: &std::collections::HashSet<PortConnectionId>,
-        node_plugins: &NodePluginRegistry,
+        context: &mut ReconstructionContext<'_>,
     ) -> Result<NodeSnapshot> {
         let children: Vec<_> = children_iter
-            .map(|child_id| {
-                Self::try_create_node_snapshot(
-                    *child_id,
-                    node_store,
-                    param_store,
-                    port_store,
-                    connections,
-                    node_plugins,
-                )
-            })
+            .map(|child_id| Self::try_create_node_snapshot(*child_id, context))
             .collect::<Result<_>>()?;
+
+        let params = context
+            .param_store
+            .take(&node_id)
+            .map(|value| value.params)
+            .unwrap_or_default();
 
         Ok(NodeSnapshot::builder()
             .name(name)
             .data(NodeSnapshotData::Control(ControlSnapshot::new(children)?))
+            .parameters(params)
             .build())
     }
 
     fn try_create_decorator_snapshot(
+        node_id: NodeId,
         name: NodeName,
         child_id: NodeId,
-        node_store: &NodeStore,
-        param_store: &mut ParameterStore,
-        port_store: &mut PortStore,
-        connections: &std::collections::HashSet<PortConnectionId>,
-        node_plugins: &NodePluginRegistry,
+        context: &mut ReconstructionContext<'_>,
     ) -> Result<NodeSnapshot> {
-        let child = Self::try_create_node_snapshot(
-            child_id,
-            node_store,
-            param_store,
-            port_store,
-            connections,
-            node_plugins,
-        )?;
+        let child = Self::try_create_node_snapshot(child_id, context)?;
+
+        let params = context
+            .param_store
+            .take(&node_id)
+            .map(|value| value.params)
+            .unwrap_or_default();
 
         Ok(NodeSnapshot::builder()
             .name(name)
             .data(NodeSnapshotData::Decorator(DecoratorSnapshot::new(child)))
+            .parameters(params)
             .build())
     }
 
@@ -267,18 +242,15 @@ impl TreeReconstructor {
         node_id: NodeId,
         name: NodeName,
         leaf_kind: LeafKind,
-        param_store: &mut ParameterStore,
-        port_store: &mut PortStore,
-        connections: &std::collections::HashSet<PortConnectionId>,
-        node_plugins: &NodePluginRegistry,
+        context: &mut ReconstructionContext<'_>,
     ) -> Result<NodeSnapshot> {
         let spec = match leaf_kind {
             LeafKind::Action => {
-                let plugin = node_plugins.action.get(&name)?;
+                let plugin = context.node_plugins.action.get(&name)?;
                 plugin.spec()
             }
             LeafKind::Condition => {
-                let plugin = node_plugins.condition.get(&name)?;
+                let plugin = context.node_plugins.condition.get(&name)?;
                 plugin.spec()
             }
         };
@@ -288,7 +260,12 @@ impl TreeReconstructor {
         let mut ext_receivers = Vec::new();
         let mut ext_senders = Vec::new();
 
-        for (port_id, port_state) in port_store.take_state(&node_id).into_iter().flatten() {
+        for (port_id, port_state) in context
+            .port_store
+            .take_state(&node_id)
+            .into_iter()
+            .flatten()
+        {
             let port_spec = spec
                 .ports()
                 .as_ref()
@@ -302,7 +279,7 @@ impl TreeReconstructor {
                 continue;
             }
 
-            let port_connections = connections.iter().filter_map(|conn| {
+            let port_connections = context.port_store.connections_iter().filter_map(|conn| {
                 (conn.node_id == node_id && conn.port_id == port_id).then_some(&conn.channel_id)
             });
             match port_spec.kind {
@@ -319,7 +296,8 @@ impl TreeReconstructor {
             .ext_senders(ext_senders)
             .build();
 
-        let params = param_store
+        let params = context
+            .param_store
             .take(&node_id)
             .map(|value| value.params)
             .unwrap_or_default();
@@ -592,31 +570,3 @@ impl<P> NodeNameToPluginMap<P> {
 }
 
 type ChannelIdToChannelMap = HashMap<ChannelId, TypeErasedChannel>;
-
-pub struct ParamsReconstructor;
-
-impl ParamsReconstructor {
-    pub fn reconstruct<T>(params: Parameters) -> Result<T>
-    where
-        T: for<'de> Deserialize<'de>,
-    {
-        let deserializer = serde_value::ValueDeserializer::<serde_value::DeserializerError>::new(
-            serde_value::Value::Map(
-                params
-                    .into_iter()
-                    .map(|(name, value)| {
-                        let value = match value {
-                            ParameterValue::Bool(b) => serde_value::Value::Bool(b),
-                            ParameterValue::U64(u) => serde_value::Value::U64(u),
-                            ParameterValue::I64(i) => serde_value::Value::I64(i),
-                            ParameterValue::F64(f) => serde_value::Value::F64(f),
-                            ParameterValue::String(s) => serde_value::Value::String(s),
-                        };
-                        (serde_value::Value::String(name), value)
-                    })
-                    .collect::<BTreeMap<_, _>>(),
-            ),
-        );
-        Ok(T::deserialize(deserializer)?)
-    }
-}

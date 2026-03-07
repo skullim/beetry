@@ -232,6 +232,10 @@ impl PortStore {
     pub fn take_connections(&mut self) -> HashSet<PortConnectionId> {
         std::mem::take(&mut self.connections)
     }
+
+    pub fn connections_iter(&self) -> impl Iterator<Item = &PortConnectionId> {
+        self.connections.iter()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
