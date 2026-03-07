@@ -29,45 +29,46 @@ pub mod node {
 
     pub mod spec {
         use crate::{
-            api::contract::NodeApi,
+            api::contract::NodeQueryApi,
             node::{SpecByNodeIdQuery, SpecBySpecIdQuery},
         };
 
-        pub fn by_spec_id(api: &impl NodeApi) -> impl SpecBySpecIdQuery {
-            NodeApi::spec_by_spec_id(api)
+        pub fn by_spec_id(api: &impl NodeQueryApi) -> impl SpecBySpecIdQuery {
+            NodeQueryApi::spec_by_spec_id(api)
         }
 
-        pub fn by_node_id(api: &impl NodeApi) -> impl SpecByNodeIdQuery {
-            NodeApi::spec_by_node_id(api)
+        pub fn by_node_id(api: &impl NodeQueryApi) -> impl SpecByNodeIdQuery {
+            NodeQueryApi::spec_by_node_id(api)
         }
     }
 
     pub mod tracker {
-        use crate::api::contract::NodeApi;
+        use crate::api::contract::NodeQueryApi;
         use crate::service::node::NodeTrackerQuery;
 
-        pub fn query(api: &impl NodeApi) -> impl NodeTrackerQuery {
-            NodeApi::tracker(api)
+        pub fn query(api: &impl NodeQueryApi) -> impl NodeTrackerQuery {
+            NodeQueryApi::tracker(api)
         }
     }
 
     pub mod parameters {
-        use crate::api::{ParameterValueQuery, contract::NodeApi};
+        use crate::api::ParameterValueQuery;
+        use crate::api::contract::{ParameterCommandApi, ParameterQueryApi};
         use crate::service::node::ParameterValueMut;
         use beetry_editor_types::{id::NodeId, output::node::Parameters};
 
-        pub fn create(api: &mut impl NodeApi, id: NodeId, params: Parameters) {
-            NodeApi::parameters_mut(api).create(id, params);
+        pub fn create(api: &mut impl ParameterCommandApi, id: NodeId, params: Parameters) {
+            ParameterCommandApi::parameters_mut(api).create(id, params);
         }
 
-        pub fn query(api: &impl NodeApi) -> impl ParameterValueQuery {
-            api.parameters()
+        pub fn query(api: &impl ParameterQueryApi) -> impl ParameterValueQuery {
+            ParameterQueryApi::parameters(api)
         }
     }
 
     pub mod ports {
         use crate::{
-            api::contract::{PortApi, PortLifecycleApi},
+            api::contract::{PortCommandApi, PortLifecycleApi, PortQueryApi},
             node::{PortConnectionQuery, PortStateQuery},
         };
         use anyhow::Result;
@@ -94,54 +95,57 @@ pub mod node {
         }
 
         pub fn set_state(
-            api: &mut impl PortApi,
+            api: &mut impl PortCommandApi,
             node_id: NodeId,
             port_id: NodePortId,
             state: PortState,
         ) -> Result<()> {
-            api.set_state(node_id, port_id, state)
+            PortCommandApi::set_state(api, node_id, port_id, state)
         }
 
-        pub fn state_query(api: &impl PortApi) -> impl PortStateQuery {
-            api.port_state_query()
+        pub fn state_query(api: &impl PortQueryApi) -> impl PortStateQuery {
+            PortQueryApi::port_state_query(api)
         }
 
-        pub fn connections_query(api: &impl PortApi) -> impl PortConnectionQuery {
-            api.connections_query()
+        pub fn connections_query(api: &impl PortQueryApi) -> impl PortConnectionQuery {
+            PortQueryApi::connections_query(api)
         }
 
-        pub fn port_order(
-            api: &impl PortApi,
+        pub fn order(
+            api: &impl PortQueryApi,
             kind: NodePortKind,
             node_id: NodeId,
             port_id: NodePortId,
         ) -> Result<RowIndex> {
-            api.port_order(kind, node_id, port_id)
+            PortQueryApi::port_order(api, kind, node_id, port_id)
         }
     }
 }
 
 pub mod edge {
-    use crate::{api::contract::EdgeApi, edge::EdgeQueryView};
+    use crate::{
+        api::contract::{EdgeCommandApi, EdgeQueryApi},
+        edge::EdgeQueryView,
+    };
     use anyhow::Result;
     use beetry_editor_types::{id::EdgeId, output::edge::NodeEdge};
 
-    pub fn create(api: &mut impl EdgeApi, edge: NodeEdge) -> Result<EdgeId> {
-        EdgeApi::create(api, edge)
+    pub fn create(api: &mut impl EdgeCommandApi, edge: NodeEdge) -> Result<EdgeId> {
+        EdgeCommandApi::create(api, edge)
     }
 
-    pub fn remove(api: &mut impl EdgeApi, id: EdgeId) -> Result<()> {
-        EdgeApi::remove(api, id)
+    pub fn remove(api: &mut impl EdgeCommandApi, id: EdgeId) -> Result<()> {
+        EdgeCommandApi::remove(api, id)
     }
 
-    pub fn query(api: &impl EdgeApi) -> impl EdgeQueryView {
-        EdgeApi::query(api)
+    pub fn query(api: &impl EdgeQueryApi) -> impl EdgeQueryView {
+        EdgeQueryApi::query(api)
     }
 }
 
 pub mod channel {
     use crate::{
-        api::contract::{ChannelApi, ChannelLifecycleApi},
+        api::contract::{ChannelCommandApi, ChannelLifecycleApi, ChannelQueryApi},
         channel::ChannelQueryView,
     };
     use anyhow::Result;
@@ -168,70 +172,79 @@ pub mod channel {
     }
 
     pub fn update_config(
-        api: &mut impl ChannelApi,
+        api: &mut impl ChannelCommandApi,
         id: ChannelId,
         update: ChannelConfigUpdate,
     ) -> Result<()> {
-        ChannelApi::update_config(api, id, update)
+        crate::api::contract::ChannelCommandApi::update_config(api, id, update)
     }
 
-    pub fn query(api: &impl ChannelApi) -> impl ChannelQueryView {
-        ChannelApi::query(api)
+    pub fn query(api: &impl ChannelQueryApi) -> impl ChannelQueryView {
+        crate::api::contract::ChannelQueryApi::query(api)
     }
 }
 
 pub mod ui {
     pub mod node {
-        use crate::{api::contract::NodeUiApi, ui::NodeUiQuery};
+        use crate::{
+            api::contract::{NodeUiCommandApi, NodeUiQueryApi},
+            ui::NodeUiQuery,
+        };
         use anyhow::Result;
         use beetry_editor_types::{id::NodeId, output::ui::Point};
 
         pub fn update_position(
-            api: &mut impl NodeUiApi,
+            api: &mut impl NodeUiCommandApi,
             id: NodeId,
             position: Point,
         ) -> Result<()> {
-            NodeUiApi::update_position(api, id, position)
+            crate::api::contract::NodeUiCommandApi::update_position(api, id, position)
         }
 
-        pub fn query(api: &impl NodeUiApi) -> impl NodeUiQuery {
-            NodeUiApi::query(api)
+        pub fn query(api: &impl NodeUiQueryApi) -> impl NodeUiQuery {
+            crate::api::contract::NodeUiQueryApi::query(api)
         }
     }
 
     pub mod channel {
-        use crate::{api::contract::ChannelUiApi, ui::ChannelUiQuery};
+        use crate::{
+            api::contract::{ChannelUiCommandApi, ChannelUiQueryApi},
+            ui::ChannelUiQuery,
+        };
         use anyhow::Result;
         use beetry_editor_types::{id::ChannelId, output::ui::Point};
 
         pub fn update_position(
-            api: &mut impl ChannelUiApi,
+            api: &mut impl ChannelUiCommandApi,
             id: ChannelId,
             position: Point,
         ) -> Result<()> {
-            ChannelUiApi::update_position(api, id, position)
+            crate::api::contract::ChannelUiCommandApi::update_position(api, id, position)
         }
 
-        pub fn query(api: &impl ChannelUiApi) -> impl ChannelUiQuery {
-            ChannelUiApi::query(api)
+        pub fn query(api: &impl ChannelUiQueryApi) -> impl ChannelUiQuery {
+            crate::api::contract::ChannelUiQueryApi::query(api)
         }
     }
 
     pub mod port {
-        use crate::{api::contract::PortConnectionUiApi, ui::PortConnectionUiQuery};
+        use crate::{
+            api::contract::{PortConnectionUiCommandApi, PortConnectionUiQueryApi},
+            ui::PortConnectionUiQuery,
+        };
         use anyhow::Result;
         use beetry_editor_types::{id::PortConnectionId, output::ui::PortConnectionUiData};
 
         pub fn update_data(
-            api: &mut impl PortConnectionUiApi,
+            api: &mut impl PortConnectionUiCommandApi,
             id: PortConnectionId,
             data: PortConnectionUiData,
         ) -> Result<()> {
-            PortConnectionUiApi::update_data(api, id, data)
+            crate::api::contract::PortConnectionUiCommandApi::update_data(api, id, data)
         }
 
-        pub fn query(api: &impl PortConnectionUiApi) -> impl PortConnectionUiQuery {
-            PortConnectionUiApi::query(api)
+        pub fn query(api: &impl PortConnectionUiQueryApi) -> impl PortConnectionUiQuery {
+            crate::api::contract::PortConnectionUiQueryApi::query(api)
         }
     }
 }

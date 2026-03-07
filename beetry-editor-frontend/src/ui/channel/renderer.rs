@@ -200,7 +200,7 @@ fn resolve_connection_entry(
     let channel_pos = channel_query_api.position(conn.channel_id).ok()?;
     let port_width = text::text_width_from(msg_desc, text::FONT_SIZE_NORMAL);
     let row_idx: RowIndex =
-        api::node::ports::port_order(editor, kind, conn.node_id, conn.port_id).ok()?;
+        api::node::ports::order(editor, kind, conn.node_id, conn.port_id).ok()?;
     let node_port_center = node_port_center(
         spec_query_api,
         conn.node_id,

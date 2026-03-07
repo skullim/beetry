@@ -1,5 +1,5 @@
-use crate::repository::{NodeRepositoryConcept, SpecRepositoryConcept};
-use anyhow::{Result, bail};
+use crate::repository::{NodeRepository, NodeSpecRepository};
+use anyhow::{Result, anyhow, bail};
 use std::collections::{HashMap, HashSet};
 use tracing::{debug, warn};
 
@@ -7,8 +7,6 @@ use beetry_editor_types::{
     id::{NodeId, NodeSpecId},
     spec::node::{NodeKind, NodeSpec, NodeSpecKey},
 };
-
-use super::SpecView;
 
 #[derive(Debug, Default)]
 pub(crate) struct NodeService {
@@ -23,8 +21,8 @@ impl NodeService {
 
     pub(crate) fn create(
         &mut self,
-        spec_repo: &mut impl SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
-        node_repo: &mut impl NodeRepositoryConcept,
+        spec_repo: &mut NodeSpecRepository,
+        node_repo: &mut NodeRepository,
         spec: &NodeSpec,
     ) -> Result<NodeId> {
         let kind = spec.kind();
@@ -55,16 +53,15 @@ impl NodeService {
 
     pub(crate) fn load_node(
         &mut self,
-        spec_repo: &impl SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
-        node_repo: &mut impl NodeRepositoryConcept,
+        spec_repo: &NodeSpecRepository,
+        node_repo: &mut NodeRepository,
         id: NodeId,
         spec_id: NodeSpecId,
     ) -> Result<()> {
-        let spec_view = SpecView {
-            spec_repo,
-            node_repo,
-        };
-        let kind = spec_view.kind_by_spec_id(spec_id)?;
+        let kind = spec_repo
+            .spec(spec_id)
+            .ok_or_else(|| anyhow!("failed to obtain spec {spec_id}"))?
+            .kind();
         self.validate_creation(kind)?;
         node_repo.load(id, spec_id)?;
         self.node_cache.entry(kind).or_default().insert(id);
@@ -73,7 +70,7 @@ impl NodeService {
 
     pub(crate) fn load_spec(
         &mut self,
-        spec_repo: &mut impl SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
+        spec_repo: &mut NodeSpecRepository,
         id: NodeSpecId,
         spec: NodeSpec,
     ) -> Result<()> {

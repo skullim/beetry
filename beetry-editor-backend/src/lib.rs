@@ -3,9 +3,6 @@ mod id;
 mod repository;
 mod service;
 
-use crate::repository::{
-    ChannelRepositoryFacade, EdgeRepository, NodeRepositoryFacade, UiRepositoryFacade,
-};
 use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
 use beetry_editor_types::{
@@ -16,12 +13,7 @@ use std::collections::HashMap;
 
 pub use service::{channel, edge, node, ui};
 
-pub type EditorService = api::contract::EditorService<
-    NodeRepositoryFacade,
-    EdgeRepository,
-    ChannelRepositoryFacade,
-    UiRepositoryFacade,
->;
+pub type EditorService = api::contract::EditorService;
 
 #[derive(Debug, Clone)]
 pub struct NodeSpecMap {

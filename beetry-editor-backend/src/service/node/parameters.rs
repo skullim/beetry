@@ -1,4 +1,4 @@
-use crate::repository::ParamValueRepositoryConcept;
+use crate::repository::ParamValuesRepository;
 use anyhow::{Result, anyhow};
 use beetry_editor_types::{
     id::NodeId,
@@ -6,24 +6,21 @@ use beetry_editor_types::{
     spec::node::FieldTypeSpec,
 };
 
-pub struct ParameterValueQueryView<'a, PVR> {
-    pub(crate) repo: &'a PVR,
+pub struct ParameterValueQueryView<'a> {
+    pub(crate) repo: &'a ParamValuesRepository,
 }
 
 pub trait ParameterValueQuery {
     fn parameters(&self, id: NodeId) -> Result<&Parameters>;
 }
 
-impl<'a, PVR> ParameterValueQueryView<'a, PVR> {
-    pub(crate) fn new(repo: &'a PVR) -> Self {
+impl<'a> ParameterValueQueryView<'a> {
+    pub(crate) fn new(repo: &'a ParamValuesRepository) -> Self {
         Self { repo }
     }
 }
 
-impl<PVR> ParameterValueQuery for ParameterValueQueryView<'_, PVR>
-where
-    PVR: ParamValueRepositoryConcept,
-{
+impl ParameterValueQuery for ParameterValueQueryView<'_> {
     fn parameters(&self, id: NodeId) -> Result<&Parameters> {
         self.repo
             .params(id)
@@ -31,19 +28,16 @@ where
     }
 }
 
-pub struct ParameterValueViewMut<'a, PVR> {
-    repo: &'a mut PVR,
+pub struct ParameterValueViewMut<'a> {
+    repo: &'a mut ParamValuesRepository,
 }
 
 pub trait ParameterValueMut {
     fn create(&mut self, id: NodeId, params: Parameters);
 }
 
-impl<'a, PVR> ParameterValueViewMut<'a, PVR>
-where
-    PVR: ParamValueRepositoryConcept,
-{
-    pub(crate) fn new(repo: &'a mut PVR) -> Self {
+impl<'a> ParameterValueViewMut<'a> {
+    pub(crate) fn new(repo: &'a mut ParamValuesRepository) -> Self {
         Self { repo }
     }
 
@@ -52,10 +46,7 @@ where
     }
 }
 
-impl<PVR> ParameterValueMut for ParameterValueViewMut<'_, PVR>
-where
-    PVR: ParamValueRepositoryConcept,
-{
+impl ParameterValueMut for ParameterValueViewMut<'_> {
     fn create(&mut self, id: NodeId, params: Parameters) {
         ParameterValueViewMut::create(self, id, params);
     }

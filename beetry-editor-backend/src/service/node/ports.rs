@@ -1,15 +1,15 @@
 use crate::{
     repository::{
-        ChannelRepositoryFacadeConcept, NodeRepositoryConcept, PortConnectionRepositoryConcept,
-        PortStateRepositoryConcept, SpecRepositoryConcept,
+        ChannelRepository, ChannelRepositoryFacadeViewMut, ChannelSpecRepository, NodeRepository,
+        NodeSpecRepository, PortConnectionRepository, PortStateRepository,
     },
     service::channel::{ChannelService, ChannelViewMut, ConnectionContext},
 };
 use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{
-    id::{NodeId, NodePortId, NodeSpecId, PortConnectionId},
+    id::{NodeId, NodePortId, PortConnectionId},
     output::node::PortState,
-    spec::node::{NodePortKind, NodeSpec, PortsSpec},
+    spec::node::{NodePortKind, PortsSpec},
 };
 
 use super::{SpecByNodeIdQuery, SpecByNodeIdQueryView, SpecBySpecIdQueryView, SpecView};
@@ -18,14 +18,11 @@ pub trait PortStateQuery {
     fn state(&self, node_id: NodeId, port_id: NodePortId) -> Result<&PortState>;
 }
 
-pub struct PortStateQueryView<'a, PR> {
-    pub(crate) repo: &'a PR,
+pub struct PortStateQueryView<'a> {
+    pub(crate) repo: &'a PortStateRepository,
 }
 
-impl<PR> PortStateQuery for PortStateQueryView<'_, PR>
-where
-    PR: PortStateRepositoryConcept,
-{
+impl PortStateQuery for PortStateQueryView<'_> {
     fn state(&self, node_id: NodeId, port_id: NodePortId) -> Result<&PortState> {
         self.repo.state(node_id, port_id).ok_or_else(|| {
             anyhow!("unable to retrieve node's (id: {node_id}) port (id: {port_id}) state")
@@ -33,26 +30,17 @@ where
     }
 }
 
-pub struct PortStateViewMut<'a, NR, SR, PC, PS, CRF>
-where
-    CRF: ChannelRepositoryFacadeConcept,
-{
-    pub(crate) node_repo: &'a NR,
-    pub(crate) spec_repo: &'a SR,
-    pub(crate) port_conn_repo: &'a mut PC,
-    pub(crate) port_state_repo: &'a mut PS,
-    pub(crate) channel_facade: &'a mut CRF,
+pub struct PortStateViewMut<'a> {
+    pub(crate) node_repo: &'a NodeRepository,
+    pub(crate) spec_repo: &'a NodeSpecRepository,
+    pub(crate) port_conn_repo: &'a mut PortConnectionRepository,
+    pub(crate) port_state_repo: &'a mut PortStateRepository,
+    pub(crate) channel_repo: &'a mut ChannelRepository,
+    pub(crate) channel_spec_repo: &'a mut ChannelSpecRepository,
     pub(crate) channel_service: &'a mut ChannelService,
 }
 
-impl<'a, NR, SR, PC, PS, CRF> PortStateViewMut<'a, NR, SR, PC, PS, CRF>
-where
-    NR: NodeRepositoryConcept,
-    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
-    PC: PortConnectionRepositoryConcept,
-    PS: PortStateRepositoryConcept,
-    CRF: ChannelRepositoryFacadeConcept,
-{
+impl PortStateViewMut<'_> {
     pub fn set_state(
         &mut self,
         node_id: NodeId,
@@ -65,7 +53,8 @@ where
                 spec_repo: self.spec_repo,
                 port_conn_repo: self.port_conn_repo,
                 port_state_repo: self.port_state_repo,
-                channel_facade: self.channel_facade,
+                channel_repo: self.channel_repo,
+                channel_spec_repo: self.channel_spec_repo,
                 channel_service: self.channel_service,
             };
             port_conn_view.disconnect_port(node_id, port_id)?;
@@ -80,13 +69,13 @@ pub trait PortSpecQuery {
     -> Result<usize>;
 }
 
-pub struct PortSpecQueryView<'a, NR, SR> {
-    node_repo: &'a NR,
-    spec_repo: &'a SR,
+pub struct PortSpecQueryView<'a> {
+    node_repo: &'a NodeRepository,
+    spec_repo: &'a NodeSpecRepository,
 }
 
-impl<'a, NR, SR> PortSpecQueryView<'a, NR, SR> {
-    pub(crate) fn new(node_repo: &'a NR, spec_repo: &'a SR) -> Self {
+impl<'a> PortSpecQueryView<'a> {
+    pub(crate) fn new(node_repo: &'a NodeRepository, spec_repo: &'a NodeSpecRepository) -> Self {
         Self {
             node_repo,
             spec_repo,
@@ -94,11 +83,7 @@ impl<'a, NR, SR> PortSpecQueryView<'a, NR, SR> {
     }
 }
 
-impl<NR, SR> PortSpecQuery for PortSpecQueryView<'_, NR, SR>
-where
-    NR: NodeRepositoryConcept,
-    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
-{
+impl PortSpecQuery for PortSpecQueryView<'_> {
     fn port_order(
         &self,
         kind: NodePortKind,
@@ -133,20 +118,17 @@ pub trait PortConnectionQuery {
     fn all_connections(&self) -> impl Iterator<Item = PortConnectionId>;
 }
 
-pub struct PortConnectionQueryView<'a, PC> {
-    repo: &'a PC,
+pub struct PortConnectionQueryView<'a> {
+    repo: &'a PortConnectionRepository,
 }
 
-impl<'a, PC> PortConnectionQueryView<'a, PC> {
-    pub(crate) fn new(repo: &'a PC) -> Self {
+impl<'a> PortConnectionQueryView<'a> {
+    pub(crate) fn new(repo: &'a PortConnectionRepository) -> Self {
         Self { repo }
     }
 }
 
-impl<PC> PortConnectionQuery for PortConnectionQueryView<'_, PC>
-where
-    PC: PortConnectionRepositoryConcept,
-{
+impl PortConnectionQuery for PortConnectionQueryView<'_> {
     fn connection_exists(&self, conn: PortConnectionId) -> bool {
         self.repo.conn_exists(conn)
     }
@@ -175,26 +157,17 @@ where
     }
 }
 
-pub struct PortConnectionViewMut<'a, NR, SR, PS, PC, CRF>
-where
-    CRF: ChannelRepositoryFacadeConcept,
-{
-    pub(crate) node_repo: &'a NR,
-    pub(crate) spec_repo: &'a SR,
-    pub(crate) port_state_repo: &'a PS,
-    pub(crate) port_conn_repo: &'a mut PC,
-    pub(crate) channel_facade: &'a mut CRF,
+pub struct PortConnectionViewMut<'a> {
+    pub(crate) node_repo: &'a NodeRepository,
+    pub(crate) spec_repo: &'a NodeSpecRepository,
+    pub(crate) port_state_repo: &'a PortStateRepository,
+    pub(crate) port_conn_repo: &'a mut PortConnectionRepository,
+    pub(crate) channel_repo: &'a mut ChannelRepository,
+    pub(crate) channel_spec_repo: &'a mut ChannelSpecRepository,
     pub(crate) channel_service: &'a mut ChannelService,
 }
 
-impl<'a, NR, SR, PS, PC, CRF> PortConnectionViewMut<'a, NR, SR, PS, PC, CRF>
-where
-    NR: NodeRepositoryConcept,
-    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
-    PS: PortStateRepositoryConcept,
-    PC: PortConnectionRepositoryConcept,
-    CRF: ChannelRepositoryFacadeConcept,
-{
+impl PortConnectionViewMut<'_> {
     pub fn connect_port(&mut self, id: PortConnectionId) -> Result<()> {
         let query = PortStateQueryView {
             repo: self.port_state_repo,
@@ -236,7 +209,7 @@ where
         Ok(())
     }
 
-    fn coordinator(&mut self, id: NodeId) -> Result<PortChannelCoordinator<'_, CRF>> {
+    fn coordinator(&mut self, id: NodeId) -> Result<PortChannelCoordinator<'_>> {
         let spec = SpecView::spec_by_node_id(self.spec_repo, self.node_repo, id)?;
         let ports_spec = spec
             .ports()
@@ -245,27 +218,24 @@ where
 
         Ok(PortChannelCoordinator::new(
             ports_spec,
-            ChannelViewMut::new(self.channel_facade.view_mut(), self.channel_service),
+            ChannelViewMut::new(
+                ChannelRepositoryFacadeViewMut {
+                    spec: self.channel_spec_repo,
+                    channel: self.channel_repo,
+                },
+                self.channel_service,
+            ),
         ))
     }
 }
 
-pub struct PortChannelCoordinator<'a, CRF>
-where
-    CRF: ChannelRepositoryFacadeConcept,
-{
+pub struct PortChannelCoordinator<'a> {
     ports_spec: &'a PortsSpec,
-    channel_service_view: ChannelViewMut<'a, CRF>,
+    channel_service_view: ChannelViewMut<'a>,
 }
 
-impl<'a, CRF> PortChannelCoordinator<'a, CRF>
-where
-    CRF: ChannelRepositoryFacadeConcept,
-{
-    pub(crate) fn new(
-        ports_spec: &'a PortsSpec,
-        channel_service_view: ChannelViewMut<'a, CRF>,
-    ) -> Self {
+impl<'a> PortChannelCoordinator<'a> {
+    pub(crate) fn new(ports_spec: &'a PortsSpec, channel_service_view: ChannelViewMut<'a>) -> Self {
         Self {
             ports_spec,
             channel_service_view,
@@ -273,10 +243,7 @@ where
     }
 }
 
-impl<CRF> PortChannelCoordinator<'_, CRF>
-where
-    CRF: ChannelRepositoryFacadeConcept,
-{
+impl PortChannelCoordinator<'_> {
     fn validate_connection(&self, conn_id: PortConnectionId) -> Result<()> {
         self.channel_service_view
             .validate_connection(&Self::conn_ctx(self.ports_spec, conn_id)?)
