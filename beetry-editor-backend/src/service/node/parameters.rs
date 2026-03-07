@@ -72,6 +72,11 @@ impl ParameterValueParser {
                 meta.validate(&parsed)?;
                 ParameterValue::I64(parsed)
             }
+            FieldTypeSpec::U16(meta) => {
+                let parsed: u16 = raw_value.parse()?;
+                meta.validate(&parsed)?;
+                ParameterValue::U16(parsed)
+            }
             FieldTypeSpec::U64(meta) => {
                 let parsed = raw_value.parse()?;
                 meta.validate(&parsed)?;

@@ -243,6 +243,17 @@ fn ParameterField(props: ParameterFieldProps) -> Element {
                         }
                     }
                 }
+                FieldTypeSpec::U16(_) => {
+                    rsx! {
+                        input {
+                            class: "bt-form-input",
+                            r#type: "text",
+                            inputmode: "numeric",
+                            value: o_val.map(ParameterValue::into_u16).unwrap_or_default(),
+                            oninput: make_parse_handler(),
+                        }
+                    }
+                }
                 FieldTypeSpec::U64(_) => {
                     rsx! {
                         input {

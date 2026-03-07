@@ -253,6 +253,7 @@ impl<T> std::fmt::Debug for FieldMetadata<T> {
 }
 
 pub type BoolFieldMetadata = FieldMetadata<bool>;
+pub type U16FieldMetadata = FieldMetadata<u16>;
 pub type U64FieldMetadata = FieldMetadata<u64>;
 pub type I64FieldMetadata = FieldMetadata<i64>;
 pub type F64FieldMetadata = FieldMetadata<f64>;
@@ -261,6 +262,7 @@ pub type StringFieldMetadata = FieldMetadata<String>;
 #[derive(Debug, Clone)]
 pub enum FieldTypeSpec {
     Bool(BoolFieldMetadata),
+    U16(U16FieldMetadata),
     U64(U64FieldMetadata),
     I64(I64FieldMetadata),
     F64(F64FieldMetadata),
