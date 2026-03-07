@@ -1,11 +1,13 @@
 mod fallback;
 mod parallel;
+mod parallel_threshold;
 mod sequence;
 
 use std::collections::BTreeSet;
 
 pub use fallback::Fallback;
 pub use parallel::Parallel;
+pub use parallel_threshold::{ParallelThreshold, ParallelThresholdParams};
 pub use sequence::{MemSequence, Sequence};
 
 use beetry_core::BoxNode;
