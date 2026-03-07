@@ -44,6 +44,7 @@ pub enum TaskStatus {
 }
 
 impl TaskStatus {
+    #[must_use]
     pub fn is_terminal(&self) -> bool {
         matches!(self, Self::Success | Self::Failure | Self::Aborted)
     }

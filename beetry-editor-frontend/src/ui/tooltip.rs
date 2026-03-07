@@ -17,6 +17,10 @@ pub(crate) fn TooltipCard(props: TooltipCardProps) -> Element {
     const MIN_WIDTH: f64 = 50.0;
     const MAX_WIDTH: f64 = 400.0;
 
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "number of lines is reasonably small"
+    )]
     let line_count = props.lines.len() as f64;
     let longest_line_len = props
         .lines

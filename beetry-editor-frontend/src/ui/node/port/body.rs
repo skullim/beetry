@@ -1,6 +1,7 @@
 use beetry_editor_backend::api;
 use beetry_editor_backend::node::PortConnectionQuery;
 use beetry_editor_backend::node::PortStateQuery;
+use beetry_editor_types::output::node::PortState;
 use std::rc::Rc;
 
 use crate::Backend;
@@ -57,7 +58,7 @@ pub fn Body(props: BodyProps) -> Element {
             let query = api::node::ports::state_query(s);
             query
                 .state(node_id, port_id)
-                .map(|state| state.is_external())
+                .map(PortState::is_external)
                 .unwrap_or(false)
         })
     });

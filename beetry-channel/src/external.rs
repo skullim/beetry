@@ -12,6 +12,7 @@ pub struct ReceiverRegistry {
 }
 
 impl ReceiverRegistry {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }

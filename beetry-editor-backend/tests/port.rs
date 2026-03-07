@@ -30,10 +30,8 @@ fn port_order_returns_correct_position(
     assert_eq!(sender_row, 0);
     assert_eq!(receiver_row, 0);
 
-    assert!(
-        api::node::ports::order(&service, NodePortKind::Sender, duplex, NodePortId::new(1))
-            .is_err()
-    );
+    api::node::ports::order(&service, NodePortKind::Sender, duplex, NodePortId::new(1))
+        .unwrap_err();
 
     Ok(())
 }
@@ -45,7 +43,7 @@ fn port_ui_query_and_update(mut service: TestEditorService, specs: TestSpecs) ->
         &mut service,
         &specs,
         ChannelSpecCase::MessageA,
-        specs.default_mpsc_config(),
+        TestSpecs::default_mpsc_config(),
     )?;
     let conn_id = PortConnectionId::new(sender, NodePortId::new(0), channel);
     api::node::ports::connect(&mut service, conn_id, visible_conn_ui())?;

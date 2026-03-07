@@ -40,7 +40,7 @@ fn update_channel_position(mut service: TestEditorService, specs: TestSpecs) -> 
     let channel_id = api::channel::create(
         &mut service,
         specs.channel_spec(ChannelSpecCase::MessageA)?,
-        specs.default_mpsc_config(),
+        TestSpecs::default_mpsc_config(),
         ChannelUiData {
             position: start_pose,
         },

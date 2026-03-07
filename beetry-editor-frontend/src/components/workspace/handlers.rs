@@ -5,7 +5,7 @@ pub(crate) mod node;
 pub(crate) mod pin;
 
 use crate::Backend;
-use crate::components::workspace::state;
+use crate::components::workspace::state::{self, temporary};
 use crate::signals::RenderRequests;
 use crate::{Point, components::workspace};
 use beetry_editor_backend::api;
@@ -87,8 +87,8 @@ pub(crate) fn handlers(
         set_if_changed(&mut menus.channel_edge, ui_channel::edge_menu::State::Idle);
         set_if_changed(&mut menus.port, crate::ui::node::port::menu::State::Idle);
 
-        temp.edge.with_mut(|e| e.reset());
-        temp.channel.with_mut(|c| c.reset());
+        temp.edge.with_mut(temporary::node_edge::State::reset);
+        temp.channel.with_mut(temporary::channel_edge::State::reset);
         Ok(())
     };
 

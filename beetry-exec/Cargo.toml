@@ -10,3 +10,6 @@ beetry-core = { version = "0.1.0", path = "../beetry-core" }
 futures.workspace = true
 tokio = { workspace = true, features = ["sync", "time", "macros"] }
 tracing.workspace = true
+
+[lints]
+workspace = true

@@ -31,18 +31,18 @@ impl NodeService {
             *id
         } else {
             debug!("inserting new spec into spec repo");
-            let spec_id = spec_repo.create(spec.clone())?;
+            let spec_id = spec_repo.create(spec.clone());
             self.spec_cache.insert(spec.key.clone(), spec_id);
             spec_id
         };
 
-        let id = node_repo.create(spec_id)?;
+        let id = node_repo.create(spec_id);
         self.node_cache.entry(kind).or_default().insert(id);
         Ok(id)
     }
 
     fn validate_creation(&self, kind: NodeKind) -> Result<()> {
-        if let NodeKind::Root = kind
+        if NodeKind::Root == kind
             && let Some(root) = self.node_cache.get(&kind)
             && !root.is_empty()
         {
@@ -83,11 +83,10 @@ impl NodeService {
         Ok(())
     }
 
-    pub(crate) fn remove(&mut self, spec: &NodeSpec, id: NodeId) -> Result<()> {
+    pub(crate) fn remove(&mut self, spec: &NodeSpec, id: NodeId) {
         self.node_cache
             .get_mut(&spec.kind())
             .map(|nodes| nodes.remove(&id));
-        Ok(())
     }
 
     pub(crate) fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId> {

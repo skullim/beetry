@@ -49,6 +49,7 @@ pub struct PeriodicTick {
 }
 
 impl PeriodicTick {
+    #[must_use]
     pub fn new(period: Duration) -> Self {
         Self {
             interval: tokio::time::interval(period),

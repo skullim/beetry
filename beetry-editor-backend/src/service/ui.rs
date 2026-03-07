@@ -1,7 +1,7 @@
 use crate::repository::{
     ChannelUiRepository, NodeUiRepository, PortConnectionRepository, PortConnectionUiRepository,
 };
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Ok, Result, anyhow, bail};
 use beetry_editor_types::{
     id::{ChannelId, NodeId, PortConnectionId},
     output::ui::{ChannelUiData, NodeUiData, Point, PortConnectionUiData},
@@ -91,8 +91,8 @@ impl<'a> NodeUiViewMut<'a> {
         Self { repo }
     }
 
-    pub fn create(&mut self, id: NodeId, data: NodeUiData) -> Result<()> {
-        self.repo.create(id, data)
+    pub fn create(&mut self, id: NodeId, data: NodeUiData) {
+        self.repo.create(id, data);
     }
 
     pub fn remove(&mut self, id: NodeId) -> Option<NodeUiData> {
@@ -150,8 +150,8 @@ impl<'a> ChannelUiViewMut<'a> {
         Self { repo }
     }
 
-    pub fn create(&mut self, id: ChannelId, data: ChannelUiData) -> Result<()> {
-        self.repo.create(id, data)
+    pub fn create(&mut self, id: ChannelId, data: ChannelUiData) {
+        self.repo.create(id, data);
     }
 
     pub fn remove(&mut self, id: ChannelId) -> Option<ChannelUiData> {
@@ -188,7 +188,8 @@ impl<'a> PortConnectionUiStateViewMut<'a> {
         if !self.port_conn_repo.conn_exists(id) {
             bail!("attempted to create ui connection state for non existing connection {id:?}")
         }
-        self.ui_repo.create(id, data)
+        self.ui_repo.create(id, data);
+        Ok(())
     }
 
     pub fn remove(&mut self, id: PortConnectionId) -> Option<PortConnectionUiData> {
@@ -214,6 +215,7 @@ pub struct PortConnectionUiQueryView<'a> {
 }
 
 impl<'a> PortConnectionUiQueryView<'a> {
+    #[must_use]
     pub fn new(repo: &'a PortConnectionUiRepository) -> Self {
         Self { repo }
     }

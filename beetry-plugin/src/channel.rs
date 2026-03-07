@@ -49,6 +49,7 @@ impl std::fmt::Debug for Factory {
 }
 
 impl Factory {
+    #[must_use]
     pub fn from_msg_type<T: Clone + Default + 'static>() -> Self {
         Self {
             func: (Box::new(|config| {
@@ -113,6 +114,7 @@ impl Factory {
         }
     }
 
+    #[must_use]
     pub fn create(&self, config: ChannelConfig) -> TypeErasedChannel {
         (self.func)(config)
     }

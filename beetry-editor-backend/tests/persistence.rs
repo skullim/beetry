@@ -146,7 +146,7 @@ fn valid_tree_export_succeeds_when_fully_connected(
         &mut service,
         &specs,
         ChannelSpecCase::MessageA,
-        specs.default_mpsc_config(),
+        TestSpecs::default_mpsc_config(),
     )?;
     api::node::ports::connect(
         &mut service,
@@ -201,7 +201,7 @@ fn valid_tree_export_fails_when_connected_channel_is_removed(
         &mut service,
         &specs,
         ChannelSpecCase::MessageA,
-        specs.default_mpsc_config(),
+        TestSpecs::default_mpsc_config(),
     )?;
     api::node::ports::connect(
         &mut service,
@@ -244,7 +244,7 @@ fn valid_tree_export_fails_on_unconnected_channel(
         &mut service,
         &specs,
         ChannelSpecCase::MessageA,
-        specs.default_mpsc_config(),
+        TestSpecs::default_mpsc_config(),
     )?;
     api::node::ports::connect(
         &mut service,

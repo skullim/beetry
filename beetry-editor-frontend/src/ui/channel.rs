@@ -103,17 +103,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
                 height: "{layout::HEIGHT}",
                 rx: "10",
                 ry: "10",
-                fill: if sender_connected {
-                    if *sender_hovered.read() {
-                        GradientHoverUrl::SENDER
-                    } else {
-                        GradientUrl::SENDER
-                    }
-                } else if *sender_hovered.read() {
-                    GradientHoverUrl::DISCONNECTED_SENDER
-                } else {
-                    GradientUrl::DISCONNECTED_SENDER
-                },
+                fill: if sender_connected { if *sender_hovered.read() { GradientHoverUrl::SENDER } else { GradientUrl::SENDER } } else if *sender_hovered.read() { GradientHoverUrl::DISCONNECTED_SENDER } else { GradientUrl::DISCONNECTED_SENDER },
                 filter: if *sender_hovered.read() { shadow::FilterUrl::SHADOW_HOVER } else { shadow::FilterUrl::SHADOW },
                 stroke: "rgba(255,255,255,0.3)",
                 stroke_width: "1",
@@ -154,17 +144,11 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
                 height: "{layout::HEIGHT}",
                 rx: "10",
                 ry: "10",
-                fill: if receiver_connected {
-                    if *receiver_hovered.read() {
-                        GradientHoverUrl::RECEIVER
-                    } else {
-                        GradientUrl::RECEIVER
-                    }
-                } else if *receiver_hovered.read() {
-                    GradientHoverUrl::DISCONNECTED_RECEIVER
+                fill: if receiver_connected { if *receiver_hovered.read() {
+                    GradientHoverUrl::RECEIVER
                 } else {
-                    GradientUrl::DISCONNECTED_RECEIVER
-                },
+                    GradientUrl::RECEIVER
+                } } else if *receiver_hovered.read() { GradientHoverUrl::DISCONNECTED_RECEIVER } else { GradientUrl::DISCONNECTED_RECEIVER },
                 filter: if *receiver_hovered.read() { shadow::FilterUrl::SHADOW_HOVER } else { shadow::FilterUrl::SHADOW },
                 stroke: "rgba(255,255,255,0.3)",
                 stroke_width: "1",
@@ -185,10 +169,7 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
             if *body_hovered.read() {
                 TooltipCard {
                     anchor: Point {
-                        x: position.x
-                            + (layout::PORT_WIDTH * 2.0)
-                            + body_width
-                            + layout::TOOLTIP_GAP.x,
+                        x: position.x + (layout::PORT_WIDTH * 2.0) + body_width + layout::TOOLTIP_GAP.x,
                         y: position.y + layout::TOOLTIP_GAP.y,
                     },
                     lines: vec![

@@ -29,13 +29,13 @@ pub(crate) fn handlers(
                 backend.with_mut(|s| api::channel::update_config(s, channel_id, update))?;
             }
         }
-        state.channel_dialog_state.take();
+        state.channel_dialog.take();
         request.request();
         Ok(())
     };
 
-    let on_cancel = move |_| {
-        state.channel_dialog_state.take();
+    let on_cancel = move |()| {
+        state.channel_dialog.take();
         Ok(())
     };
 

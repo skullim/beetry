@@ -8,6 +8,7 @@ pub struct Sequence {
 }
 
 impl Sequence {
+    #[must_use]
     pub fn new(nodes: impl Into<NonEmptyNodes>) -> Self {
         Self {
             nodes: nodes.into(),

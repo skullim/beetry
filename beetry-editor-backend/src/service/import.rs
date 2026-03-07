@@ -84,11 +84,20 @@ impl<'a> ImportViewMut<'a> {
 
                 let param_value = tree.parameter.take(&record.id);
                 let ports_state = tree.port.take_state(&record.id);
-                load_node_view.load_node(record, param_value, ports_state)?;
+                load_node_view.load_node(
+                    record.id,
+                    record.value.spec_id(),
+                    param_value,
+                    ports_state,
+                )?;
             }
             load_node_view.load_port_connections(tree.port.take_connections())?;
         }
-        let NodeRepositoryFacadeViewMut { nodes, specs, .. } = node;
+        let NodeRepositoryFacadeViewMut {
+            node: nodes,
+            spec: specs,
+            ..
+        } = node;
         let tracker_view = node::TrackerView::new(self.node_service, nodes);
         let spec_view = node::SpecView::new(specs, nodes);
         let mut edge_mut_api = EdgeViewMut::new(edge, self.edge_service, tracker_view, spec_view);
@@ -108,18 +117,18 @@ impl<'a> ImportViewMut<'a> {
         let EditorRepositoryViewMut { ui, .. } = self.repo.view_mut();
         let mut node_mut_api = NodeUiViewMut::new(ui.node);
         for node in nodes {
-            node_mut_api.create(node.id, node.data)?;
+            node_mut_api.create(node.id, node.data);
         }
 
         let EditorRepositoryViewMut { ui, .. } = self.repo.view_mut();
         let mut channel_mut_api = ChannelUiViewMut::new(ui.channel);
         for channel in channels {
-            channel_mut_api.create(channel.id, channel.data)?;
+            channel_mut_api.create(channel.id, channel.data);
         }
 
         let EditorRepositoryViewMut { node, ui, .. } = self.repo.view_mut();
         let mut port_conn_ui_api =
-            PortConnectionUiStateViewMut::new(ui.port_connection, node.port_connections);
+            PortConnectionUiStateViewMut::new(ui.port_connection, node.port_connection);
         for conn in port_connections {
             port_conn_ui_api.create(conn.id, conn.data)?;
         }

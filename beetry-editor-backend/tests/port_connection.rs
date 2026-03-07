@@ -27,7 +27,7 @@ fn valid_connection_mutates_channel_state(
         &mut service,
         &specs,
         ChannelSpecCase::MessageA,
-        specs.default_mpsc_config(),
+        TestSpecs::default_mpsc_config(),
     )?;
     let sender_port_id = NodePortId::new(0);
     let sender_connection_id = PortConnectionId::new(node_id, sender_port_id, channel_id);
@@ -90,7 +90,7 @@ fn connecting_second_receiver_to_mpsc_channel_fails(
         &mut service,
         &specs,
         ChannelSpecCase::MessageA,
-        specs.default_mpsc_config(),
+        TestSpecs::default_mpsc_config(),
     )?;
     let port_id = NodePortId::new(0);
 
@@ -119,7 +119,7 @@ fn connecting_mismatched_channel_type_fails(
         &mut service,
         &specs,
         ChannelSpecCase::MessageB,
-        specs.default_mpsc_config(),
+        TestSpecs::default_mpsc_config(),
     )?;
 
     let port_id = NodePortId::new(0);
@@ -158,7 +158,7 @@ fn connecting_external_port_to_channel_fails(
         &mut service,
         &specs,
         ChannelSpecCase::MessageA,
-        specs.default_mpsc_config(),
+        TestSpecs::default_mpsc_config(),
     )?;
     let port_id = NodePortId::new(0);
 
@@ -187,7 +187,7 @@ fn disconnecting_port_triggers_cleanup(
         &mut service,
         &specs,
         ChannelSpecCase::MessageA,
-        specs.default_mpsc_config(),
+        TestSpecs::default_mpsc_config(),
     )?;
     let port_id = NodePortId::new(0);
 
@@ -236,7 +236,7 @@ fn setting_port_to_external_removes_connection(
         &mut service,
         &specs,
         ChannelSpecCase::MessageA,
-        specs.default_mpsc_config(),
+        TestSpecs::default_mpsc_config(),
     )?;
     let port_id = NodePortId::new(0);
     let connection_id = PortConnectionId::new(node_id, port_id, channel_id);
@@ -269,7 +269,7 @@ fn removing_node_disconnects_connections(
         &mut service,
         &specs,
         ChannelSpecCase::MessageA,
-        specs.default_mpsc_config(),
+        TestSpecs::default_mpsc_config(),
     )?;
 
     let receiver_port_id = NodePortId::new(0);

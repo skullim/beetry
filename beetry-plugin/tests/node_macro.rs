@@ -2,7 +2,7 @@ use anyhow::Result;
 use beetry_core::{ActionBehavior, ConditionBehavior, NodeTask};
 use beetry_editor_types::spec::message::Message;
 use beetry_editor_types::spec::node::{
-    FieldDefinition, FieldTypeSpec, NodeKind, NodeSpec, ParamsSpec,
+    FieldDefinition, FieldMetadata, FieldTypeSpec, NodeKind, NodeSpec, ParamsSpec,
 };
 use beetry_plugin::{Plugin, action, condition};
 use bon::Builder;
@@ -37,7 +37,7 @@ fn test_params_spec() -> ParamsSpec {
     [(
         "level".into(),
         FieldDefinition {
-            type_spec: FieldTypeSpec::F64(Default::default()),
+            type_spec: FieldTypeSpec::F64(FieldMetadata::default()),
             description: None,
         },
     )]
@@ -45,7 +45,7 @@ fn test_params_spec() -> ParamsSpec {
     .collect1()
 }
 
-#[derive(Builder)]
+#[derive(Builder, Clone, Copy)]
 struct Expected<'a> {
     name: &'a str,
     kind: NodeKind,
@@ -65,15 +65,12 @@ fn assert_plugin_meta<F>(
     assert_eq!(plugin.spec().kind(), expected.kind);
     assert_eq!(plugin.spec().has_params(), expected.has_params);
 
-    match plugin.spec().ports() {
-        Some(ports) => {
-            assert_eq!(ports.receiver_ids().count(), expected.receiver_count);
-            assert_eq!(ports.sender_ids().count(), expected.sender_count);
-        }
-        None => {
-            assert_eq!(expected.receiver_count, 0);
-            assert_eq!(expected.sender_count, 0);
-        }
+    if let Some(ports) = plugin.spec().ports() {
+        assert_eq!(ports.receiver_ids().count(), expected.receiver_count);
+        assert_eq!(ports.sender_ids().count(), expected.sender_count);
+    } else {
+        assert_eq!(expected.receiver_count, 0);
+        assert_eq!(expected.sender_count, 0);
     }
 }
 

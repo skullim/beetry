@@ -12,6 +12,7 @@ pub struct MessageSpec {
 }
 
 impl MessageSpec {
+    #[must_use]
     pub fn new<T>(desc: impl Into<String>) -> Self
     where
         T: MessageHashProvider + 'static,
@@ -22,6 +23,7 @@ impl MessageSpec {
         }
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.desc
     }

@@ -1,10 +1,10 @@
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result, anyhow, bail};
 use beetry_builder::Builder as BehaviorTreeBuilder;
 use beetry_channel::external;
 use beetry_core::{BoxNode, MessageHash, NonEmptyNodes, RegisterTask, Root, TaskHandle, Tree};
 use beetry_editor_types::id::{ChannelId, PortConnectionId};
 use beetry_editor_types::output::node::{ParameterValue, Parameters};
-use beetry_editor_types::spec::node::{LeafKind, NodeKind, NodeName, NodePortKind};
+use beetry_editor_types::spec::node::{LeafKind, NodeKind, NodeName, NodePortKind, NodeSpecKey};
 use beetry_editor_types::{
     id::NodeId,
     persistence::{ChannelStore, NodeStore, ParameterStore, PortStore, ValidTree},
@@ -22,6 +22,7 @@ use beetry_reconstruction_types::node::{
     LeafSnapshot, RootSnapshot,
 };
 use beetry_reconstruction_types::node::{NodeSnapshot, NodeSnapshotData};
+use itertools::Itertools;
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use tracing::debug;
@@ -99,6 +100,10 @@ impl TreeReconstructor {
             ).collect::<Result<HashMap<_, _>>>()
     }
 
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "Store contains mostly Copy types which cannot be consumed"
+    )]
     fn try_create_root_snapshot(
         node_store: NodeStore,
         mut param_store: ParameterStore,
@@ -108,11 +113,11 @@ impl TreeReconstructor {
         let root_id = node_store
             .nodes
             .iter()
-            .filter_map(|record| {
+            .find_map(|record| {
                 if node_store
                     .specs
                     .get(&record.value.spec_id())
-                    .map(|spec_key| spec_key.kind())
+                    .map(NodeSpecKey::kind)
                     == Some(NodeKind::Root)
                 {
                     Some(record.id)
@@ -120,7 +125,6 @@ impl TreeReconstructor {
                     None
                 }
             })
-            .next()
             .with_context(|| anyhow!("failed to find root id"))?;
 
         let root_node = node_store.nodes.get(root_id).with_context(|| {
@@ -164,112 +168,167 @@ impl TreeReconstructor {
         let kind = spec_key.kind();
         let name = spec_key.name().clone();
         match kind {
-            NodeKind::Control => {
-                let children_id = node_record.children();
-                let mut children = vec![];
-                for child_id in children_id {
-                    children.push(Self::try_create_node_snapshot(
-                        *child_id,
-                        node_store,
-                        param_store,
-                        port_store,
-                        connections,
-                        node_plugins,
-                    )?);
-                }
-                Ok(NodeSnapshot::builder()
-                    .name(name)
-                    .data(NodeSnapshotData::Control(ControlSnapshot::new(children)?))
-                    .build())
-            }
+            NodeKind::Control => Self::try_create_control_snapshot(
+                name,
+                node_record.children(),
+                node_store,
+                param_store,
+                port_store,
+                connections,
+                node_plugins,
+            ),
             NodeKind::Decorator => {
-                let children: Vec<_> = node_record.children().copied().collect();
-                if children.len() != 1 {
-                    return Err(anyhow!(
-                        "expected exactly one child for decorator node {name}, got {}",
-                        children.len()
-                    ));
-                }
-
-                let child = Self::try_create_node_snapshot(
-                    children[0],
+                let child_id = node_record
+                    .children()
+                    .exactly_one()
+                    .map_err(|children_iter| {
+                        anyhow!(
+                            "expected exactly one child for decorator node {name}, got {}",
+                            children_iter.count()
+                        )
+                    })?;
+                Self::try_create_decorator_snapshot(
+                    name,
+                    *child_id,
                     node_store,
                     param_store,
                     port_store,
                     connections,
                     node_plugins,
-                )?;
-
-                Ok(NodeSnapshot::builder()
-                    .name(name)
-                    .data(NodeSnapshotData::Decorator(DecoratorSnapshot::new(child)))
-                    .build())
+                )
             }
-            NodeKind::Leaf(leaf_kind) => {
-                let mut receivers = BTreeSet::new();
-                let mut senders = BTreeSet::new();
-                let mut ext_receivers = Vec::new();
-                let mut ext_senders = Vec::new();
 
-                for (port_id, port_state) in port_store.take_state(&node_id).into_iter().flatten() {
-                    let spec = {
-                        match leaf_kind {
-                            LeafKind::Action => {
-                                let plugin = node_plugins.action.get(&name)?;
-                                plugin.spec()
-                            }
-                            LeafKind::Condition => {
-                                let plugin = node_plugins.condition.get(&name)?;
-                                plugin.spec()
-                            }
-                        }
-                    };
-                    let ports_spec = spec
-                        .ports()
-                        .as_ref()
-                        .ok_or_else(|| anyhow!("expected port specification for node {name}"))?;
-                    let port_spec = ports_spec.spec(port_id)?;
-                    if port_state.is_external() {
-                        match port_spec.kind {
-                            NodePortKind::Receiver => ext_receivers.push(port_spec.msg_spec.hash()),
-                            NodePortKind::Sender => ext_senders.push(port_spec.msg_spec.hash()),
-                        }
-                        continue;
-                    }
+            NodeKind::Leaf(leaf_kind) => Self::try_create_leaf_snapshot(
+                node_id,
+                name,
+                leaf_kind,
+                param_store,
+                port_store,
+                connections,
+                node_plugins,
+            ),
+            NodeKind::Root => bail!("unexpected Root node found during tree traversal"),
+        }
+    }
 
-                    let port_connections = connections.iter().filter_map(|conn| {
-                        (conn.node_id == node_id && conn.port_id == port_id)
-                            .then_some(&conn.channel_id)
-                    });
-                    match port_spec.kind {
-                        NodePortKind::Receiver => receivers.extend(port_connections),
-                        NodePortKind::Sender => senders.extend(port_connections),
-                    }
+    fn try_create_control_snapshot<'a>(
+        name: NodeName,
+        children_iter: impl Iterator<Item = &'a NodeId>,
+        node_store: &NodeStore,
+        param_store: &mut ParameterStore,
+        port_store: &mut PortStore,
+        connections: &std::collections::HashSet<PortConnectionId>,
+        node_plugins: &NodePluginRegistry,
+    ) -> Result<NodeSnapshot> {
+        let children: Vec<_> = children_iter
+            .map(|child_id| {
+                Self::try_create_node_snapshot(
+                    *child_id,
+                    node_store,
+                    param_store,
+                    port_store,
+                    connections,
+                    node_plugins,
+                )
+            })
+            .collect::<Result<_>>()?;
+
+        Ok(NodeSnapshot::builder()
+            .name(name)
+            .data(NodeSnapshotData::Control(ControlSnapshot::new(children)?))
+            .build())
+    }
+
+    fn try_create_decorator_snapshot(
+        name: NodeName,
+        child_id: NodeId,
+        node_store: &NodeStore,
+        param_store: &mut ParameterStore,
+        port_store: &mut PortStore,
+        connections: &std::collections::HashSet<PortConnectionId>,
+        node_plugins: &NodePluginRegistry,
+    ) -> Result<NodeSnapshot> {
+        let child = Self::try_create_node_snapshot(
+            child_id,
+            node_store,
+            param_store,
+            port_store,
+            connections,
+            node_plugins,
+        )?;
+
+        Ok(NodeSnapshot::builder()
+            .name(name)
+            .data(NodeSnapshotData::Decorator(DecoratorSnapshot::new(child)))
+            .build())
+    }
+
+    fn try_create_leaf_snapshot(
+        node_id: NodeId,
+        name: NodeName,
+        leaf_kind: LeafKind,
+        param_store: &mut ParameterStore,
+        port_store: &mut PortStore,
+        connections: &std::collections::HashSet<PortConnectionId>,
+        node_plugins: &NodePluginRegistry,
+    ) -> Result<NodeSnapshot> {
+        let spec = match leaf_kind {
+            LeafKind::Action => {
+                let plugin = node_plugins.action.get(&name)?;
+                plugin.spec()
+            }
+            LeafKind::Condition => {
+                let plugin = node_plugins.condition.get(&name)?;
+                plugin.spec()
+            }
+        };
+
+        let mut receivers = BTreeSet::new();
+        let mut senders = BTreeSet::new();
+        let mut ext_receivers = Vec::new();
+        let mut ext_senders = Vec::new();
+
+        for (port_id, port_state) in port_store.take_state(&node_id).into_iter().flatten() {
+            let port_spec = spec
+                .ports()
+                .as_ref()
+                .ok_or_else(|| anyhow!("expected port specification for node {name}"))?
+                .spec(port_id)?;
+            if port_state.is_external() {
+                match port_spec.kind {
+                    NodePortKind::Receiver => ext_receivers.push(port_spec.msg_spec.hash()),
+                    NodePortKind::Sender => ext_senders.push(port_spec.msg_spec.hash()),
                 }
-
-                let leaf_snapshot = LeafSnapshot::builder()
-                    .kind(leaf_kind)
-                    .receivers(receivers)
-                    .senders(senders)
-                    .ext_receivers(ext_receivers)
-                    .ext_senders(ext_senders)
-                    .build();
-
-                let params = param_store
-                    .take(&node_id)
-                    .map(|value| value.params)
-                    .unwrap_or_default();
-
-                Ok(NodeSnapshot::builder()
-                    .name(name)
-                    .data(leaf_snapshot)
-                    .parameters(params)
-                    .build())
+                continue;
             }
-            _ => {
-                todo!()
+
+            let port_connections = connections.iter().filter_map(|conn| {
+                (conn.node_id == node_id && conn.port_id == port_id).then_some(&conn.channel_id)
+            });
+            match port_spec.kind {
+                NodePortKind::Receiver => receivers.extend(port_connections),
+                NodePortKind::Sender => senders.extend(port_connections),
             }
         }
+
+        let leaf_snapshot = LeafSnapshot::builder()
+            .kind(leaf_kind)
+            .receivers(receivers)
+            .senders(senders)
+            .ext_receivers(ext_receivers)
+            .ext_senders(ext_senders)
+            .build();
+
+        let params = param_store
+            .take(&node_id)
+            .map(|value| value.params)
+            .unwrap_or_default();
+
+        Ok(NodeSnapshot::builder()
+            .name(name)
+            .data(leaf_snapshot)
+            .parameters(params)
+            .build())
     }
 
     fn try_reconstruct_tree<RT, TH>(
@@ -283,119 +342,176 @@ impl TreeReconstructor {
         RT: RegisterTask<TH> + 'static,
         TH: TaskHandle + 'static,
     {
-        let node_name = node.name.clone();
         let parameters = node.take_parameters();
         match node.data {
-            NodeSnapshotData::Control(control) => {
-                let children: Vec<_> = control
-                    .into_children_iter()
-                    .into_iter()
-                    .map(|child| {
-                        Self::try_reconstruct_tree(
-                            child,
-                            node_plugins,
-                            channel_map,
-                            ext_receivers_registry,
-                            builder,
-                        )
-                    })
-                    .collect::<Result<_>>()?;
-                let children = NonEmptyNodes::try_from(children)
-                    .map_err(|_| anyhow!("wrong export, no children found for control node"))?;
+            NodeSnapshotData::Control(control) => Self::try_reconstruct_control(
+                &node.name,
+                parameters,
+                control,
+                node_plugins,
+                channel_map,
+                ext_receivers_registry,
+                builder,
+            ),
+            NodeSnapshotData::Decorator(decorator) => Self::try_reconstruct_decorator(
+                &node.name,
+                parameters,
+                decorator,
+                node_plugins,
+                channel_map,
+                ext_receivers_registry,
+                builder,
+            ),
+            NodeSnapshotData::Leaf(leaf) => Self::try_reconstruct_leaf(
+                &node.name,
+                parameters,
+                leaf,
+                node_plugins,
+                channel_map,
+                ext_receivers_registry,
+                builder,
+            ),
+        }
+    }
 
-                let factory = node_plugins
-                    .control
-                    .get(&node_name)
-                    .with_context(|| {
-                        anyhow!("control factory for node: {node_name} does not exist")
-                    })?
-                    .factory();
-                let data = ControlReconstructionData::builder()
-                    .inner(ControlMetadata::new(children))
-                    .parameters(parameters)
-                    .build();
-                factory.try_create(data)
-            }
-            NodeSnapshotData::Decorator(decorator) => {
-                let child = Self::try_reconstruct_tree(
-                    decorator.into(),
+    fn try_reconstruct_control<RT, TH>(
+        node_name: &NodeName,
+        parameters: Parameters,
+        control: ControlSnapshot,
+        node_plugins: &NodePluginRegistry,
+        channel_map: &mut ChannelIdToChannelMap,
+        ext_receivers_registry: &mut external::ReceiverRegistry,
+        builder: &BehaviorTreeBuilder<RT, TH>,
+    ) -> Result<BoxNode>
+    where
+        RT: RegisterTask<TH> + 'static,
+        TH: TaskHandle + 'static,
+    {
+        let children: Vec<_> = control
+            .into_children_iter()
+            .into_iter()
+            .map(|child| {
+                Self::try_reconstruct_tree(
+                    child,
                     node_plugins,
                     channel_map,
                     ext_receivers_registry,
                     builder,
-                )?;
+                )
+            })
+            .collect::<Result<_>>()?;
+        let children = NonEmptyNodes::try_from(children)
+            .map_err(|_| anyhow!("wrong export, no children found for control node"))?;
 
+        let factory = node_plugins
+            .control
+            .get(node_name)
+            .with_context(|| anyhow!("control factory for node: {node_name} does not exist"))?
+            .factory();
+        let data = ControlReconstructionData::builder()
+            .inner(ControlMetadata::new(children))
+            .parameters(parameters)
+            .build();
+        factory.try_create(data)
+    }
+
+    fn try_reconstruct_decorator<RT, TH>(
+        node_name: &NodeName,
+        parameters: Parameters,
+        decorator: DecoratorSnapshot,
+        node_plugins: &NodePluginRegistry,
+        channel_map: &mut ChannelIdToChannelMap,
+        ext_receivers_registry: &mut external::ReceiverRegistry,
+        builder: &BehaviorTreeBuilder<RT, TH>,
+    ) -> Result<BoxNode>
+    where
+        RT: RegisterTask<TH> + 'static,
+        TH: TaskHandle + 'static,
+    {
+        let child = Self::try_reconstruct_tree(
+            decorator.into(),
+            node_plugins,
+            channel_map,
+            ext_receivers_registry,
+            builder,
+        )?;
+
+        let factory = node_plugins
+            .decorator
+            .get(node_name)
+            .with_context(|| anyhow!("decorator factory for node: {node_name} does not exist"))?
+            .factory();
+        let data = DecoratorReconstructionData::builder()
+            .inner(DecoratorMetadata::new(child))
+            .parameters(parameters)
+            .build();
+        factory.try_create(data)
+    }
+
+    fn try_reconstruct_leaf<RT, TH>(
+        node_name: &NodeName,
+        parameters: Parameters,
+        mut leaf: LeafSnapshot,
+        node_plugins: &NodePluginRegistry,
+        channel_map: &mut ChannelIdToChannelMap,
+        ext_receivers_registry: &mut external::ReceiverRegistry,
+        builder: &BehaviorTreeBuilder<RT, TH>,
+    ) -> Result<BoxNode>
+    where
+        RT: RegisterTask<TH> + 'static,
+        TH: TaskHandle + 'static,
+    {
+        let mut receivers: Vec<_> = leaf
+            .take_receivers()
+            .into_iter()
+            .map(|id| Self::try_get_channel_mut(channel_map, id)?.try_take_receiver())
+            .collect::<Result<_>>()?;
+
+        for hash in leaf.take_ext_receivers() {
+            if let Some(external_receiver) = ext_receivers_registry.take(hash) {
+                receivers.push(external_receiver);
+            }
+        }
+
+        let senders: Vec<_> = leaf
+            .take_senders()
+            .into_iter()
+            .map(|id| Self::try_get_channel_mut(channel_map, id)?.try_take_sender())
+            .collect::<Result<_>>()?;
+
+        let data = LeafReconstructionData::builder()
+            .inner(
+                LeafMetadata::builder()
+                    .receivers(receivers)
+                    .senders(senders)
+                    .build(),
+            )
+            .parameters(parameters)
+            .build();
+        debug!("created node reconstruction data {data:?} for node {node_name}");
+
+        match leaf.kind() {
+            LeafKind::Action => {
                 let factory = node_plugins
-                    .decorator
-                    .get(&node_name)
+                    .action
+                    .get(node_name)
                     .with_context(|| {
-                        anyhow!("decorator factory for node: {node_name} does not exist")
+                        anyhow!("action factory for node: {node_name} does not exist")
                     })?
                     .factory();
-                let data = DecoratorReconstructionData::builder()
-                    .inner(DecoratorMetadata::new(child))
-                    .parameters(parameters)
-                    .build();
-                factory.try_create(data)
+                let action = factory.try_create(data)?;
+                Ok(builder.action(action))
             }
-            NodeSnapshotData::Leaf(mut leaf) => {
-                let mut receivers: Vec<_> = leaf
-                    .take_receivers()
-                    .into_iter()
-                    .map(|id| Self::try_get_channel_mut(channel_map, id)?.try_take_receiver())
-                    .collect::<Result<_>>()?;
-
-                let ext_receivers_snapshot = leaf.take_ext_receivers();
-                ext_receivers_snapshot
-                    .into_iter()
-                    .map(|hash| ext_receivers_registry.take(hash))
-                    .for_each(|o_external_receiver| {
-                        if let Some(external_receiver) = o_external_receiver {
-                            receivers.push(external_receiver);
-                        }
-                    });
-
-                let senders: Vec<_> = leaf
-                    .take_senders()
-                    .into_iter()
-                    .map(|id| Self::try_get_channel_mut(channel_map, id)?.try_take_sender())
-                    .collect::<Result<_>>()?;
-
-                let data = LeafReconstructionData::builder()
-                    .inner(
-                        LeafMetadata::builder()
-                            .receivers(receivers)
-                            .senders(senders)
-                            .build(),
-                    )
-                    .parameters(parameters)
-                    .build();
-                debug!("created node reconstruction data {data:?} for node {node_name}");
-
-                match leaf.kind() {
-                    LeafKind::Action => {
-                        let factory = node_plugins
-                            .action
-                            .get(&node_name)
-                            .with_context(|| {
-                                anyhow!("action factory for node: {node_name} does not exist")
-                            })?
-                            .factory();
-                        let action = factory.try_create(data)?;
-                        Ok(builder.action(action))
-                    }
-                    LeafKind::Condition => {
-                        let factory = node_plugins
-                            .condition
-                            .get(&node_name)
-                            .with_context(|| {
-                                anyhow!("condition factory for node: {node_name} does not exist")
-                            })?
-                            .factory();
-                        let condition = factory.try_create(data)?;
-                        Ok(builder.condition(condition))
-                    }
-                }
+            LeafKind::Condition => {
+                let factory = node_plugins
+                    .condition
+                    .get(node_name)
+                    .with_context(|| {
+                        anyhow!("condition factory for node: {node_name} does not exist")
+                    })?
+                    .factory();
+                let condition = factory.try_create(data)?;
+                Ok(builder.condition(condition))
             }
         }
     }

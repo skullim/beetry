@@ -176,7 +176,7 @@ impl EdgeService {
             }
         }
 
-        let id = edge_repo.create(edge)?;
+        let id = edge_repo.create(edge);
         self.child_parent_map.insert(child, parent);
         self.parent_children_map
             .entry(parent)
@@ -188,7 +188,7 @@ impl EdgeService {
     // All edges are *always* removed by Id
     fn remove(&mut self, edge_repo: &mut EdgeRepository, id: EdgeId) -> Result<()> {
         let removed = edge_repo
-            .remove(&id)
+            .remove(id)
             .ok_or_else(|| anyhow!("attempted to remove edge {id} that does not exist"))?;
 
         if let Some(children) = self.parent_children_map.get_mut(&removed.from) {
