@@ -357,6 +357,26 @@ macro_rules! control {
             $create
         }
     };
+    ($plugin_name:ident : $name:expr; children($children_binding:ident),params($params_binding:ident): $params:expr,create: $create:expr,) => {
+        $crate::__control_plugin_impl! {
+            $plugin_name,
+            $name,
+            $children_binding,
+            $params,
+            $params_binding,
+            $create
+        }
+    };
+    ($plugin_name:ident : $name:expr; children($children_binding:ident),params: $params:expr,create: $create:expr,) => {
+        $crate::__control_plugin_impl! {
+            $plugin_name,
+            $name,
+            $children_binding,
+            $params,
+            _parameters,
+            $create
+        }
+    };
 }
 
 #[macro_export]

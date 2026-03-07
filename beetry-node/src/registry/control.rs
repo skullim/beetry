@@ -1,6 +1,10 @@
-use crate::{Fallback, MemSequence, Parallel, Sequence};
+use crate::{
+    Fallback, MemSequence, Parallel, ParallelThreshold, ParallelThresholdParams, Sequence,
+};
 use beetry_core::BoxNode;
-use beetry_editor_types::spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey};
+use beetry_editor_types::spec::node::{
+    NodeKind, NodeName, NodeSpec, NodeSpecKey, ProvideParamSpec,
+};
 use beetry_plugin::node::{ControlFactory, ControlPluginConstructor};
 use beetry_plugin::{Plugin, control};
 use beetry_reconstruction_types::node::ControlReconstructionData;
@@ -27,4 +31,14 @@ control!(
     ParallelPlugin: "Parallel";
     children(children),
     create: Parallel::new(children),
+);
+
+control!(
+    ParallelThresholdPlugin: "ParallelThreshold";
+    children(children),
+    params(parameters): ParallelThresholdParams::provide(),
+    create: {
+        let params = ParallelThresholdParams::reconstruct(parameters)?;
+        ParallelThreshold::new(children, params)
+    },
 );
