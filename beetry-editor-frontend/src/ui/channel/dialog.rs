@@ -102,7 +102,10 @@ pub fn Dialog(state: Signal<State>) -> Element {
                         min: "0",
                         oninput: move |evt| {
                             if let Ok(val) = evt.value().parse::<usize>() {
-                                config.with_mut(|c| {c.set_capacity(val);})
+                                config
+                                    .with_mut(|c| {
+                                        c.set_capacity(val);
+                                    });
                             }
                         },
                     }
@@ -115,9 +118,24 @@ pub fn Dialog(state: Signal<State>) -> Element {
                             class: "bt-form-input",
                             onchange: move |evt| {
                                 match evt.value().as_str() {
-                                    "Mpsc" =>  config.with_mut(|c| {c.set_kind(ChannelKind::Tokio(TokioChannelKind::Mpsc));}),
-                                    "Broadcast" => config.with_mut(|c| {c.set_kind(ChannelKind::Tokio(TokioChannelKind::Broadcast));}),
-                                    "Watch" => config.with_mut(|c| {c.set_kind(ChannelKind::Tokio(TokioChannelKind::Watch));}),
+                                    "Mpsc" => {
+                                        config
+                                            .with_mut(|c| {
+                                                c.set_kind(ChannelKind::Tokio(TokioChannelKind::Mpsc));
+                                            });
+                                    }
+                                    "Broadcast" => {
+                                        config
+                                            .with_mut(|c| {
+                                                c.set_kind(ChannelKind::Tokio(TokioChannelKind::Broadcast));
+                                            });
+                                    }
+                                    "Watch" => {
+                                        config
+                                            .with_mut(|c| {
+                                                c.set_kind(ChannelKind::Tokio(TokioChannelKind::Watch));
+                                            });
+                                    }
                                     _ => {}
                                 }
                             },

@@ -50,6 +50,7 @@ pub mod mpsc {
         }
     }
 
+    #[must_use]
     pub fn channel<T>(buffer: usize) -> (Sender<T>, Receiver<T>) {
         let (send, recv) = tokio_channel(buffer);
         (Sender(send), Receiver(recv))
@@ -104,6 +105,7 @@ pub mod broadcast {
     pub struct Sender<T>(tokio::sync::broadcast::Sender<T>);
 
     impl<T> Sender<T> {
+        #[must_use]
         pub fn subscribe(&self) -> Receiver<T> {
             Receiver(self.0.subscribe())
         }
@@ -117,6 +119,7 @@ pub mod broadcast {
         }
     }
 
+    #[must_use]
     pub fn channel<T>(buffer: usize) -> (Sender<T>, Receiver<T>)
     where
         T: Clone,
@@ -173,6 +176,7 @@ pub mod watch {
     pub struct Sender<T>(tokio::sync::watch::Sender<T>);
 
     impl<T> Sender<T> {
+        #[must_use]
         pub fn subscribe(&self) -> Receiver<T> {
             Receiver(self.0.subscribe())
         }
@@ -184,6 +188,7 @@ pub mod watch {
         }
     }
 
+    #[must_use]
     pub fn channel<T>() -> (Sender<T>, Receiver<T>)
     where
         T: Default + Clone,

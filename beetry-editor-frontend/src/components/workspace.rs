@@ -67,9 +67,7 @@ fn Canvas(state: State, editor_state: editor::State, render_requests: RenderRequ
                 {ui::shadow::style_defs()}
 
                 edge::Renderer { render_edges: render_requests.edges }
-                channel::ConnectionRenderer {
-                    render_channel_edges: render_requests.channel_edges,
-                }
+                channel::ConnectionRenderer { render_channel_edges: render_requests.channel_edges }
                 channel::Renderer { render_channels: render_requests.channels }
                 node::Renderer { render_nodes: render_requests.nodes }
 
@@ -92,7 +90,7 @@ fn Canvas(state: State, editor_state: editor::State, render_requests: RenderRequ
             }
 
             node::parameter::Dialog { state: editor_state.parameter }
-            channel::dialog::Dialog { state: editor_state.channel_dialog_state }
+            channel::dialog::Dialog { state: editor_state.channel_dialog }
         }
     }
 }

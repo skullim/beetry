@@ -77,11 +77,16 @@ pub(crate) fn Renderer(props: RendererProps) -> Element {
     let render_port = |port_ids: &[NodePortId], step: f64, x: f64, origin: ConnectionOrigin| {
         rsx! {
             g {
-                for (row_idx, port_id) in port_ids.iter().copied().enumerate() {
+                for (row_idx , port_id) in port_ids.iter().copied().enumerate() {
                     port::Body {
                         key: "{port_id}",
                         id,
-                        position: Point {
+                        position:
+                        #[expect(
+                            clippy::cast_precision_loss,
+                            reason = "row index is reasonably small number"
+                        )]
+                        Point {
                             x,
                             y: position.y + row_idx as f64 * step,
                         },
@@ -94,18 +99,22 @@ pub(crate) fn Renderer(props: RendererProps) -> Element {
     };
 
     rsx! {
-        {render_port(
-            &ports_meta.receiver.port_ids,
-            receiver_step,
-            position.x,
-            ConnectionOrigin::Receiver
-        )}
-        {render_port(
-            &ports_meta.sender.port_ids,
-            sender_step,
-            position.x + width,
-            ConnectionOrigin::Sender
-        )}
+        {
+            render_port(
+                &ports_meta.receiver.port_ids,
+                receiver_step,
+                position.x,
+                ConnectionOrigin::Receiver,
+            )
+        }
+        {
+            render_port(
+                &ports_meta.sender.port_ids,
+                sender_step,
+                position.x + width,
+                ConnectionOrigin::Sender,
+            )
+        }
     }
 }
 
@@ -114,6 +123,10 @@ fn step_for(height: f64, count: usize) -> f64 {
     if intervals == 0 {
         0.0
     } else {
+        #[expect(
+            clippy::cast_precision_loss,
+            reason = "intervals is reasonably small number"
+        )]
         ((height - layout::HEIGHT) / intervals as f64).max(layout::HEIGHT + layout::MIN_GAP)
     }
 }

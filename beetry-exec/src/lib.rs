@@ -46,8 +46,12 @@ pub struct Executor<S> {
 pub struct Init;
 
 impl Executor<Init> {
-    pub fn new(conf: ExecutorConfig) -> Executor<WithRegistry> {
-        let (sender, recv) = channel(conf.task_channel_capacity);
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "Config contains only copy types now, but not marked Copy for future extensions"
+    )]
+    pub fn new(config: ExecutorConfig) -> Executor<WithRegistry> {
+        let (sender, recv) = channel(config.task_channel_capacity);
         let registry = TaskRegistry::new(sender);
 
         Executor {
@@ -115,7 +119,7 @@ impl ExecutionTask {
     #[instrument(skip(self), fields(task = %self.task.desc))]
     async fn execute(self) -> Result<()> {
         tokio::select! {
-            _ = self.abort_notifier.notified() => {
+            () = self.abort_notifier.notified() => {
                 debug!("aborting execution task");
                 self.status_sender.send(TaskStatus::Aborted).await?;
             }

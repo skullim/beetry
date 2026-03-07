@@ -5,6 +5,7 @@ pub struct Succeed<N> {
 }
 
 impl<N> Succeed<N> {
+    #[must_use]
     pub fn new(node: N) -> Self {
         Self { node }
     }

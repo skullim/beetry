@@ -51,6 +51,7 @@ pub struct EditorService {
 }
 
 impl EditorService {
+    #[must_use]
     pub fn new(spec_map: NodeSpecMap) -> Self {
         Self {
             node_service: NodeService::new(),
@@ -68,7 +69,11 @@ impl EditorService {
 
     fn edge_view_mut(&mut self) -> EdgeViewMut<'_> {
         let EditorRepositoryViewMut { node, edge, .. } = self.repo.view_mut();
-        let NodeRepositoryFacadeViewMut { nodes, specs, .. } = node;
+        let NodeRepositoryFacadeViewMut {
+            node: nodes,
+            spec: specs,
+            ..
+        } = node;
         let tracker_view = node::TrackerView::new(&self.node_service, nodes);
         let spec_view = node::SpecView::new(specs, nodes);
         EdgeViewMut::new(edge, &mut self.edge_service, tracker_view, spec_view)
@@ -94,10 +99,10 @@ impl EditorService {
     fn port_connection_view_mut(&mut self) -> PortConnectionViewMut<'_> {
         let EditorRepositoryViewMut { node, channel, .. } = self.repo.view_mut();
         PortConnectionViewMut {
-            node_repo: node.nodes,
-            spec_repo: node.specs,
-            port_conn_repo: node.port_connections,
-            port_state_repo: node.ports,
+            node_repo: node.node,
+            spec_repo: node.spec,
+            port_conn_repo: node.port_connection,
+            port_state_repo: node.port_state,
             channel_repo: channel.channel,
             channel_spec_repo: channel.spec,
             channel_service: &mut self.channel_service,
@@ -107,10 +112,10 @@ impl EditorService {
     fn port_state_view_mut(&mut self) -> PortStateViewMut<'_> {
         let EditorRepositoryViewMut { node, channel, .. } = self.repo.view_mut();
         PortStateViewMut {
-            node_repo: node.nodes,
-            spec_repo: node.specs,
-            port_conn_repo: node.port_connections,
-            port_state_repo: node.ports,
+            node_repo: node.node,
+            spec_repo: node.spec,
+            port_conn_repo: node.port_connection,
+            port_state_repo: node.port_state,
             channel_repo: channel.channel,
             channel_spec_repo: channel.spec,
             channel_service: &mut self.channel_service,
@@ -134,7 +139,7 @@ impl EditorService {
 
     fn port_connection_ui_view_mut(&mut self) -> PortConnectionUiStateViewMut<'_> {
         let EditorRepositoryViewMut { node, ui, .. } = self.repo.view_mut();
-        PortConnectionUiStateViewMut::new(ui.port_connection, node.port_connections)
+        PortConnectionUiStateViewMut::new(ui.port_connection, node.port_connection)
     }
 
     fn import_view_mut(&mut self) -> ImportViewMut<'_> {
@@ -206,17 +211,17 @@ pub trait NodeQueryApi {
 impl NodeQueryApi for EditorService {
     fn spec_by_spec_id(&self) -> impl SpecBySpecIdQuery {
         let EditorRepositoryView { node, .. } = self.repo.view();
-        SpecBySpecIdQueryView::new(node.specs)
+        SpecBySpecIdQueryView::new(node.spec)
     }
 
     fn spec_by_node_id(&self) -> impl SpecByNodeIdQuery {
         let EditorRepositoryView { node, .. } = self.repo.view();
-        SpecByNodeIdQueryView::new(SpecBySpecIdQueryView::new(node.specs), node.nodes)
+        SpecByNodeIdQueryView::new(SpecBySpecIdQueryView::new(node.spec), node.node)
     }
 
     fn tracker(&self) -> impl NodeTrackerQuery {
         let EditorRepositoryView { node, .. } = self.repo.view();
-        let NodeRepositoryFacadeView { nodes, .. } = node;
+        let NodeRepositoryFacadeView { node: nodes, .. } = node;
         TrackerView::new(&self.node_service, nodes)
     }
 }
@@ -246,7 +251,10 @@ pub trait ParameterQueryApi {
 impl ParameterQueryApi for EditorService {
     fn parameters(&self) -> impl ParameterValueQuery {
         let EditorRepositoryView { node, .. } = self.repo.view();
-        let NodeRepositoryFacadeView { parameters, .. } = node;
+        let NodeRepositoryFacadeView {
+            parameter: parameters,
+            ..
+        } = node;
         ParameterValueQueryView::new(parameters)
     }
 }
@@ -258,7 +266,10 @@ pub trait ParameterCommandApi {
 impl ParameterCommandApi for EditorService {
     fn parameters_mut(&mut self) -> impl ParameterValueMut {
         let EditorRepositoryViewMut { node, .. } = self.repo.view_mut();
-        let NodeRepositoryFacadeViewMut { parameters, .. } = node;
+        let NodeRepositoryFacadeViewMut {
+            parameter: parameters,
+            ..
+        } = node;
         ParameterValueViewMut::new(parameters)
     }
 }
@@ -273,7 +284,9 @@ pub trait PortQueryApi {
 impl PortQueryApi for EditorService {
     fn port_state_query(&self) -> impl PortStateQuery {
         let EditorRepositoryView { node, .. } = self.repo.view();
-        let NodeRepositoryFacadeView { ports, .. } = node;
+        let NodeRepositoryFacadeView {
+            port_state: ports, ..
+        } = node;
         PortStateQueryView { repo: ports }
     }
 
@@ -291,7 +304,8 @@ impl PortQueryApi for EditorService {
     fn connections_query(&self) -> impl PortConnectionQuery {
         let EditorRepositoryView { node, .. } = self.repo.view();
         let NodeRepositoryFacadeView {
-            port_connections, ..
+            port_connection: port_connections,
+            ..
         } = node;
         PortConnectionQueryView::new(port_connections)
     }
@@ -384,7 +398,8 @@ pub trait NodeUiCommandApi {
 
 impl NodeUiCommandApi for EditorService {
     fn create(&mut self, id: NodeId, data: NodeUiData) -> Result<()> {
-        self.node_ui_view_mut().create(id, data)
+        self.node_ui_view_mut().create(id, data);
+        Ok(())
     }
 
     fn remove(&mut self, id: NodeId) -> Option<NodeUiData> {
@@ -408,13 +423,13 @@ impl ChannelQueryApi for EditorService {
 }
 
 pub trait ChannelCommandApi {
-    fn create(&mut self, spec: &ChannelSpec, input: ChannelConfigInput) -> Result<ChannelId>;
+    fn create(&mut self, spec: &ChannelSpec, input: ChannelConfigInput) -> ChannelId;
     fn remove(&mut self, id: ChannelId) -> Option<ChannelData>;
     fn update_config(&mut self, id: ChannelId, update: ChannelConfigUpdate) -> Result<()>;
 }
 
 impl ChannelCommandApi for EditorService {
-    fn create(&mut self, spec: &ChannelSpec, input: ChannelConfigInput) -> Result<ChannelId> {
+    fn create(&mut self, spec: &ChannelSpec, input: ChannelConfigInput) -> ChannelId {
         self.channel_view_mut().create(spec, input)
     }
 
@@ -446,7 +461,8 @@ pub trait ChannelUiCommandApi {
 
 impl ChannelUiCommandApi for EditorService {
     fn create(&mut self, id: ChannelId, data: ChannelUiData) -> Result<()> {
-        self.channel_ui_view_mut().create(id, data)
+        self.channel_ui_view_mut().create(id, data);
+        Ok(())
     }
 
     fn remove(&mut self, id: ChannelId) -> Option<ChannelUiData> {
@@ -467,7 +483,7 @@ pub trait ChannelLifecycleApi:
         input: ChannelConfigInput,
         ui_data: ChannelUiData,
     ) -> Result<ChannelId> {
-        let id = ChannelCommandApi::create(self, spec, input)?;
+        let id = ChannelCommandApi::create(self, spec, input);
         if let Err(e) = ChannelUiCommandApi::create(self, id, ui_data) {
             ChannelCommandApi::remove(self, id);
             return Err(e);

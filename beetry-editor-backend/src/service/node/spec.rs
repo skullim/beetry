@@ -47,7 +47,10 @@ impl<'a> SpecView<'a> {
             .with_context(|| format!("spec for node id {id} not found"))
     }
 
-    pub fn spec_by_spec_id(spec_repo: &NodeSpecRepository, spec_id: NodeSpecId) -> Result<&NodeSpec> {
+    pub fn spec_by_spec_id(
+        spec_repo: &NodeSpecRepository,
+        spec_id: NodeSpecId,
+    ) -> Result<&NodeSpec> {
         spec_repo
             .spec(spec_id)
             .ok_or_else(|| anyhow!("failed to obtain spec {spec_id}"))
@@ -55,7 +58,7 @@ impl<'a> SpecView<'a> {
 
     fn spec_id(node_repo: &NodeRepository, id: NodeId) -> Result<&NodeSpecId> {
         node_repo
-            .spec_id(&id)
+            .spec_id(id)
             .ok_or_else(|| anyhow!("no mapping between node id {id} and spec id exists"))
     }
 }
@@ -96,6 +99,7 @@ pub struct SpecByNodeIdQueryView<'a> {
 }
 
 impl<'a> SpecByNodeIdQueryView<'a> {
+    #[must_use]
     pub fn new(spec_query: SpecBySpecIdQueryView<'a>, node_repo: &'a NodeRepository) -> Self {
         Self {
             spec_query,
@@ -105,7 +109,7 @@ impl<'a> SpecByNodeIdQueryView<'a> {
 
     fn spec_id(&self, id: NodeId) -> Result<&NodeSpecId> {
         self.node_repo
-            .spec_id(&id)
+            .spec_id(id)
             .ok_or_else(|| anyhow!("no mapping between node id {id} and spec id exists"))
     }
 }

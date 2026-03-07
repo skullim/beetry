@@ -8,6 +8,7 @@ pub struct Fallback {
 }
 
 impl Fallback {
+    #[must_use]
     pub fn new(nodes: NonEmptyNodes) -> Self {
         Self {
             nodes,

@@ -22,3 +22,6 @@ tracing.workspace = true
 [dev-dependencies]
 mockall = { version = "0.14.0" }
 tokio = { workspace = true, features = ["rt"] }
+
+[lints]
+workspace = true

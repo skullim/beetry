@@ -59,7 +59,7 @@ impl PortStateViewMut<'_> {
             };
             port_conn_view.disconnect_port(node_id, port_id)?;
         }
-        self.port_state_repo.insert(node_id, port_id, state)?;
+        self.port_state_repo.insert(node_id, port_id, state);
         Ok(())
     }
 }
@@ -182,7 +182,7 @@ impl PortConnectionViewMut<'_> {
         coordinator.validate_connection(id)?;
         coordinator.on_connected(id)?;
 
-        self.port_conn_repo.insert(id)?;
+        self.port_conn_repo.insert(id);
         Ok(())
     }
 

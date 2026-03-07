@@ -14,7 +14,7 @@ fn creating_channel_succeeds(mut service: TestEditorService, specs: TestSpecs) -
         &mut service,
         &specs,
         ChannelSpecCase::MessageA,
-        specs.default_mpsc_config(),
+        TestSpecs::default_mpsc_config(),
     )?;
 
     assert!(api::channel::query(&service).config(channel_id).is_ok());
@@ -30,7 +30,7 @@ fn channel_update_config_updates_capacity(
         &mut service,
         &specs,
         ChannelSpecCase::MessageA,
-        specs.default_mpsc_config(),
+        TestSpecs::default_mpsc_config(),
     )?;
     let new_capacity = 32usize;
 
@@ -71,7 +71,7 @@ fn removing_existing_channel_succeeds(
         &mut service,
         &specs,
         ChannelSpecCase::MessageA,
-        specs.default_mpsc_config(),
+        TestSpecs::default_mpsc_config(),
     )?;
 
     api::channel::remove(&mut service, channel_id)?;

@@ -5,6 +5,7 @@ pub struct UntilFailure<N> {
 }
 
 impl<N> UntilFailure<N> {
+    #[must_use]
     pub fn new(node: N) -> Self {
         Self { node }
     }

@@ -121,6 +121,7 @@ pub struct PortsSpec {
 }
 
 impl FromIterator1<NodePortSpec> for PortsSpec {
+    #[expect(clippy::cast_possible_truncation, reason = "port id fits in u8")]
     fn from_iter1<I>(items: I) -> Self
     where
         I: mitsein::prelude::IntoIterator1<Item = NodePortSpec>,

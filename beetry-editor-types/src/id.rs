@@ -29,6 +29,7 @@ macro_rules! derive_id {
                 Self { id }
             }
 
+            #[must_use]
             pub fn next(&self) -> Self {
                 Self { id: self.id + 1 }
             }

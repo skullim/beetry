@@ -13,6 +13,7 @@ pub struct ChannelSpec {
 }
 
 impl ChannelSpec {
+    #[must_use]
     pub fn new<T: MessageHashProvider + MessageTypeProvider>() -> Self {
         Self {
             msg_hash: T::hash(),
@@ -20,6 +21,7 @@ impl ChannelSpec {
         }
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.msg_type_name
     }

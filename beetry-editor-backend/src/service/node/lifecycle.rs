@@ -7,7 +7,7 @@ use beetry_editor_types::persistence::PortsStateMap;
 use beetry_editor_types::{
     id::{NodeId, NodePortId, NodeSpecId, PortConnectionId},
     output::node::{PortSource, PortState},
-    persistence::{NodeRecord, ParameterValues},
+    persistence::ParameterValues,
     spec::node::NodeSpec,
 };
 
@@ -31,50 +31,59 @@ impl<'s, 'r> LoadNodeView<'s, 'r> {
 
     pub(crate) fn load_node(
         &mut self,
-        node: NodeRecord,
+        id: NodeId,
+        spec_id: NodeSpecId,
         param_value: Option<ParameterValues>,
         ports_state: Option<PortsStateMap>,
     ) -> Result<()> {
         self.node_service.load_node(
-            self.node_facade_view.specs,
-            self.node_facade_view.nodes,
-            node.id,
-            node.value.spec_id(),
+            self.node_facade_view.spec,
+            self.node_facade_view.node,
+            id,
+            spec_id,
         )?;
         if let Some(map) = ports_state {
             for (port_id, state) in map {
-                self.load_port_state(node.id, port_id, state)?;
+                self.load_port_state(id, port_id, state)?;
             }
         }
 
         if let Some(value) = param_value {
-            self.load_parameters(node.id, value);
+            self.load_parameters(id, value);
         }
         Ok(())
     }
 
     fn load_parameters(&mut self, id: NodeId, value: ParameterValues) {
-        self.node_facade_view.parameters.create(id, value.params);
+        self.node_facade_view.parameter.create(id, value.params);
     }
 
+    #[expect(
+        clippy::unnecessary_wraps,
+        reason = "node existence check will make it fallible"
+    )]
     fn load_port_state(&mut self, node: NodeId, port: NodePortId, state: PortState) -> Result<()> {
-        self.node_facade_view.ports.insert(node, port, state)?;
+        self.node_facade_view.port_state.insert(node, port, state);
         Ok(())
     }
 
+    #[expect(
+        clippy::unnecessary_wraps,
+        reason = "node existence check will make it fallible"
+    )]
     pub(crate) fn load_port_connections(
         &mut self,
         conns: impl IntoIterator<Item = PortConnectionId>,
     ) -> Result<()> {
         for conn in conns {
-            self.node_facade_view.port_connections.insert(conn)?;
+            self.node_facade_view.port_connection.insert(conn);
         }
         Ok(())
     }
 
     pub(crate) fn load_spec(&mut self, id: NodeSpecId, spec: NodeSpec) -> Result<()> {
         self.node_service
-            .load_spec(self.node_facade_view.specs, id, spec)
+            .load_spec(self.node_facade_view.spec, id, spec)
     }
 }
 
@@ -90,16 +99,16 @@ pub(crate) struct NodeLifecycleView<'a> {
 impl NodeLifecycleView<'_> {
     pub fn create(&mut self, spec: &NodeSpec) -> Result<NodeId> {
         let id = self.node_service.create(
-            self.node_facade_view.specs,
-            self.node_facade_view.nodes,
+            self.node_facade_view.spec,
+            self.node_facade_view.node,
             spec,
         )?;
-        if let Some(ports_spec) = spec.ports() {
+        if let Some(ports_spec) = spec.ports().as_ref() {
             let mut port_state_view = PortStateViewMut {
-                node_repo: self.node_facade_view.nodes,
-                spec_repo: self.node_facade_view.specs,
-                port_conn_repo: self.node_facade_view.port_connections,
-                port_state_repo: self.node_facade_view.ports,
+                node_repo: self.node_facade_view.node,
+                spec_repo: self.node_facade_view.spec,
+                port_conn_repo: self.node_facade_view.port_connection,
+                port_state_repo: self.node_facade_view.port_state,
                 channel_repo: self.channel_repo,
                 channel_spec_repo: self.channel_spec_repo,
                 channel_service: self.channel_service,
@@ -115,22 +124,22 @@ impl NodeLifecycleView<'_> {
 
     pub fn remove(&mut self, spec: &NodeSpec, id: NodeId) -> Result<()> {
         let mut port_conn_view = PortConnectionViewMut {
-            node_repo: self.node_facade_view.nodes,
-            spec_repo: self.node_facade_view.specs,
-            port_conn_repo: self.node_facade_view.port_connections,
-            port_state_repo: self.node_facade_view.ports,
+            node_repo: self.node_facade_view.node,
+            spec_repo: self.node_facade_view.spec,
+            port_conn_repo: self.node_facade_view.port_connection,
+            port_state_repo: self.node_facade_view.port_state,
             channel_repo: self.channel_repo,
             channel_spec_repo: self.channel_spec_repo,
             channel_service: self.channel_service,
         };
         port_conn_view.disconnect_all_ports(id)?;
 
-        self.node_service.remove(spec, id)?;
-        self.node_facade_view.nodes.remove(id);
+        self.node_service.remove(spec, id);
+        self.node_facade_view.node.remove(id);
         self.edge_removal_service_api.on_removal(id)?;
 
         if spec.has_params() {
-            self.node_facade_view.parameters.remove(id);
+            self.node_facade_view.parameter.remove(id);
         }
         Ok(())
     }

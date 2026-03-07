@@ -49,6 +49,7 @@ where
     S: 'static,
     F: 'static,
 {
+    #[must_use]
     pub const fn new<P: Plugin<Spec = S, Factory = F> + 'static>() -> Self {
         Self(|| Box::new(P::new()))
     }

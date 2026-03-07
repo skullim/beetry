@@ -132,7 +132,7 @@ pub(crate) fn menu_handlers(
         Ok(())
     };
 
-    let on_close = move |_| {
+    let on_close = move |()| {
         menu.channel.set(channel::menu::State::Idle);
         Ok(())
     };

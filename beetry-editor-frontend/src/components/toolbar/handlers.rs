@@ -56,7 +56,7 @@ pub(super) fn import_handlers(
 
 fn do_export_project(backend: Backend) -> Result<()> {
     let state = backend.with_peek(api::project::export)?;
-    export_project_to_file(state)?;
+    export_project_to_file(&state)?;
     Ok(())
 }
 
@@ -66,7 +66,7 @@ fn do_export_valid_tree(backend: Backend) -> Result<()> {
     Ok(())
 }
 
-fn export_project_to_file(editor_state: EditorStateStore) -> Result<()> {
+fn export_project_to_file(editor_state: &EditorStateStore) -> Result<()> {
     let serialized = JsonSerializer::serialize(&editor_state)?;
     let file_path = select_export_file()?;
 

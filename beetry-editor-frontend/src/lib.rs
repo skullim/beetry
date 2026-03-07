@@ -11,18 +11,11 @@ use dioxus::{desktop::WindowBuilder, logger::tracing::Level};
 pub(crate) use backend::Backend;
 pub use specs::{SharedSpecs, Specs};
 
-#[cfg(target_family = "wasm")]
-unsafe extern "C" {
-    fn __wasm_call_ctors();
-}
-
+#[expect(
+    clippy::missing_panics_doc,
+    reason = "logger should be always initialized"
+)]
 pub fn launch() {
-    #[cfg(target_family = "wasm")]
-    unsafe {
-        use dioxus::logger::tracing::info;
-        info!("running wasm ctor");
-        __wasm_call_ctors();
-    }
     dioxus_logger::init(Level::INFO).expect("failed to init logger");
     let cfg = dioxus::desktop::Config::default().with_window(
         WindowBuilder::new()

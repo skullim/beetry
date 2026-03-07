@@ -5,6 +5,7 @@ pub struct Invert<N> {
 }
 
 impl<N> Invert<N> {
+    #[must_use]
     pub fn new(node: N) -> Self {
         Self { node }
     }

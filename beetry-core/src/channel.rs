@@ -63,6 +63,7 @@ pub struct MessageHash {
 }
 
 impl MessageHash {
+    #[must_use]
     pub fn new(hash: u64) -> Self {
         Self { hash }
     }

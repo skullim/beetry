@@ -17,7 +17,7 @@ pub(crate) fn handlers(
         Ok(())
     };
 
-    let on_cancel = move |_| -> Result<()> {
+    let on_cancel = move |()| -> Result<()> {
         let state = state.take();
         if let node::parameter::State::Visible { id, mode, .. } = state
             && mode == node::parameter::Mode::Create

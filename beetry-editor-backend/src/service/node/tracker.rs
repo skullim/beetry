@@ -18,7 +18,7 @@ impl<'a> TrackerView<'a> {
     }
 
     pub(crate) fn ensure_exists(&self, id: NodeId) -> Result<()> {
-        if !self.repo.contains(&id) {
+        if !self.repo.contains(id) {
             bail!("node {id} does not exist");
         }
         Ok(())
@@ -45,7 +45,7 @@ impl NodeTrackerQuery for TrackerView<'_> {
 
     fn spec_id(&self, id: NodeId) -> Result<NodeSpecId> {
         self.repo
-            .spec_id(&id)
+            .spec_id(id)
             .copied()
             .ok_or_else(|| anyhow!("no mapping between node id {id} and spec id exists"))
     }

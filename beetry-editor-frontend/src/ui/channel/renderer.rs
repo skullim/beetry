@@ -260,6 +260,10 @@ fn node_port_center(
     };
 
     let step = port_step_for(NODE_HEIGHT, port_count);
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "row index is reasonably small number"
+    )]
     let y = node_pos.y + row_idx as f64 * step + (layout::HEIGHT / 2.0);
 
     let x = match kind {
@@ -275,6 +279,10 @@ fn port_step_for(height: f64, count: usize) -> f64 {
     if intervals == 0 {
         0.0
     } else {
+        #[expect(
+            clippy::cast_precision_loss,
+            reason = "intervals is reasonably small number"
+        )]
         ((height - layout::HEIGHT) / intervals as f64).max(layout::HEIGHT + layout::MIN_GAP)
     }
 }

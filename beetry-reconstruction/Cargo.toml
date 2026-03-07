@@ -15,3 +15,7 @@ beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
 tracing.workspace = true
 serde-value.workspace = true
 serde.workspace = true
+itertools.workspace = true
+
+[lints]
+workspace = true

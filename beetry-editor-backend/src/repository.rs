@@ -33,38 +33,38 @@ pub struct EditorRepositoryViewMut<'a> {
 }
 #[derive(Debug, Default)]
 pub struct EditorRepository {
-    pub(crate) nodes: NodeRepository,
-    pub(crate) node_specs: NodeSpecRepository,
-    pub(crate) node_parameters: ParamValuesRepository,
-    pub(crate) node_port_connections: PortConnectionRepository,
-    pub(crate) node_ports: PortStateRepository,
+    pub(crate) node: NodeRepository,
+    pub(crate) node_spec: NodeSpecRepository,
+    pub(crate) parameter: ParamValuesRepository,
+    pub(crate) port_connection: PortConnectionRepository,
+    pub(crate) port_state: PortStateRepository,
     pub(crate) edge: EdgeRepository,
-    pub(crate) channels: ChannelRepository,
-    pub(crate) channel_specs: ChannelSpecRepository,
-    pub(crate) ui_nodes: NodeUiRepository,
-    pub(crate) ui_channels: ChannelUiRepository,
-    pub(crate) ui_port_connections: PortConnectionUiRepository,
+    pub(crate) channel: ChannelRepository,
+    pub(crate) channel_spec: ChannelSpecRepository,
+    pub(crate) ui_node: NodeUiRepository,
+    pub(crate) ui_channel: ChannelUiRepository,
+    pub(crate) ui_port_connection: PortConnectionUiRepository,
 }
 
 impl EditorRepository {
     pub fn view(&self) -> EditorRepositoryView<'_> {
         EditorRepositoryView {
             node: NodeRepositoryFacadeView {
-                nodes: &self.nodes,
-                specs: &self.node_specs,
-                parameters: &self.node_parameters,
-                port_connections: &self.node_port_connections,
-                ports: &self.node_ports,
+                node: &self.node,
+                spec: &self.node_spec,
+                parameter: &self.parameter,
+                port_connection: &self.port_connection,
+                port_state: &self.port_state,
             },
             edge: &self.edge,
             channel: ChannelRepositoryFacadeView {
-                spec: &self.channel_specs,
-                channel: &self.channels,
+                spec: &self.channel_spec,
+                channel: &self.channel,
             },
             ui: UiRepositoryFacadeView {
-                node: &self.ui_nodes,
-                channel: &self.ui_channels,
-                port_connection: &self.ui_port_connections,
+                node: &self.ui_node,
+                channel: &self.ui_channel,
+                port_connection: &self.ui_port_connection,
             },
         }
     }
@@ -72,21 +72,21 @@ impl EditorRepository {
     pub fn view_mut(&mut self) -> EditorRepositoryViewMut<'_> {
         EditorRepositoryViewMut {
             node: NodeRepositoryFacadeViewMut {
-                nodes: &mut self.nodes,
-                specs: &mut self.node_specs,
-                parameters: &mut self.node_parameters,
-                port_connections: &mut self.node_port_connections,
-                ports: &mut self.node_ports,
+                node: &mut self.node,
+                spec: &mut self.node_spec,
+                parameter: &mut self.parameter,
+                port_connection: &mut self.port_connection,
+                port_state: &mut self.port_state,
             },
             edge: &mut self.edge,
             channel: ChannelRepositoryFacadeViewMut {
-                spec: &mut self.channel_specs,
-                channel: &mut self.channels,
+                spec: &mut self.channel_spec,
+                channel: &mut self.channel,
             },
             ui: UiRepositoryFacadeViewMut {
-                node: &mut self.ui_nodes,
-                channel: &mut self.ui_channels,
-                port_connection: &mut self.ui_port_connections,
+                node: &mut self.ui_node,
+                channel: &mut self.ui_channel,
+                port_connection: &mut self.ui_port_connection,
             },
         }
     }
@@ -100,29 +100,21 @@ impl EditorRepository {
     }
 }
 
-//#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct NodeRepositoryFacadeView<'a> {
-    pub nodes: &'a NodeRepository,
-    pub specs: &'a NodeSpecRepository,
-    pub parameters: &'a ParamValuesRepository,
-    pub port_connections: &'a PortConnectionRepository,
-    pub ports: &'a PortStateRepository,
-}
-
-impl Copy for NodeRepositoryFacadeView<'_> {}
-
-impl Clone for NodeRepositoryFacadeView<'_> {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub node: &'a NodeRepository,
+    pub spec: &'a NodeSpecRepository,
+    pub parameter: &'a ParamValuesRepository,
+    pub port_connection: &'a PortConnectionRepository,
+    pub port_state: &'a PortStateRepository,
 }
 
 pub struct NodeRepositoryFacadeViewMut<'a> {
-    pub nodes: &'a mut NodeRepository,
-    pub specs: &'a mut NodeSpecRepository,
-    pub parameters: &'a mut ParamValuesRepository,
-    pub port_connections: &'a mut PortConnectionRepository,
-    pub ports: &'a mut PortStateRepository,
+    pub node: &'a mut NodeRepository,
+    pub spec: &'a mut NodeSpecRepository,
+    pub parameter: &'a mut ParamValuesRepository,
+    pub port_connection: &'a mut PortConnectionRepository,
+    pub port_state: &'a mut PortStateRepository,
 }
 
 pub struct ChannelRepositoryFacadeView<'a> {
@@ -172,12 +164,12 @@ where
     I: Default + One + Hash + Eq + Display + Copy + AddAssign,
     S: Sized,
 {
-    pub fn create(&mut self, spec: S) -> Result<I> {
+    pub fn create(&mut self, spec: S) -> I {
         let id = self
             .id_provider
             .next_available_id(|id| !self.specs.contains_key(id));
         self.specs.insert(id, spec);
-        Ok(id)
+        id
     }
 
     pub fn load(&mut self, id: I, spec: S) -> Result<()> {
@@ -218,12 +210,12 @@ pub struct NodeRepository {
 }
 
 impl NodeRepository {
-    pub fn create(&mut self, spec: NodeSpecId) -> Result<NodeId> {
+    pub fn create(&mut self, spec: NodeSpecId) -> NodeId {
         let id = self
             .id_provider
             .next_available_id(|id| !self.nodes.contains_key(id));
         self.nodes.insert(id, spec);
-        Ok(id)
+        id
     }
 
     pub fn load(&mut self, node: NodeId, spec: NodeSpecId) -> Result<()> {
@@ -238,12 +230,12 @@ impl NodeRepository {
         self.nodes.remove(&id)
     }
 
-    pub fn contains(&self, id: &NodeId) -> bool {
-        self.nodes.contains_key(id)
+    pub fn contains(&self, id: NodeId) -> bool {
+        self.nodes.contains_key(&id)
     }
 
-    pub fn spec_id(&self, id: &NodeId) -> Option<&NodeSpecId> {
-        self.nodes.get(id)
+    pub fn spec_id(&self, id: NodeId) -> Option<&NodeSpecId> {
+        self.nodes.get(&id)
     }
 
     pub fn spec_ids(&self) -> impl Iterator<Item = &NodeSpecId> {
@@ -265,9 +257,8 @@ pub struct PortStateRepository {
 }
 
 impl PortStateRepository {
-    pub fn insert(&mut self, node: NodeId, port: NodePortId, state: PortState) -> Result<()> {
+    pub fn insert(&mut self, node: NodeId, port: NodePortId, state: PortState) {
         self.states.insert((node, port), state);
-        Ok(())
     }
 
     pub fn state(&self, node: NodeId, port: NodePortId) -> Option<&PortState> {
@@ -281,14 +272,13 @@ pub struct PortConnectionRepository {
 }
 
 impl PortConnectionRepository {
-    pub fn insert(&mut self, conn: PortConnectionId) -> Result<()> {
+    pub fn insert(&mut self, conn: PortConnectionId) {
         self.conns
             .entry(conn.node_id)
             .or_default()
             .entry(conn.port_id)
             .or_default()
             .insert(conn.channel_id);
-        Ok(())
     }
 
     pub fn remove(&mut self, conn: PortConnectionId) {
@@ -390,16 +380,16 @@ pub struct EdgeRepository {
 }
 
 impl EdgeRepository {
-    pub fn create(&mut self, edge: NodeEdge) -> Result<EdgeId> {
+    pub fn create(&mut self, edge: NodeEdge) -> EdgeId {
         let id = self
             .id_provider
             .next_available_id(|id| !self.edges.contains_key(id));
         self.edges.insert(id, edge);
-        Ok(id)
+        id
     }
 
-    pub fn remove(&mut self, id: &EdgeId) -> Option<NodeEdge> {
-        self.edges.remove(id)
+    pub fn remove(&mut self, id: EdgeId) -> Option<NodeEdge> {
+        self.edges.remove(&id)
     }
 
     pub fn edges(&self) -> impl Iterator<Item = &NodeEdge> {
@@ -424,12 +414,12 @@ pub struct ChannelRepository {
 }
 
 impl ChannelRepository {
-    pub fn create(&mut self, data: ChannelData) -> Result<ChannelId> {
+    pub fn create(&mut self, data: ChannelData) -> ChannelId {
         let id = self
             .id_provider
             .next_available_id(|id| !self.channels.contains_key(id));
         self.channels.insert(id, data);
-        Ok(id)
+        id
     }
 
     pub fn load(&mut self, id: ChannelId, data: ChannelData) -> Result<()> {
@@ -444,8 +434,8 @@ impl ChannelRepository {
         self.channels.remove(&id)
     }
 
-    pub fn contains(&self, id: &ChannelId) -> bool {
-        self.channels.contains_key(id)
+    pub fn contains(&self, id: ChannelId) -> bool {
+        self.channels.contains_key(&id)
     }
 
     pub fn data_mut(&mut self, id: ChannelId) -> Option<&mut ChannelData> {
@@ -477,11 +467,10 @@ impl<I, D> Default for UiRepository<I, D> {
 
 impl<I, D> UiRepository<I, D>
 where
-    I: Eq + Hash,
+    I: Eq + Hash + Copy,
 {
-    pub fn create(&mut self, id: I, data: D) -> Result<()> {
+    pub fn create(&mut self, id: I, data: D) {
         self.data.insert(id, data);
-        Ok(())
     }
 
     pub fn remove(&mut self, id: I) -> Option<D> {

@@ -18,3 +18,6 @@ tokio = { workspace = true, features = [
 ], optional = true }
 bon.workspace = true
 tupleops = "0.1.1"
+
+[lints]
+workspace = true

@@ -17,9 +17,9 @@ pub struct PinProps {
 
 #[component]
 pub(crate) fn Pin(props: PinProps) -> Element {
-    let position = props.position;
     static PIN_RADIUS: f64 = 7.0;
 
+    let position = props.position;
     let mut is_hovered = use_signal(|| false);
     let handlers = use_context::<Handlers>();
     rsx! {

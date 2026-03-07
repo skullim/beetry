@@ -5,6 +5,7 @@ pub struct Fail<N> {
 }
 
 impl<N> Fail<N> {
+    #[must_use]
     pub fn new(node: N) -> Self {
         Self { node }
     }

@@ -24,3 +24,7 @@ rfd = { version = "0.17.2", default-features = false, features = [
     "xdg-portal",
 ] }
 serde.workspace = true
+
+
+[lints]
+workspace = true

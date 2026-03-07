@@ -38,6 +38,7 @@ pub struct TestSpecs {
 }
 
 impl Default for TestSpecs {
+    #[allow(clippy::too_many_lines)]
     fn default() -> Self {
         let node_specs = HashMap::from([
             (
@@ -174,12 +175,12 @@ impl TestSpecs {
     }
 
     #[allow(dead_code)]
-    pub fn default_mpsc_config(&self) -> ChannelConfigInput {
+    pub fn default_mpsc_config() -> ChannelConfigInput {
         ChannelConfigInput::new(8, ChannelKind::Tokio(TokioChannelKind::Mpsc))
     }
 
     #[allow(dead_code)]
-    pub fn default_broadcast_config(&self) -> ChannelConfigInput {
+    pub fn default_broadcast_config() -> ChannelConfigInput {
         ChannelConfigInput::new(8, ChannelKind::Tokio(TokioChannelKind::Broadcast))
     }
 }

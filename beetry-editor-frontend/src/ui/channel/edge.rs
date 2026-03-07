@@ -71,11 +71,8 @@ pub fn Edge(props: EdgeProps) -> Element {
                 cursor: "pointer",
                 onclick: move |evt| {
                     evt.stop_propagation();
-                    state.set(
-                        PortConnectionUiData::new(VisibilityKind::Hidden),
-                        backend,
-                        props.conn,
-                    );
+                    state
+                        .set(PortConnectionUiData::new(VisibilityKind::Hidden), backend, props.conn);
                 },
                 oncontextmenu: move |evt| {
                     evt.prevent_default();
@@ -93,12 +90,13 @@ pub fn Edge(props: EdgeProps) -> Element {
                 stroke: props.stroke,
                 origin: props.origin,
                 port_width: props.port_width,
-                on_click: move |_| {
-                    state.set(
-                        PortConnectionUiData::new(VisibilityKind::Visible),
-                        backend,
-                        props.conn,
-                    );
+                on_click: move |()| {
+                    state
+                        .set(
+                            PortConnectionUiData::new(VisibilityKind::Visible),
+                            backend,
+                            props.conn,
+                        );
                 },
             }
         }

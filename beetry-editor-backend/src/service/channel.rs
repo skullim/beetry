@@ -73,7 +73,7 @@ impl<'a> ChannelViewMut<'a> {
         }
     }
 
-    pub fn create(&mut self, spec: &ChannelSpec, input: ChannelConfigInput) -> Result<ChannelId> {
+    pub fn create(&mut self, spec: &ChannelSpec, input: ChannelConfigInput) -> ChannelId {
         self.channel
             .create(self.facade_view.spec, self.facade_view.channel, spec, input)
     }
@@ -162,11 +162,11 @@ impl ChannelService {
         channel_repo: &mut ChannelRepository,
         spec: &ChannelSpec,
         input: ChannelConfigInput,
-    ) -> Result<ChannelId> {
+    ) -> ChannelId {
         let spec_id = if let Some(id) = self.spec_cache.get(spec) {
             *id
         } else {
-            let spec_id = spec_repo.create(spec.clone())?;
+            let spec_id = spec_repo.create(spec.clone());
             self.spec_cache.insert(spec.clone(), spec_id);
             spec_id
         };
@@ -285,7 +285,7 @@ impl ChannelService {
     }
 
     fn ensure_exists(repo: &ChannelRepository, id: ChannelId) -> Result<()> {
-        if !repo.contains(&id) {
+        if !repo.contains(id) {
             bail!("channel {id} does not exist")
         }
         Ok(())
