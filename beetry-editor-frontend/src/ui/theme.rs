@@ -40,6 +40,7 @@ const THEME_CSS: &str = "
         --bt-radius-lg: 16px;
         --bt-radius-md: 10px;
         --bt-radius-sm: 8px;
+        --bt-hover-lift: 1px;
         --bt-sidebar-list-gap: 6px;
         --bt-sidebar-item-height: 34px;
         --bt-menu-fill: #ffffff;
@@ -134,10 +135,11 @@ const THEME_CSS: &str = "
         display: grid;
         gap: var(--bt-sidebar-list-gap);
         max-height: calc(
-            (4 * var(--bt-sidebar-item-height)) + (3 * var(--bt-sidebar-list-gap))
+            (3 * var(--bt-sidebar-item-height)) + (2 * var(--bt-sidebar-list-gap)) + (2 * var(--bt-hover-lift))
         );
         overflow: auto;
-        padding-top: 0;
+        padding-top: var(--bt-hover-lift);
+        padding-bottom: var(--bt-hover-lift);
         padding-right: 2px;
     }
 
@@ -162,7 +164,7 @@ const THEME_CSS: &str = "
     }
 
     .bt-btn:hover {
-        transform: translateY(-1px);
+        transform: translateY(calc(-1 * var(--bt-hover-lift)));
         box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
     }
 
