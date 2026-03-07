@@ -1,4 +1,6 @@
-use crate::repository::{PortConnectionRepositoryConcept, UiRepositoryConcept};
+use crate::repository::{
+    ChannelUiRepository, NodeUiRepository, PortConnectionRepository, PortConnectionUiRepository,
+};
 use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{
     id::{ChannelId, NodeId, PortConnectionId},
@@ -6,8 +8,8 @@ use beetry_editor_types::{
 };
 use std::collections::HashMap;
 
-pub struct NodeUiQueryView<'a, UR> {
-    repo: &'a UR,
+pub struct NodeUiQueryView<'a> {
+    repo: &'a NodeUiRepository,
 }
 
 pub trait NodeUiQuery {
@@ -17,19 +19,13 @@ pub trait NodeUiQuery {
     fn iter(&self) -> impl Iterator<Item = (&NodeId, &NodeUiData)>;
 }
 
-impl<'a, UR> NodeUiQueryView<'a, UR>
-where
-    UR: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
-{
-    pub(crate) fn new(repo: &'a UR) -> Self {
+impl<'a> NodeUiQueryView<'a> {
+    pub(crate) fn new(repo: &'a NodeUiRepository) -> Self {
         Self { repo }
     }
 }
 
-impl<UR> NodeUiQuery for NodeUiQueryView<'_, UR>
-where
-    UR: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
-{
+impl NodeUiQuery for NodeUiQueryView<'_> {
     fn data(&self, id: NodeId) -> Result<&NodeUiData> {
         self.repo
             .data(id)
@@ -86,15 +82,12 @@ where
     }
 }
 
-pub struct NodeUiViewMut<'a, UR> {
-    repo: &'a mut UR,
+pub struct NodeUiViewMut<'a> {
+    repo: &'a mut NodeUiRepository,
 }
 
-impl<'a, UR> NodeUiViewMut<'a, UR>
-where
-    UR: UiRepositoryConcept<Id = NodeId, Data = NodeUiData>,
-{
-    pub(crate) fn new(repo: &'a mut UR) -> Self {
+impl<'a> NodeUiViewMut<'a> {
+    pub(crate) fn new(repo: &'a mut NodeUiRepository) -> Self {
         Self { repo }
     }
 
@@ -116,15 +109,12 @@ where
     }
 }
 
-pub struct ChannelUiQueryView<'a, UR> {
-    repo: &'a UR,
+pub struct ChannelUiQueryView<'a> {
+    repo: &'a ChannelUiRepository,
 }
 
-impl<'a, UR> ChannelUiQueryView<'a, UR>
-where
-    UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
-{
-    pub(crate) fn new(repo: &'a UR) -> Self {
+impl<'a> ChannelUiQueryView<'a> {
+    pub(crate) fn new(repo: &'a ChannelUiRepository) -> Self {
         Self { repo }
     }
 }
@@ -135,10 +125,7 @@ pub trait ChannelUiQuery {
     fn iter(&self) -> impl Iterator<Item = (&ChannelId, &ChannelUiData)>;
 }
 
-impl<UR> ChannelUiQuery for ChannelUiQueryView<'_, UR>
-where
-    UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
-{
+impl ChannelUiQuery for ChannelUiQueryView<'_> {
     fn position(&self, id: ChannelId) -> Result<&Point> {
         Ok(&self
             .repo
@@ -154,15 +141,12 @@ where
     }
 }
 
-pub struct ChannelUiViewMut<'a, UR> {
-    repo: &'a mut UR,
+pub struct ChannelUiViewMut<'a> {
+    repo: &'a mut ChannelUiRepository,
 }
 
-impl<'a, UR> ChannelUiViewMut<'a, UR>
-where
-    UR: UiRepositoryConcept<Id = ChannelId, Data = ChannelUiData>,
-{
-    pub(crate) fn new(repo: &'a mut UR) -> Self {
+impl<'a> ChannelUiViewMut<'a> {
+    pub(crate) fn new(repo: &'a mut ChannelUiRepository) -> Self {
         Self { repo }
     }
 
@@ -184,17 +168,16 @@ where
     }
 }
 
-pub struct PortConnectionUiStateViewMut<'a, UR, PC> {
-    ui_repo: &'a mut UR,
-    port_conn_repo: &'a PC,
+pub struct PortConnectionUiStateViewMut<'a> {
+    ui_repo: &'a mut PortConnectionUiRepository,
+    port_conn_repo: &'a PortConnectionRepository,
 }
 
-impl<'a, UR, PC> PortConnectionUiStateViewMut<'a, UR, PC>
-where
-    UR: UiRepositoryConcept<Id = PortConnectionId, Data = PortConnectionUiData>,
-    PC: PortConnectionRepositoryConcept,
-{
-    pub(crate) fn new(ui_repo: &'a mut UR, port_conn_repo: &'a PC) -> Self {
+impl<'a> PortConnectionUiStateViewMut<'a> {
+    pub(crate) fn new(
+        ui_repo: &'a mut PortConnectionUiRepository,
+        port_conn_repo: &'a PortConnectionRepository,
+    ) -> Self {
         Self {
             ui_repo,
             port_conn_repo,
@@ -226,20 +209,17 @@ pub trait PortConnectionUiQuery {
     fn data(&self, id: PortConnectionId) -> Result<&PortConnectionUiData>;
 }
 
-pub struct PortConnectionUiQueryView<'a, PUR> {
-    repo: &'a PUR,
+pub struct PortConnectionUiQueryView<'a> {
+    repo: &'a PortConnectionUiRepository,
 }
 
-impl<'a, PUR> PortConnectionUiQueryView<'a, PUR> {
-    pub fn new(repo: &'a PUR) -> Self {
+impl<'a> PortConnectionUiQueryView<'a> {
+    pub fn new(repo: &'a PortConnectionUiRepository) -> Self {
         Self { repo }
     }
 }
 
-impl<'a, PUR> PortConnectionUiQuery for PortConnectionUiQueryView<'a, PUR>
-where
-    PUR: UiRepositoryConcept<Id = PortConnectionId, Data = PortConnectionUiData>,
-{
+impl PortConnectionUiQuery for PortConnectionUiQueryView<'_> {
     fn data(&self, id: PortConnectionId) -> Result<&PortConnectionUiData> {
         self.repo
             .data(id)

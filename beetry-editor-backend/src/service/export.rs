@@ -2,14 +2,13 @@ use crate::{
     api::{NodeTrackerQuery, ParameterValueQuery},
     channel::ChannelQueryView,
     node::{PortConnectionQuery, PortStateQuery, SpecByNodeIdQuery},
-    repository::{NodeRepositoryFacadeConcept, UiRepositoryConcept},
+    repository::PortConnectionUiRepository,
     service::{edge::EdgeQueryView, node::NodeView},
     ui::{ChannelUiQuery, NodeUiQuery, NodeUiQueryProcessor},
 };
 use anyhow::{Context, Result, anyhow, bail};
 use beetry_editor_types::{
-    id::{ChannelId, NodeId, NodePortId, PortConnectionId},
-    output::ui::PortConnectionUiData,
+    id::{ChannelId, NodeId, NodePortId},
     persistence::{
         ChannelDataStore, ChannelSpecStore, ChannelStore, ChannelUiRecord, EditorStateStore,
         MaybeValidTree, NodeRecordStore, NodeRecordValue, NodeSpecStore, NodeStore, NodeUiRecord,
@@ -44,43 +43,39 @@ impl TreeValidationResult {
     }
 }
 
-pub struct ExportView<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ, PCU>
+pub struct ExportView<'a, NSQ, EQ, CQ, NUQ, CUQ>
 where
-    NRF: NodeRepositoryFacadeConcept,
     NSQ: SpecByNodeIdQuery,
     EQ: EdgeQueryView,
     CQ: ChannelQueryView,
     NUQ: NodeUiQuery,
     CUQ: ChannelUiQuery,
-    PCU: UiRepositoryConcept<Id = PortConnectionId, Data = PortConnectionUiData>,
 {
     channel_api: CQ,
-    node_api: NodeView<'a, NRF>,
+    node_api: NodeView<'a>,
     node_spec_query_api: NSQ,
     edge_api: EQ,
     node_ui_api: NUQ,
     channel_ui_api: CUQ,
-    port_connection_ui_api: &'a PCU,
+    port_connection_ui_repo: &'a PortConnectionUiRepository,
 }
 
-impl<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ, PCU> ExportView<'a, NRF, NSQ, EQ, CQ, NUQ, CUQ, PCU>
+impl<'a, NSQ, EQ, CQ, NUQ, CUQ> ExportView<'a, NSQ, EQ, CQ, NUQ, CUQ>
 where
-    NRF: NodeRepositoryFacadeConcept,
     NSQ: SpecByNodeIdQuery,
     EQ: EdgeQueryView,
     CQ: ChannelQueryView,
     NUQ: NodeUiQuery,
     CUQ: ChannelUiQuery,
-    PCU: UiRepositoryConcept<Id = PortConnectionId, Data = PortConnectionUiData>,
 {
     pub fn new(
         channel_api: CQ,
-        node_api: NodeView<'a, NRF>,
+        node_api: NodeView<'a>,
         node_spec_query_api: NSQ,
         edge_api: EQ,
         node_ui_api: NUQ,
         channel_ui_api: CUQ,
-        port_connection_ui_api: &'a PCU,
+        port_connection_ui_api: &'a PortConnectionUiRepository,
     ) -> Self {
         Self {
             channel_api,
@@ -89,7 +84,7 @@ where
             edge_api,
             node_ui_api,
             channel_ui_api,
-            port_connection_ui_api,
+            port_connection_ui_repo: port_connection_ui_api,
         }
     }
 
@@ -269,7 +264,7 @@ where
                 .collect()
         };
         let port_connections: Vec<_> = self
-            .port_connection_ui_api
+            .port_connection_ui_repo
             .iter()
             .map(|(id, data)| PortConnectionUiRecord {
                 id: *id,
@@ -321,13 +316,10 @@ where
                     .ports()
                 {
                     for port_id in ports_spec.ids() {
-                        let state = match port_state_api.state(child, *port_id) {
-                            Ok(state) => state,
-                            Err(_) => {
-                                return TreeValidationResult::builder()
-                                    .unconnected_port((child, *port_id))
-                                    .build();
-                            }
+                        let Ok(state) = port_state_api.state(child, *port_id) else {
+                            return TreeValidationResult::builder()
+                                .unconnected_port((child, *port_id))
+                                .build();
                         };
 
                         if !state.is_external()

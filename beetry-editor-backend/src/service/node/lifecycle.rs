@@ -1,13 +1,9 @@
-use beetry_editor_types::persistence::PortsStateMap;
 use crate::{
-    repository::{
-        ChannelRepositoryFacadeConcept, EdgeRepositoryConcept, NodeRepositoryConcept,
-        NodeRepositoryFacadeConcept, NodeRepositoryFacadeViewMut, ParamValueRepositoryConcept,
-        PortConnectionRepositoryConcept, PortStateRepositoryConcept,
-    },
+    repository::{ChannelRepository, ChannelSpecRepository, NodeRepositoryFacadeViewMut},
     service::{channel::ChannelService, edge},
 };
 use anyhow::Result;
+use beetry_editor_types::persistence::PortsStateMap;
 use beetry_editor_types::{
     id::{NodeId, NodePortId, NodeSpecId, PortConnectionId},
     output::node::{PortSource, PortState},
@@ -17,21 +13,15 @@ use beetry_editor_types::{
 
 use super::{NodeService, PortConnectionViewMut, PortStateViewMut};
 
-pub(crate) struct LoadNodeView<'a, NRF>
-where
-    NRF: NodeRepositoryFacadeConcept,
-{
-    node_service: &'a mut NodeService,
-    node_facade_view: NodeRepositoryFacadeViewMut<'a, NRF>,
+pub(crate) struct LoadNodeView<'s, 'r> {
+    node_service: &'s mut NodeService,
+    node_facade_view: &'s mut NodeRepositoryFacadeViewMut<'r>,
 }
 
-impl<'a, NRF> LoadNodeView<'a, NRF>
-where
-    NRF: NodeRepositoryFacadeConcept,
-{
+impl<'s, 'r> LoadNodeView<'s, 'r> {
     pub(crate) fn new(
-        node_service: &'a mut NodeService,
-        node_facade_view: NodeRepositoryFacadeViewMut<'a, NRF>,
+        node_service: &'s mut NodeService,
+        node_facade_view: &'s mut NodeRepositoryFacadeViewMut<'r>,
     ) -> Self {
         Self {
             node_service,
@@ -88,23 +78,16 @@ where
     }
 }
 
-pub(crate) struct NodeLifecycleView<'a, NRF, CRF, ER>
-where
-    NRF: NodeRepositoryFacadeConcept,
-{
+pub(crate) struct NodeLifecycleView<'a> {
     pub(crate) node_service: &'a mut NodeService,
     pub(crate) channel_service: &'a mut ChannelService,
-    pub(crate) node_facade_view: &'a mut NodeRepositoryFacadeViewMut<'a, NRF>,
-    pub(crate) channel_facade: &'a mut CRF,
-    pub(crate) edge_removal_service_api: edge::OnNodeRemovalServiceApi<'a, ER>,
+    pub(crate) node_facade_view: NodeRepositoryFacadeViewMut<'a>,
+    pub(crate) channel_repo: &'a mut ChannelRepository,
+    pub(crate) channel_spec_repo: &'a mut ChannelSpecRepository,
+    pub(crate) edge_removal_service_api: edge::OnNodeRemovalServiceApi<'a>,
 }
 
-impl<NRF, CRF, ER> NodeLifecycleView<'_, NRF, CRF, ER>
-where
-    NRF: NodeRepositoryFacadeConcept,
-    CRF: ChannelRepositoryFacadeConcept,
-    ER: EdgeRepositoryConcept,
-{
+impl NodeLifecycleView<'_> {
     pub fn create(&mut self, spec: &NodeSpec) -> Result<NodeId> {
         let id = self.node_service.create(
             self.node_facade_view.specs,
@@ -117,7 +100,8 @@ where
                 spec_repo: self.node_facade_view.specs,
                 port_conn_repo: self.node_facade_view.port_connections,
                 port_state_repo: self.node_facade_view.ports,
-                channel_facade: self.channel_facade,
+                channel_repo: self.channel_repo,
+                channel_spec_repo: self.channel_spec_repo,
                 channel_service: self.channel_service,
             };
 
@@ -135,7 +119,8 @@ where
             spec_repo: self.node_facade_view.specs,
             port_conn_repo: self.node_facade_view.port_connections,
             port_state_repo: self.node_facade_view.ports,
-            channel_facade: self.channel_facade,
+            channel_repo: self.channel_repo,
+            channel_spec_repo: self.channel_spec_repo,
             channel_service: self.channel_service,
         };
         port_conn_view.disconnect_all_ports(id)?;

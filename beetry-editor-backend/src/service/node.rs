@@ -20,4 +20,4 @@ pub use spec::{
     SpecByNodeIdQuery, SpecByNodeIdQueryView, SpecBySpecIdQuery, SpecBySpecIdQueryView, SpecView,
 };
 pub use tracker::{NodeTrackerQuery, TrackerView};
-pub use views::{NodeView, NodeViewMut};
+pub use views::NodeView;

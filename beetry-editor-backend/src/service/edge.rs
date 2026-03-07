@@ -1,22 +1,19 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::repository::{EdgeRepositoryConcept, NodeRepositoryFacadeConcept};
+use crate::repository::EdgeRepository;
 use crate::service::node::{SpecView, TrackerView};
 use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{id::EdgeId, id::NodeId, output::edge::NodeEdge, spec::node::NodeKind};
 use tracing::warn;
 
 /// User-facing API, internally this layer maps the concrete repository to corresponding service
-pub struct EdgeView<'a, ER> {
-    edge_repo: &'a ER,
+pub struct EdgeView<'a> {
+    edge_repo: &'a EdgeRepository,
     edge_service: &'a EdgeService,
 }
 
-impl<'a, ER> EdgeView<'a, ER>
-where
-    ER: EdgeRepositoryConcept,
-{
-    pub(crate) fn new(edge_repo: &'a ER, edge_service: &'a EdgeService) -> Self {
+impl<'a> EdgeView<'a> {
+    pub(crate) fn new(edge_repo: &'a EdgeRepository, edge_service: &'a EdgeService) -> Self {
         Self {
             edge_repo,
             edge_service,
@@ -30,10 +27,7 @@ pub trait EdgeQueryView {
     fn edges(&self) -> impl Iterator<Item = (&EdgeId, &NodeEdge)>;
 }
 
-impl<ER> EdgeQueryView for EdgeView<'_, ER>
-where
-    ER: EdgeRepositoryConcept,
-{
+impl EdgeQueryView for EdgeView<'_> {
     fn parent_of(&self, id: NodeId) -> Option<&NodeId> {
         self.edge_service.parent_of(id)
     }
@@ -47,26 +41,19 @@ where
     }
 }
 
-pub(crate) struct EdgeViewMut<'a, ER, NRF>
-where
-    NRF: NodeRepositoryFacadeConcept,
-{
-    edge_repo: &'a mut ER,
+pub(crate) struct EdgeViewMut<'a> {
+    edge_repo: &'a mut EdgeRepository,
     edge_service: &'a mut EdgeService,
-    node_tracker_view: TrackerView<'a, NRF::NodeRepo>,
-    node_spec_view: SpecView<'a, NRF::SpecRepo, NRF::NodeRepo>,
+    node_tracker_view: TrackerView<'a>,
+    node_spec_view: SpecView<'a>,
 }
 
-impl<'a, ER, NRF> EdgeViewMut<'a, ER, NRF>
-where
-    ER: EdgeRepositoryConcept,
-    NRF: NodeRepositoryFacadeConcept,
-{
+impl<'a> EdgeViewMut<'a> {
     pub(crate) fn new(
-        edge_repo: &'a mut ER,
+        edge_repo: &'a mut EdgeRepository,
         edge_service: &'a mut EdgeService,
-        node_tracker_view: TrackerView<'a, NRF::NodeRepo>,
-        node_spec_view: SpecView<'a, NRF::SpecRepo, NRF::NodeRepo>,
+        node_tracker_view: TrackerView<'a>,
+        node_spec_view: SpecView<'a>,
     ) -> Self {
         Self {
             edge_repo,
@@ -77,7 +64,7 @@ where
     }
 
     pub(crate) fn create(&mut self, edge: NodeEdge) -> Result<EdgeId> {
-        self.edge_service.create::<NRF>(
+        self.edge_service.create(
             self.edge_repo,
             &self.node_tracker_view,
             &self.node_spec_view,
@@ -90,16 +77,13 @@ where
     }
 }
 
-pub(crate) struct OnNodeRemovalServiceApi<'a, ER> {
+pub(crate) struct OnNodeRemovalServiceApi<'a> {
     service: &'a mut EdgeService,
-    repo: &'a mut ER,
+    repo: &'a mut EdgeRepository,
 }
 
-impl<'a, ER> OnNodeRemovalServiceApi<'a, ER>
-where
-    ER: EdgeRepositoryConcept,
-{
-    pub(crate) fn new(service: &'a mut EdgeService, repo: &'a mut ER) -> Self {
+impl<'a> OnNodeRemovalServiceApi<'a> {
+    pub(crate) fn new(service: &'a mut EdgeService, repo: &'a mut EdgeRepository) -> Self {
         Self { service, repo }
     }
 
@@ -135,16 +119,13 @@ impl EdgeService {
         Self::default()
     }
 
-    fn create<NRF>(
+    fn create(
         &mut self,
-        edge_repo: &mut impl EdgeRepositoryConcept,
-        node_tracker_view: &TrackerView<'_, NRF::NodeRepo>,
-        node_spec_view: &SpecView<'_, NRF::SpecRepo, NRF::NodeRepo>,
+        edge_repo: &mut EdgeRepository,
+        node_tracker_view: &TrackerView<'_>,
+        node_spec_view: &SpecView<'_>,
         edge: NodeEdge,
-    ) -> Result<EdgeId>
-    where
-        NRF: NodeRepositoryFacadeConcept,
-    {
+    ) -> Result<EdgeId> {
         // 1. Check node types
         // 2. Based on type implement valid connection business logic as all nodes have different rules
         // - each node can only have 1 parent except root that has no parents
@@ -205,7 +186,7 @@ impl EdgeService {
     }
 
     // All edges are *always* removed by Id
-    fn remove(&mut self, edge_repo: &mut impl EdgeRepositoryConcept, id: EdgeId) -> Result<()> {
+    fn remove(&mut self, edge_repo: &mut EdgeRepository, id: EdgeId) -> Result<()> {
         let removed = edge_repo
             .remove(&id)
             .ok_or_else(|| anyhow!("attempted to remove edge {id} that does not exist"))?;
@@ -233,7 +214,7 @@ impl EdgeService {
             .flat_map(|children| children.iter())
     }
 
-    fn edges(edge_repo: &impl EdgeRepositoryConcept) -> impl Iterator<Item = (&EdgeId, &NodeEdge)> {
+    fn edges(edge_repo: &EdgeRepository) -> impl Iterator<Item = (&EdgeId, &NodeEdge)> {
         edge_repo.iter()
     }
 
@@ -253,7 +234,7 @@ impl EdgeService {
     }
 
     fn find_edge_id_from(
-        edge_repo: &impl EdgeRepositoryConcept,
+        edge_repo: &EdgeRepository,
         predicate: impl FnMut(&(&EdgeId, &NodeEdge)) -> bool,
     ) -> Option<EdgeId> {
         edge_repo.iter().find(predicate).map(|(id, _)| *id)

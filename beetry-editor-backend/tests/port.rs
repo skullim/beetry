@@ -24,14 +24,14 @@ fn port_order_returns_correct_position(
     let duplex = create_node(&mut service, &specs, NodeSpecCase::DuplexA)?;
 
     let sender_row =
-        api::node::ports::port_order(&service, NodePortKind::Sender, duplex, NodePortId::new(0))?;
+        api::node::ports::order(&service, NodePortKind::Sender, duplex, NodePortId::new(0))?;
     let receiver_row =
-        api::node::ports::port_order(&service, NodePortKind::Receiver, duplex, NodePortId::new(1))?;
+        api::node::ports::order(&service, NodePortKind::Receiver, duplex, NodePortId::new(1))?;
     assert_eq!(sender_row, 0);
     assert_eq!(receiver_row, 0);
 
     assert!(
-        api::node::ports::port_order(&service, NodePortKind::Sender, duplex, NodePortId::new(1))
+        api::node::ports::order(&service, NodePortKind::Sender, duplex, NodePortId::new(1))
             .is_err()
     );
 

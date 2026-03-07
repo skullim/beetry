@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::repository::{
-    ChannelRepositoryConcept, ChannelRepositoryFacadeConcept, ChannelRepositoryFacadeView,
-    ChannelRepositoryFacadeViewMut, SpecRepositoryConcept,
+    ChannelRepository, ChannelRepositoryFacadeView, ChannelRepositoryFacadeViewMut,
+    ChannelSpecRepository,
 };
 use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{
@@ -17,18 +17,12 @@ use beetry_editor_types::{
 };
 use tracing::warn;
 
-pub struct ChannelView<'a, CRF>
-where
-    CRF: ChannelRepositoryFacadeConcept,
-{
-    facade_view: ChannelRepositoryFacadeView<'a, CRF>,
+pub struct ChannelView<'a> {
+    facade_view: ChannelRepositoryFacadeView<'a>,
 }
 
-impl<'a, CRF> ChannelView<'a, CRF>
-where
-    CRF: ChannelRepositoryFacadeConcept,
-{
-    pub(crate) fn new(facade_view: ChannelRepositoryFacadeView<'a, CRF>) -> Self {
+impl<'a> ChannelView<'a> {
+    pub(crate) fn new(facade_view: ChannelRepositoryFacadeView<'a>) -> Self {
         Self { facade_view }
     }
 }
@@ -41,10 +35,7 @@ pub trait ChannelQueryView {
     fn spec(&self, id: ChannelId) -> Result<&ChannelSpec>;
 }
 
-impl<CRF> ChannelQueryView for ChannelView<'_, CRF>
-where
-    CRF: ChannelRepositoryFacadeConcept,
-{
+impl ChannelQueryView for ChannelView<'_> {
     fn data(&self, id: ChannelId) -> Result<&ChannelData> {
         ChannelService::data(self.facade_view.channel, id)
     }
@@ -66,20 +57,14 @@ where
     }
 }
 
-pub struct ChannelViewMut<'a, CRF>
-where
-    CRF: ChannelRepositoryFacadeConcept,
-{
-    facade_view: ChannelRepositoryFacadeViewMut<'a, CRF>,
+pub struct ChannelViewMut<'a> {
+    facade_view: ChannelRepositoryFacadeViewMut<'a>,
     channel: &'a mut ChannelService,
 }
 
-impl<'a, CRF> ChannelViewMut<'a, CRF>
-where
-    CRF: ChannelRepositoryFacadeConcept,
-{
+impl<'a> ChannelViewMut<'a> {
     pub(crate) fn new(
-        facade: ChannelRepositoryFacadeViewMut<'a, CRF>,
+        facade: ChannelRepositoryFacadeViewMut<'a>,
         channel: &'a mut ChannelService,
     ) -> Self {
         Self {
@@ -125,20 +110,14 @@ pub struct ConnectionContext<'a> {
 }
 
 // This is only needed by import/export API which is user-facing API, therefore this is not public
-pub(crate) struct LoadChannelView<'a, CRF>
-where
-    CRF: ChannelRepositoryFacadeConcept,
-{
-    facade_view: ChannelRepositoryFacadeViewMut<'a, CRF>,
+pub(crate) struct LoadChannelView<'a> {
+    facade_view: ChannelRepositoryFacadeViewMut<'a>,
     channel: &'a mut ChannelService,
 }
 
-impl<'a, CRF> LoadChannelView<'a, CRF>
-where
-    CRF: ChannelRepositoryFacadeConcept,
-{
+impl<'a> LoadChannelView<'a> {
     pub(crate) fn new(
-        facade_view: ChannelRepositoryFacadeViewMut<'a, CRF>,
+        facade_view: ChannelRepositoryFacadeViewMut<'a>,
         channel: &'a mut ChannelService,
     ) -> Self {
         Self {
@@ -167,8 +146,8 @@ impl ChannelService {
     }
 
     fn spec<'a>(
-        spec_repo: &'a impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
-        channel_repo: &impl ChannelRepositoryConcept,
+        spec_repo: &'a ChannelSpecRepository,
+        channel_repo: &ChannelRepository,
         id: ChannelId,
     ) -> Result<&'a ChannelSpec> {
         let spec_id = Self::data(channel_repo, id)?.spec_id;
@@ -179,8 +158,8 @@ impl ChannelService {
 
     fn create(
         &mut self,
-        spec_repo: &mut impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
-        channel_repo: &mut impl ChannelRepositoryConcept,
+        spec_repo: &mut ChannelSpecRepository,
+        channel_repo: &mut ChannelRepository,
         spec: &ChannelSpec,
         input: ChannelConfigInput,
     ) -> Result<ChannelId> {
@@ -197,7 +176,7 @@ impl ChannelService {
 
     fn load_spec(
         &mut self,
-        spec_repo: &mut impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
+        spec_repo: &mut ChannelSpecRepository,
         record: ChannelSpecRecord,
     ) -> Result<()> {
         if let Some(id) = self.spec_cache.get(&record.spec) {
@@ -210,19 +189,16 @@ impl ChannelService {
         Ok(())
     }
 
-    fn remove(
-        channel_repo: &mut impl ChannelRepositoryConcept,
-        id: ChannelId,
-    ) -> Option<ChannelData> {
+    fn remove(channel_repo: &mut ChannelRepository, id: ChannelId) -> Option<ChannelData> {
         channel_repo.remove(id)
     }
 
-    fn config(repo: &impl ChannelRepositoryConcept, id: ChannelId) -> Result<&ChannelConfig> {
+    fn config(repo: &ChannelRepository, id: ChannelId) -> Result<&ChannelConfig> {
         Ok(&Self::data(repo, id)?.config)
     }
 
     fn update_config(
-        repo: &mut impl ChannelRepositoryConcept,
+        repo: &mut ChannelRepository,
         id: ChannelId,
         update: ChannelConfigUpdate,
     ) -> Result<()> {
@@ -230,32 +206,26 @@ impl ChannelService {
         Ok(())
     }
 
-    fn config_mut(
-        repo: &mut impl ChannelRepositoryConcept,
-        id: ChannelId,
-    ) -> Result<&mut ChannelConfig> {
+    fn config_mut(repo: &mut ChannelRepository, id: ChannelId) -> Result<&mut ChannelConfig> {
         Ok(&mut Self::data_mut(repo, id)?.config)
     }
 
-    fn spec_id(repo: &impl ChannelRepositoryConcept, id: ChannelId) -> Result<ChannelSpecId> {
+    fn spec_id(repo: &ChannelRepository, id: ChannelId) -> Result<ChannelSpecId> {
         Ok(Self::data(repo, id)?.spec_id)
     }
 
-    fn data(repo: &impl ChannelRepositoryConcept, id: ChannelId) -> Result<&ChannelData> {
+    fn data(repo: &ChannelRepository, id: ChannelId) -> Result<&ChannelData> {
         repo.data(id)
             .ok_or_else(|| anyhow!("failed to obtain data for channel {id}"))
     }
 
-    fn data_mut(
-        repo: &mut impl ChannelRepositoryConcept,
-        id: ChannelId,
-    ) -> Result<&mut ChannelData> {
+    fn data_mut(repo: &mut ChannelRepository, id: ChannelId) -> Result<&mut ChannelData> {
         repo.data_mut(id)
             .ok_or_else(|| anyhow!("failed to obtain data for channel {id}"))
     }
 
     fn on_connected(
-        channel_repo: &mut impl ChannelRepositoryConcept,
+        channel_repo: &mut ChannelRepository,
         context: &ConnectionContext,
     ) -> Result<()> {
         let count_mut = Self::config_mut(channel_repo, context.channel)?.count_mut();
@@ -271,7 +241,7 @@ impl ChannelService {
     }
 
     fn disconnect(
-        channel_repo: &mut impl ChannelRepositoryConcept,
+        channel_repo: &mut ChannelRepository,
         id: ChannelId,
         kind: NodePortKind,
     ) -> Result<()> {
@@ -283,8 +253,8 @@ impl ChannelService {
     }
 
     fn validate_connection(
-        channel_spec_repo: &impl SpecRepositoryConcept<Spec = ChannelSpec, SpecId = ChannelSpecId>,
-        channel_repo: &impl ChannelRepositoryConcept,
+        channel_spec_repo: &ChannelSpecRepository,
+        channel_repo: &ChannelRepository,
         conn_ctx: &ConnectionContext,
     ) -> Result<()> {
         Self::ensure_exists(channel_repo, conn_ctx.channel)?;
@@ -310,11 +280,11 @@ impl ChannelService {
         Ok(())
     }
 
-    fn channels(repo: &impl ChannelRepositoryConcept) -> impl Iterator<Item = &ChannelId> {
+    fn channels(repo: &ChannelRepository) -> impl Iterator<Item = &ChannelId> {
         repo.channels()
     }
 
-    fn ensure_exists(repo: &impl ChannelRepositoryConcept, id: ChannelId) -> Result<()> {
+    fn ensure_exists(repo: &ChannelRepository, id: ChannelId) -> Result<()> {
         if !repo.contains(&id) {
             bail!("channel {id} does not exist")
         }

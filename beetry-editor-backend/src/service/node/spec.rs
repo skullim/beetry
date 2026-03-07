@@ -1,21 +1,17 @@
-use crate::repository::{NodeRepositoryConcept, SpecRepositoryConcept};
+use crate::repository::{NodeRepository, NodeSpecRepository};
 use anyhow::{Context, Result, anyhow};
 use beetry_editor_types::{
     id::{NodeId, NodeSpecId},
     spec::node::{NodeKind, NodeName, NodeSpec, ParamsSpec, PortsSpec},
 };
 
-pub struct SpecView<'a, SR, NR> {
-    pub(crate) spec_repo: &'a SR,
-    pub(crate) node_repo: &'a NR,
+pub struct SpecView<'a> {
+    pub(crate) spec_repo: &'a NodeSpecRepository,
+    pub(crate) node_repo: &'a NodeRepository,
 }
 
-impl<'a, SR, NR> SpecView<'a, SR, NR>
-where
-    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
-    NR: NodeRepositoryConcept,
-{
-    pub(crate) fn new(spec_repo: &'a SR, node_repo: &'a NR) -> Self {
+impl<'a> SpecView<'a> {
+    pub(crate) fn new(spec_repo: &'a NodeSpecRepository, node_repo: &'a NodeRepository) -> Self {
         Self {
             spec_repo,
             node_repo,
@@ -42,8 +38,8 @@ where
     }
 
     pub(crate) fn spec_by_node_id<'s>(
-        spec_repo: &'s SR,
-        node_repo: &NR,
+        spec_repo: &'s NodeSpecRepository,
+        node_repo: &NodeRepository,
         id: NodeId,
     ) -> Result<&'s NodeSpec> {
         let spec_id = *Self::spec_id(node_repo, id)?;
@@ -51,13 +47,13 @@ where
             .with_context(|| format!("spec for node id {id} not found"))
     }
 
-    pub fn spec_by_spec_id(spec_repo: &SR, spec_id: NodeSpecId) -> Result<&NodeSpec> {
+    pub fn spec_by_spec_id(spec_repo: &NodeSpecRepository, spec_id: NodeSpecId) -> Result<&NodeSpec> {
         spec_repo
             .spec(spec_id)
             .ok_or_else(|| anyhow!("failed to obtain spec {spec_id}"))
     }
 
-    fn spec_id(node_repo: &NR, id: NodeId) -> Result<&NodeSpecId> {
+    fn spec_id(node_repo: &NodeRepository, id: NodeId) -> Result<&NodeSpecId> {
         node_repo
             .spec_id(&id)
             .ok_or_else(|| anyhow!("no mapping between node id {id} and spec id exists"))
@@ -70,20 +66,17 @@ pub trait SpecBySpecIdQuery {
     fn kind(&self, id: NodeSpecId) -> Result<NodeKind>;
 }
 
-pub struct SpecBySpecIdQueryView<'a, SR> {
-    repo: &'a SR,
+pub struct SpecBySpecIdQueryView<'a> {
+    repo: &'a NodeSpecRepository,
 }
 
-impl<'a, SR> SpecBySpecIdQueryView<'a, SR> {
-    pub(crate) fn new(repo: &'a SR) -> Self {
+impl<'a> SpecBySpecIdQueryView<'a> {
+    pub(crate) fn new(repo: &'a NodeSpecRepository) -> Self {
         Self { repo }
     }
 }
 
-impl<SR> SpecBySpecIdQuery for SpecBySpecIdQueryView<'_, SR>
-where
-    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
-{
+impl SpecBySpecIdQuery for SpecBySpecIdQueryView<'_> {
     fn spec(&self, id: NodeSpecId) -> Result<&NodeSpec> {
         self.repo
             .spec(id)
@@ -97,17 +90,13 @@ where
     }
 }
 
-pub struct SpecByNodeIdQueryView<'a, SR, NR> {
-    spec_query: SpecBySpecIdQueryView<'a, SR>,
-    node_repo: &'a NR,
+pub struct SpecByNodeIdQueryView<'a> {
+    spec_query: SpecBySpecIdQueryView<'a>,
+    node_repo: &'a NodeRepository,
 }
 
-impl<'a, SR, NR> SpecByNodeIdQueryView<'a, SR, NR>
-where
-    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
-    NR: NodeRepositoryConcept,
-{
-    pub fn new(spec_query: SpecBySpecIdQueryView<'a, SR>, node_repo: &'a NR) -> Self {
+impl<'a> SpecByNodeIdQueryView<'a> {
+    pub fn new(spec_query: SpecBySpecIdQueryView<'a>, node_repo: &'a NodeRepository) -> Self {
         Self {
             spec_query,
             node_repo,
@@ -129,11 +118,7 @@ pub trait SpecByNodeIdQuery {
     fn params(&self, id: NodeId) -> Result<&ParamsSpec>;
 }
 
-impl<SR, NR> SpecByNodeIdQuery for SpecByNodeIdQueryView<'_, SR, NR>
-where
-    SR: SpecRepositoryConcept<Spec = NodeSpec, SpecId = NodeSpecId>,
-    NR: NodeRepositoryConcept,
-{
+impl SpecByNodeIdQuery for SpecByNodeIdQueryView<'_> {
     fn spec(&self, id: NodeId) -> Result<&NodeSpec> {
         let spec_id = self.spec_id(id)?;
         self.spec_query.spec(*spec_id)

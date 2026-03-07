@@ -1,4 +1,4 @@
-use crate::repository::NodeRepositoryConcept;
+use crate::repository::NodeRepository;
 use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{
     id::{NodeId, NodeSpecId},
@@ -7,16 +7,13 @@ use beetry_editor_types::{
 
 use super::NodeService;
 
-pub struct TrackerView<'a, NR> {
+pub struct TrackerView<'a> {
     pub(crate) service: &'a NodeService,
-    pub(crate) repo: &'a NR,
+    pub(crate) repo: &'a NodeRepository,
 }
 
-impl<'a, NR> TrackerView<'a, NR>
-where
-    NR: NodeRepositoryConcept,
-{
-    pub(crate) fn new(service: &'a NodeService, repo: &'a NR) -> Self {
+impl<'a> TrackerView<'a> {
+    pub(crate) fn new(service: &'a NodeService, repo: &'a NodeRepository) -> Self {
         Self { service, repo }
     }
 
@@ -36,10 +33,7 @@ pub trait NodeTrackerQuery {
     fn nodes_by_kind(&self, kind: NodeKind) -> impl Iterator<Item = &NodeId>;
 }
 
-impl<NR> NodeTrackerQuery for TrackerView<'_, NR>
-where
-    NR: NodeRepositoryConcept,
-{
+impl NodeTrackerQuery for TrackerView<'_> {
     fn nodes(&self) -> impl Iterator<Item = &NodeId> {
         self.repo.ids()
     }
