@@ -9,6 +9,7 @@ use tracing::info;
 use crate::Pose;
 
 use super::super::messages::{ManeuverStatus, SafetyStatus, TargetSlot, Trajectory};
+use super::ParkingMilestone;
 
 pub struct PlanParkingTrajectory<PR, TR, S> {
     pose_recv: PR,
@@ -37,6 +38,7 @@ impl Task for PlanParkingTrajectoryTask {
             "PlanParkingTrajectory task started with pose={:?}, target={:?}",
             self.pose, self.target
         );
+        ParkingMilestone::PlanStart.emit();
         tokio::time::sleep(std::time::Duration::from_millis(200)).await;
         let waypoints = if self.target.id > 0 && self.pose.x >= 0.0 {
             4
@@ -50,6 +52,7 @@ impl Task for PlanParkingTrajectoryTask {
             return TickStatus::Failure;
         }
         info!("PlanParkingTrajectory task succeeded");
+        ParkingMilestone::PlanSuccess.emit();
         TickStatus::Success
     }
 }
@@ -169,6 +172,7 @@ impl Task for FollowTrajectoryTask {
             "FollowTrajectory task started with trajectory={:?}, pose={:?}, safety={:?}",
             self.trajectory, self.pose, self.safety
         );
+        ParkingMilestone::FollowStart.emit();
         if !self.safety.safe || self.trajectory.waypoints == 0 || self.pose.x < 0.0 {
             info!("FollowTrajectory cannot execute: preconditions not satisfied");
             let _ = self
@@ -188,6 +192,7 @@ impl Task for FollowTrajectoryTask {
                 done: progress >= self.trajectory.waypoints,
             };
             info!("FollowTrajectory progress: {:?}", status);
+            ParkingMilestone::FollowProgress(progress).emit();
             if self.send.send(status).await.is_err() {
                 info!("FollowTrajectory task failed: receiver disconnected");
                 return TickStatus::Failure;
@@ -195,6 +200,7 @@ impl Task for FollowTrajectoryTask {
         }
 
         info!("FollowTrajectory task succeeded");
+        ParkingMilestone::FollowSuccess.emit();
         TickStatus::Success
     }
 }

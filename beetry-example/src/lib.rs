@@ -7,11 +7,12 @@ pub use domain::{
     ConfirmParkedState, ConfirmParkedStatePlugin, DetectParkingSlots, DetectParkingSlotsPlugin,
     FollowTrajectory, FollowTrajectoryPlugin, LocalizationPublisher, LocalizationPublisherPlugin,
     ManeuverStatus, MultiParams, MultiParamsParams, MultiParamsPlugin, MultiPorts,
-    MultiPortsPlugin, MultiPortsReceivers, PlanParkingTrajectory, PlanParkingTrajectoryPlugin,
-    ProximityPublisher, ProximityPublisherPlugin, ProximityState, SafetyMonitor,
-    SafetyMonitorPlugin, SafetyStatus, SelectBestSlot, SelectBestSlotPlugin, SlotCandidates,
-    TargetSlot, Trajectory, VehicleState, VehicleStatePublisher, VehicleStatePublisherPlugin,
-    VerifyClearance, VerifyClearancePlugin, VerifyFinalPose, VerifyFinalPosePlugin,
+    MultiPortsPlugin, MultiPortsReceivers, ParkingMilestone, PlanParkingTrajectory,
+    PlanParkingTrajectoryPlugin, ProximityPublisher, ProximityPublisherPlugin, ProximityState,
+    SafetyMonitor, SafetyMonitorPlugin, SafetyStatus, SelectBestSlot, SelectBestSlotPlugin,
+    SlotCandidates, TargetSlot, Trajectory, VehicleState, VehicleStatePublisher,
+    VehicleStatePublisherPlugin, VerifyClearance, VerifyClearancePlugin, VerifyFinalPose,
+    VerifyFinalPosePlugin,
 };
 use type_hash::TypeHash;
 

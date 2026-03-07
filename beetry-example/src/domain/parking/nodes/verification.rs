@@ -5,6 +5,7 @@ use tracing::info;
 use crate::Pose;
 
 use super::super::messages::{ManeuverStatus, ProximityState, TargetSlot, VehicleState};
+use super::ParkingMilestone;
 
 pub struct VerifyFinalPose<PR, TR> {
     pose_recv: PR,
@@ -47,6 +48,9 @@ where
             "VerifyFinalPose evaluated: reached={}, pose={:?}, target={:?}, threshold={}",
             reached, self.last_pose, self.last_target, threshold
         );
+        if reached {
+            ParkingMilestone::VerifyPoseTrue.emit();
+        }
         reached
     }
 }
@@ -90,6 +94,9 @@ where
             "VerifyClearance evaluated: clear={}, proximity={:?}",
             clear, self.last
         );
+        if clear {
+            ParkingMilestone::VerifyClearTrue.emit();
+        }
         clear
     }
 }
@@ -136,9 +143,12 @@ where
         }
         let parked = self.last_vehicle.parked || self.last_maneuver.done;
         info!(
-            "ConfirmParkedState evaluated: parked={}, vehicle={:?}, maneuver={:?}",
-            parked, self.last_vehicle, self.last_maneuver
+            "ConfirmParkedState evaluated: parked={}, maneuver={:?}",
+            parked, self.last_maneuver
         );
+        if parked {
+            ParkingMilestone::ConfirmParkedTrue.emit();
+        }
         parked
     }
 }
