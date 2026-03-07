@@ -12,6 +12,7 @@ use tracing::info;
 
 use super::super::messages::{BrakeState, ProximityState, SafetyStatus, VehicleState};
 use super::publishers::PublishInterval;
+use super::ParkingMilestone;
 
 pub struct SafetyMonitor<PR, BR, S> {
     proximity_recv: PR,
@@ -173,6 +174,7 @@ action! {
 pub struct CheckSystemReady<R> {
     recv: R,
     last_state: VehicleState,
+    last_emitted_ready: Option<bool>,
 }
 
 impl<R> CheckSystemReady<R>
@@ -183,6 +185,7 @@ where
         Self {
             recv,
             last_state: VehicleState::default(),
+            last_emitted_ready: None,
         }
     }
 }
@@ -200,6 +203,10 @@ where
             "CheckSystemReady evaluated: ready={}, state={:?}",
             ready, self.last_state
         );
+        if self.last_emitted_ready != Some(ready) {
+            ParkingMilestone::CheckReady(ready).emit();
+            self.last_emitted_ready = Some(ready);
+        }
         ready
     }
 }

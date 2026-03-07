@@ -46,7 +46,7 @@ async fn main() -> Result<()> {
         BtCreationType::Code => bt_from_code(&builder)?,
     };
 
-    let exec_thread = std::thread::spawn(move || -> anyhow::Result<()> {
+    let _exec_thread = std::thread::spawn(move || -> anyhow::Result<()> {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()?;
@@ -56,7 +56,6 @@ async fn main() -> Result<()> {
     let mut engine = TreeEngine::new(bt);
     let ticker = PeriodicTicker::new(PeriodicTick::new(Duration::from_millis(10)));
     engine.tick_till_terminal(ticker).await?;
-    let _ = exec_thread.join();
 
     Ok(())
 }

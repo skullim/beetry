@@ -9,6 +9,7 @@ use tracing::info;
 use crate::Pose;
 
 use super::super::messages::{SlotCandidates, TargetSlot, VehicleState};
+use super::ParkingMilestone;
 
 pub struct DetectParkingSlots<R, S> {
     pose_recv: R,
@@ -31,6 +32,7 @@ impl DetectParkingSlotsTask {
 impl Task for DetectParkingSlotsTask {
     async fn run(self) -> TickStatus {
         info!("DetectParkingSlots task started with pose: {:?}", self.pose);
+        ParkingMilestone::DetectStart.emit();
         tokio::time::sleep(std::time::Duration::from_millis(150)).await;
         let candidates = SlotCandidates { count: 3 };
         info!("DetectParkingSlots produced: {:?}", candidates);
@@ -39,6 +41,7 @@ impl Task for DetectParkingSlotsTask {
             return TickStatus::Failure;
         }
         info!("DetectParkingSlots task succeeded");
+        ParkingMilestone::DetectSuccess.emit();
         TickStatus::Success
     }
 }
@@ -142,6 +145,7 @@ impl Task for SelectBestSlotTask {
             "SelectBestSlot task started with candidates={:?}, vehicle={:?}",
             self.candidates, self.vehicle
         );
+        ParkingMilestone::SelectStart.emit();
         tokio::time::sleep(std::time::Duration::from_millis(120)).await;
         let id = if self.candidates.count > 0 && self.vehicle.ready {
             1
@@ -155,6 +159,7 @@ impl Task for SelectBestSlotTask {
             return TickStatus::Failure;
         }
         info!("SelectBestSlot task succeeded");
+        ParkingMilestone::SelectSuccess.emit();
         TickStatus::Success
     }
 }
