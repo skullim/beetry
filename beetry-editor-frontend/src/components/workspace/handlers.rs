@@ -5,6 +5,7 @@ pub(crate) mod node;
 pub(crate) mod pin;
 
 use crate::Backend;
+use crate::components::editor::state::svg::State as SvgState;
 use crate::components::workspace::state::{self, temporary};
 use crate::signals::RenderRequests;
 use crate::{Point, components::workspace};
@@ -20,21 +21,22 @@ pub(crate) use state::drag::{DragChannelState, DragNodeState};
 pub(crate) fn handlers(
     state: &workspace::State,
     mut element_spawn_point: Signal<Point>,
+    svg: SvgState,
     mut backend: Backend,
     mut requests: RenderRequests,
 ) -> super::Handlers {
     let mut drag = state.drag;
-    let mut menus = state.menu;
-    let mut svg = state.svg;
+    let mut menu = state.menu;
     let mut temp = state.temp;
+    let mut dimensions = svg.dimensions;
+    let mut zoom = svg.zoom;
 
-    let mut dimensions_state = svg.dimensions;
     let on_mouse_move = move |evt: Event<MouseData>| {
         evt.stop_propagation();
         if let DragNodeState::Dragged { id, offset } = *drag.node.peek() {
             let mouse_coords = evt.client_coordinates();
 
-            let zoom = svg.zoom.get();
+            let zoom = zoom.get();
             let updated_pos = crate::Point {
                 x: mouse_coords.x / zoom - offset.x,
                 y: mouse_coords.y / zoom - offset.y,
@@ -46,14 +48,14 @@ pub(crate) fn handlers(
 
             backend.with_peek(|s| {
                 let query = api::ui::node::query(s);
-                dimensions_state.resize_if_needed(query.positions());
+                dimensions.resize(query.positions());
             });
         }
 
         if let DragChannelState::Dragged { id, offset } = *drag.channel.peek() {
             let mouse_coords = evt.client_coordinates();
 
-            let zoom = svg.zoom.get();
+            let zoom = zoom.get();
             let updated_pos = crate::Point {
                 x: mouse_coords.x / zoom - offset.x,
                 y: mouse_coords.y / zoom - offset.y,
@@ -81,11 +83,11 @@ pub(crate) fn handlers(
         set_if_changed(&mut drag.node, DragNodeState::Idle);
         set_if_changed(&mut drag.channel, DragChannelState::Idle);
 
-        set_if_changed(&mut menus.node, crate::ui::node::menu::State::Idle);
-        set_if_changed(&mut menus.edge, ui_edge::menu::State::Idle);
-        set_if_changed(&mut menus.channel, ui_channel::menu::State::Idle);
-        set_if_changed(&mut menus.channel_edge, ui_channel::edge_menu::State::Idle);
-        set_if_changed(&mut menus.port, crate::ui::node::port::menu::State::Idle);
+        set_if_changed(&mut menu.node, crate::ui::node::menu::State::Idle);
+        set_if_changed(&mut menu.edge, ui_edge::menu::State::Idle);
+        set_if_changed(&mut menu.channel, ui_channel::menu::State::Idle);
+        set_if_changed(&mut menu.channel_edge, ui_channel::edge_menu::State::Idle);
+        set_if_changed(&mut menu.port, crate::ui::node::port::menu::State::Idle);
 
         temp.edge.with_mut(temporary::node_edge::State::reset);
         temp.channel.with_mut(temporary::channel_edge::State::reset);
@@ -96,13 +98,13 @@ pub(crate) fn handlers(
         if evt.modifiers().ctrl() {
             evt.prevent_default();
             let delta = evt.delta();
-            svg.zoom.update(&delta);
+            zoom.update(&delta);
         }
         Ok(())
     };
 
     let on_scroll = move |evt: Event<ScrollData>| {
-        let zoom_level = svg.zoom.get();
+        let zoom_level = zoom.get();
         let x = evt.scroll_left() / zoom_level;
         let y = evt.scroll_top() / zoom_level;
         element_spawn_point.set(Point { x, y });

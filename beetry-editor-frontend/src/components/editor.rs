@@ -1,6 +1,6 @@
 mod context;
 mod handlers;
-mod state;
+pub(crate) mod state;
 
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
@@ -41,7 +41,7 @@ fn Layout(state: State) -> Element {
                     Topbar {}
                     Workspace { render_requests, editor_state: state }
                 }
-                div { class: "bt-panel", Toolbar {} }
+                div { class: "bt-panel", Toolbar { dimensions: state.svg.dimensions } }
             }
         }
     }

@@ -5,9 +5,11 @@ use std::path::PathBuf;
 use anyhow::{Context, Result, anyhow};
 use beetry_editor_types::persistence::{EditorStateStore, ValidTree};
 use beetry_serialization::{Deserializer, JsonDeserializer, JsonSerializer, Serializer};
+use beetry_editor_backend::api::NodeUiQuery;
 use dioxus::prelude::{ReadableExt, WritableExt};
 use rfd::FileDialog;
 
+use crate::components::editor::state::svg::DimensionState;
 use crate::Backend;
 use crate::signals::RenderRequests;
 use crate::ui::error::ErrorQueueState;
@@ -35,12 +37,13 @@ pub(super) fn export_handlers(
 }
 
 pub(super) fn import_handlers(
+    dimensions: DimensionState,
     mut error_queue: ErrorQueueState,
     backend: Backend,
     mut render_requests: RenderRequests,
 ) -> transfer::import::Handlers {
     let on_click = move |()| {
-        match do_import(backend) {
+        match do_import(backend, dimensions) {
             Ok(()) => {
                 render_requests.request_all();
             }
@@ -82,9 +85,13 @@ fn export_valid_tree_to_file(valid_tree: ValidTree) -> Result<()> {
         .with_context(|| format!("Failed to save file '{}'", file_path.display()))
 }
 
-fn do_import(mut backend: Backend) -> Result<()> {
+fn do_import(mut backend: Backend, mut dimensions: DimensionState) -> Result<()> {
     let state = import_project_from_file()?;
     backend.with_mut(|s| api::project::import(s, state))?;
+    backend.with_peek(|s| {
+        let query = api::ui::node::query(s);
+        dimensions.resize(query.positions());
+    });
     Ok(())
 }
 

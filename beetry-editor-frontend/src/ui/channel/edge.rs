@@ -52,13 +52,16 @@ pub fn Edge(props: EdgeProps) -> Element {
     let handlers = use_context::<Handlers>();
     let backend = use_context::<Backend>();
     let on_menu = handlers.on_menu_handler();
-    let mut state = ConnectionUiState::new(backend.with(|s| {
-        let query = api::ui::port::query(s);
-        query
-            .data(props.conn)
-            .cloned()
-            .unwrap_or_else(|_| PortConnectionUiData::new(VisibilityKind::Visible))
-    }));
+    let mut state = use_hook(|| {
+        let initial = backend.with(|s| {
+            let query = api::ui::port::query(s);
+            query
+                .data(props.conn)
+                .cloned()
+                .unwrap_or_else(|_| PortConnectionUiData::new(VisibilityKind::Visible))
+        });
+        ConnectionUiState::new(initial)
+    });
 
     rsx! {
         if matches!(state.signal.read().visibility(), VisibilityKind::Visible) {
