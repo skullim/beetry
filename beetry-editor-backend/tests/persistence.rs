@@ -62,7 +62,7 @@ fn simple_valid_tree_export_import(mut service: TestEditorService, specs: TestSp
 
     assert_eq!(api::node::tracker::query(&service).nodes().count(), 3);
     assert_eq!(api::edge::query(&service).edges().count(), 2);
-    assert!(api::project::export_valid_tree(&service).is_ok());
+    api::project::export_valid_tree(&service).unwrap();
 
     Ok(())
 }
@@ -84,8 +84,7 @@ fn valid_tree_export_rejects_unconnected_node(
         },
     )?;
 
-    let result = api::project::export_valid_tree(&service);
-    assert!(result.is_err());
+    api::project::export_valid_tree(&service).unwrap_err();
     Ok(())
 }
 
@@ -105,8 +104,7 @@ fn valid_tree_export_rejects_unconnected_port(
         },
     )?;
 
-    let result = api::project::export_valid_tree(&service);
-    assert!(result.is_err());
+    api::project::export_valid_tree(&service).unwrap_err();
     Ok(())
 }
 
@@ -159,8 +157,7 @@ fn valid_tree_export_succeeds_when_fully_connected(
         visible_conn_ui(),
     )?;
 
-    let valid = api::project::export_valid_tree(&service);
-    assert!(valid.is_ok());
+    api::project::export_valid_tree(&service).unwrap();
 
     Ok(())
 }
@@ -215,8 +212,7 @@ fn valid_tree_export_fails_when_connected_channel_is_removed(
     )?;
 
     api::channel::remove(&mut service, channel)?;
-    let valid_after_channel_remove = api::project::export_valid_tree(&service);
-    assert!(valid_after_channel_remove.is_err());
+    api::project::export_valid_tree(&service).unwrap_err();
 
     Ok(())
 }
@@ -252,8 +248,7 @@ fn valid_tree_export_fails_on_unconnected_channel(
         visible_conn_ui(),
     )?;
 
-    let result = api::project::export_valid_tree(&service);
-    assert!(result.is_err());
+    api::project::export_valid_tree(&service).unwrap_err();
 
     Ok(())
 }

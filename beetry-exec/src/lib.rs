@@ -36,7 +36,37 @@ pub struct WithRegistry {
     registry: TaskRegistry,
 }
 
-pub struct Ready;
+pub struct ExecutionTask {
+    task: NodeTask,
+    status_sender: Sender<TaskStatus>,
+    abort_notifier: Arc<Notify>,
+}
+
+impl ExecutionTask {
+    fn new(task: NodeTask, status_sender: Sender<TaskStatus>, abort_notifier: Arc<Notify>) -> Self {
+        Self {
+            task,
+            status_sender,
+            abort_notifier,
+        }
+    }
+
+    #[instrument(skip(self), fields(task = %self.task.desc()))]
+    async fn execute(self) -> Result<()> {
+        tokio::select! {
+            () = self.abort_notifier.notified() => {
+                debug!("aborting execution task");
+                self.status_sender.send(TaskStatus::Aborted).await?;
+            }
+
+            status = self.task.execute() => {
+                debug!("task reached terminal state: {status:?}");
+                self.status_sender.send(status.into()).await?;
+            },
+        }
+        Ok(())
+    }
+}
 
 pub struct Executor<S> {
     recv: Receiver<ExecutionTask>,
@@ -44,6 +74,7 @@ pub struct Executor<S> {
 }
 
 pub struct Init;
+pub struct Ready;
 
 impl Executor<Init> {
     #[expect(
@@ -90,7 +121,7 @@ impl ExecutorConcept for Executor<Ready> {
 
             tokio::select! {
                 Some(exe_task) = self.recv.recv() => {
-                    debug!("received new task to execute: {}", exe_task.task.desc);
+                    debug!("received new task to execute: {}", exe_task.task.desc());
                     tasks.push(exe_task.execute());
                 },
                 _ = execute_next_task_fut => {
@@ -98,38 +129,6 @@ impl ExecutorConcept for Executor<Ready> {
 
             }
         }
-    }
-}
-
-pub struct ExecutionTask {
-    task: NodeTask,
-    status_sender: Sender<TaskStatus>,
-    abort_notifier: Arc<Notify>,
-}
-
-impl ExecutionTask {
-    fn new(task: NodeTask, status_sender: Sender<TaskStatus>, abort_notifier: Arc<Notify>) -> Self {
-        Self {
-            task,
-            status_sender,
-            abort_notifier,
-        }
-    }
-
-    #[instrument(skip(self), fields(task = %self.task.desc))]
-    async fn execute(self) -> Result<()> {
-        tokio::select! {
-            () = self.abort_notifier.notified() => {
-                debug!("aborting execution task");
-                self.status_sender.send(TaskStatus::Aborted).await?;
-            }
-
-            status = self.task.execute() => {
-                debug!("task reached terminal state: {status:?}");
-                self.status_sender.send(status.into()).await?;
-            },
-        }
-        Ok(())
     }
 }
 
@@ -145,7 +144,7 @@ impl TaskRegistry {
 }
 
 impl RegisterTask<TaskHandle> for TaskRegistry {
-    #[instrument(skip_all, fields(task = %task.desc))]
+    #[instrument(skip_all, fields(task = %task.desc()))]
     fn register(&self, task: NodeTask) -> Result<TaskHandle> {
         //@todo investigate if watch channel is not better suited here
         let (status_send, status_recv) = channel(1);
@@ -154,12 +153,12 @@ impl RegisterTask<TaskHandle> for TaskRegistry {
         let handle = TaskHandle::new(
             StatusQuerier::new(status_recv),
             TaskAborter::new(notify),
-            exe_task.task.desc.clone(),
+            exe_task.task.desc().clone(),
         );
         self.sender.try_send(exe_task).map_err(|err| {
             anyhow!(
                 "failed to send execution task: {}",
-                err.into_inner().task.desc
+                err.into_inner().task.desc()
             )
         })?;
 

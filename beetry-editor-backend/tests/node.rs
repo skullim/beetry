@@ -41,8 +41,7 @@ fn creating_nodes_succeeds(mut service: TestEditorService, specs: TestSpecs) -> 
 fn creating_second_root_fails(mut service: TestEditorService, specs: TestSpecs) -> Result<()> {
     let _root = create_node(&mut service, &specs, NodeSpecCase::Root)?;
 
-    let second_root = create_node(&mut service, &specs, NodeSpecCase::Root);
-    assert!(second_root.is_err());
+    create_node(&mut service, &specs, NodeSpecCase::Root).unwrap_err();
     assert_eq!(api::node::tracker::query(&service).nodes().count(), 1);
 
     Ok(())
@@ -54,15 +53,14 @@ fn removing_existing_node_succeeds(mut service: TestEditorService, specs: TestSp
 
     api::node::remove(&mut service, node_id)?;
     assert_eq!(api::node::tracker::query(&service).nodes().count(), 0);
-    assert!(api::ui::node::query(&service).data(node_id).is_err());
+    api::ui::node::query(&service).data(node_id).unwrap_err();
 
     Ok(())
 }
 
 #[rstest]
 fn removing_missing_node_fails(mut service: TestEditorService) {
-    let result = api::node::remove(&mut service, NodeId::new(999));
-    assert!(result.is_err());
+    api::node::remove(&mut service, NodeId::new(999)).unwrap_err();
 }
 
 #[rstest]
@@ -73,9 +71,9 @@ fn node_spec_query_by_node_id(mut service: TestEditorService, specs: TestSpecs) 
     let by_node_id = api::node::spec::by_node_id(&service);
     assert_eq!(by_node_id.name(root)?.0, "Root");
     assert_eq!(by_node_id.name(sender)?.0, "SenderA");
-    assert!(by_node_id.ports(root).is_err());
+    by_node_id.ports(root).unwrap_err();
     assert_eq!(by_node_id.ports(sender)?.sender_ids().count(), 1);
-    assert!(by_node_id.spec(NodeId::new(999)).is_err());
+    by_node_id.spec(NodeId::new(999)).unwrap_err();
 
     Ok(())
 }
@@ -88,7 +86,7 @@ fn node_spec_query_by_spec_id(mut service: TestEditorService, specs: TestSpecs) 
     let by_spec_id = api::node::spec::by_spec_id(&service);
     assert_eq!(by_spec_id.name(NodeSpecId::new(0))?.0, "Root");
     assert_eq!(by_spec_id.name(NodeSpecId::new(1))?.0, "SenderA");
-    assert!(by_spec_id.spec(NodeSpecId::new(999)).is_err());
+    by_spec_id.spec(NodeSpecId::new(999)).unwrap_err();
 
     Ok(())
 }

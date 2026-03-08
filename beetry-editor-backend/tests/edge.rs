@@ -72,8 +72,7 @@ fn removing_same_edge_twice_fails(mut service: TestEditorService, specs: TestSpe
 
     api::edge::remove(&mut service, edge_id)?;
 
-    let second_remove = api::edge::remove(&mut service, edge_id);
-    assert!(second_remove.is_err());
+    api::edge::remove(&mut service, edge_id).unwrap_err();
 
     Ok(())
 }
@@ -83,16 +82,14 @@ fn ensure_leaves_cannot_connect(mut service: TestEditorService, specs: TestSpecs
     let leaf_a = create_node(&mut service, &specs, NodeSpecCase::SenderA)?;
     let leaf_b = create_node(&mut service, &specs, NodeSpecCase::SenderB)?;
 
-    assert!(
-        api::edge::create(
-            &mut service,
-            NodeEdge {
-                from: leaf_a,
-                to: leaf_b,
-            },
-        )
-        .is_err()
-    );
+    api::edge::create(
+        &mut service,
+        NodeEdge {
+            from: leaf_a,
+            to: leaf_b,
+        },
+    )
+    .unwrap_err();
     Ok(())
 }
 
@@ -101,14 +98,14 @@ fn ensure_root_has_no_parent(mut service: TestEditorService, specs: TestSpecs) -
     let control = create_node(&mut service, &specs, NodeSpecCase::Control)?;
     let root = create_node(&mut service, &specs, NodeSpecCase::Root)?;
 
-    let result = api::edge::create(
+    api::edge::create(
         &mut service,
         NodeEdge {
             from: control,
             to: root,
         },
-    );
-    assert!(result.is_err());
+    )
+    .unwrap_err();
     Ok(())
 }
 
@@ -118,8 +115,7 @@ fn ensure_no_edge_cycles(mut service: TestEditorService, specs: TestSpecs) -> Re
     let b = create_node(&mut service, &specs, NodeSpecCase::Decorator)?;
 
     api::edge::create(&mut service, NodeEdge { from: a, to: b })?;
-    let result = api::edge::create(&mut service, NodeEdge { from: b, to: a });
-    assert!(result.is_err());
+    api::edge::create(&mut service, NodeEdge { from: b, to: a }).unwrap_err();
     Ok(())
 }
 

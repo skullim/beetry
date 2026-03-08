@@ -14,7 +14,7 @@ use crate::ui::node::port::ConnectionOrigin;
 
 use super::{Backend, DragChannelState, RenderRequests};
 
-pub(crate) fn handlers(
+pub fn handlers(
     mut state: workspace::State,
     zoom: ZoomState,
     mut backend: Backend,
@@ -120,7 +120,7 @@ pub(crate) fn handlers(
     )
 }
 
-pub(crate) fn menu_handlers(
+pub fn menu_handlers(
     mut menu: menu::State,
     mut backend: Backend,
     mut requests: RenderRequests,

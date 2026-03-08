@@ -13,7 +13,7 @@ use beetry_editor_types::{
 
 use super::{NodeService, PortConnectionViewMut, PortStateViewMut};
 
-pub(crate) struct LoadNodeView<'s, 'r> {
+pub struct LoadNodeView<'s, 'r> {
     node_service: &'s mut NodeService,
     node_facade_view: &'s mut NodeRepositoryFacadeViewMut<'r>,
 }
@@ -87,7 +87,7 @@ impl<'s, 'r> LoadNodeView<'s, 'r> {
     }
 }
 
-pub(crate) struct NodeLifecycleView<'a> {
+pub struct NodeLifecycleView<'a> {
     pub(crate) node_service: &'a mut NodeService,
     pub(crate) channel_service: &'a mut ChannelService,
     pub(crate) node_facade_view: NodeRepositoryFacadeViewMut<'a>,

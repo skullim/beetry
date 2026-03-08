@@ -1,15 +1,15 @@
 mod context;
-pub(crate) mod handlers;
-pub(crate) mod state;
+pub mod handlers;
+pub mod state;
 
-pub(crate) use state::State;
+pub use state::State;
 
 use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
 
 use crate::components::editor;
 use crate::signals::RenderRequests;
-use crate::ui::channel::{self};
+use crate::ui::channel;
 use crate::ui::handler::define_handlers;
 use crate::ui::node;
 use crate::ui::{self, edge};

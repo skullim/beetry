@@ -1,8 +1,8 @@
-pub(crate) mod channel;
-pub(crate) mod channel_edge;
-pub(crate) mod edge;
-pub(crate) mod node;
-pub(crate) mod pin;
+pub mod channel;
+pub mod channel_edge;
+pub mod edge;
+pub mod node;
+pub mod pin;
 
 use crate::Backend;
 use crate::components::editor::state::svg::State as SvgState;
@@ -16,9 +16,9 @@ use dioxus::prelude::*;
 
 use crate::ui::{channel as ui_channel, edge as ui_edge};
 
-pub(crate) use state::drag::{DragChannelState, DragNodeState};
+pub use state::drag::{DragChannelState, DragNodeState};
 
-pub(crate) fn handlers(
+pub fn handlers(
     state: &workspace::State,
     mut element_spawn_point: Signal<Point>,
     svg: SvgState,
@@ -114,7 +114,7 @@ pub(crate) fn handlers(
     super::Handlers::new(on_mouse_move, on_mouse_up, on_wheel, on_scroll)
 }
 
-pub(crate) fn set_if_changed<T: Clone + PartialEq + 'static>(state: &mut Signal<T>, to: T) {
+pub fn set_if_changed<T: Clone + PartialEq + 'static>(state: &mut Signal<T>, to: T) {
     if state.peek().ne(&to) {
         state.set(to);
     }

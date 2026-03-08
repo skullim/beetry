@@ -1,6 +1,6 @@
-pub(crate) mod app;
-pub(crate) mod editor;
-pub(crate) mod sidebar;
-pub(crate) mod toolbar;
-pub(crate) mod topbar;
-pub(crate) mod workspace;
+pub mod app;
+mod editor;
+mod sidebar;
+mod toolbar;
+mod topbar;
+mod workspace;

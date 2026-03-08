@@ -9,7 +9,7 @@ use beetry_editor_types::{
 };
 
 #[derive(Debug, Default)]
-pub(crate) struct NodeService {
+pub struct NodeService {
     spec_cache: HashMap<NodeSpecKey, NodeSpecId>,
     node_cache: HashMap<NodeKind, HashSet<NodeId>>,
 }
@@ -32,7 +32,7 @@ impl NodeService {
         } else {
             debug!("inserting new spec into spec repo");
             let spec_id = spec_repo.create(spec.clone());
-            self.spec_cache.insert(spec.key.clone(), spec_id);
+            self.spec_cache.insert(spec.key().clone(), spec_id);
             spec_id
         };
 
@@ -78,7 +78,7 @@ impl NodeService {
             warn!("spec {id} is already loaded");
         } else {
             spec_repo.load(id, spec.clone())?;
-            self.spec_cache.insert(spec.key, id);
+            self.spec_cache.insert(spec.into_key(), id);
         }
         Ok(())
     }

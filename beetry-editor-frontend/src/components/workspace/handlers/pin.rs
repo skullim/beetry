@@ -12,10 +12,10 @@ use super::{Backend, RenderRequests};
 use crate::components::workspace::state::{menu, temporary};
 use crate::definitions::{EdgePos, IndexedDragOffset};
 use crate::ui::error::ErrorQueueState;
+use crate::ui::node;
 use crate::ui::node::port::ConnectionOrigin;
-use crate::ui::node::{self};
 
-pub(crate) fn input_handlers(
+pub fn input_handlers(
     mut temp: temporary::State,
     mut backend: Backend,
     mut requests: RenderRequests,
@@ -34,7 +34,7 @@ pub(crate) fn input_handlers(
     node::pin::input::Handlers::new(on_mouse_up)
 }
 
-pub(crate) fn output_handlers(mut temp: temporary::State) -> node::pin::output::Handlers {
+pub fn output_handlers(mut temp: temporary::State) -> node::pin::output::Handlers {
     let on_mouse_down = move |indexed_drag_offset: IndexedDragOffset| {
         let (id, offset) = (indexed_drag_offset.id, indexed_drag_offset.offset);
         temp.edge.with_mut(|e| {
@@ -51,7 +51,7 @@ pub(crate) fn output_handlers(mut temp: temporary::State) -> node::pin::output::
     node::pin::output::Handlers::new(on_mouse_down)
 }
 
-pub(crate) fn body_handlers(
+pub fn body_handlers(
     mut menu: menu::State,
     mut temp: temporary::State,
 ) -> node::port::body::Handlers {
@@ -95,7 +95,7 @@ pub(crate) fn body_handlers(
     node::port::body::Handlers::new(on_mouse_down, on_menu)
 }
 
-pub(crate) fn menu_handlers(
+pub fn menu_handlers(
     mut backend: Backend,
     mut errors: ErrorQueueState,
 ) -> node::port::menu::Handlers {

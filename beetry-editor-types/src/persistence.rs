@@ -159,17 +159,14 @@ pub struct NodeRecordValue {
 }
 
 impl NodeRecordValue {
-    pub fn children(&self) -> impl Iterator<Item = &NodeId> {
-        self.children.iter()
-    }
-}
-
-impl NodeRecordValue {
     pub fn new(spec_id: NodeSpecId, children: impl IntoIterator<Item = NodeId>) -> Self {
         Self {
             spec_id,
             children: children.into_iter().collect(),
         }
+    }
+    pub fn children(&self) -> impl Iterator<Item = &NodeId> {
+        self.children.iter()
     }
 }
 

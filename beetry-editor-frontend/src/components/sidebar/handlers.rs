@@ -11,7 +11,7 @@ use crate::ui::channel;
 use crate::ui::node::parameter;
 use crate::{Backend, SharedSpecs, ui::node};
 
-pub(crate) fn handlers(
+pub fn handlers(
     specs: SharedSpecs,
     mut request: RequestNodeRender,
     mut backend: Backend,

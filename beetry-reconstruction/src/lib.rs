@@ -121,16 +121,12 @@ impl TreeReconstructor {
             .nodes
             .iter()
             .find_map(|record| {
-                if node_store
+                (node_store
                     .specs
                     .get(&record.value.spec_id())
                     .map(NodeSpecKey::kind)
-                    == Some(NodeKind::Root)
-                {
-                    Some(record.id)
-                } else {
-                    None
-                }
+                    == Some(NodeKind::Root))
+                .then_some(record.id)
             })
             .with_context(|| anyhow!("failed to find root id"))?;
 

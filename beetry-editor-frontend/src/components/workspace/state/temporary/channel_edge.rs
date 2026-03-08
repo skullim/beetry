@@ -47,7 +47,7 @@ impl State {
     }
 
     pub(crate) fn update_end_if_dragged(&mut self, cursor: Point) {
-        if let Self::Dragged { data: _, pos } = self {
+        if let Self::Dragged { pos, .. } = self {
             pos.end = cursor;
         }
     }

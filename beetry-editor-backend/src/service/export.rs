@@ -89,7 +89,7 @@ where
     }
 
     /// Project can be exported at any time, even if some parts of the tree are not yet connected
-    pub fn export_project(&mut self) -> Result<EditorStateStore> {
+    pub fn export_project(&self) -> Result<EditorStateStore> {
         let tracker = self.node_api.tracker();
 
         let nodes: Vec<_> = tracker.nodes().copied().collect();
@@ -114,7 +114,7 @@ where
     }
 
     /// Tree can be exported only if tree is valid and fully connected
-    pub fn export_valid_tree(&mut self) -> Result<ValidTree> {
+    pub fn export_valid_tree(&self) -> Result<ValidTree> {
         let validation = self.validate_tree();
         if !validation.is_tree_valid() {
             bail!("attempted to export invalid tree, details: {validation:?}");
@@ -132,7 +132,7 @@ where
         Ok(ValidTree::new(tree))
     }
 
-    fn export_node_store(&mut self, nodes: &[NodeId]) -> Result<NodeStore> {
+    fn export_node_store(&self, nodes: &[NodeId]) -> Result<NodeStore> {
         let specs = {
             let tracker_api = self.node_api.tracker();
             let spec_api = self.node_api.spec();
@@ -181,7 +181,7 @@ where
         Ok(NodeStore { specs, nodes })
     }
 
-    fn export_parameter_store(&mut self, nodes: &[NodeId]) -> Result<ParameterStore> {
+    fn export_parameter_store(&self, nodes: &[NodeId]) -> Result<ParameterStore> {
         let parameter_api = self.node_api.parameter();
         let spec_api = self.node_api.spec();
         let nodes = nodes.iter().filter(|id| spec_api.params(**id).is_ok());
@@ -200,7 +200,7 @@ where
         Ok(ParameterStore::new(store))
     }
 
-    fn export_port_store(&mut self, nodes: &[NodeId]) -> PortStore {
+    fn export_port_store(&self, nodes: &[NodeId]) -> PortStore {
         let ports_api = self.node_api.port_state();
         let mut state_records = Vec::with_capacity(nodes.len());
         for node_id in nodes.iter().copied() {
@@ -223,7 +223,7 @@ where
         PortStore::new(state_records, connections)
     }
 
-    fn export_channel_store(&mut self, channels: &[ChannelId]) -> Result<ChannelStore> {
+    fn export_channel_store(&self, channels: &[ChannelId]) -> Result<ChannelStore> {
         let specs = channels
             .iter()
             .copied()
@@ -244,7 +244,7 @@ where
         Ok(ChannelStore { specs, channels })
     }
 
-    fn export_ui_elements(&mut self) -> UiElementStore {
+    fn export_ui_elements(&self) -> UiElementStore {
         let channels: Vec<_> = {
             self.channel_ui_api
                 .iter()

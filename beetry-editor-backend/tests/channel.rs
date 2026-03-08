@@ -17,7 +17,7 @@ fn creating_channel_succeeds(mut service: TestEditorService, specs: TestSpecs) -
         TestSpecs::default_mpsc_config(),
     )?;
 
-    assert!(api::channel::query(&service).config(channel_id).is_ok());
+    api::channel::query(&service).config(channel_id).unwrap();
     Ok(())
 }
 
@@ -32,7 +32,7 @@ fn channel_update_config_updates_capacity(
         ChannelSpecCase::MessageA,
         TestSpecs::default_mpsc_config(),
     )?;
-    let new_capacity = 32usize;
+    let new_capacity = 32_usize;
 
     api::channel::update_config(
         &mut service,
@@ -50,14 +50,12 @@ fn channel_update_config_updates_capacity(
         assert_eq!(cfg.count().receiver(), 0);
     }
 
-    assert!(
-        api::channel::update_config(
-            &mut service,
-            ChannelId::new(999),
-            ChannelConfigUpdate { capacity: 1 },
-        )
-        .is_err()
-    );
+    api::channel::update_config(
+        &mut service,
+        ChannelId::new(999),
+        ChannelConfigUpdate { capacity: 1 },
+    )
+    .unwrap_err();
 
     Ok(())
 }
@@ -75,12 +73,13 @@ fn removing_existing_channel_succeeds(
     )?;
 
     api::channel::remove(&mut service, channel_id)?;
-    assert!(api::channel::query(&service).config(channel_id).is_err());
+    api::channel::query(&service)
+        .config(channel_id)
+        .unwrap_err();
     Ok(())
 }
 
 #[rstest]
 fn removing_missing_channel_fails(mut service: TestEditorService) {
-    let result = api::channel::remove(&mut service, ChannelId::new(999));
-    assert!(result.is_err());
+    api::channel::remove(&mut service, ChannelId::new(999)).unwrap_err();
 }

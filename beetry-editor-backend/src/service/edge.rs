@@ -87,17 +87,11 @@ impl<'a> OnNodeRemovalServiceApi<'a> {
         Self { service, repo }
     }
 
-    pub(crate) fn on_removal(&mut self, id: NodeId) -> Result<()> {
+    pub(crate) fn on_removal(&mut self, node_id: NodeId) -> Result<()> {
         let filtered: Vec<_> = self
             .repo
             .iter()
-            .filter_map(|(edge_id, e)| {
-                if e.to == id || e.from == id {
-                    Some(*edge_id)
-                } else {
-                    None
-                }
-            })
+            .filter_map(|(edge_id, e)| (e.to == node_id || e.from == node_id).then_some(*edge_id))
             .collect();
         for id in filtered {
             self.service.remove(self.repo, id)?;

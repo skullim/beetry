@@ -4,7 +4,7 @@ pub mod channel_edge;
 pub mod node_edge;
 
 #[derive(Clone, Copy, PartialEq)]
-pub(crate) struct State {
-    pub(crate) edge: Signal<node_edge::State>,
-    pub(crate) channel: Signal<channel_edge::State>,
+pub struct State {
+    pub edge: Signal<node_edge::State>,
+    pub channel: Signal<channel_edge::State>,
 }

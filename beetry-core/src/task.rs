@@ -76,7 +76,7 @@ pub type BoxTaskFuture = Box<dyn Future<Output = TickStatus> + Send + 'static>;
 
 pub struct NodeTask {
     task: BoxTaskFuture,
-    pub desc: TaskDescription,
+    desc: TaskDescription,
 }
 
 impl NodeTask {
@@ -85,6 +85,10 @@ impl NodeTask {
         let task = Box::new(task.run());
 
         Self { task, desc }
+    }
+
+    pub fn desc(&self) -> &TaskDescription {
+        &self.desc
     }
 
     pub async fn execute(self) -> TickStatus {

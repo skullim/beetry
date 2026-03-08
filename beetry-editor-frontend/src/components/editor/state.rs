@@ -1,4 +1,4 @@
-pub(crate) mod svg;
+pub mod svg;
 
 use beetry_editor_types::output::channel::{
     ChannelConfig, ChannelConfigInput, ChannelKind, TokioChannelKind,
@@ -8,7 +8,7 @@ use dioxus::prelude::*;
 use crate::{Point, ui::channel, ui::node};
 
 #[derive(Clone, Copy, PartialEq)]
-pub(crate) struct State {
+pub struct State {
     pub(crate) channel_dialog: Signal<channel::dialog::State>,
     pub(crate) parameter: Signal<node::parameter::State>,
     pub(crate) element_spawn_point: Signal<Point>,
