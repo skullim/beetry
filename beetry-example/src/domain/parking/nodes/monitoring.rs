@@ -11,8 +11,13 @@ use tokio::sync::mpsc::{
 use tracing::info;
 
 use super::super::messages::{BrakeState, ProximityState, SafetyStatus, VehicleState};
-use super::publishers::PublishInterval;
 use super::ParkingMilestone;
+use super::publishers::PublishInterval;
+
+enum SafetyUpdate {
+    Proximity(ProximityState),
+    Brake(BrakeState),
+}
 
 pub struct SafetyMonitor<PR, BR, S> {
     proximity_recv: PR,
@@ -23,76 +28,13 @@ pub struct SafetyMonitor<PR, BR, S> {
     interval: std::time::Duration,
 }
 
-enum SafetyUpdate {
-    Proximity(ProximityState),
-    Brake(BrakeState),
-}
-
-struct PublishSafetyStatusTask {
-    updates_recv: TokioReceiver<SafetyUpdate>,
-    send: TokioSender<SafetyStatus>,
-    last_proximity: ProximityState,
-    last_brake: BrakeState,
-    interval: std::time::Duration,
-}
-
-impl PublishSafetyStatusTask {
-    fn new(
-        updates_recv: TokioReceiver<SafetyUpdate>,
-        send: TokioSender<SafetyStatus>,
-        interval: std::time::Duration,
-    ) -> Self {
-        Self {
-            updates_recv,
-            send,
-            last_proximity: ProximityState::default(),
-            last_brake: BrakeState::default(),
-            interval,
-        }
-    }
-}
-
-impl Task for PublishSafetyStatusTask {
-    async fn run(mut self) -> TickStatus {
-        info!("SafetyMonitor task started");
-        loop {
-            while let Ok(update) = self.updates_recv.try_recv() {
-                match update {
-                    SafetyUpdate::Proximity(v) => self.last_proximity = v,
-                    SafetyUpdate::Brake(v) => self.last_brake = v,
-                }
-            }
-
-            let safe = !self.last_proximity.blocked && !self.last_brake.engaged;
-            info!(
-                "SafetyMonitor publish: safe={}, proximity={:?}, brake={:?}",
-                safe, self.last_proximity, self.last_brake
-            );
-            if self.send.send(SafetyStatus { safe }).await.is_err() {
-                info!("SafetyMonitor task stopping: receiver disconnected");
-                return TickStatus::Failure;
-            }
-            tokio::time::sleep(self.interval).await;
-        }
-    }
-}
-
 impl<PR, BR, S> SafetyMonitor<PR, BR, S>
 where
     PR: Receiver<ProximityState>,
     BR: Receiver<BrakeState>,
     S: Sender<SafetyStatus>,
 {
-    pub fn new(proximity_recv: PR, brake_recv: BR, send: S) -> Self {
-        Self::new_with_params(proximity_recv, brake_recv, send, PublishInterval::default())
-    }
-
-    pub fn new_with_params(
-        proximity_recv: PR,
-        brake_recv: BR,
-        send: S,
-        params: PublishInterval,
-    ) -> Self {
+    pub fn new(proximity_recv: PR, brake_recv: BR, send: S, params: &PublishInterval) -> Self {
         Self {
             proximity_recv,
             brake_recv,
@@ -155,6 +97,55 @@ where
     }
 }
 
+struct PublishSafetyStatusTask {
+    updates_recv: TokioReceiver<SafetyUpdate>,
+    send: TokioSender<SafetyStatus>,
+    last_proximity: ProximityState,
+    last_brake: BrakeState,
+    interval: std::time::Duration,
+}
+
+impl PublishSafetyStatusTask {
+    fn new(
+        updates_recv: TokioReceiver<SafetyUpdate>,
+        send: TokioSender<SafetyStatus>,
+        interval: std::time::Duration,
+    ) -> Self {
+        Self {
+            updates_recv,
+            send,
+            last_proximity: ProximityState::default(),
+            last_brake: BrakeState::default(),
+            interval,
+        }
+    }
+}
+
+impl Task for PublishSafetyStatusTask {
+    async fn run(mut self) -> TickStatus {
+        info!("SafetyMonitor task started");
+        loop {
+            while let Ok(update) = self.updates_recv.try_recv() {
+                match update {
+                    SafetyUpdate::Proximity(v) => self.last_proximity = v,
+                    SafetyUpdate::Brake(v) => self.last_brake = v,
+                }
+            }
+
+            let safe = !self.last_proximity.blocked && !self.last_brake.engaged;
+            info!(
+                "SafetyMonitor publish: safe={}, proximity={:?}, brake={:?}",
+                safe, self.last_proximity, self.last_brake
+            );
+            if self.send.send(SafetyStatus { safe }).await.is_err() {
+                info!("SafetyMonitor task stopping: receiver disconnected");
+                return TickStatus::Failure;
+            }
+            tokio::time::sleep(self.interval).await;
+        }
+    }
+}
+
 action! {
     SafetyMonitorPlugin: "SafetyMonitor";
     params(parameters): PublishInterval::provide();
@@ -163,11 +154,11 @@ action! {
         brake_recv: BrakeState => "Emergency brake",
     ];
     senders: [send: SafetyStatus => "Safety status"];
-    create: SafetyMonitor::new_with_params(
+    create: SafetyMonitor::new(
         proximity_recv,
         brake_recv,
         send,
-        ParamsReconstructor::reconstruct(parameters)?,
+        &ParamsReconstructor::reconstruct(parameters)?,
     );
 }
 

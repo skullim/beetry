@@ -20,6 +20,24 @@ pub struct PlanParkingTrajectory<PR, TR, S> {
     task_trajectory_recv: Option<TokioReceiver<Trajectory>>,
 }
 
+impl<PR, TR, S> PlanParkingTrajectory<PR, TR, S>
+where
+    PR: Receiver<Pose>,
+    TR: Receiver<TargetSlot>,
+    S: Sender<Trajectory>,
+{
+    pub fn new(pose_recv: PR, target_recv: TR, send: S) -> Self {
+        Self {
+            pose_recv,
+            target_recv,
+            send,
+            last_pose: Pose::default(),
+            last_target: TargetSlot::default(),
+            task_trajectory_recv: None,
+        }
+    }
+}
+
 struct PlanParkingTrajectoryTask {
     pose: Pose,
     target: TargetSlot,
@@ -54,24 +72,6 @@ impl Task for PlanParkingTrajectoryTask {
         info!("PlanParkingTrajectory task succeeded");
         ParkingMilestone::PlanSuccess.emit();
         TickStatus::Success
-    }
-}
-
-impl<PR, TR, S> PlanParkingTrajectory<PR, TR, S>
-where
-    PR: Receiver<Pose>,
-    TR: Receiver<TargetSlot>,
-    S: Sender<Trajectory>,
-{
-    pub fn new(pose_recv: PR, target_recv: TR, send: S) -> Self {
-        Self {
-            pose_recv,
-            target_recv,
-            send,
-            last_pose: Pose::default(),
-            last_target: TargetSlot::default(),
-            task_trajectory_recv: None,
-        }
     }
 }
 
@@ -143,6 +143,27 @@ pub struct FollowTrajectory<TR, PR, SR, S> {
     task_maneuver_recv: Option<TokioReceiver<ManeuverStatus>>,
 }
 
+impl<TR, PR, SR, S> FollowTrajectory<TR, PR, SR, S>
+where
+    TR: Receiver<Trajectory>,
+    PR: Receiver<Pose>,
+    SR: Receiver<SafetyStatus>,
+    S: Sender<ManeuverStatus>,
+{
+    pub fn new(trajectory_recv: TR, pose_recv: PR, safety_recv: SR, send: S) -> Self {
+        Self {
+            trajectory_recv,
+            pose_recv,
+            safety_recv,
+            send,
+            last_trajectory: Trajectory::default(),
+            last_pose: Pose::default(),
+            last_safety: SafetyStatus::default(),
+            task_maneuver_recv: None,
+        }
+    }
+}
+
 struct FollowTrajectoryTask {
     trajectory: Trajectory,
     pose: Pose,
@@ -202,27 +223,6 @@ impl Task for FollowTrajectoryTask {
         info!("FollowTrajectory task succeeded");
         ParkingMilestone::FollowSuccess.emit();
         TickStatus::Success
-    }
-}
-
-impl<TR, PR, SR, S> FollowTrajectory<TR, PR, SR, S>
-where
-    TR: Receiver<Trajectory>,
-    PR: Receiver<Pose>,
-    SR: Receiver<SafetyStatus>,
-    S: Sender<ManeuverStatus>,
-{
-    pub fn new(trajectory_recv: TR, pose_recv: PR, safety_recv: SR, send: S) -> Self {
-        Self {
-            trajectory_recv,
-            pose_recv,
-            safety_recv,
-            send,
-            last_trajectory: Trajectory::default(),
-            last_pose: Pose::default(),
-            last_safety: SafetyStatus::default(),
-            task_maneuver_recv: None,
-        }
     }
 }
 

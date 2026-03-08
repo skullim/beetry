@@ -18,34 +18,6 @@ pub struct DetectParkingSlots<R, S> {
     task_candidates_recv: Option<TokioReceiver<SlotCandidates>>,
 }
 
-struct DetectParkingSlotsTask {
-    pose: Pose,
-    send: TokioSender<SlotCandidates>,
-}
-
-impl DetectParkingSlotsTask {
-    fn new(pose: Pose, send: TokioSender<SlotCandidates>) -> Self {
-        Self { pose, send }
-    }
-}
-
-impl Task for DetectParkingSlotsTask {
-    async fn run(self) -> TickStatus {
-        info!("DetectParkingSlots task started with pose: {:?}", self.pose);
-        ParkingMilestone::DetectStart.emit();
-        tokio::time::sleep(std::time::Duration::from_millis(150)).await;
-        let candidates = SlotCandidates { count: 3 };
-        info!("DetectParkingSlots produced: {:?}", candidates);
-        if self.send.send(candidates).await.is_err() {
-            info!("DetectParkingSlots task failed: receiver disconnected");
-            return TickStatus::Failure;
-        }
-        info!("DetectParkingSlots task succeeded");
-        ParkingMilestone::DetectSuccess.emit();
-        TickStatus::Success
-    }
-}
-
 impl<R, S> DetectParkingSlots<R, S>
 where
     R: Receiver<Pose>,
@@ -103,6 +75,34 @@ where
     }
 }
 
+struct DetectParkingSlotsTask {
+    pose: Pose,
+    send: TokioSender<SlotCandidates>,
+}
+
+impl DetectParkingSlotsTask {
+    fn new(pose: Pose, send: TokioSender<SlotCandidates>) -> Self {
+        Self { pose, send }
+    }
+}
+
+impl Task for DetectParkingSlotsTask {
+    async fn run(self) -> TickStatus {
+        info!("DetectParkingSlots task started with pose: {:?}", self.pose);
+        ParkingMilestone::DetectStart.emit();
+        tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+        let candidates = SlotCandidates { count: 3 };
+        info!("DetectParkingSlots produced: {:?}", candidates);
+        if self.send.send(candidates).await.is_err() {
+            info!("DetectParkingSlots task failed: receiver disconnected");
+            return TickStatus::Failure;
+        }
+        info!("DetectParkingSlots task succeeded");
+        ParkingMilestone::DetectSuccess.emit();
+        TickStatus::Success
+    }
+}
+
 action! {
     DetectParkingSlotsPlugin: "DetectParkingSlots";
     receivers: [pose_recv: Pose => "Current pose"];
@@ -117,51 +117,6 @@ pub struct SelectBestSlot<CR, VR, S> {
     last_candidates: SlotCandidates,
     last_vehicle: VehicleState,
     task_target_recv: Option<TokioReceiver<TargetSlot>>,
-}
-
-struct SelectBestSlotTask {
-    candidates: SlotCandidates,
-    vehicle: VehicleState,
-    send: TokioSender<TargetSlot>,
-}
-
-impl SelectBestSlotTask {
-    fn new(
-        candidates: SlotCandidates,
-        vehicle: VehicleState,
-        send: TokioSender<TargetSlot>,
-    ) -> Self {
-        Self {
-            candidates,
-            vehicle,
-            send,
-        }
-    }
-}
-
-impl Task for SelectBestSlotTask {
-    async fn run(self) -> TickStatus {
-        info!(
-            "SelectBestSlot task started with candidates={:?}, vehicle={:?}",
-            self.candidates, self.vehicle
-        );
-        ParkingMilestone::SelectStart.emit();
-        tokio::time::sleep(std::time::Duration::from_millis(120)).await;
-        let id = if self.candidates.count > 0 && self.vehicle.ready {
-            1
-        } else {
-            0
-        };
-        let target = TargetSlot { id };
-        info!("SelectBestSlot selected: {:?}", target);
-        if self.send.send(target).await.is_err() {
-            info!("SelectBestSlot task failed: receiver disconnected");
-            return TickStatus::Failure;
-        }
-        info!("SelectBestSlot task succeeded");
-        ParkingMilestone::SelectSuccess.emit();
-        TickStatus::Success
-    }
 }
 
 impl<CR, VR, S> SelectBestSlot<CR, VR, S>
@@ -226,6 +181,47 @@ where
 
     fn on_failure(&mut self) {
         self.task_target_recv = None;
+    }
+}
+
+struct SelectBestSlotTask {
+    candidates: SlotCandidates,
+    vehicle: VehicleState,
+    send: TokioSender<TargetSlot>,
+}
+
+impl SelectBestSlotTask {
+    fn new(
+        candidates: SlotCandidates,
+        vehicle: VehicleState,
+        send: TokioSender<TargetSlot>,
+    ) -> Self {
+        Self {
+            candidates,
+            vehicle,
+            send,
+        }
+    }
+}
+
+impl Task for SelectBestSlotTask {
+    async fn run(self) -> TickStatus {
+        info!(
+            "SelectBestSlot task started with candidates={:?}, vehicle={:?}",
+            self.candidates, self.vehicle
+        );
+        ParkingMilestone::SelectStart.emit();
+        tokio::time::sleep(std::time::Duration::from_millis(120)).await;
+        let id = u32::from(self.candidates.count > 0 && self.vehicle.ready);
+        let target = TargetSlot { id };
+        info!("SelectBestSlot selected: {:?}", target);
+        if self.send.send(target).await.is_err() {
+            info!("SelectBestSlot task failed: receiver disconnected");
+            return TickStatus::Failure;
+        }
+        info!("SelectBestSlot task succeeded");
+        ParkingMilestone::SelectSuccess.emit();
+        TickStatus::Success
     }
 }
 

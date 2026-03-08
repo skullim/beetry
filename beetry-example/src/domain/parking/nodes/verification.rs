@@ -43,10 +43,11 @@ where
         }
 
         let threshold = self.last_target.id as f32 + 2.0;
-        let reached = self.last_pose.x >= threshold;
+        let aligned = self.last_pose.y.abs() <= 1.0;
+        let reached = self.last_pose.x >= threshold && aligned;
         info!(
-            "VerifyFinalPose evaluated: reached={}, pose={:?}, target={:?}, threshold={}",
-            reached, self.last_pose, self.last_target, threshold
+            "VerifyFinalPose evaluated: reached={}, aligned={}, pose={:?}, target={:?}, threshold={}",
+            reached, aligned, self.last_pose, self.last_target, threshold
         );
         if reached {
             ParkingMilestone::VerifyPoseTrue.emit();
