@@ -6,7 +6,7 @@ use crate::Backend;
 use crate::signals::RequestNodeRender;
 use crate::ui::node;
 
-pub(crate) fn handlers(
+pub fn handlers(
     mut backend: Backend,
     mut state: Signal<node::parameter::State>,
     mut render_nodes: RequestNodeRender,

@@ -5,7 +5,7 @@ use dioxus::prelude::*;
 use super::{Backend, RenderRequests};
 use crate::{components::workspace::state::menu, ui::edge};
 
-pub(crate) fn handlers(mut menu: menu::State) -> edge::Handlers {
+pub fn handlers(mut menu: menu::State) -> edge::Handlers {
     let on_menu = move |(edge_id, position): (EdgeId, crate::Point)| {
         menu.edge
             .set(edge::menu::State::Visible { position, edge_id });
@@ -14,7 +14,7 @@ pub(crate) fn handlers(mut menu: menu::State) -> edge::Handlers {
     edge::Handlers::new(on_menu)
 }
 
-pub(crate) fn menu_handlers(
+pub fn menu_handlers(
     mut menu: menu::State,
     mut backend: Backend,
     mut requests: RenderRequests,

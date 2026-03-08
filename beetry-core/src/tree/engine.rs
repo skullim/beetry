@@ -9,8 +9,8 @@ impl<N> TreeEngine<N>
 where
     N: Node,
 {
-    pub fn new(tree: Tree<N>) -> TreeEngine<N> {
-        TreeEngine { tree }
+    pub fn new(tree: Tree<N>) -> Self {
+        Self { tree }
     }
 
     pub async fn tick_till_terminal(

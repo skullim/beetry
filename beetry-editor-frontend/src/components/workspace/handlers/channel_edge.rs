@@ -6,7 +6,7 @@ use super::{Backend, RenderRequests};
 use crate::components::workspace::state::menu;
 use crate::ui::channel::{edge, edge_menu};
 
-pub(crate) fn handlers(mut menu: menu::State) -> edge::Handlers {
+pub fn handlers(mut menu: menu::State) -> edge::Handlers {
     let on_menu = move |(conn, position): (PortConnectionId, crate::Point)| {
         menu.channel_edge
             .set(edge_menu::State::Visible { position, conn });
@@ -16,7 +16,7 @@ pub(crate) fn handlers(mut menu: menu::State) -> edge::Handlers {
     edge::Handlers::new(on_menu)
 }
 
-pub(crate) fn menu_handlers(
+pub fn menu_handlers(
     mut menu: menu::State,
     mut backend: Backend,
     mut requests: RenderRequests,

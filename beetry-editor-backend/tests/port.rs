@@ -72,25 +72,21 @@ fn port_ui_query_and_update(mut service: TestEditorService, specs: TestSpecs) ->
 
     {
         let query = api::ui::port::query(&service);
-        assert!(
-            query
-                .data(PortConnectionId::new(
-                    sender,
-                    NodePortId::new(0),
-                    ChannelId::new(999)
-                ))
-                .is_err()
-        );
+        query
+            .data(PortConnectionId::new(
+                sender,
+                NodePortId::new(0),
+                ChannelId::new(999),
+            ))
+            .unwrap_err();
     }
 
-    assert!(
-        api::ui::port::update_data(
-            &mut service,
-            PortConnectionId::new(sender, NodePortId::new(0), ChannelId::new(999)),
-            PortConnectionUiData::new(VisibilityKind::Visible),
-        )
-        .is_err()
-    );
+    api::ui::port::update_data(
+        &mut service,
+        PortConnectionId::new(sender, NodePortId::new(0), ChannelId::new(999)),
+        PortConnectionUiData::new(VisibilityKind::Visible),
+    )
+    .unwrap_err();
 
     Ok(())
 }

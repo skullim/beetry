@@ -7,10 +7,10 @@ use dioxus::signals::Signal;
 use crate::ui::{channel as ui_channel, edge as ui_edge, node as ui_node};
 
 #[derive(Clone, Copy, PartialEq)]
-pub(crate) struct State {
-    pub(crate) drag: drag::State,
-    pub(crate) menu: menu::State,
-    pub(crate) temp: temporary::State,
+pub struct State {
+    pub drag: drag::State,
+    pub menu: menu::State,
+    pub temp: temporary::State,
 }
 
 impl State {

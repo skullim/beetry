@@ -46,11 +46,11 @@ pub type RequestChannelRender = RenderTrigger<ChannelRenderTag>;
 pub type RequestChannelEdgeRender = RenderTrigger<ChannelEdgeRenderTag>;
 
 #[derive(Clone, Copy, PartialEq, Default)]
-pub(crate) struct RenderRequests {
-    pub(crate) nodes: RequestNodeRender,
-    pub(crate) edges: RequestEdgeRender,
-    pub(crate) channels: RequestChannelRender,
-    pub(crate) channel_edges: RequestChannelEdgeRender,
+pub struct RenderRequests {
+    pub nodes: RequestNodeRender,
+    pub edges: RequestEdgeRender,
+    pub channels: RequestChannelRender,
+    pub channel_edges: RequestChannelEdgeRender,
 }
 
 impl RenderRequests {

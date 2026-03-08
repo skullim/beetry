@@ -2,7 +2,7 @@ pub mod channel;
 pub mod curve;
 pub mod edge;
 pub mod error;
-pub(crate) mod handler;
+pub mod handler;
 pub mod node;
 pub mod shadow;
 pub mod text;

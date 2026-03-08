@@ -3,9 +3,9 @@ use crate::ui::text;
 use dioxus::prelude::*;
 
 #[derive(Props, Clone, PartialEq)]
-pub(crate) struct TooltipCardProps {
-    pub(crate) anchor: Point,
-    pub(crate) lines: Vec<String>,
+pub struct TooltipCardProps {
+    pub anchor: Point,
+    pub lines: Vec<String>,
 }
 
 #[component]

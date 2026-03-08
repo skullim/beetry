@@ -5,7 +5,7 @@ use dioxus::prelude::*;
 use super::super::state;
 use crate::{Backend, SharedSpecs, signals::RequestChannelRender, ui::channel};
 
-pub(crate) fn handlers(
+pub fn handlers(
     specs: SharedSpecs,
     mut request: RequestChannelRender,
     mut backend: Backend,

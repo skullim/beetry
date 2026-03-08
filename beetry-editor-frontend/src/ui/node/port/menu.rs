@@ -26,7 +26,7 @@ impl Handlers {
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
-pub(crate) enum State {
+pub enum State {
     #[default]
     Idle,
     Visible {

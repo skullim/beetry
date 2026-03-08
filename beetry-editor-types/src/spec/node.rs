@@ -12,7 +12,7 @@ use strum_macros::AsRefStr;
 #[derive(Debug, Builder, Clone, Getters, MutGetters)]
 pub struct NodeSpec {
     #[getset(get = "pub")]
-    pub key: NodeSpecKey,
+    key: NodeSpecKey,
     //@todo value
     #[getset(get = "pub")]
     params: Option<ParamsSpec>,
@@ -22,7 +22,7 @@ pub struct NodeSpec {
 
 impl NodeSpec {
     pub fn root() -> Self {
-        NodeSpec::builder().key(NodeSpecKey::root()).build()
+        Self::builder().key(NodeSpecKey::root()).build()
     }
 
     pub fn name(&self) -> &NodeName {
@@ -35,6 +35,10 @@ impl NodeSpec {
 
     pub fn has_params(&self) -> bool {
         self.params.is_some()
+    }
+
+    pub fn into_key(self) -> NodeSpecKey {
+        self.key
     }
 }
 
@@ -92,17 +96,18 @@ pub enum NodeKind {
 
 impl NodeKind {
     pub fn action() -> Self {
-        NodeKind::Leaf(LeafKind::Action)
+        Self::Leaf(LeafKind::Action)
     }
 
     pub fn condition() -> Self {
-        NodeKind::Leaf(LeafKind::Condition)
+        Self::Leaf(LeafKind::Condition)
     }
 
     pub fn leaf(&self) -> Option<LeafKind> {
-        match self {
-            NodeKind::Leaf(leaf) => Some(*leaf),
-            _ => None,
+        if let Self::Leaf(leaf) = self {
+            Some(*leaf)
+        } else {
+            None
         }
     }
 }

@@ -119,15 +119,15 @@ mod tests {
 
     #[test]
     fn downcast_receiver_test() {
-        let stub = Box::new(ReceiverStub(Some(42u32))) as BoxReceiver<u32>;
+        let stub = Box::new(ReceiverStub(Some(42_u32))) as BoxReceiver<u32>;
         let any: AnyBoxReceiver = stub.into();
         assert!(any.is_receiver_of::<u32>());
-        assert!(any.into_receiver_of::<u32>().is_ok());
+        any.into_receiver_of::<u32>().unwrap();
     }
 
     #[test]
     fn receiver_wrong_type_test() {
-        let stub = Box::new(ReceiverStub(Some(42u32))) as BoxReceiver<u32>;
+        let stub = Box::new(ReceiverStub(Some(42_u32))) as BoxReceiver<u32>;
         let any: AnyBoxReceiver = stub.into();
         assert!(!any.is_receiver_of::<i32>());
         assert!(any.into_receiver_of::<i32>().is_err());
@@ -138,7 +138,7 @@ mod tests {
         let stub = Box::new(SenderStub::new()) as BoxSender<u32>;
         let any: AnyBoxSender = stub.into();
         assert!(any.is_sender_of::<u32>());
-        assert!(any.into_sender_of::<u32>().is_ok());
+        any.into_sender_of::<u32>().unwrap();
     }
 
     #[test]
@@ -151,15 +151,15 @@ mod tests {
 
     #[test]
     fn new_constructor_test() {
-        let stub = ReceiverStub(Some(42u32));
+        let stub = ReceiverStub(Some(42_u32));
         let any = AnyBoxReceiver::new(stub);
         assert!(any.is_receiver_of::<u32>());
-        assert!(any.into_receiver_of::<u32>().is_ok());
+        any.into_receiver_of::<u32>().unwrap();
     }
 
     #[test]
     fn new_constructor_wrong_type_test() {
-        let stub = ReceiverStub(Some(42u32));
+        let stub = ReceiverStub(Some(42_u32));
         let any = AnyBoxReceiver::new(stub);
         assert!(!any.is_receiver_of::<i32>());
         assert!(any.into_receiver_of::<i32>().is_err());

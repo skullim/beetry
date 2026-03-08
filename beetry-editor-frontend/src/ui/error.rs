@@ -14,9 +14,7 @@ impl ErrorQueueState {
     pub(crate) fn new() -> Self {
         Self(Signal::new(ErrorQueue::new()))
     }
-}
 
-impl ErrorQueueState {
     pub fn push(&mut self, err: impl fmt::Display) {
         self.0.with_mut(|e| e.push(err));
     }

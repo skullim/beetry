@@ -184,7 +184,7 @@ mod tests {
     }
 
     #[test]
-    fn test_duplicate_plugin_name_error() {
+    fn duplicate_plugin_name_error() {
         let result = ActionPluginConstructor::plugins();
         assert!(matches!(
             result,

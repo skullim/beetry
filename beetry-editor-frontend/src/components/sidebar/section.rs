@@ -3,13 +3,13 @@ use beetry_editor_types::spec::channel::ChannelSpec;
 use beetry_editor_types::spec::node::NodeSpecKey;
 use dioxus::prelude::*;
 
-pub(crate) type NodeItems = Vec<(NodeSpecKey, String)>;
-pub(crate) type ChannelItems = Vec<(ChannelSpec, String)>;
+pub type NodeItems = Vec<(NodeSpecKey, String)>;
+pub type ChannelItems = Vec<(ChannelSpec, String)>;
 
 #[derive(Props, Clone, PartialEq)]
-pub(crate) struct NodeSectionProps {
-    pub(crate) title: &'static str,
-    pub(crate) items: NodeItems,
+pub struct NodeSectionProps {
+    pub title: &'static str,
+    pub items: NodeItems,
 }
 
 #[component]
@@ -36,9 +36,9 @@ pub(crate) fn NodeSection(props: NodeSectionProps) -> Element {
 }
 
 #[derive(Props, Clone, PartialEq)]
-pub(crate) struct ChannelSectionProps {
-    pub(crate) title: &'static str,
-    pub(crate) items: ChannelItems,
+pub struct ChannelSectionProps {
+    pub title: &'static str,
+    pub items: ChannelItems,
 }
 
 #[component]

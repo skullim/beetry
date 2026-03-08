@@ -30,8 +30,8 @@ impl ParallelThreshold {
 impl Node for ParallelThreshold {
     fn tick(&mut self) -> TickStatus {
         let aborter: &mut RunningNodesAborter = &mut self.aborter;
-        let mut success_count = 0u16;
-        let mut failure_count = 0u16;
+        let mut success_count = 0_u16;
+        let mut failure_count = 0_u16;
 
         for idx in self.nodes.indices() {
             let node = &mut self.nodes[idx];

@@ -188,10 +188,13 @@ impl PortConnectionState {
             Self::External => {
                 bail!("attempted to remove connection to channel {id} from external connection")
             }
-            Self::Internal(connected) => match connected.conns.try_retain(|c| *c != id).ok() {
-                Some(conns) => Ok(Some(Self::Internal(InternalPortConnections { conns }))),
-                None => Ok(None),
-            },
+            Self::Internal(connected) => connected
+                .conns
+                .try_retain(|c| *c != id)
+                .ok()
+                .map_or(Ok(None), |conns| {
+                    Ok(Some(Self::Internal(InternalPortConnections { conns })))
+                }),
         }
     }
 }

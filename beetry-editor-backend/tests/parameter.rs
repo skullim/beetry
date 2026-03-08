@@ -13,7 +13,7 @@ fn create_and_query_params(mut service: TestEditorService, specs: TestSpecs) -> 
     let node_id = create_node(&mut service, &specs, NodeSpecCase::SenderA)?;
     {
         let query = api::node::parameters::query(&service);
-        assert!(query.parameters(node_id).is_err());
+        query.parameters(node_id).unwrap_err();
     }
 
     let mut params = Parameters::default();
@@ -27,7 +27,7 @@ fn create_and_query_params(mut service: TestEditorService, specs: TestSpecs) -> 
     assert!(matches!(attempts, Some(ParameterValue::U64(3))));
     let enabled = stored.get(&"enabled".to_string());
     assert!(matches!(enabled, Some(ParameterValue::Bool(true))));
-    assert!(query.parameters(NodeId::new(999)).is_err());
+    query.parameters(NodeId::new(999)).unwrap_err();
 
     Ok(())
 }

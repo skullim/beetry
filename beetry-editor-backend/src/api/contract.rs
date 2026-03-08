@@ -192,12 +192,12 @@ pub trait ExportApi {
 
 impl ExportApi for EditorService {
     fn export_project(&self) -> Result<EditorStateStore> {
-        let mut export_api = self.export_view();
+        let export_api = self.export_view();
         export_api.export_project()
     }
 
     fn export_valid_tree(&self) -> Result<ValidTree> {
-        let mut export_api = self.export_view();
+        let export_api = self.export_view();
         export_api.export_valid_tree()
     }
 }

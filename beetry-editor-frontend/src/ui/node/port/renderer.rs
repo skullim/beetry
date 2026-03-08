@@ -37,7 +37,7 @@ struct ReceiverMetadata {
 
 /// Renders ports for a single leaf node
 #[component]
-pub(crate) fn Renderer(props: RendererProps) -> Element {
+pub fn Renderer(props: RendererProps) -> Element {
     let backend = use_context::<Backend>();
     let mut errors = use_context::<ErrorQueueState>();
 
@@ -45,24 +45,22 @@ pub(crate) fn Renderer(props: RendererProps) -> Element {
     let Some(ports_meta) = use_hook(|| {
         let read = backend.read();
         let spec_query = api::node::spec::by_node_id(&(*read));
-        spec_query
+        let spec = spec_query
             .spec(id)
             .inspect_err(|err| errors.push(err))
-            .ok()
-            .and_then(|spec| {
-                spec.ports().as_ref().map(|s| {
-                    Rc::new(PortsMetadata {
-                        sender: SenderMetadata {
-                            count: s.sender_ids().count(),
-                            port_ids: s.sender_ids().copied().collect(),
-                        },
-                        receiver: ReceiverMetadata {
-                            count: s.receiver_ids().count(),
-                            port_ids: s.receiver_ids().copied().collect(),
-                        },
-                    })
-                })
+            .ok()?;
+        spec.ports().as_ref().map(|s| {
+            Rc::new(PortsMetadata {
+                sender: SenderMetadata {
+                    count: s.sender_ids().count(),
+                    port_ids: s.sender_ids().copied().collect(),
+                },
+                receiver: ReceiverMetadata {
+                    count: s.receiver_ids().count(),
+                    port_ids: s.receiver_ids().copied().collect(),
+                },
             })
+        })
     }) else {
         return rsx!();
     };

@@ -4,7 +4,7 @@ pub mod parameter;
 pub mod pin;
 pub mod port;
 pub mod renderer;
-pub(crate) mod tooltip;
+pub mod tooltip;
 
 pub(super) mod control;
 pub(super) mod decorator;

@@ -7,10 +7,10 @@ use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
 
 #[derive(Props, Clone, PartialEq)]
-pub(crate) struct TooltipProps {
-    pub(crate) visible: Signal<bool>,
-    pub(crate) node_id: NodeId,
-    pub(crate) anchor: Point,
+pub struct TooltipProps {
+    pub visible: Signal<bool>,
+    pub node_id: NodeId,
+    pub anchor: Point,
 }
 
 #[component]

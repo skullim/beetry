@@ -67,13 +67,16 @@ impl Factory {
                         let receivers: Vec<_> =
                             std::iter::once(Box::new(receiver) as BoxReceiver<T>)
                                 .chain(
-                                    (1..n_receivers)
-                                        .map(|_| Box::new(sender.subscribe()) as BoxReceiver<T>),
+                                    std::iter::repeat_with(|| {
+                                        Box::new(sender.subscribe()) as BoxReceiver<T>
+                                    })
+                                    .take(n_receivers - 1),
                                 )
                                 .collect();
-                        let senders: Vec<_> = (0..n_senders)
-                            .map(|_| Box::new(sender.clone()) as BoxSender<T>)
-                            .collect();
+                        let senders: Vec<_> =
+                            std::iter::repeat_with(|| Box::new(sender.clone()) as BoxSender<T>)
+                                .take(n_senders)
+                                .collect();
 
                         (senders, receivers)
                     }
@@ -81,9 +84,10 @@ impl Factory {
                         let (sender, receiver) =
                             beetry_channel::tokio::mpsc::channel::<T>(capacity);
 
-                        let senders: Vec<_> = (0..n_senders)
-                            .map(|_| Box::new(sender.clone()) as BoxSender<T>)
-                            .collect();
+                        let senders: Vec<_> =
+                            std::iter::repeat_with(|| Box::new(sender.clone()) as BoxSender<T>)
+                                .take(n_senders)
+                                .collect();
                         let receivers = vec![Box::new(receiver) as BoxReceiver<T>];
 
                         (senders, receivers)
@@ -94,13 +98,16 @@ impl Factory {
                         let receivers: Vec<_> =
                             std::iter::once(Box::new(receiver) as BoxReceiver<T>)
                                 .chain(
-                                    (1..n_receivers)
-                                        .map(|_| Box::new(sender.subscribe()) as BoxReceiver<T>),
+                                    std::iter::repeat_with(|| {
+                                        Box::new(sender.subscribe()) as BoxReceiver<T>
+                                    })
+                                    .take(n_receivers - 1),
                                 )
                                 .collect();
-                        let senders: Vec<_> = (0..n_senders)
-                            .map(|_| Box::new(sender.clone()) as BoxSender<T>)
-                            .collect();
+                        let senders: Vec<_> =
+                            std::iter::repeat_with(|| Box::new(sender.clone()) as BoxSender<T>)
+                                .take(n_senders)
+                                .collect();
 
                         (senders, receivers)
                     }

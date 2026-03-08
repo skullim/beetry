@@ -225,7 +225,7 @@ mod tests {
     }
 
     #[test]
-    fn test_action_success() {
+    fn action_success() {
         let mut registry = MockRegisterTask::<MockTaskHandle>::new();
         registry
             .expect_register()
@@ -249,7 +249,7 @@ mod tests {
     }
 
     #[test]
-    fn test_action_running() {
+    fn action_running() {
         let mut registry = MockRegisterTask::<MockTaskHandle>::new();
         registry
             .expect_register()
@@ -273,7 +273,7 @@ mod tests {
     }
 
     #[test]
-    fn test_action_failure() {
+    fn action_failure() {
         let mut registry = MockRegisterTask::<MockTaskHandle>::new();
         registry
             .expect_register()
@@ -298,7 +298,7 @@ mod tests {
     }
 
     #[test]
-    fn test_task_creation_failure() {
+    fn task_creation_failure() {
         let registry = MockRegisterTask::<MockTaskHandle>::new();
 
         let mut behavior = MockBehavior::new();
@@ -311,7 +311,7 @@ mod tests {
     }
 
     #[test]
-    fn test_task_registration_failure() {
+    fn task_registration_failure() {
         let mut registry = MockRegisterTask::<MockTaskHandle>::new();
         registry
             .expect_register()
@@ -328,7 +328,7 @@ mod tests {
     }
 
     #[test]
-    fn test_action_abort_when_running() {
+    fn action_abort_when_running() {
         let mut registry = MockRegisterTask::<MockTaskHandle>::new();
         registry
             .expect_register()
@@ -360,7 +360,7 @@ mod tests {
     }
 
     #[test]
-    fn test_action_abort_when_idle() {
+    fn action_abort_when_idle() {
         let registry = MockRegisterTask::<MockTaskHandle>::new();
 
         let mut behavior = MockBehavior::new();
@@ -372,7 +372,7 @@ mod tests {
     }
 
     #[test]
-    fn test_action_reset() {
+    fn action_reset() {
         let registry = MockRegisterTask::<MockTaskHandle>::new();
 
         let mut behavior = MockBehavior::new();

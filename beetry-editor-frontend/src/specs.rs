@@ -29,7 +29,7 @@ impl std::ops::Deref for SharedSpecs {
     }
 }
 
-pub(crate) fn load_shared_specs() -> Result<SharedSpecs> {
+pub fn load_shared_specs() -> Result<SharedSpecs> {
     Ok(SharedSpecs {
         specs: Rc::new(Specs {
             nodes: load_node_specs()?,

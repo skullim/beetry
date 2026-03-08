@@ -1,8 +1,8 @@
 use dioxus::prelude::*;
 
 #[derive(Props, Clone, PartialEq)]
-pub(crate) struct Props {
-    pub(crate) query: Signal<String>,
+pub struct Props {
+    pub query: Signal<String>,
 }
 
 #[component]

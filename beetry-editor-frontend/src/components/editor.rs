@@ -1,6 +1,6 @@
 mod context;
 mod handlers;
-pub(crate) mod state;
+pub mod state;
 
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
@@ -12,7 +12,7 @@ use crate::components::workspace::Workspace;
 use crate::signals::RenderRequests;
 use crate::ui::theme::GlobalStyle;
 
-pub(crate) use state::State;
+pub use state::State;
 
 #[component]
 pub(crate) fn Editor() -> Element {

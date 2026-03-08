@@ -14,7 +14,7 @@ use crate::{
 use super::{Backend, DragNodeState, RenderRequests};
 use crate::ui::error::ErrorQueueState;
 
-pub(crate) fn handlers(
+pub fn handlers(
     mut drag: drag::State,
     mut menu: menu::State,
     svg: svg::State,
@@ -64,7 +64,7 @@ pub(crate) fn handlers(
     node::base::Handlers::new(on_menu, on_mouse_down)
 }
 
-pub(crate) fn menu_handlers(
+pub fn menu_handlers(
     mut menu: menu::State,
     mut backend: Backend,
     mut requests: RenderRequests,
