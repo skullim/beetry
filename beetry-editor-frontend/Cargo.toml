@@ -25,6 +25,5 @@ rfd = { version = "0.17.2", default-features = false, features = [
 ] }
 serde.workspace = true
 
-
 [lints]
 workspace = true
