@@ -16,6 +16,7 @@ pub(super) fn Provider(
         handlers::handlers(
             &state,
             editor_state.element_spawn_point,
+            editor_state.svg,
             backend,
             render_requests,
         )
@@ -23,7 +24,7 @@ pub(super) fn Provider(
 
     let errors = use_context();
     use_context_provider(|| {
-        handlers::node::handlers(state.drag, state.menu, state.svg, backend, errors)
+        handlers::node::handlers(state.drag, state.menu, editor_state.svg, backend, errors)
     });
     use_context_provider(|| handlers::pin::input_handlers(state.temp, backend, render_requests));
     use_context_provider(|| handlers::pin::output_handlers(state.temp));
@@ -50,7 +51,15 @@ pub(super) fn Provider(
     use_context_provider(|| handlers::pin::body_handlers(state.menu, state.temp));
     use_context_provider(|| handlers::pin::menu_handlers(backend, errors));
 
-    use_context_provider(|| handlers::channel::handlers(state, backend, render_requests, errors));
+    use_context_provider(|| {
+        handlers::channel::handlers(
+            state,
+            editor_state.svg.zoom,
+            backend,
+            render_requests,
+            errors,
+        )
+    });
 
     children
 }

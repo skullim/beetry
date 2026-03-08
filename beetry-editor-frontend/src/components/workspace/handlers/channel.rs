@@ -6,6 +6,7 @@ use beetry_editor_types::{
 };
 use dioxus::{html::input_data::MouseButton, prelude::*};
 
+use crate::components::editor::state::svg::ZoomState;
 use crate::components::workspace::{self, state::menu};
 use crate::ui::channel;
 use crate::ui::error::ErrorQueueState;
@@ -15,6 +16,7 @@ use super::{Backend, DragChannelState, RenderRequests};
 
 pub(crate) fn handlers(
     mut state: workspace::State,
+    zoom: ZoomState,
     mut backend: Backend,
     mut requests: RenderRequests,
     mut errors: ErrorQueueState,
@@ -91,7 +93,7 @@ pub(crate) fn handlers(
     let on_mouse_down = move |(id, position, evt): (ChannelId, Point, Event<MouseData>)| {
         if evt.held_buttons().contains(MouseButton::Primary) {
             let mouse_coords = evt.client_coordinates();
-            let zoom_level = state.svg.zoom.get();
+            let zoom_level = zoom.get();
 
             let svg_mouse_coords = Point {
                 x: mouse_coords.x / zoom_level,

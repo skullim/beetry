@@ -1,6 +1,6 @@
 mod context;
 pub(crate) mod handlers;
-mod state;
+pub(crate) mod state;
 
 pub(crate) use state::State;
 
@@ -36,8 +36,8 @@ fn Canvas(state: State, editor_state: editor::State, render_requests: RenderRequ
     debug!("rendering workspace");
 
     let handlers = use_context::<Handlers>();
-    let zoom_level = *state.svg.zoom.read();
-    let dimensions = state.svg.dimensions;
+    let zoom_level = *editor_state.svg.zoom.read();
+    let dimensions = editor_state.svg.dimensions;
     let menus = state.menu;
 
     rsx! {

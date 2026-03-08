@@ -3,6 +3,21 @@ use dioxus::html::geometry::WheelDelta;
 use dioxus::prelude::*;
 use std::ops::{Deref, DerefMut};
 
+#[derive(Clone, Copy, PartialEq)]
+pub(crate) struct State {
+    pub(crate) dimensions: DimensionState,
+    pub(crate) zoom: ZoomState,
+}
+
+impl State {
+    pub(crate) fn new() -> Self {
+        Self {
+            dimensions: DimensionState::new(),
+            zoom: ZoomState::new(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct DimensionState {
     width: Signal<f64>,
@@ -28,7 +43,7 @@ impl DimensionState {
         *self.height.read()
     }
 
-    pub(crate) fn resize_if_needed<'a>(&mut self, positions: impl Iterator<Item = &'a Point>) {
+    pub(crate) fn resize<'a>(&mut self, positions: impl Iterator<Item = &'a Point>) {
         let (new_width, new_height) = positions
             .map(|node_pos| (node_pos.x + Self::MARGIN, node_pos.y + Self::MARGIN))
             .fold(
@@ -95,10 +110,4 @@ impl DerefMut for ZoomState {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
-}
-
-#[derive(Clone, Copy, PartialEq)]
-pub(crate) struct State {
-    pub(crate) dimensions: DimensionState,
-    pub(crate) zoom: ZoomState,
 }

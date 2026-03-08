@@ -6,7 +6,8 @@ use dioxus::prelude::*;
 
 use crate::ui::node::parameter::DEFAULT_DIALOG_POSITION;
 use crate::{
-    components::workspace::state::{drag, menu, svg},
+    components::editor::state::svg,
+    components::workspace::state::{drag, menu},
     ui::node::{self},
 };
 
