@@ -1,3 +1,5 @@
+use super::super::messages::{BrakeState, ProximityState, VehicleState};
+use crate::Pose;
 use anyhow::{Result, anyhow};
 use beetry_core::{ActionBehavior, NodeTask, Sender, Task, TickStatus};
 use beetry_editor_types::spec::node::{
@@ -14,44 +16,52 @@ use tokio::sync::mpsc::{
 };
 use tracing::info;
 
-use crate::Pose;
-
-use super::super::messages::{BrakeState, ProximityState, VehicleState};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PublishInterval {
-    interval_ms: u64,
+pub struct VehicleStatePublisher<S> {
+    send: S,
+    recv: Option<TokioReceiver<VehicleState>>,
+    interval: Duration,
 }
 
-impl Default for PublishInterval {
-    fn default() -> Self {
-        Self { interval_ms: 100 }
+impl<S> VehicleStatePublisher<S>
+where
+    S: Sender<VehicleState>,
+{
+    pub fn new(send: S, params: &PublishInterval) -> Self {
+        Self {
+            send,
+            recv: None,
+            interval: params.interval(),
+        }
     }
 }
 
-impl PublishInterval {
-    pub(crate) fn interval(&self) -> Duration {
-        Duration::from_millis(self.interval_ms)
+impl<S> ActionBehavior for VehicleStatePublisher<S>
+where
+    S: Sender<VehicleState>,
+{
+    fn task(&mut self) -> Result<NodeTask> {
+        let (send, recv) = mpsc_channel(8);
+        self.recv = Some(recv);
+        Ok(NodeTask::new(PublishVehicleStateTask::new(
+            send,
+            self.interval,
+        )))
     }
-}
 
-impl ProvideParamSpec for PublishInterval {
-    fn provide() -> ParamsSpec {
-        [(
-            FieldName::from("interval_ms"),
-            FieldDefinition {
-                type_spec: FieldTypeSpec::U64(FieldMetadata::new(Arc::new(|value| {
-                    if *value == 0 {
-                        Err(anyhow!("interval must be greater than 0 ms"))
-                    } else {
-                        Ok(())
-                    }
-                }))),
-                description: Some("Publisher period in milliseconds".into()),
-            },
-        )]
-        .into_iter1()
-        .collect1()
+    fn on_running(&mut self) {
+        if let Some(recv) = &mut self.recv {
+            while let Ok(state) = recv.try_recv() {
+                let _ = self.send.try_send(state);
+            }
+        }
+    }
+
+    fn reset(&mut self) {
+        self.recv = None;
+    }
+
+    fn on_aborted(&mut self) {
+        self.recv = None;
     }
 }
 
@@ -91,64 +101,11 @@ impl Task for PublishVehicleStateTask {
     }
 }
 
-pub struct VehicleStatePublisher<S> {
-    send: S,
-    recv: Option<TokioReceiver<VehicleState>>,
-    interval: Duration,
-}
-
-impl<S> VehicleStatePublisher<S>
-where
-    S: Sender<VehicleState>,
-{
-    pub fn new(send: S) -> Self {
-        Self::new_with_params(send, PublishInterval::default())
-    }
-
-    pub fn new_with_params(send: S, params: PublishInterval) -> Self {
-        Self {
-            send,
-            recv: None,
-            interval: params.interval(),
-        }
-    }
-}
-
-impl<S> ActionBehavior for VehicleStatePublisher<S>
-where
-    S: Sender<VehicleState>,
-{
-    fn task(&mut self) -> Result<NodeTask> {
-        let (send, recv) = mpsc_channel(8);
-        self.recv = Some(recv);
-        Ok(NodeTask::new(PublishVehicleStateTask::new(
-            send,
-            self.interval,
-        )))
-    }
-
-    fn on_running(&mut self) {
-        if let Some(recv) = &mut self.recv {
-            while let Ok(state) = recv.try_recv() {
-                let _ = self.send.try_send(state);
-            }
-        }
-    }
-
-    fn reset(&mut self) {
-        self.recv = None;
-    }
-
-    fn on_aborted(&mut self) {
-        self.recv = None;
-    }
-}
-
 action! {
     VehicleStatePublisherPlugin: "VehicleStatePublisher";
     params(parameters): PublishInterval::provide();
     senders: [send: VehicleState => "Vehicle state"];
-    create: VehicleStatePublisher::new_with_params(send, ParamsReconstructor::reconstruct(parameters)?);
+    create: VehicleStatePublisher::new(send, &ParamsReconstructor::reconstruct(parameters)?);
 }
 
 pub struct LocalizationPublisher<S> {
@@ -157,47 +114,11 @@ pub struct LocalizationPublisher<S> {
     interval: Duration,
 }
 
-struct PublishLocalizationTask {
-    send: TokioSender<Pose>,
-    x: f32,
-    interval: Duration,
-}
-
-impl PublishLocalizationTask {
-    fn new(send: TokioSender<Pose>, interval: Duration) -> Self {
-        Self {
-            send,
-            x: 0.0,
-            interval,
-        }
-    }
-}
-
-impl Task for PublishLocalizationTask {
-    async fn run(mut self) -> TickStatus {
-        info!("LocalizationPublisher task started");
-        loop {
-            self.x += 1.0;
-            let pose = Pose::new(self.x, 0.0);
-            info!("LocalizationPublisher publish: {:?}", pose);
-            if self.send.send(pose).await.is_err() {
-                info!("LocalizationPublisher task stopping: receiver disconnected");
-                return TickStatus::Failure;
-            }
-            tokio::time::sleep(self.interval).await;
-        }
-    }
-}
-
 impl<S> LocalizationPublisher<S>
 where
     S: Sender<Pose>,
 {
-    pub fn new(send: S) -> Self {
-        Self::new_with_params(send, PublishInterval::default())
-    }
-
-    pub fn new_with_params(send: S, params: PublishInterval) -> Self {
+    pub fn new(send: S, params: &PublishInterval) -> Self {
         Self {
             send,
             recv: None,
@@ -240,11 +161,43 @@ where
     }
 }
 
+struct PublishLocalizationTask {
+    send: TokioSender<Pose>,
+    x: f32,
+    interval: Duration,
+}
+
+impl PublishLocalizationTask {
+    fn new(send: TokioSender<Pose>, interval: Duration) -> Self {
+        Self {
+            send,
+            x: 0.0,
+            interval,
+        }
+    }
+}
+
+impl Task for PublishLocalizationTask {
+    async fn run(mut self) -> TickStatus {
+        info!("LocalizationPublisher task started");
+        loop {
+            self.x += 1.0;
+            let pose = Pose::new(self.x, 0.0);
+            info!("LocalizationPublisher publish: {:?}", pose);
+            if self.send.send(pose).await.is_err() {
+                info!("LocalizationPublisher task stopping: receiver disconnected");
+                return TickStatus::Failure;
+            }
+            tokio::time::sleep(self.interval).await;
+        }
+    }
+}
+
 action! {
     LocalizationPublisherPlugin: "LocalizationPublisher";
     params(parameters): PublishInterval::provide();
     senders: [send: Pose => "Current pose"];
-    create: LocalizationPublisher::new_with_params(send, ParamsReconstructor::reconstruct(parameters)?);
+    create: LocalizationPublisher::new(send, &ParamsReconstructor::reconstruct(parameters)?);
 }
 
 pub struct ProximityPublisher<S> {
@@ -253,41 +206,11 @@ pub struct ProximityPublisher<S> {
     interval: Duration,
 }
 
-struct PublishProximityTask {
-    send: TokioSender<ProximityState>,
-    interval: Duration,
-}
-
-impl PublishProximityTask {
-    fn new(send: TokioSender<ProximityState>, interval: Duration) -> Self {
-        Self { send, interval }
-    }
-}
-
-impl Task for PublishProximityTask {
-    async fn run(self) -> TickStatus {
-        info!("ProximityPublisher task started");
-        loop {
-            let state = ProximityState { blocked: false };
-            info!("ProximityPublisher publish: {:?}", state);
-            if self.send.send(state).await.is_err() {
-                info!("ProximityPublisher task stopping: receiver disconnected");
-                return TickStatus::Failure;
-            }
-            tokio::time::sleep(self.interval).await;
-        }
-    }
-}
-
 impl<S> ProximityPublisher<S>
 where
     S: Sender<ProximityState>,
 {
-    pub fn new(send: S) -> Self {
-        Self::new_with_params(send, PublishInterval::default())
-    }
-
-    pub fn new_with_params(send: S, params: PublishInterval) -> Self {
+    pub fn new(send: S, params: &PublishInterval) -> Self {
         Self {
             send,
             recv: None,
@@ -330,11 +253,37 @@ where
     }
 }
 
+struct PublishProximityTask {
+    send: TokioSender<ProximityState>,
+    interval: Duration,
+}
+
+impl PublishProximityTask {
+    fn new(send: TokioSender<ProximityState>, interval: Duration) -> Self {
+        Self { send, interval }
+    }
+}
+
+impl Task for PublishProximityTask {
+    async fn run(self) -> TickStatus {
+        info!("ProximityPublisher task started");
+        loop {
+            let state = ProximityState { blocked: false };
+            info!("ProximityPublisher publish: {:?}", state);
+            if self.send.send(state).await.is_err() {
+                info!("ProximityPublisher task stopping: receiver disconnected");
+                return TickStatus::Failure;
+            }
+            tokio::time::sleep(self.interval).await;
+        }
+    }
+}
+
 action! {
     ProximityPublisherPlugin: "ProximityPublisher";
     params(parameters): PublishInterval::provide();
     senders: [send: ProximityState => "Proximity alert"];
-    create: ProximityPublisher::new_with_params(send, ParamsReconstructor::reconstruct(parameters)?);
+    create: ProximityPublisher::new(send, &ParamsReconstructor::reconstruct(parameters)?);
 }
 
 pub struct BrakePublisher<S> {
@@ -343,41 +292,11 @@ pub struct BrakePublisher<S> {
     interval: Duration,
 }
 
-struct PublishBrakeTask {
-    send: TokioSender<BrakeState>,
-    interval: Duration,
-}
-
-impl PublishBrakeTask {
-    fn new(send: TokioSender<BrakeState>, interval: Duration) -> Self {
-        Self { send, interval }
-    }
-}
-
-impl Task for PublishBrakeTask {
-    async fn run(self) -> TickStatus {
-        info!("BrakePublisher task started");
-        loop {
-            let state = BrakeState { engaged: false };
-            info!("BrakePublisher publish: {:?}", state);
-            if self.send.send(state).await.is_err() {
-                info!("BrakePublisher task stopping: receiver disconnected");
-                return TickStatus::Failure;
-            }
-            tokio::time::sleep(self.interval).await;
-        }
-    }
-}
-
 impl<S> BrakePublisher<S>
 where
     S: Sender<BrakeState>,
 {
-    pub fn new(send: S) -> Self {
-        Self::new_with_params(send, PublishInterval::default())
-    }
-
-    pub fn new_with_params(send: S, params: PublishInterval) -> Self {
+    pub fn new(send: S, params: &PublishInterval) -> Self {
         Self {
             send,
             recv: None,
@@ -417,9 +336,72 @@ where
     }
 }
 
+struct PublishBrakeTask {
+    send: TokioSender<BrakeState>,
+    interval: Duration,
+}
+
+impl PublishBrakeTask {
+    fn new(send: TokioSender<BrakeState>, interval: Duration) -> Self {
+        Self { send, interval }
+    }
+}
+
+impl Task for PublishBrakeTask {
+    async fn run(self) -> TickStatus {
+        info!("BrakePublisher task started");
+        loop {
+            let state = BrakeState { engaged: false };
+            info!("BrakePublisher publish: {:?}", state);
+            if self.send.send(state).await.is_err() {
+                info!("BrakePublisher task stopping: receiver disconnected");
+                return TickStatus::Failure;
+            }
+            tokio::time::sleep(self.interval).await;
+        }
+    }
+}
+
 action! {
     BrakePublisherPlugin: "BrakePublisher";
     params(parameters): PublishInterval::provide();
     senders: [send: BrakeState => "Emergency brake state"];
-    create: BrakePublisher::new_with_params(send, ParamsReconstructor::reconstruct(parameters)?);
+    create: BrakePublisher::new(send, &ParamsReconstructor::reconstruct(parameters)?);
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PublishInterval {
+    interval_ms: u64,
+}
+
+impl Default for PublishInterval {
+    fn default() -> Self {
+        Self { interval_ms: 100 }
+    }
+}
+
+impl PublishInterval {
+    pub(crate) fn interval(&self) -> Duration {
+        Duration::from_millis(self.interval_ms)
+    }
+}
+
+impl ProvideParamSpec for PublishInterval {
+    fn provide() -> ParamsSpec {
+        [(
+            FieldName::from("interval_ms"),
+            FieldDefinition {
+                type_spec: FieldTypeSpec::U64(FieldMetadata::new(Arc::new(|value| {
+                    if *value == 0 {
+                        Err(anyhow!("interval must be greater than 0 ms"))
+                    } else {
+                        Ok(())
+                    }
+                }))),
+                description: Some("Publisher period in milliseconds".into()),
+            },
+        )]
+        .into_iter1()
+        .collect1()
+    }
 }
