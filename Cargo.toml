@@ -2,9 +2,9 @@
 resolver = "3"
 members = [
     "beetry",
-    "beetry-builder",
     "beetry-channel",
     "beetry-core",
+    "beetry-engine",
     "beetry-editor-backend",
     "beetry-editor-frontend",
     "beetry-editor-launch",

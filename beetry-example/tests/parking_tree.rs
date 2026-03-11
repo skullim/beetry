@@ -1,9 +1,7 @@
 use anyhow::{Result, anyhow};
-use beetry_builder::Builder;
-use beetry_core::{ExecutorConcept, PeriodicTick, PeriodicTicker, TreeEngine};
+use beetry_core::{PeriodicTick, PeriodicTicker};
+use beetry_engine::{TreeEngine, TreeEngineConfig};
 use beetry_example::ParkingMilestone;
-use beetry_exec::{Executor, ExecutorConfig};
-use beetry_reconstruction::TreeReconstructor;
 use beetry_serialization::{Deserializer, JsonDeserializer};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -84,27 +82,15 @@ fn extract_milestones(events: &[String]) -> Vec<ParkingMilestone> {
 #[tokio::test(flavor = "multi_thread")]
 async fn parking_tree_execution_matches_milestones() -> Result<()> {
     let events = init_global_tracing();
-
-    let executor = Executor::new(ExecutorConfig::default());
-    let (mut ready_exec, registry) = executor.into_ready_with_registry();
-    let builder = Builder::new(registry);
-
     let valid_tree =
         JsonDeserializer::deserialize(include_str!("../src/domain/parking/tree.json"))?;
-    let mut reconstructor = TreeReconstructor::new()?;
-    let tree = reconstructor.try_reconstruct(valid_tree, &builder)?;
-
-    let exec_task = tokio::spawn(async move {
-        let _ = ready_exec.run().await;
-    });
-
-    let mut engine = TreeEngine::new(tree);
+    let mut engine = TreeEngine::new(TreeEngineConfig::default())
+        .valid_tree(valid_tree)?
+        .start_executor()?;
     let ticker = PeriodicTicker::new(PeriodicTick::new(Duration::from_millis(10)));
     tokio::time::timeout(Duration::from_secs(2), engine.tick_till_terminal(ticker))
         .await
         .map_err(|_| anyhow!("tree execution timed out"))??;
-
-    exec_task.abort();
 
     let captured = events
         .lock()

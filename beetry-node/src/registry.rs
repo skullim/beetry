@@ -1,2 +1,2 @@
-mod control;
-mod decorator;
+pub mod control;
+pub mod decorator;

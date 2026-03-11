@@ -1,6 +1,6 @@
 use anyhow::{Context, Result, anyhow, bail};
-use beetry_builder::Builder as BehaviorTreeBuilder;
 use beetry_channel::external;
+use beetry_core::leaf;
 use beetry_core::{BoxNode, MessageHash, NonEmptyNodes, RegisterTask, Root, TaskHandle, Tree};
 use beetry_editor_types::id::ChannelId;
 use beetry_editor_types::output::node::Parameters;
@@ -62,7 +62,7 @@ impl TreeReconstructor {
     pub fn try_reconstruct<RT, TH>(
         &mut self,
         tree: ValidTree,
-        builder: &BehaviorTreeBuilder<RT, TH>,
+        builder: &leaf::Builder<RT, TH>,
     ) -> Result<Tree<BoxNode>>
     where
         RT: RegisterTask<TH> + 'static,
@@ -310,7 +310,7 @@ impl TreeReconstructor {
         node_plugins: &NodePluginRegistry,
         channel_map: &mut ChannelIdToChannelMap,
         ext_receivers_registry: &mut external::ReceiverRegistry,
-        builder: &BehaviorTreeBuilder<RT, TH>,
+        builder: &leaf::Builder<RT, TH>,
     ) -> Result<BoxNode>
     where
         RT: RegisterTask<TH> + 'static,
@@ -355,7 +355,7 @@ impl TreeReconstructor {
         node_plugins: &NodePluginRegistry,
         channel_map: &mut ChannelIdToChannelMap,
         ext_receivers_registry: &mut external::ReceiverRegistry,
-        builder: &BehaviorTreeBuilder<RT, TH>,
+        builder: &leaf::Builder<RT, TH>,
     ) -> Result<BoxNode>
     where
         RT: RegisterTask<TH> + 'static,
@@ -396,7 +396,7 @@ impl TreeReconstructor {
         node_plugins: &NodePluginRegistry,
         channel_map: &mut ChannelIdToChannelMap,
         ext_receivers_registry: &mut external::ReceiverRegistry,
-        builder: &BehaviorTreeBuilder<RT, TH>,
+        builder: &leaf::Builder<RT, TH>,
     ) -> Result<BoxNode>
     where
         RT: RegisterTask<TH> + 'static,
@@ -429,7 +429,7 @@ impl TreeReconstructor {
         node_plugins: &NodePluginRegistry,
         channel_map: &mut ChannelIdToChannelMap,
         ext_receivers_registry: &mut external::ReceiverRegistry,
-        builder: &BehaviorTreeBuilder<RT, TH>,
+        builder: &leaf::Builder<RT, TH>,
     ) -> Result<BoxNode>
     where
         RT: RegisterTask<TH> + 'static,
@@ -484,8 +484,7 @@ impl TreeReconstructor {
                         anyhow!("condition factory for node: {node_name} does not exist")
                     })?
                     .factory();
-                let condition = factory.try_create(data)?;
-                Ok(builder.condition(condition))
+                Ok(builder.condition(factory.try_create(data)?))
             }
         }
     }

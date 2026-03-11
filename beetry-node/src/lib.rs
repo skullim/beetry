@@ -2,7 +2,7 @@ mod control;
 mod decorator;
 
 #[cfg(feature = "registry")]
-mod registry;
+pub mod registry;
 
 use beetry_core::NonEmptyNodes;
 pub use control::{Fallback, MemSequence, Parallel, ParallelThreshold, Sequence};
