@@ -6,9 +6,9 @@ license.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-beetry-builder = { version = "0.1.0", path = "../beetry-builder" }
 beetry-channel = { version = "0.1.0", path = "../beetry-channel" }
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
+beetry-engine = { version = "0.1.0", path = "../beetry-engine", features = ["registry"] }
 beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
 beetry-exec = { version = "0.1.0", path = "../beetry-exec" }
 beetry-macros = { version = "0.1.0", path = "../beetry-macros" }

@@ -1,5 +1,5 @@
 mod channel;
-mod leaf;
+pub mod leaf;
 mod node;
 mod root;
 mod task;
@@ -13,7 +13,7 @@ pub use node::MockNode;
 pub use node::{BoxNode, Node, NonEmptyNodes};
 
 pub use root::Root;
-pub use tree::{PeriodicTick, Ticker, Tree, TreeEngine, TreeEngineError};
+pub use tree::{PeriodicTick, Ticker, TickerError, Tree};
 pub type PeriodicTicker = Ticker<PeriodicTick>;
 
 pub use task::{

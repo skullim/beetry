@@ -5,9 +5,9 @@ use std::{
 };
 
 use futures::{Stream, future::poll_fn};
+use thiserror::Error as ThisError;
 use tokio::time::MissedTickBehavior;
 
-use crate::tree::Error;
 use crate::{Node, TickStatus};
 
 /// Drives a behavior tree using an external tick source (`Stream<Item = TickSignal>`).
@@ -18,6 +18,12 @@ pub struct Ticker<S> {
 }
 
 pub type TickSignal = ();
+
+#[derive(Debug, ThisError)]
+pub enum Error {
+    #[error("tick source was exhausted")]
+    SourceExhausted,
+}
 
 impl<S> Ticker<S>
 where
@@ -39,7 +45,7 @@ where
                 s @ (TickStatus::Success | TickStatus::Failure) => return Ok(s),
             }
         }
-        Err(Error::TickSourceExhausted)
+        Err(Error::SourceExhausted)
     }
 }
 
@@ -76,7 +82,7 @@ mod tests {
     use futures::stream;
 
     use super::*;
-    use crate::{MockNode, TickStatus, tree::Error};
+    use crate::{MockNode, TickStatus};
 
     #[tokio::test]
     async fn periodic_tick_yields_terminal_status() {
@@ -118,6 +124,6 @@ mod tests {
 
         let mut ticker = Ticker::new(stream::iter([(), ()]));
         let result = ticker.tick_till_terminal(&mut node).await;
-        assert!(matches!(result, Err(Error::TickSourceExhausted)));
+        assert!(matches!(result, Err(Error::SourceExhausted)));
     }
 }
