@@ -14,7 +14,7 @@ use crate::{
 use anyhow::Result;
 use beetry_editor_types::{
     output::edge::NodeEdge,
-    persistence::{EditorStateStore, MaybeValidTree, UiElementStore},
+    persistence::{editor, tree, ui},
 };
 
 pub struct ImportViewMut<'a> {
@@ -42,12 +42,12 @@ impl<'a> ImportViewMut<'a> {
         }
     }
 
-    pub fn import_project(&mut self, store: EditorStateStore) -> Result<()> {
+    pub fn import_project(&mut self, store: editor::StateStore) -> Result<()> {
         self.import_tree(store.tree)?;
         self.import_ui(store.ui_elements)
     }
 
-    pub fn import_tree(&mut self, MaybeValidTree(mut tree): MaybeValidTree) -> Result<()> {
+    pub fn import_tree(&mut self, tree::MaybeValid(mut tree): tree::MaybeValid) -> Result<()> {
         self.reset_editor_state();
 
         let EditorRepositoryViewMut {
@@ -107,8 +107,8 @@ impl<'a> ImportViewMut<'a> {
         Ok(())
     }
 
-    pub fn import_ui(&mut self, ui: UiElementStore) -> Result<()> {
-        let UiElementStore {
+    pub fn import_ui(&mut self, ui: ui::Store) -> Result<()> {
+        let ui::Store {
             nodes,
             channels,
             port_connections,

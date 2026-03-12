@@ -6,42 +6,13 @@ use crate::{
     service::{edge::EdgeQueryView, node::NodeView},
     ui::{ChannelUiQuery, NodeUiQuery, NodeUiQueryProcessor},
 };
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow};
 use beetry_editor_types::{
-    id::{ChannelId, NodeId, NodePortId},
-    persistence::{
-        ChannelDataStore, ChannelSpecStore, ChannelStore, ChannelUiRecord, EditorStateStore,
-        MaybeValidTree, NodeRecordStore, NodeRecordValue, NodeSpecStore, NodeStore, NodeUiRecord,
-        ParameterStore, ParameterValues, PortConnectionUiRecord, PortStore, PortsStateMap,
-        PortsStateRecord, TreeStore, UiElementStore, ValidTree,
-    },
+    id::{ChannelId, NodeId},
+    persistence::{channel, editor, node, parameter, port, tree, ui},
     spec::node::NodeSpecKey,
 };
-use bon::Builder;
-use std::collections::{BTreeSet, HashMap, HashSet};
-
-#[derive(Debug, Builder)]
-pub struct TreeValidationResult {
-    #[builder(default)]
-    pub missing_root: bool,
-    pub child_free_non_leaf_node: Option<NodeId>,
-    pub unconnected_port: Option<(NodeId, NodePortId)>,
-    // nodes that are not connected to root
-    #[builder(default)]
-    pub unconnected_nodes: HashSet<NodeId>,
-    #[builder(default)]
-    pub unconnected_channels: HashSet<ChannelId>,
-}
-
-impl TreeValidationResult {
-    pub fn is_tree_valid(&self) -> bool {
-        !self.missing_root
-            && self.child_free_non_leaf_node.is_none()
-            && self.unconnected_port.is_none()
-            && self.unconnected_nodes.is_empty()
-            && self.unconnected_channels.is_empty()
-    }
-}
+use std::collections::HashMap;
 
 pub struct ExportView<'a, NSQ, EQ, CQ, NUQ, CUQ>
 where
@@ -89,7 +60,7 @@ where
     }
 
     /// Project can be exported at any time, even if some parts of the tree are not yet connected
-    pub fn export_project(&self) -> Result<EditorStateStore> {
+    pub fn export_project(&self) -> Result<editor::StateStore> {
         let tracker = self.node_api.tracker();
 
         let nodes: Vec<_> = tracker.nodes().copied().collect();
@@ -100,26 +71,20 @@ where
         let channels: Vec<_> = self.channel_api.channels().copied().collect();
         let channel_store = self.export_channel_store(&channels)?;
 
-        let tree_store = MaybeValidTree(TreeStore::new(
+        let tree_store = tree::MaybeValid(tree::Store::new(
             node_store,
             port_store,
             param_store,
             channel_store,
         ));
 
-        Ok(EditorStateStore {
+        Ok(editor::StateStore {
             tree: tree_store,
             ui_elements: self.export_ui_elements(),
         })
     }
 
-    /// Tree can be exported only if tree is valid and fully connected
-    pub fn export_valid_tree(&self) -> Result<ValidTree> {
-        let validation = self.validate_tree();
-        if !validation.is_tree_valid() {
-            bail!("attempted to export invalid tree, details: {validation:?}");
-        }
-
+    pub fn export_valid_tree(&self) -> Result<tree::ValidTreeStore> {
         let nodes_to_export: Vec<_> = self.node_api.tracker().nodes().copied().collect();
         let node_store = self.export_node_store(&nodes_to_export)?;
         let param_store = self.export_parameter_store(&nodes_to_export)?;
@@ -128,11 +93,12 @@ where
         let channels_to_export: Vec<_> = self.channel_api.channels().copied().collect();
         let channel_store = self.export_channel_store(&channels_to_export)?;
 
-        let tree = TreeStore::new(node_store, port_store, param_store, channel_store);
-        Ok(ValidTree::new(tree))
+        let tree = tree::Store::new(node_store, port_store, param_store, channel_store);
+        tree::ValidTreeStore::try_from(tree)
+            .map_err(|errors| anyhow!("attempted to export invalid tree, details: {errors}"))
     }
 
-    fn export_node_store(&self, nodes: &[NodeId]) -> Result<NodeStore> {
+    fn export_node_store(&self, nodes: &[NodeId]) -> Result<node::Store> {
         let specs = {
             let tracker_api = self.node_api.tracker();
             let spec_api = self.node_api.spec();
@@ -152,7 +118,7 @@ where
                         ),
                     ))
                 })
-                .collect::<Result<NodeSpecStore>>()?
+                .collect::<Result<node::SpecStore>>()?
         };
 
         let nodes = {
@@ -168,7 +134,7 @@ where
 
                     Ok((
                         id,
-                        NodeRecordValue::new(
+                        node::RecordValue::new(
                             tracker_api
                                 .spec_id(id)
                                 .with_context(|| anyhow!("expected spec id for node {id}"))?,
@@ -176,12 +142,12 @@ where
                         ),
                     ))
                 })
-                .collect::<Result<NodeRecordStore>>()?
+                .collect::<Result<node::RecordStore>>()?
         };
-        Ok(NodeStore { specs, nodes })
+        Ok(node::Store { specs, nodes })
     }
 
-    fn export_parameter_store(&self, nodes: &[NodeId]) -> Result<ParameterStore> {
+    fn export_parameter_store(&self, nodes: &[NodeId]) -> Result<parameter::Store> {
         let parameter_api = self.node_api.parameter();
         let spec_api = self.node_api.spec();
         let nodes = nodes.iter().filter(|id| spec_api.params(**id).is_ok());
@@ -190,21 +156,21 @@ where
             .map(|id| {
                 Ok((
                     id,
-                    ParameterValues {
+                    parameter::Values {
                         params: parameter_api.parameters(id)?.clone(),
                     },
                 ))
             })
             .collect::<Result<HashMap<_, _>>>()
             .with_context(|| anyhow!("failed to export parameters"))?;
-        Ok(ParameterStore::new(store))
+        Ok(parameter::Store::new(store))
     }
 
-    fn export_port_store(&self, nodes: &[NodeId]) -> PortStore {
+    fn export_port_store(&self, nodes: &[NodeId]) -> port::Store {
         let ports_api = self.node_api.port_state();
         let mut state_records = Vec::with_capacity(nodes.len());
         for node_id in nodes.iter().copied() {
-            let ports_state: PortsStateMap = self
+            let ports_state: port::StateMap = self
                 .node_spec_query_api
                 .ports(node_id)
                 .iter()
@@ -216,14 +182,14 @@ where
                         .map(|state| (port_id, state.clone()))
                 })
                 .collect();
-            state_records.push(PortsStateRecord::new(node_id, ports_state));
+            state_records.push(port::StateRecord::new(node_id, ports_state));
         }
         let port_connection_view = self.node_api.port_connection_query();
         let connections: Vec<_> = port_connection_view.all_connections().collect();
-        PortStore::new(state_records, connections)
+        port::Store::new(state_records, connections)
     }
 
-    fn export_channel_store(&self, channels: &[ChannelId]) -> Result<ChannelStore> {
+    fn export_channel_store(&self, channels: &[ChannelId]) -> Result<channel::Store> {
         let specs = channels
             .iter()
             .copied()
@@ -233,22 +199,22 @@ where
                     self.channel_api.spec(id)?.clone(),
                 ))
             })
-            .collect::<Result<ChannelSpecStore>>()?;
+            .collect::<Result<channel::SpecStore>>()?;
 
         let channels = channels
             .iter()
             .copied()
             .map(|id| Ok((id, self.channel_api.data(id)?.clone())))
-            .collect::<Result<ChannelDataStore>>()?;
+            .collect::<Result<channel::DataStore>>()?;
 
-        Ok(ChannelStore { specs, channels })
+        Ok(channel::Store { specs, channels })
     }
 
-    fn export_ui_elements(&self) -> UiElementStore {
+    fn export_ui_elements(&self) -> ui::Store {
         let channels: Vec<_> = {
             self.channel_ui_api
                 .iter()
-                .map(|(id, data)| ChannelUiRecord {
+                .map(|(id, data)| ui::ChannelRecord {
                     id: *id,
                     data: data.clone(),
                 })
@@ -257,7 +223,7 @@ where
         let nodes: Vec<_> = {
             self.node_ui_api
                 .iter()
-                .map(|(id, data)| NodeUiRecord {
+                .map(|(id, data)| ui::NodeRecord {
                     id: *id,
                     data: data.clone(),
                 })
@@ -266,102 +232,11 @@ where
         let port_connections: Vec<_> = self
             .port_connection_ui_repo
             .iter()
-            .map(|(id, data)| PortConnectionUiRecord {
+            .map(|(id, data)| ui::PortConnectionRecord {
                 id: *id,
                 data: data.clone(),
             })
             .collect();
-        UiElementStore::new(nodes, channels, port_connections)
-    }
-
-    /// Validation rules:
-    /// 0. Root node exists
-    /// 1. Each node is connected to root
-    /// 2. All except leaf nodes have at least (or most for decorator) 1 child. Decorator having maximum one child is guaranteed at node connection API.
-    /// 3. Each node port is not in Unconnected state
-    /// 4. Optional: Gather list of unconnected channels (if any)
-    fn validate_tree(&self) -> TreeValidationResult {
-        let (root_id, leaf_nodes): (_, HashSet<_>) = {
-            let tracker = self.node_api.tracker();
-            match tracker.root_id() {
-                Ok(root_id) => (root_id, tracker.leaf_nodes().copied().collect()),
-                Err(_) => {
-                    return TreeValidationResult::builder().missing_root(true).build();
-                }
-            }
-        };
-
-        let mut valid_nodes = HashSet::new();
-        let mut to_visit = std::iter::once(root_id).collect::<BTreeSet<_>>();
-        let port_state_api = self.node_api.port_state();
-        let port_connection_api = self.node_api.port_connection_query();
-
-        while let Some(parent) = to_visit.pop_first() {
-            let mut children = self.edge_api.children_of(parent).copied().peekable();
-            if children.peek().is_none() {
-                return TreeValidationResult::builder()
-                    .child_free_non_leaf_node(parent)
-                    .build();
-            }
-            for child in children {
-                if !leaf_nodes.contains(&child) {
-                    to_visit.insert(child);
-                    continue;
-                }
-
-                if let Some(ports_spec) = self
-                    .node_spec_query_api
-                    .spec(child)
-                    .expect("leaf node must have spec")
-                    .ports()
-                {
-                    for port_id in ports_spec.ids() {
-                        let Ok(state) = port_state_api.state(child, *port_id) else {
-                            return TreeValidationResult::builder()
-                                .unconnected_port((child, *port_id))
-                                .build();
-                        };
-
-                        if !state.is_external()
-                            && !port_connection_api.is_port_connected(child, *port_id)
-                        {
-                            return TreeValidationResult::builder()
-                                .unconnected_port((child, *port_id))
-                                .build();
-                        }
-                    }
-                }
-                valid_nodes.insert(child);
-            }
-            valid_nodes.insert(parent);
-        }
-
-        let unconnected_nodes = self
-            .node_api
-            .tracker()
-            .nodes()
-            .filter(|id| !valid_nodes.contains(*id))
-            .copied()
-            .collect();
-
-        let unconnected_channels = self
-            .channel_api
-            .channels()
-            .filter(|id| {
-                let count = self
-                    .channel_api
-                    .config(**id)
-                    .expect("channel listed by iterator must have config")
-                    .count();
-                // "connected" channel has always at least one connected sender and receiver
-                (count.sender() == 0) || (count.receiver() == 0)
-            })
-            .copied()
-            .collect();
-
-        TreeValidationResult::builder()
-            .unconnected_nodes(unconnected_nodes)
-            .unconnected_channels(unconnected_channels)
-            .build()
+        ui::Store::new(nodes, channels, port_connections)
     }
 }
