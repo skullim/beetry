@@ -7,7 +7,7 @@ use beetry_editor_types::output::node::Parameters;
 use beetry_editor_types::spec::node::{LeafKind, NodeKind, NodeName, NodePortKind, NodeSpecKey};
 use beetry_editor_types::{
     id::NodeId,
-    persistence::{ChannelStore, NodeStore, ParameterStore, PortStore, ValidTree},
+    persistence,
 };
 use beetry_plugin::channel::{BoxChannelPlugin, ChannelPluginConstructor, TypeErasedChannel};
 use beetry_plugin::node::{
@@ -33,9 +33,9 @@ pub struct TreeReconstructor {
 }
 
 struct ReconstructionContext<'a> {
-    node_store: &'a NodeStore,
-    param_store: &'a mut ParameterStore,
-    port_store: &'a mut PortStore,
+    node_store: &'a persistence::node::Store,
+    param_store: &'a mut persistence::parameter::Store,
+    port_store: &'a mut persistence::port::Store,
     node_plugins: &'a NodePluginRegistry,
 }
 
@@ -61,7 +61,7 @@ impl TreeReconstructor {
     // 4. External receivers (if any) have been created when initializing Self instance
     pub fn try_reconstruct<RT, TH>(
         &mut self,
-        tree: ValidTree,
+        tree: persistence::tree::ValidTreeStore,
         builder: &leaf::Builder<RT, TH>,
     ) -> Result<Tree<BoxNode>>
     where
@@ -90,7 +90,7 @@ impl TreeReconstructor {
     }
 
     fn try_reconstruct_channels(
-        store: ChannelStore,
+        store: persistence::channel::Store,
         channel_plugin_map: &ChannelHashToPluginMap,
     ) -> Result<ChannelIdToChannelMap> {
         store.channels.into_records().map(|record| {
@@ -112,9 +112,9 @@ impl TreeReconstructor {
         reason = "Store contains mostly Copy types which cannot be consumed"
     )]
     fn try_create_root_snapshot(
-        node_store: NodeStore,
-        mut param_store: ParameterStore,
-        mut port_store: PortStore,
+        node_store: persistence::node::Store,
+        mut param_store: persistence::parameter::Store,
+        mut port_store: persistence::port::Store,
         node_plugins: &NodePluginRegistry,
     ) -> Result<RootSnapshot> {
         let root_id = node_store

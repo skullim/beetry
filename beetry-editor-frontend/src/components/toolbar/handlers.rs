@@ -3,14 +3,14 @@ use std::io::Read;
 use std::path::PathBuf;
 
 use anyhow::{Context, Result, anyhow};
-use beetry_editor_types::persistence::{EditorStateStore, ValidTree};
-use beetry_serialization::{Deserializer, JsonDeserializer, JsonSerializer, Serializer};
 use beetry_editor_backend::api::NodeUiQuery;
+use beetry_editor_types::persistence::{editor, tree::ValidTreeStore};
+use beetry_serialization::{Deserializer, JsonDeserializer, JsonSerializer, Serializer};
 use dioxus::prelude::{ReadableExt, WritableExt};
 use rfd::FileDialog;
 
-use crate::components::editor::state::svg::DimensionState;
 use crate::Backend;
+use crate::components::editor::state::svg::DimensionState;
 use crate::signals::RenderRequests;
 use crate::ui::error::ErrorQueueState;
 use crate::ui::transfer;
@@ -69,7 +69,7 @@ fn do_export_valid_tree(backend: Backend) -> Result<()> {
     Ok(())
 }
 
-fn export_project_to_file(editor_state: &EditorStateStore) -> Result<()> {
+fn export_project_to_file(editor_state: &editor::StateStore) -> Result<()> {
     let serialized = JsonSerializer::serialize(&editor_state)?;
     let file_path = select_export_file()?;
 
@@ -77,7 +77,7 @@ fn export_project_to_file(editor_state: &EditorStateStore) -> Result<()> {
         .with_context(|| format!("Failed to save file '{}'", file_path.display()))
 }
 
-fn export_valid_tree_to_file(valid_tree: ValidTree) -> Result<()> {
+fn export_valid_tree_to_file(valid_tree: ValidTreeStore) -> Result<()> {
     let serialized = JsonSerializer::serialize(&valid_tree.into_inner())?;
     let file_path = select_export_file()?;
 
@@ -95,7 +95,7 @@ fn do_import(mut backend: Backend, mut dimensions: DimensionState) -> Result<()>
     Ok(())
 }
 
-fn import_project_from_file() -> Result<EditorStateStore> {
+fn import_project_from_file() -> Result<editor::StateStore> {
     let path = select_import_file()?;
     let ext = path
         .extension()
@@ -108,7 +108,7 @@ fn import_project_from_file() -> Result<EditorStateStore> {
     let mut file = std::fs::File::open(path)?;
     let mut content_buffer = String::new();
     file.read_to_string(&mut content_buffer)?;
-    let store: EditorStateStore = JsonDeserializer::deserialize(&content_buffer)?;
+    let store: editor::StateStore = JsonDeserializer::deserialize(&content_buffer)?;
     Ok(store)
 }
 

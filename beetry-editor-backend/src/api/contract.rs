@@ -35,7 +35,7 @@ use beetry_editor_types::{
         node::PortState,
         ui::{ChannelUiData, NodeUiData, Point, PortConnectionUiData},
     },
-    persistence::{EditorStateStore, ValidTree},
+    persistence::{editor, tree::ValidTreeStore},
     spec::{
         channel::ChannelSpec,
         node::{NodePortKind, NodeSpec},
@@ -176,27 +176,27 @@ impl EditorService {
 }
 
 pub trait ImportApi {
-    fn import_project(&mut self, store: EditorStateStore) -> Result<()>;
+    fn import_project(&mut self, store: editor::StateStore) -> Result<()>;
 }
 
 impl ImportApi for EditorService {
-    fn import_project(&mut self, store: EditorStateStore) -> Result<()> {
+    fn import_project(&mut self, store: editor::StateStore) -> Result<()> {
         self.import_view_mut().import_project(store)
     }
 }
 
 pub trait ExportApi {
-    fn export_project(&self) -> Result<EditorStateStore>;
-    fn export_valid_tree(&self) -> Result<ValidTree>;
+    fn export_project(&self) -> Result<editor::StateStore>;
+    fn export_valid_tree(&self) -> Result<ValidTreeStore>;
 }
 
 impl ExportApi for EditorService {
-    fn export_project(&self) -> Result<EditorStateStore> {
+    fn export_project(&self) -> Result<editor::StateStore> {
         let export_api = self.export_view();
         export_api.export_project()
     }
 
-    fn export_valid_tree(&self) -> Result<ValidTree> {
+    fn export_valid_tree(&self) -> Result<ValidTreeStore> {
         let export_api = self.export_view();
         export_api.export_valid_tree()
     }

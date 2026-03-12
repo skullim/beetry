@@ -11,7 +11,7 @@ use beetry_editor_types::{
         ChannelConfig, ChannelConfigInput, ChannelConfigUpdate, ChannelData, ChannelKind,
         TokioChannelKind,
     },
-    persistence::{ChannelRecord, ChannelSpecRecord},
+    persistence,
     spec::channel::ChannelSpec,
     spec::node::{NodePortKind, NodePortSpec},
 };
@@ -126,11 +126,17 @@ impl<'a> LoadChannelView<'a> {
         }
     }
 
-    pub(crate) fn load_spec(&mut self, record: ChannelSpecRecord) -> Result<()> {
+    pub(crate) fn load_spec(
+        &mut self,
+        record: persistence::channel::SpecRecord,
+    ) -> Result<()> {
         self.channel.load_spec(self.facade_view.spec, record)
     }
 
-    pub(crate) fn load_channel(&mut self, record: ChannelRecord) -> Result<()> {
+    pub(crate) fn load_channel(
+        &mut self,
+        record: persistence::channel::Record,
+    ) -> Result<()> {
         self.facade_view.channel.load(record.id, record.data)
     }
 }
@@ -177,12 +183,12 @@ impl ChannelService {
     fn load_spec(
         &mut self,
         spec_repo: &mut ChannelSpecRepository,
-        record: ChannelSpecRecord,
+        record: persistence::channel::SpecRecord,
     ) -> Result<()> {
         if let Some(id) = self.spec_cache.get(&record.spec) {
             warn!("spec {id} was already loaded");
         } else {
-            let ChannelSpecRecord { id, spec } = record;
+            let persistence::channel::SpecRecord { id, spec } = record;
             spec_repo.load(id, spec.clone())?;
             self.spec_cache.insert(spec, id);
         }

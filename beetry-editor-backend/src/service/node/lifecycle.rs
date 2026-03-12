@@ -3,11 +3,10 @@ use crate::{
     service::{channel::ChannelService, edge},
 };
 use anyhow::Result;
-use beetry_editor_types::persistence::PortsStateMap;
 use beetry_editor_types::{
     id::{NodeId, NodePortId, NodeSpecId, PortConnectionId},
     output::node::{PortSource, PortState},
-    persistence::ParameterValues,
+    persistence::{parameter, port},
     spec::node::NodeSpec,
 };
 
@@ -33,8 +32,8 @@ impl<'s, 'r> LoadNodeView<'s, 'r> {
         &mut self,
         id: NodeId,
         spec_id: NodeSpecId,
-        param_value: Option<ParameterValues>,
-        ports_state: Option<PortsStateMap>,
+        param_value: Option<parameter::Values>,
+        ports_state: Option<port::StateMap>,
     ) -> Result<()> {
         self.node_service.load_node(
             self.node_facade_view.spec,
@@ -54,7 +53,7 @@ impl<'s, 'r> LoadNodeView<'s, 'r> {
         Ok(())
     }
 
-    fn load_parameters(&mut self, id: NodeId, value: ParameterValues) {
+    fn load_parameters(&mut self, id: NodeId, value: parameter::Values) {
         self.node_facade_view.parameter.create(id, value.params);
     }
 

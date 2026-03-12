@@ -1,7 +1,7 @@
 use anyhow::{Result, anyhow};
 use beetry_core::leaf::Builder;
 use beetry_core::{BoxNode, Node, TickStatus, Ticker, TickerError, Tree};
-use beetry_editor_types::persistence::ValidTree;
+use beetry_editor_types::persistence::tree::ValidTreeStore;
 use beetry_exec::{Executor, ExecutorConfig, Ready as ExecutorReady, WithRegistry};
 use beetry_reconstruction::TreeReconstructor;
 use beetry_serialization::{Deserializer, JsonDeserializer};
@@ -71,7 +71,7 @@ impl TreeEngine<Configured> {
         self.tree_from_path(path)
     }
 
-    pub fn valid_tree(self, valid_tree: ValidTree) -> Result<TreeEngine<Ready<BoxNode>>> {
+    pub fn valid_tree(self, valid_tree: ValidTreeStore) -> Result<TreeEngine<Ready<BoxNode>>> {
         let (executor, registry) = self.state.executor.into_ready_with_registry();
         let builder = Builder::new(registry);
         let mut reconstructor = TreeReconstructor::new()?;
@@ -83,7 +83,7 @@ impl TreeEngine<Configured> {
     }
 }
 
-fn load_valid_tree(path: &Path) -> Result<ValidTree> {
+fn load_valid_tree(path: &Path) -> Result<ValidTreeStore> {
     let content = std::fs::read_to_string(path)?;
     JsonDeserializer::deserialize(&content)
 }

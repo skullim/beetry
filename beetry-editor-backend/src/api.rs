@@ -252,17 +252,17 @@ pub mod ui {
 pub mod project {
     use crate::api::contract::{ExportApi, ImportApi};
     use anyhow::Result;
-    use beetry_editor_types::persistence::{EditorStateStore, ValidTree};
+    use beetry_editor_types::persistence::{editor, tree::ValidTreeStore};
 
-    pub fn import(api: &mut impl ImportApi, store: EditorStateStore) -> Result<()> {
+    pub fn import(api: &mut impl ImportApi, store: editor::StateStore) -> Result<()> {
         api.import_project(store)
     }
 
-    pub fn export(api: &impl ExportApi) -> Result<EditorStateStore> {
+    pub fn export(api: &impl ExportApi) -> Result<editor::StateStore> {
         api.export_project()
     }
 
-    pub fn export_valid_tree(api: &impl ExportApi) -> Result<ValidTree> {
+    pub fn export_valid_tree(api: &impl ExportApi) -> Result<ValidTreeStore> {
         api.export_valid_tree()
     }
 }
