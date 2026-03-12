@@ -1,3 +1,27 @@
+//! # Beetry Exec
+//!
+//! `beetry-exec` provides a task executor for Beetry action tasks.
+//!
+//! The crate is intentionally small and centers around two responsibilities:
+//!
+//! - [`Executor`] runs registered [`NodeTask`] values to completion
+//! - [`TaskRegistry`] schedules new tasks and returns a [`TaskHandle`] for
+//!   querying or aborting them
+//!
+//! ## Lifecycle
+//!
+//! The executor is constructed in a setup state:
+//!
+//! 1. Create an executor with [`Executor::new`]
+//! 2. Split it into a runnable executor and a task registry with
+//!    [`Executor::into_ready_with_registry`]
+//! 3. Spawn or await [`ExecutorConcept::run`] on the ready executor
+//! 4. Use the registry to register [`NodeTask`] instances from elsewhere in the
+//!    application
+//!
+//! This staged API makes it easy to hand the registry to tree code while the
+//! executor runs in a dedicated task.
+
 use anyhow::{Result, anyhow};
 use beetry_core::{
     AbortTask, ExecutorConcept, NodeTask, QueryTask, RegisterTask, TaskDescription, TaskStatus,
@@ -12,6 +36,7 @@ use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::mpsc::{Receiver, Sender, channel};
 use tracing::{debug, instrument};
 
+/// Configuration for an [`Executor`].
 pub struct ExecutorConfig {
     task_channel_capacity: usize,
 }
@@ -25,6 +50,7 @@ impl Default for ExecutorConfig {
 }
 
 impl ExecutorConfig {
+    /// Creates a configuration with the provided task queue capacity.
     pub fn new(task_channel_capacity: usize) -> Self {
         Self {
             task_channel_capacity,
@@ -32,6 +58,7 @@ impl ExecutorConfig {
     }
 }
 
+/// Executor state containing the task registry before startup is finalized.
 pub struct WithRegistry {
     registry: TaskRegistry,
 }
@@ -68,12 +95,15 @@ impl ExecutionTask {
     }
 }
 
+/// A Beetry executor parameterized by its lifecycle state.
 pub struct Executor<S> {
     recv: Receiver<ExecutionTask>,
     state: S,
 }
 
+/// Marker type for the pre-initialization executor state.
 pub struct Init;
+/// Marker type for the runnable executor state.
 pub struct Ready;
 
 impl Executor<Init> {
@@ -81,6 +111,11 @@ impl Executor<Init> {
         clippy::needless_pass_by_value,
         reason = "Config contains only copy types now, but not marked Copy for future extensions"
     )]
+    /// Creates a new executor with an internal bounded task channel.
+    ///
+    /// The returned executor is still in its setup phase. Use
+    /// [`Executor::into_ready_with_registry`] to split out the
+    /// [`TaskRegistry`] and obtain a runnable executor.
     pub fn new(config: ExecutorConfig) -> Executor<WithRegistry> {
         let (sender, recv) = channel(config.task_channel_capacity);
         let registry = TaskRegistry::new(sender);
@@ -93,6 +128,14 @@ impl Executor<Init> {
 }
 
 impl Executor<WithRegistry> {
+    /// Finalizes setup and returns both the runnable executor and its registry.
+    ///
+    /// This is the handoff point between initialization and runtime:
+    ///
+    /// - the returned [`Executor<Ready>`] can be driven with
+    ///   [`ExecutorConcept::run`]
+    /// - the returned [`TaskRegistry`] can be shared with code that needs to
+    ///   schedule [`NodeTask`] values
     pub fn into_ready_with_registry(self) -> (Executor<Ready>, TaskRegistry) {
         (
             Executor {
@@ -133,6 +176,12 @@ impl ExecutorConcept for Executor<Ready> {
 }
 
 #[derive(Debug, Clone)]
+/// Registers [`NodeTask`] values with a running [`Executor`].
+///
+/// Each successful registration returns a [`TaskHandle`] that can be used to:
+///
+/// - query whether the task is still running or has reached a terminal state
+/// - request cooperative abort for the task
 pub struct TaskRegistry {
     sender: Sender<ExecutionTask>,
 }
@@ -205,6 +254,16 @@ impl TaskAborter {
 }
 
 #[derive(Debug)]
+/// Handle for querying and aborting a registered task.
+///
+/// The handle is a lightweight client-side view over task state:
+///
+/// - [`QueryTask::query`] returns the latest observed [`TaskStatus`]
+/// - [`AbortTask::abort`] requests that the running task transitions to
+///   [`TaskStatus::Aborted`]
+///
+/// Querying is non-blocking. Until a terminal status is received, querying
+/// reports [`TaskStatus::Running`].
 pub struct TaskHandle {
     querier: StatusQuerier,
     aborter: TaskAborter,

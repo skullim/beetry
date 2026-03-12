@@ -1,7 +1,7 @@
 use anyhow::{Result, anyhow};
 use beetry_core::{PeriodicTick, PeriodicTicker};
 use beetry_engine::{TreeEngine, TreeEngineConfig};
-use beetry_example::ParkingMilestone;
+use beetry_example::domain::parking::ParkingMilestone;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tracing::{Event, Subscriber};

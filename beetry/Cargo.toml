@@ -6,3 +6,17 @@ edition = "2024"
 license.workspace = true
 
 [dependencies]
+beetry-channel = { path = "../beetry-channel" }
+beetry-core = { path = "../beetry-core" }
+beetry-engine = { path = "../beetry-engine" }
+beetry-editor-backend = { path = "../beetry-editor-backend" }
+beetry-editor-frontend = { path = "../beetry-editor-frontend" }
+beetry-editor-types = { path = "../beetry-editor-types" }
+beetry-example = { path = "../beetry-example" }
+beetry-exec = { path = "../beetry-exec" }
+beetry-node = { path = "../beetry-node" }
+beetry-plugin = { path = "../beetry-plugin" }
+simple-mermaid.workspace = true
+
+[lints]
+workspace = true

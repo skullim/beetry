@@ -1,3 +1,9 @@
+//! Public backend API for editor operations.
+//!
+//! This module provides a thin, task-oriented surface over the backend
+//! services. Its submodules group operations by domain such as nodes, edges,
+//! channels, UI state, and project import/export.
+
 pub use crate::{
     channel::ChannelQueryView,
     edge::EdgeQueryView,

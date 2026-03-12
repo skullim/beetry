@@ -1,7 +1,9 @@
 use std::rc::Rc;
 
-use beetry_editor_backend::{ChannelSpecMap, NodeSpecMap};
-use beetry_editor_types::spec::node::NodeSpec;
+use beetry_editor_types::spec::{
+    channel::ChannelSpecMap,
+    node::{NodeSpec, NodeSpecMap},
+};
 use beetry_plugin::{
     channel::ChannelPluginConstructor,
     node::{

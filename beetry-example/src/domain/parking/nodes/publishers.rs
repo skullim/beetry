@@ -1,5 +1,5 @@
 use super::super::messages::{BrakeState, ProximityState, VehicleState};
-use crate::Pose;
+use crate::domain::Pose;
 use anyhow::{Result, anyhow};
 use beetry_core::{ActionBehavior, NodeTask, Sender, Task, TickStatus};
 use beetry_editor_types::spec::node::{

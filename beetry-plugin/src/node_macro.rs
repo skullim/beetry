@@ -1,3 +1,46 @@
+/// Creates an action plugin from Beetry's leaf-node DSL.
+///
+/// The generated plugin:
+///
+/// - publishes a `NodeSpec`
+/// - publishes port metadata and parameter metadata
+/// - provides a factory that reconstructs the runtime behavior from stored
+///   parameters and resolved channel endpoints
+/// - registers itself automatically
+///
+/// Minimal example:
+///
+/// ```rust, ignore
+/// action! {
+///     MultiParamsPlugin: "Multi Params";
+///     params(parameters): MultiParamsParams::provide();
+///     create: MultiParams::new(ParamsReconstructor::reconstruct(parameters)?);
+/// }
+/// ```
+///
+/// Example with typed inputs and outputs:
+///
+/// ```rust, ignore
+/// action! {
+///     MultiPortsPlugin: "Multi Ports";
+///     receivers: [
+///         in1: Pose => "Pose input 1",
+///         in2: Pose => "Pose input 2",
+///     ];
+///     senders: [
+///         out1: Pose => "Pose output 1",
+///         out2: Pose => "Pose output 2",
+///     ];
+///     create: MultiPorts::new(
+///         MultiPortsReceivers::builder()
+///             .in1(in1)
+///             .in2(in2)
+///             .build(),
+///         out1,
+///         out2
+///     );
+/// }
+/// ```
 #[macro_export]
 macro_rules! action {
     ($plugin_name:ident : $name:expr; $($tokens:tt)*) => {
@@ -20,6 +63,10 @@ macro_rules! action {
     };
 }
 
+/// Creates a condition plugin from Beetry's leaf-node DSL.
+///
+/// Use when the node evaluates to success or failure without
+/// producing child nodes.
 #[macro_export]
 macro_rules! condition {
     ($plugin_name:ident : $name:expr; $($tokens:tt)*) => {
@@ -42,8 +89,9 @@ macro_rules! condition {
     };
 }
 
-/// TT-muncher: parses plugin DSL tokens into receivers/senders/params/params_binding
-/// and a final `create` expression, then forwards parsed fields to the impl macro.
+/// TT-muncher: parses plugin DSL tokens into
+/// receivers/senders/params/params_binding and a final `create` expression,
+/// then forwards parsed fields to the impl macro.
 #[doc(hidden)]
 #[macro_export]
 macro_rules! __leaf_plugin_parse {
@@ -345,6 +393,10 @@ macro_rules! __leaf_plugin_build_params {
     };
 }
 
+/// Creates a control plugin for nodes that manage multiple children.
+///
+/// Use when reconstruction needs a `children(...)` binding and an
+/// optional parameter schema.
 #[macro_export]
 macro_rules! control {
     ($plugin_name:ident : $name:expr; children($children_binding:ident),create: $create:expr,) => {
@@ -357,7 +409,12 @@ macro_rules! control {
             $create
         }
     };
-    ($plugin_name:ident : $name:expr; children($children_binding:ident),params($params_binding:ident): $params:expr,create: $create:expr,) => {
+    (
+        $plugin_name:ident :
+        $name:expr; children($children_binding:ident),params($params_binding:ident):
+        $params:expr,create:
+        $create:expr,
+    ) => {
         $crate::__control_plugin_impl! {
             $plugin_name,
             $name,
@@ -367,7 +424,12 @@ macro_rules! control {
             $create
         }
     };
-    ($plugin_name:ident : $name:expr; children($children_binding:ident),params: $params:expr,create: $create:expr,) => {
+    (
+        $plugin_name:ident :
+        $name:expr; children($children_binding:ident),params:
+        $params:expr,create:
+        $create:expr,
+    ) => {
         $crate::__control_plugin_impl! {
             $plugin_name,
             $name,
@@ -379,6 +441,10 @@ macro_rules! control {
     };
 }
 
+/// Creates a decorator plugin for nodes that wrap a single child.
+///
+/// Use when reconstruction needs a `child(...)` binding and the
+/// plugin shape is a single-child structural node.
 #[macro_export]
 macro_rules! decorator {
     ($plugin_name:ident : $name:expr; child($child_binding:ident),create: $create:expr,) => {

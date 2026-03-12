@@ -2,6 +2,7 @@ use crate::Indices;
 use crate::control::RunningNodesAborter;
 use beetry_core::{Node, NonEmptyNodes, TickStatus};
 
+/// Ticks children from left to right until one fails or is still running.
 pub struct Sequence {
     nodes: NonEmptyNodes,
     aborter: RunningNodesAborter,
@@ -56,6 +57,7 @@ impl Node for Sequence {
     }
 }
 
+/// Sequence variant that resumes from the last running child on the next tick.
 pub struct MemSequence {
     nodes: NonEmptyNodes,
     running_idx: Option<usize>,
