@@ -3,13 +3,18 @@ use crate::control::RunningNodesAborter;
 use beetry_core::{Node, NonEmptyNodes, TickStatus};
 use bon::Builder;
 
+/// Threshold configuration for [`ParallelThreshold`].
 #[derive(Debug, Clone, Copy, Builder)]
 #[cfg_attr(feature = "registry", derive(serde::Deserialize))]
 pub struct ParallelThresholdParams {
+    /// Number of children that must succeed for the node to succeed.
     pub success_count: u16,
+    /// Number of children that must fail for the node to fail.
     pub failure_count: u16,
 }
 
+/// Ticks all children and resolves once the configured success or failure
+/// threshold is reached.
 pub struct ParallelThreshold {
     nodes: NonEmptyNodes,
     aborter: RunningNodesAborter,

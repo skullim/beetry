@@ -1,5 +1,6 @@
 use beetry_core::{Node, TickStatus};
 
+/// Swaps child success and failure while preserving running.
 pub struct Invert<N> {
     node: N,
 }

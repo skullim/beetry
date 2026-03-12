@@ -1,5 +1,4 @@
 use crate::{
-    NodeSpecMap,
     channel::LoadChannelView,
     edge::EdgeViewMut,
     node,
@@ -15,6 +14,7 @@ use anyhow::Result;
 use beetry_editor_types::{
     output::edge::NodeEdge,
     persistence::{editor, tree, ui},
+    spec::node::NodeSpecMap,
 };
 
 pub struct ImportViewMut<'a> {

@@ -1,7 +1,13 @@
 use crate::{Node, TickStatus};
 
 pub trait Behavior {
+    /// Evaluate the condition for the current tick.
+    ///
+    /// Returning `true` maps to [`TickStatus::Success`] and `false` maps to
+    /// [`TickStatus::Failure`] in [`Condition`].
     fn cond(&mut self) -> bool;
+
+    /// Reset any condition-local state for a fresh run.
     fn reset(&mut self) {}
 }
 

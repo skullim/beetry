@@ -2,7 +2,7 @@ use beetry_core::{ConditionBehavior, Receiver};
 use beetry_plugin::condition;
 use tracing::info;
 
-use crate::Pose;
+use crate::domain::Pose;
 
 use super::super::messages::{ManeuverStatus, ProximityState, TargetSlot, VehicleState};
 use super::ParkingMilestone;

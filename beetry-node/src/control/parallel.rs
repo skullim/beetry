@@ -2,7 +2,8 @@ use crate::Indices;
 use crate::control::RunningNodesAborter;
 use beetry_core::{Node, NonEmptyNodes, TickStatus};
 
-/// Parallel node succeeds when all nodes succeed
+/// Ticks all children each step, failing on the first failure and succeeding
+/// only once all children succeed.
 pub struct Parallel {
     nodes: NonEmptyNodes,
     aborter: RunningNodesAborter,

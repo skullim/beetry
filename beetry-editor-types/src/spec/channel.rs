@@ -1,7 +1,9 @@
 use super::message::{MessageHashProvider, MessageTypeProvider};
+use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, CopyGetters, Getters)]
 pub struct ChannelSpec {
@@ -24,5 +26,30 @@ impl ChannelSpec {
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.msg_type_name
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ChannelSpecMap {
+    map: HashMap<MessageHash, ChannelSpec>,
+}
+
+impl FromIterator<(MessageHash, ChannelSpec)> for ChannelSpecMap {
+    fn from_iter<T: IntoIterator<Item = (MessageHash, ChannelSpec)>>(iter: T) -> Self {
+        Self {
+            map: iter.into_iter().collect(),
+        }
+    }
+}
+
+impl ChannelSpecMap {
+    pub fn spec(&self, key: &MessageHash) -> Result<&ChannelSpec> {
+        self.map
+            .get(key)
+            .ok_or_else(|| anyhow!("failed to obtain channel spec for key {key:?}"))
+    }
+
+    pub fn values(&self) -> impl Iterator<Item = &ChannelSpec> {
+        self.map.values()
     }
 }

@@ -1,17 +1,20 @@
+use beetry_editor_types::spec::message::Message;
+use beetry_macros::Message;
+use type_hash::TypeHash;
+
 pub mod parking;
 pub mod ui;
 
-pub use parking::{
-    BrakePublisher, BrakePublisherPlugin, BrakeState, CheckSystemReady, CheckSystemReadyPlugin,
-    ConfirmParkedState, ConfirmParkedStatePlugin, DetectParkingSlots, DetectParkingSlotsPlugin,
-    FollowTrajectory, FollowTrajectoryPlugin, LocalizationPublisher, LocalizationPublisherPlugin,
-    ManeuverStatus, ParkingMilestone, PlanParkingTrajectory, PlanParkingTrajectoryPlugin,
-    ProximityPublisher, ProximityPublisherPlugin, ProximityState, SafetyMonitor,
-    SafetyMonitorPlugin, SafetyStatus, SelectBestSlot, SelectBestSlotPlugin, SlotCandidates,
-    TargetSlot, Trajectory, VehicleState, VehicleStatePublisher, VehicleStatePublisherPlugin,
-    VerifyClearance, VerifyClearancePlugin, VerifyFinalPose, VerifyFinalPosePlugin,
-};
-pub use ui::{
-    MultiParams, MultiParamsParams, MultiParamsPlugin, MultiPorts, MultiPortsPlugin,
-    MultiPortsReceivers,
-};
+#[derive(Debug, Clone, Copy, Default, TypeHash, Message)]
+pub struct Pose {
+    pub x: f32,
+    pub y: f32,
+}
+
+impl Pose {
+    pub fn new(x: f32, y: f32) -> Self {
+        Self { x, y }
+    }
+}
+
+beetry_plugin::channel! {PoseChannel: Pose}

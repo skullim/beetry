@@ -10,9 +10,12 @@ use tokio::time::MissedTickBehavior;
 
 use crate::{Node, TickStatus};
 
-/// Drives a behavior tree using an external tick source (`Stream<Item = TickSignal>`).
+/// Drives a behavior tree using an external tick source.
 ///
-/// This lets callers decide when ticks happen (periodic, event-driven, or mixed).
+/// `Ticker` is built from any `Stream<Item = TickSignal>`, so callers can
+/// define their own ticking mechanism. A tick source can be periodic with
+/// [`PeriodicTick`], event-driven from an external stream, or a hybrid of
+/// time-based and signal-based wakeups.
 pub struct Ticker<S> {
     stream: Pin<Box<S>>,
 }

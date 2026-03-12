@@ -4,7 +4,7 @@ use beetry_macros::receivers;
 use beetry_plugin::action;
 use bon::bon;
 
-use crate::Pose;
+use crate::domain::Pose;
 
 receivers! {
     MultiPortsReceivers {

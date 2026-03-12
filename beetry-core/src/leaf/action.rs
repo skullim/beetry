@@ -8,14 +8,24 @@ use tracing::{debug, error};
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait Behavior {
+    /// Construct the task that should be scheduled for this action.
+    ///
+    /// This is called when the action transitions from idle into execution.
     fn task(&mut self) -> Result<NodeTask>;
+
+    /// Reset any action-local state for a fresh run.
     fn reset(&mut self) {}
 
-    // hooks for additional behavior that is executed based on the task status
-    // useful for propagating data between nodes and cleanup
+    /// Hook called when the scheduled task is still running.
     fn on_running(&mut self) {}
+
+    /// Hook called after the scheduled task reports success.
     fn on_success(&mut self) {}
+
+    /// Hook called after the scheduled task reports failure.
     fn on_failure(&mut self) {}
+
+    /// Hook called after the action is aborted.
     fn on_aborted(&mut self) {}
 }
 
