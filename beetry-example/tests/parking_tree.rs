@@ -2,7 +2,6 @@ use anyhow::{Result, anyhow};
 use beetry_core::{PeriodicTick, PeriodicTicker};
 use beetry_engine::{TreeEngine, TreeEngineConfig};
 use beetry_example::ParkingMilestone;
-use beetry_serialization::{Deserializer, JsonDeserializer};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tracing::{Event, Subscriber};
@@ -82,10 +81,11 @@ fn extract_milestones(events: &[String]) -> Vec<ParkingMilestone> {
 #[tokio::test(flavor = "multi_thread")]
 async fn parking_tree_execution_matches_milestones() -> Result<()> {
     let events = init_global_tracing();
-    let valid_tree =
-        JsonDeserializer::deserialize(include_str!("../src/domain/parking/tree.json"))?;
     let mut engine = TreeEngine::new(TreeEngineConfig::default())
-        .valid_tree(valid_tree)?
+        .tree_from_path(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/domain/parking/tree.json"
+        ))?
         .start_executor()?;
     let ticker = PeriodicTicker::new(PeriodicTick::new(Duration::from_millis(10)));
     tokio::time::timeout(Duration::from_secs(2), engine.tick_till_terminal(ticker))
