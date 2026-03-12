@@ -1,5 +1,11 @@
+//! Trait-based contracts for the backend API surface.
+//!
+//! The traits in this module describe the capabilities required by the helper
+//! functions in [`crate::api`]. They are grouped by concern so callers can
+//! depend on a narrow interface, while [`crate::EditorService`] can implement
+//! the full backend surface in one place.
+
 use crate::{
-    NodeSpecMap,
     channel::{ChannelQueryView, ChannelView},
     edge::{EdgeQueryView, EdgeView},
     node::{
@@ -38,7 +44,7 @@ use beetry_editor_types::{
     persistence::{editor, tree::ValidTreeStore},
     spec::{
         channel::ChannelSpec,
-        node::{NodePortKind, NodeSpec},
+        node::{NodePortKind, NodeSpec, NodeSpecMap},
     },
 };
 

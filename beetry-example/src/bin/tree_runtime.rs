@@ -1,14 +1,25 @@
+//! Reconstructs and executes an authored Beetry tree on the backend.
+//!
+//! Run with:
+//! `cargo run -p beetry-example --bin tree_runtime`
+//!
+//! The runtime opens a native file picker. Select a tree JSON authored/exported
+//! in the editor to reconstruct it and execute it.
+//!
+//! Example:
+//! `beetry-example/src/domain/parking/tree.json`
+//!
 use std::time::Duration;
-use tracing_subscriber::filter::{LevelFilter, Targets};
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::{Layer, Registry};
-use tracing_tree::HierarchicalLayer;
 
 use anyhow::Result;
 use beetry_core::{PeriodicTick, PeriodicTicker};
 use beetry_engine::{TreeEngine, TreeEngineConfig};
 #[expect(unused_imports, reason = "import all node and channel plugins")]
-use beetry_example::*;
+use beetry_example::domain::*;
+use tracing_subscriber::filter::{LevelFilter, Targets};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::{Layer, Registry};
+use tracing_tree::HierarchicalLayer;
 
 #[tokio::main]
 async fn main() -> Result<()> {

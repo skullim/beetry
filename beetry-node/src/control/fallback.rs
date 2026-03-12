@@ -2,6 +2,7 @@ use crate::Indices;
 use crate::control::RunningNodesAborter;
 use beetry_core::{Node, NonEmptyNodes, TickStatus};
 
+/// Ticks children from left to right until one succeeds or is still running.
 pub struct Fallback {
     nodes: NonEmptyNodes,
     aborter: RunningNodesAborter,

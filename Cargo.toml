@@ -7,7 +7,6 @@ members = [
     "beetry-engine",
     "beetry-editor-backend",
     "beetry-editor-frontend",
-    "beetry-editor-launch",
     "beetry-editor-types",
     "beetry-example",
     "beetry-exec",
@@ -29,6 +28,7 @@ indexmap = { version = "2.13.0", features = ["serde"] }
 mitsein = { version = "0.9.0", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde-value = "0.7.0"
+simple-mermaid = "0.2.0"
 strum_macros = "0.27.2"
 thiserror = "2.0.18"
 tracing = "0.1.44"
@@ -87,7 +87,6 @@ return_and_then = "warn"
 unnecessary_self_imports = "warn"
 unneeded_field_pattern = "warn"
 unseparated_literal_suffix = "warn"
-
 
 # cherry pick nursery group
 branches_sharing_code = "warn"

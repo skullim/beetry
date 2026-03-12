@@ -6,7 +6,6 @@ license.workspace = true
 
 [features]
 default = ["desktop"]
-web = ["dioxus/web"]
 desktop = ["dioxus/desktop"]
 
 [dependencies]

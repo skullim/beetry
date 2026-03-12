@@ -1,13 +1,13 @@
 use anyhow::{Result, anyhow};
 use beetry_core::MessageHash;
-use beetry_editor_backend::{EditorService, NodeSpecMap, api};
+use beetry_editor_backend::{EditorService, api};
 use beetry_editor_types::id::{ChannelId, NodeId};
 use beetry_editor_types::output::channel::{ChannelConfigInput, ChannelKind, TokioChannelKind};
 use beetry_editor_types::output::ui::{ChannelUiData, NodeUiData, Point};
 use beetry_editor_types::spec::channel::ChannelSpec;
 use beetry_editor_types::spec::message::{MessageHashProvider, MessageSpec, MessageTypeProvider};
 use beetry_editor_types::spec::node::{
-    NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey, PortsSpec,
+    NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey, NodeSpecMap, PortsSpec,
 };
 use mitsein::iter1::FromIterator1;
 use rstest::fixture;

@@ -1,3 +1,11 @@
+//! # Beetry Node
+//!
+//! `beetry-node` provides the built-in control and decorator behavior tree
+//! nodes available by default in Beetry.
+//!
+//! Compatibility with the editor integration and plugin-based registration is
+//! guarded behind the `registry` feature.
+
 mod control;
 mod decorator;
 
@@ -5,8 +13,9 @@ mod decorator;
 pub mod registry;
 
 use beetry_core::NonEmptyNodes;
-pub use control::{Fallback, MemSequence, Parallel, ParallelThreshold, Sequence};
-pub use control::ParallelThresholdParams;
+pub use control::{
+    Fallback, MemSequence, Parallel, ParallelThreshold, ParallelThresholdParams, Sequence,
+};
 pub use decorator::{Fail, Invert, Succeed, UntilFailure, UntilSuccess};
 
 #[cfg(test)]

@@ -1,5 +1,6 @@
 use beetry_core::{Node, TickStatus};
 
+/// Forces any terminal child result to become [`TickStatus::Success`].
 pub struct Succeed<N> {
     node: N,
 }

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{id::NodePortId, spec::message::MessageSpec};
 use anyhow::{Result, anyhow};
@@ -18,6 +18,31 @@ pub struct NodeSpec {
     params: Option<ParamsSpec>,
     #[getset(get = "pub", get_mut = "pub")]
     ports: Option<PortsSpec>,
+}
+
+#[derive(Debug, Clone)]
+pub struct NodeSpecMap {
+    map: HashMap<NodeSpecKey, NodeSpec>,
+}
+
+impl FromIterator<(NodeSpecKey, NodeSpec)> for NodeSpecMap {
+    fn from_iter<T: IntoIterator<Item = (NodeSpecKey, NodeSpec)>>(iter: T) -> Self {
+        Self {
+            map: iter.into_iter().collect(),
+        }
+    }
+}
+
+impl NodeSpecMap {
+    pub fn spec(&self, key: &NodeSpecKey) -> Result<&NodeSpec> {
+        self.map
+            .get(key)
+            .ok_or_else(|| anyhow!("failed to obtain node spec for key {key:?}"))
+    }
+
+    pub fn values(&self) -> impl Iterator<Item = &NodeSpec> {
+        self.map.values()
+    }
 }
 
 impl NodeSpec {

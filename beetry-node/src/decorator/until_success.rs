@@ -1,5 +1,6 @@
 use beetry_core::{Node, TickStatus};
 
+/// Keeps returning [`TickStatus::Running`] until the child succeeds.
 pub struct UntilSuccess<N> {
     node: N,
 }

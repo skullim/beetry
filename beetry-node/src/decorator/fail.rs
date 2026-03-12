@@ -1,5 +1,6 @@
 use beetry_core::{Node, TickStatus};
 
+/// Forces any terminal child result to become [`TickStatus::Failure`].
 pub struct Fail<N> {
     node: N,
 }

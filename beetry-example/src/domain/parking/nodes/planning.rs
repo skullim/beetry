@@ -6,7 +6,7 @@ use tokio::sync::mpsc::{
 };
 use tracing::info;
 
-use crate::Pose;
+use crate::domain::Pose;
 
 use super::super::messages::{ManeuverStatus, SafetyStatus, TargetSlot, Trajectory};
 use super::ParkingMilestone;

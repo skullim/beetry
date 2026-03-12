@@ -1,4 +1,5 @@
-use beetry_editor_backend::{EditorService, NodeSpecMap};
+use beetry_editor_backend::EditorService;
+use beetry_editor_types::spec::node::NodeSpecMap;
 use dioxus::prelude::*;
 
 #[derive(Clone, Copy)]
