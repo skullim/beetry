@@ -1,38 +1,34 @@
-use std::marker::PhantomData;
+use anyhow::Result;
 
-use serde::{Deserialize, Serialize};
+pub mod json {
+    use super::Result;
+    use anyhow::Context;
+    use serde::Serialize;
+    use std::path::Path;
 
-pub trait Serializer {
-    type Item: Serialize;
-    fn serialize(value: &Self::Item) -> anyhow::Result<String>;
-}
-
-pub trait Deserializer<'a> {
-    type Item: Deserialize<'a>;
-    fn deserialize(raw: &'a str) -> anyhow::Result<Self::Item>;
-}
-
-pub struct JsonSerializer<T> {
-    pd: PhantomData<T>,
-}
-
-impl<T: Serialize> Serializer for JsonSerializer<T> {
-    type Item = T;
-    fn serialize(value: &T) -> anyhow::Result<String> {
+    fn serialize<T: Serialize>(value: &T) -> Result<String> {
         Ok(serde_json::to_string(value)?)
     }
-}
 
-pub struct JsonDeserializer<T> {
-    pd: PhantomData<T>,
-}
+    pub fn save_to_file<T: Serialize>(path: impl AsRef<Path>, value: &T) -> Result<()> {
+        let serialized = serialize(value)?;
+        std::fs::write(&path, serialized)
+            .with_context(|| format!("failed to save to file {}", path.as_ref().display()))
+    }
 
-impl<'de, T> Deserializer<'de> for JsonDeserializer<T>
-where
-    T: Deserialize<'de>,
-{
-    type Item = T;
-    fn deserialize(raw: &'de str) -> anyhow::Result<Self::Item> {
-        Ok(serde_json::from_str(raw)?)
+    pub fn load_from<T>(raw: &str) -> Result<T>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        serde_json::from_str(raw).context("failed to deserialize")
+    }
+
+    pub fn load_from_file<T>(path: impl AsRef<Path>) -> Result<T>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        let raw = std::fs::read_to_string(&path)
+            .with_context(|| format!("failed to load file {}", path.as_ref().display()))?;
+        load_from(&raw)
     }
 }
