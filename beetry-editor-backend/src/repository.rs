@@ -91,10 +91,11 @@ impl EditorRepository {
         }
     }
 
-    /// Instance should be initialized in default state, the interaction with concrete repositories
-    /// should be managed by service layer.
-    /// This saves ton of validation (to guarantee repositories are in correct state) that would be
-    /// necessary to perform if Self would take the repositories in the constructor.
+    /// Instance should be initialized in default state, the interaction with
+    /// concrete repositories should be managed by service layer.
+    /// This saves ton of validation (to guarantee repositories are in correct
+    /// state) that would be necessary to perform if Self would take the
+    /// repositories in the constructor.
     pub fn new() -> Self {
         Self::default()
     }
@@ -451,7 +452,8 @@ impl ChannelRepository {
     }
 }
 
-// UI components are always backed up by other "real" entities, therefore no need to use new identifiers.
+// UI components are always backed up by other "real" entities, therefore no
+// need to use new identifiers.
 #[derive(Debug)]
 pub struct UiRepository<I, D> {
     data: HashMap<I, D>,

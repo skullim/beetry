@@ -56,7 +56,8 @@ pub mod error {
     }
 }
 
-/// Describes the hash of the message type (and not concrete message type instance)
+/// Describes the hash of the message type (and not concrete message type
+/// instance)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct MessageHash {
     hash: u64,

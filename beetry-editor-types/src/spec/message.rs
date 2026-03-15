@@ -61,7 +61,8 @@ pub trait MessageTypeProvider {
     fn as_str() -> &'static str;
 }
 
-//@todo: proc macro with optional string parameter would be cleaner, but requires new macro crate
+//@todo: proc macro with optional string parameter would be cleaner, but
+//@todo: requires new macro crate
 impl<T: Message> MessageTypeProvider for T {
     fn as_str() -> &'static str {
         std::any::type_name::<T>()

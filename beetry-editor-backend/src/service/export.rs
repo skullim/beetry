@@ -59,7 +59,8 @@ where
         }
     }
 
-    /// Project can be exported at any time, even if some parts of the tree are not yet connected
+    /// Project can be exported at any time, even if some parts of the tree are
+    /// not yet connected
     pub fn export_project(&self) -> Result<editor::StateStore> {
         let tracker = self.node_api.tracker();
 

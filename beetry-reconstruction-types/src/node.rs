@@ -176,7 +176,8 @@ impl DecoratorMetadata {
 }
 
 /// Provides basic information regarding external communication endpoints.
-/// User should utilize it to provide missing endpoints such that the tree can be reconstructed.
+/// User should utilize it to provide missing endpoints such that the tree can
+/// be reconstructed.
 #[derive(Default, Builder)]
 pub struct ExternalContextInfo {
     pub receivers: Vec<ExternalEndpointInfo>,

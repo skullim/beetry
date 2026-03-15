@@ -8,7 +8,6 @@
 //!
 //! Example:
 //! `beetry-example/src/domain/parking/tree.json`
-//!
 use std::time::Duration;
 
 use anyhow::Result;

@@ -55,7 +55,8 @@ impl Factory {
             func: (Box::new(|config| {
                 let capacity = config.capacity();
                 let count = config.count();
-                // client is responsible for providing correct and valid number of senders and receivers
+                // client is responsible for providing correct and valid number of senders and
+                // receivers
                 let n_senders = count.sender();
                 let n_receivers = count.receiver();
 

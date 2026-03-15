@@ -177,7 +177,8 @@ mod tests {
         ActionPluginConstructor::new::<TestPluginA>()
     }
 
-    //@todo registering duplicated entry might affect other tests when plugins() method is called.
+    //@todo registering duplicated entry might affect other tests when plugins()
+    //@todo method is called.
     //Better to avoid global registration if possible
     inventory::submit! {
         ActionPluginConstructor::new::<TestPluginB>()

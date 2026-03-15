@@ -13,7 +13,9 @@ pub(super) fn Provider(dimensions: DimensionState, children: Element) -> Element
     let render_requests = use_context::<RenderRequests>();
 
     use_context_provider(|| handlers::export_handlers(error_queue, backend));
-    use_context_provider(|| handlers::import_handlers(dimensions, error_queue, backend, render_requests));
+    use_context_provider(|| {
+        handlers::import_handlers(dimensions, error_queue, backend, render_requests)
+    });
 
     children
 }
