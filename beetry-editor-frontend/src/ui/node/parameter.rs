@@ -133,9 +133,7 @@ fn VisibleDialog(props: VisibleDialogProps) -> Element {
     let param_fields = field_data_container
         .iter()
         .copied()
-        .map(|data| rsx!(
-            ParameterField { data, parameters }
-        ));
+        .map(|data| rsx!(ParameterField { data, parameters }));
 
     rsx! {
         div { class: "bt-dialog-overlay", onclick: on_cancel,

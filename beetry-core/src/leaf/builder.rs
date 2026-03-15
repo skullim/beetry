@@ -1,6 +1,4 @@
-use crate::{
-    ActionBehavior, BoxNode, ConditionBehavior, RegisterTask, TaskHandle,
-};
+use crate::{ActionBehavior, BoxNode, ConditionBehavior, RegisterTask, TaskHandle};
 use std::marker::PhantomData;
 use std::sync::Arc;
 

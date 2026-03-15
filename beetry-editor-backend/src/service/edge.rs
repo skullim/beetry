@@ -6,7 +6,8 @@ use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{id::EdgeId, id::NodeId, output::edge::NodeEdge, spec::node::NodeKind};
 use tracing::warn;
 
-/// User-facing API, internally this layer maps the concrete repository to corresponding service
+/// User-facing API, internally this layer maps the concrete repository to
+/// corresponding service
 pub struct EdgeView<'a> {
     edge_repo: &'a EdgeRepository,
     edge_service: &'a EdgeService,
@@ -103,7 +104,8 @@ impl<'a> OnNodeRemovalServiceApi<'a> {
 #[derive(Debug, Default)]
 pub(crate) struct EdgeService {
     // not strictly necessary, but good for performance to cache the tree hierarchy
-    // Here the exact order is not kept, as it can change dynamically based on the position of any child
+    // Here the exact order is not kept, as it can change dynamically based on the position of any
+    // child
     parent_children_map: HashMap<NodeId, HashSet<NodeId>>,
     child_parent_map: HashMap<NodeId, NodeId>,
 }
@@ -121,7 +123,8 @@ impl EdgeService {
         edge: NodeEdge,
     ) -> Result<EdgeId> {
         // 1. Check node types
-        // 2. Based on type implement valid connection business logic as all nodes have different rules
+        // 2. Based on type implement valid connection business logic as all nodes have
+        //    different rules
         // - each node can only have 1 parent except root that has no parents
         // - root has only one child
         // - control node can have >= 1 children

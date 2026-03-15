@@ -193,7 +193,8 @@ pub mod watch {
     where
         T: Default + Clone,
     {
-        // watch channel puts default value in the channel, but it is marked as seen, therefore no need to update it
+        // watch channel puts default value in the channel, but it is marked as seen,
+        // therefore no need to update it
         let (sender, receiver) = tokio_channel(T::default());
         (Sender(sender), Receiver(receiver))
     }

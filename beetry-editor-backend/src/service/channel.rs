@@ -109,7 +109,8 @@ pub struct ConnectionContext<'a> {
     pub channel: ChannelId,
 }
 
-// This is only needed by import/export API which is user-facing API, therefore this is not public
+// This is only needed by import/export API which is user-facing API, therefore
+// this is not public
 pub(crate) struct LoadChannelView<'a> {
     facade_view: ChannelRepositoryFacadeViewMut<'a>,
     channel: &'a mut ChannelService,
@@ -126,17 +127,11 @@ impl<'a> LoadChannelView<'a> {
         }
     }
 
-    pub(crate) fn load_spec(
-        &mut self,
-        record: persistence::channel::SpecRecord,
-    ) -> Result<()> {
+    pub(crate) fn load_spec(&mut self, record: persistence::channel::SpecRecord) -> Result<()> {
         self.channel.load_spec(self.facade_view.spec, record)
     }
 
-    pub(crate) fn load_channel(
-        &mut self,
-        record: persistence::channel::Record,
-    ) -> Result<()> {
+    pub(crate) fn load_channel(&mut self, record: persistence::channel::Record) -> Result<()> {
         self.facade_view.channel.load(record.id, record.data)
     }
 }

@@ -5,10 +5,7 @@ use beetry_core::{BoxNode, MessageHash, NonEmptyNodes, RegisterTask, Root, TaskH
 use beetry_editor_types::id::ChannelId;
 use beetry_editor_types::output::node::Parameters;
 use beetry_editor_types::spec::node::{LeafKind, NodeKind, NodeName, NodePortKind, NodeSpecKey};
-use beetry_editor_types::{
-    id::NodeId,
-    persistence,
-};
+use beetry_editor_types::{id::NodeId, persistence};
 use beetry_plugin::channel::{BoxChannelPlugin, ChannelPluginConstructor, TypeErasedChannel};
 use beetry_plugin::node::{
     ActionPluginConstructor, BoxActionPlugin, BoxConditionPlugin, BoxControlPlugin,
@@ -57,8 +54,10 @@ impl TreeReconstructor {
     // Reconstruction criteria:
     // 1. Nodes exist in node factory registry.
     // 2. Channels exist in channel plugin registry.
-    // 3. Each hash of leaf node matches with the corresponding node found in plugin registry.
-    // 4. External receivers (if any) have been created when initializing Self instance
+    // 3. Each hash of leaf node matches with the corresponding node found in plugin
+    //    registry.
+    // 4. External receivers (if any) have been created when initializing Self
+    //    instance
     pub fn try_reconstruct<RT, TH>(
         &mut self,
         tree: persistence::tree::ValidTreeStore,
