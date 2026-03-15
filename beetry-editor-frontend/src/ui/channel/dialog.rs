@@ -1,9 +1,9 @@
 use crate::{Point, ui::handler::define_handlers};
-use beetry_core::MessageHash;
 use beetry_editor_types::id::ChannelId;
 use beetry_editor_types::output::channel::{
     ChannelConfig, ChannelConfigInput, ChannelConfigUpdate, ChannelKind, TokioChannelKind,
 };
+use beetry_message::MessageHash;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::debug;
 

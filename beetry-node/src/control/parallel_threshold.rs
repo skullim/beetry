@@ -93,9 +93,10 @@ mod registry_support {
     use anyhow::{Error, anyhow};
     use beetry_editor_types::output::node::Parameters;
     use beetry_editor_types::spec::node::{
-        FieldDefinition, FieldMetadata, FieldName, FieldTypeSpec, ParamsSpec, ProvideParamSpec,
+        FieldDefinition, FieldMetadata, FieldName, FieldTypeSpec, ParamsSpec,
     };
-    use beetry_reconstruction_types::params::ParamsReconstructor;
+    use beetry_plugin::ProvideParamSpec;
+    use beetry_plugin::node::ParamsDeserializer;
     use mitsein::iter1::IntoIterator1;
     use std::sync::Arc;
 
@@ -146,8 +147,8 @@ mod registry_support {
         }
 
         pub(crate) fn reconstruct(parameters: Parameters) -> Result<Self, Error> {
-            let params: Self = ParamsReconstructor::reconstruct(parameters).map_err(|err| {
-                anyhow!("failed to reconstruct ParallelThreshold parameters: {err}")
+            let params: Self = ParamsDeserializer::deserialize(parameters).map_err(|err| {
+                anyhow!("failed to deserialize ParallelThreshold parameters: {err}")
             })?;
             Ok(params)
         }

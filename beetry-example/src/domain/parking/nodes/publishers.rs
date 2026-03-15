@@ -3,10 +3,10 @@ use crate::domain::Pose;
 use anyhow::{Result, anyhow};
 use beetry_core::{ActionBehavior, NodeTask, Sender, Task, TickStatus};
 use beetry_editor_types::spec::node::{
-    FieldDefinition, FieldMetadata, FieldName, FieldTypeSpec, ParamsSpec, ProvideParamSpec,
+    FieldDefinition, FieldMetadata, FieldName, FieldTypeSpec, ParamsSpec,
 };
-use beetry_plugin::action;
-use beetry_reconstruction::ParamsReconstructor;
+use beetry_plugin::node::ParamsDeserializer;
+use beetry_plugin::{ProvideParamSpec, action};
 use mitsein::iter1::IntoIterator1;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -105,7 +105,7 @@ action! {
     VehicleStatePublisherPlugin: "VehicleStatePublisher";
     params(parameters): PublishInterval::provide();
     senders: [send: VehicleState => "Vehicle state"];
-    create: VehicleStatePublisher::new(send, &ParamsReconstructor::reconstruct(parameters)?);
+    create: VehicleStatePublisher::new(send, &ParamsDeserializer::deserialize(parameters)?);
 }
 
 pub struct LocalizationPublisher<S> {
@@ -197,7 +197,7 @@ action! {
     LocalizationPublisherPlugin: "LocalizationPublisher";
     params(parameters): PublishInterval::provide();
     senders: [send: Pose => "Current pose"];
-    create: LocalizationPublisher::new(send, &ParamsReconstructor::reconstruct(parameters)?);
+    create: LocalizationPublisher::new(send, &ParamsDeserializer::deserialize(parameters)?);
 }
 
 pub struct ProximityPublisher<S> {
@@ -283,7 +283,7 @@ action! {
     ProximityPublisherPlugin: "ProximityPublisher";
     params(parameters): PublishInterval::provide();
     senders: [send: ProximityState => "Proximity alert"];
-    create: ProximityPublisher::new(send, &ParamsReconstructor::reconstruct(parameters)?);
+    create: ProximityPublisher::new(send, &ParamsDeserializer::deserialize(parameters)?);
 }
 
 pub struct BrakePublisher<S> {
@@ -366,7 +366,7 @@ action! {
     BrakePublisherPlugin: "BrakePublisher";
     params(parameters): PublishInterval::provide();
     senders: [send: BrakeState => "Emergency brake state"];
-    create: BrakePublisher::new(send, &ParamsReconstructor::reconstruct(parameters)?);
+    create: BrakePublisher::new(send, &ParamsDeserializer::deserialize(parameters)?);
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

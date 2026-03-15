@@ -1,7 +1,20 @@
-use beetry_core::MessageHash;
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
+
+/// Describes the hash of the message type (and not concrete message type
+/// instance).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct MessageHash {
+    hash: u64,
+}
+
+impl MessageHash {
+    #[must_use]
+    pub fn new(hash: u64) -> Self {
+        Self { hash }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, CopyGetters, Getters, Serialize, Deserialize)]
 pub struct MessageSpec {
@@ -41,7 +54,7 @@ impl Ord for MessageSpec {
     }
 }
 
-/// Marker trait for types that should be considered as message type
+/// Marker trait for types that should be considered as message type.
 pub trait Message {}
 
 pub trait MessageHashProvider {
@@ -61,8 +74,6 @@ pub trait MessageTypeProvider {
     fn as_str() -> &'static str;
 }
 
-//@todo: proc macro with optional string parameter would be cleaner, but
-//@todo: requires new macro crate
 impl<T: Message> MessageTypeProvider for T {
     fn as_str() -> &'static str {
         std::any::type_name::<T>()

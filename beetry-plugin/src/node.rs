@@ -1,12 +1,93 @@
 use crate::{BoxPlugin, ConstructPlugin, Named, PluginConstructor, PluginError, unique_plugins};
 use anyhow::Result;
-use beetry_core::{BoxActionBehavior, BoxConditionBehavior, BoxNode};
-use beetry_editor_types::spec::node::NodeSpec;
-use beetry_reconstruction_types::node::{
-    ActionReconstructionData, ConditionReconstructionData, ControlReconstructionData,
-    DecoratorReconstructionData,
-};
+use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
+use beetry_core::{BoxActionBehavior, BoxConditionBehavior, BoxNode, NonEmptyNodes};
+use beetry_editor_types::output::node::{ParameterValue, Parameters};
+use beetry_editor_types::spec::node::{NodeSpec, ParamsSpec};
+use bon::Builder;
+use serde::Deserialize;
+use std::collections::BTreeMap;
 use std::marker::PhantomData;
+
+pub type LeafReconstructionData = NodeReconstructionData<LeafContext>;
+pub type ActionReconstructionData = LeafReconstructionData;
+pub type ConditionReconstructionData = LeafReconstructionData;
+pub type ControlReconstructionData = NodeReconstructionData<ControlContext>;
+pub type DecoratorReconstructionData = NodeReconstructionData<DecoratorContext>;
+
+#[derive(Debug, Builder)]
+pub struct NodeReconstructionData<C> {
+    pub context: C,
+    #[builder(default)]
+    pub parameters: Parameters,
+}
+
+#[derive(Debug, Default, Builder)]
+pub struct LeafContext {
+    #[builder(default, into)]
+    pub receivers: Vec<AnyBoxReceiver>,
+    #[builder(default, into)]
+    pub senders: Vec<AnyBoxSender>,
+}
+
+impl LeafContext {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+pub struct ControlContext {
+    pub children: NonEmptyNodes,
+}
+
+impl ControlContext {
+    pub fn new(children: NonEmptyNodes) -> Self {
+        Self { children }
+    }
+}
+
+pub struct DecoratorContext {
+    pub child: BoxNode,
+}
+
+impl DecoratorContext {
+    pub fn new(child: BoxNode) -> Self {
+        Self { child }
+    }
+}
+
+pub trait ProvideParamSpec {
+    fn provide() -> ParamsSpec;
+}
+
+pub struct ParamsDeserializer;
+
+impl ParamsDeserializer {
+    pub fn deserialize<T>(params: Parameters) -> Result<T>
+    where
+        T: for<'de> Deserialize<'de>,
+    {
+        let deserializer = serde_value::ValueDeserializer::<serde_value::DeserializerError>::new(
+            serde_value::Value::Map(
+                params
+                    .into_iter()
+                    .map(|(name, value)| {
+                        let value = match value {
+                            ParameterValue::Bool(b) => serde_value::Value::Bool(b),
+                            ParameterValue::U16(u) => serde_value::Value::U16(u),
+                            ParameterValue::U64(u) => serde_value::Value::U64(u),
+                            ParameterValue::I64(i) => serde_value::Value::I64(i),
+                            ParameterValue::F64(f) => serde_value::Value::F64(f),
+                            ParameterValue::String(s) => serde_value::Value::String(s),
+                        };
+                        (serde_value::Value::String(name), value)
+                    })
+                    .collect::<BTreeMap<_, _>>(),
+            ),
+        );
+        Ok(T::deserialize(deserializer)?)
+    }
+}
 
 type BoxActionFactoryFn = Box<dyn Fn(ActionReconstructionData) -> Result<BoxActionBehavior>>;
 

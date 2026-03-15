@@ -2,9 +2,9 @@ use anyhow::Result;
 use beetry_core::{
     ActionBehavior, ConditionBehavior, NodeTask, Receiver, Sender, Task, TickStatus,
 };
-use beetry_editor_types::spec::node::ProvideParamSpec;
+use beetry_plugin::ProvideParamSpec;
+use beetry_plugin::node::ParamsDeserializer;
 use beetry_plugin::{action, condition};
-use beetry_reconstruction::ParamsReconstructor;
 use tokio::sync::mpsc::{
     Receiver as TokioReceiver, Sender as TokioSender, channel as mpsc_channel,
 };
@@ -158,7 +158,7 @@ action! {
         proximity_recv,
         brake_recv,
         send,
-        &ParamsReconstructor::reconstruct(parameters)?,
+        &ParamsDeserializer::deserialize(parameters)?,
     );
 }
 

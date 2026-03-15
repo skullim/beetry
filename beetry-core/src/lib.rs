@@ -36,10 +36,6 @@
 //! [`Sender`] and [`Receiver`] define the minimal non-blocking contracts for
 //! sending and receiving typed messages.
 //!
-//! [`MessageHash`] identifies a message type independently from a concrete
-//! message instance. It is used by higher-level crates when matching message
-//! types to registered channels.
-//!
 //! ## Leaf behavior concepts
 //!
 //! ### `Condition`
@@ -91,9 +87,7 @@ pub use task::{
     TaskDescription, TaskHandle, TaskStatus,
 };
 
-pub use channel::{
-    BoxReceiver, BoxSender, MessageHash, Receiver, Sender, TryRecvResult, TrySendResult, error,
-};
+pub use channel::{BoxReceiver, BoxSender, Receiver, Sender, TryRecvResult, TrySendResult, error};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TickStatus {

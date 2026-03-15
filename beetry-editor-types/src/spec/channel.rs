@@ -1,6 +1,5 @@
-use super::message::{MessageHashProvider, MessageTypeProvider};
 use anyhow::{Result, anyhow};
-use beetry_core::MessageHash;
+use beetry_message::{MessageHash, MessageHashProvider, MessageTypeProvider};
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

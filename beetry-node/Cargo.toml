@@ -9,7 +9,6 @@ default = ["registry"]
 registry = [
     "dep:beetry-plugin",
     "dep:beetry-editor-types",
-    "dep:beetry-reconstruction-types",
     "dep:mitsein",
     "dep:serde",
 ]
@@ -19,7 +18,6 @@ beetry-core = { version = "0.1.0", path = "../beetry-core" }
 bon.workspace = true
 beetry-plugin = { version = "0.1.0", path = "../beetry-plugin", optional = true }
 beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types", optional = true }
-beetry-reconstruction-types = { version = "0.1.0", path = "../beetry-reconstruction-types", optional = true }
 mitsein = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 anyhow.workspace = true
