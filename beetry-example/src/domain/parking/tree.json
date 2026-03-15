@@ -101,7 +101,7 @@
                     "kind": "Decorator"
                 },
                 "19": {
-                    "name": "ParallelThreshold",
+                    "name": "Parallel",
                     "kind": "Control"
                 }
             }

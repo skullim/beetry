@@ -5,9 +5,7 @@ use beetry_plugin::{
     node::{ControlFactory, ControlPluginConstructor, ControlReconstructionData},
 };
 
-use crate::{
-    Fallback, MemSequence, Parallel, ParallelThreshold, ParallelThresholdParams, Sequence,
-};
+use crate::{Fallback, MemSequence, Parallel, ParallelParams, Sequence};
 
 control!(
     SequencePlugin: "Sequence";
@@ -30,15 +28,9 @@ control!(
 control!(
     ParallelPlugin: "Parallel";
     children(children),
-    create: Parallel::new(children),
-);
-
-control!(
-    ParallelThresholdPlugin: "ParallelThreshold";
-    children(children),
-    params(parameters): ParallelThresholdParams::provide(),
+    params(parameters): ParallelParams::provide(),
     create: {
-        let params = ParallelThresholdParams::reconstruct(parameters)?;
-        ParallelThreshold::new(children, params)
+        let params = ParallelParams::reconstruct(parameters)?;
+        Parallel::new(children, params)
     },
 );
