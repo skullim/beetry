@@ -1,10 +1,13 @@
+use beetry_core::BoxNode;
+use beetry_editor_types::spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey};
+use beetry_plugin::{
+    Plugin, ProvideParamSpec, control,
+    node::{ControlFactory, ControlPluginConstructor, ControlReconstructionData},
+};
+
 use crate::{
     Fallback, MemSequence, Parallel, ParallelThreshold, ParallelThresholdParams, Sequence,
 };
-use beetry_core::BoxNode;
-use beetry_editor_types::spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey};
-use beetry_plugin::node::{ControlFactory, ControlPluginConstructor, ControlReconstructionData};
-use beetry_plugin::{Plugin, ProvideParamSpec, control};
 
 control!(
     SequencePlugin: "Sequence";

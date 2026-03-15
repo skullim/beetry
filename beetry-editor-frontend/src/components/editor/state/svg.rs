@@ -1,7 +1,8 @@
-use crate::Point;
-use dioxus::html::geometry::WheelDelta;
-use dioxus::prelude::*;
 use std::ops::{Deref, DerefMut};
+
+use dioxus::{html::geometry::WheelDelta, prelude::*};
+
+use crate::Point;
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct State {

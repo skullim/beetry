@@ -4,8 +4,7 @@ pub mod renderer;
 
 pub use body::Body;
 pub use menu::Menu;
-pub use renderer::NodeDimensions;
-pub use renderer::Renderer;
+pub use renderer::{NodeDimensions, Renderer};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConnectionOrigin {

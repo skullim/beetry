@@ -5,12 +5,11 @@ mod sequence;
 
 use std::collections::BTreeSet;
 
+use beetry_core::BoxNode;
 pub use fallback::Fallback;
 pub use parallel::Parallel;
 pub use parallel_threshold::{ParallelThreshold, ParallelThresholdParams};
 pub use sequence::{MemSequence, Sequence};
-
-use beetry_core::BoxNode;
 
 struct RunningNodesAborter {
     running: BTreeSet<usize>,

@@ -1,8 +1,10 @@
 use dioxus::prelude::*;
 
 use super::handlers;
-use crate::components::editor;
-use crate::{components::workspace, signals::RenderRequests};
+use crate::{
+    components::{editor, workspace},
+    signals::RenderRequests,
+};
 
 #[component]
 pub(super) fn Provider(

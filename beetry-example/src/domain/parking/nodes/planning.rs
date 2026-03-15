@@ -6,10 +6,11 @@ use tokio::sync::mpsc::{
 };
 use tracing::info;
 
+use super::{
+    super::messages::{ManeuverStatus, SafetyStatus, TargetSlot, Trajectory},
+    ParkingMilestone,
+};
 use crate::domain::Pose;
-
-use super::super::messages::{ManeuverStatus, SafetyStatus, TargetSlot, Trajectory};
-use super::ParkingMilestone;
 
 pub struct PlanParkingTrajectory<PR, TR, S> {
     pose_recv: PR,

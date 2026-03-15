@@ -1,8 +1,6 @@
 use dioxus::prelude::*;
-use dioxus_logger::tracing::debug;
 
-use crate::definitions::EdgePos;
-use crate::ui::curve::Curve;
+use crate::{definitions::EdgePos, ui::curve::Curve};
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum State {

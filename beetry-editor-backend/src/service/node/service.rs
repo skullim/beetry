@@ -1,12 +1,13 @@
-use crate::repository::{NodeRepository, NodeSpecRepository};
-use anyhow::{Result, anyhow, bail};
 use std::collections::{HashMap, HashSet};
-use tracing::{debug, warn};
 
+use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{
     id::{NodeId, NodeSpecId},
     spec::node::{NodeKind, NodeSpec, NodeSpecKey},
 };
+use tracing::{debug, warn};
+
+use crate::repository::{NodeRepository, NodeSpecRepository};
 
 #[derive(Debug, Default)]
 pub struct NodeService {

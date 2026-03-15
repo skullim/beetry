@@ -1,9 +1,10 @@
+use beetry_editor_types::id::NodeId;
+use dioxus::prelude::*;
+
 use crate::{
     Point,
     ui::{handler::define_handlers, node::pin::IoPinStyleUrl},
 };
-use beetry_editor_types::id::NodeId;
-use dioxus::prelude::*;
 
 define_handlers!(on_mouse_up: NodeId);
 

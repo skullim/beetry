@@ -13,9 +13,11 @@ pub fn derive_message(input: TokenStream) -> TokenStream {
     .into()
 }
 
-use syn::parse::{Parse, ParseStream};
-use syn::punctuated::Punctuated;
-use syn::{Ident, Result, Token, Type, braced};
+use syn::{
+    Ident, Result, Token, Type, braced,
+    parse::{Parse, ParseStream},
+    punctuated::Punctuated,
+};
 
 struct InputMacro {
     name: Ident,

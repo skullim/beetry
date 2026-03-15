@@ -1,6 +1,7 @@
-use crate::{Point, ui::handler::define_handlers};
 use beetry_editor_types::id::PortConnectionId;
 use dioxus::prelude::*;
+
+use crate::{Point, ui::handler::define_handlers};
 
 define_handlers!(
     on_delete: PortConnectionId,

@@ -1,7 +1,7 @@
-use beetry_core::{BoxReceiver, BoxSender, Receiver};
 use std::any::Any;
 
 use anyhow::{Result, anyhow};
+use beetry_core::{BoxReceiver, BoxSender, Receiver};
 
 #[derive(Debug)]
 pub struct AnyBoxReceiver(Box<dyn Any>);
@@ -91,9 +91,11 @@ macro_rules! downcast {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use beetry_core::{Receiver, Sender, TryRecvResult, TrySendResult};
     use std::marker::PhantomData;
+
+    use beetry_core::{Receiver, Sender, TryRecvResult, TrySendResult};
+
+    use super::*;
 
     struct ReceiverStub<T>(pub Option<T>);
 

@@ -1,12 +1,14 @@
-use crate::repository::{
-    ChannelUiRepository, NodeUiRepository, PortConnectionRepository, PortConnectionUiRepository,
-};
+use std::collections::HashMap;
+
 use anyhow::{Ok, Result, anyhow, bail};
 use beetry_editor_types::{
     id::{ChannelId, NodeId, PortConnectionId},
     output::ui::{ChannelUiData, NodeUiData, Point, PortConnectionUiData},
 };
-use std::collections::HashMap;
+
+use crate::repository::{
+    ChannelUiRepository, NodeUiRepository, PortConnectionRepository, PortConnectionUiRepository,
+};
 
 pub struct NodeUiQueryView<'a> {
     repo: &'a NodeUiRepository,

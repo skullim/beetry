@@ -22,18 +22,17 @@
 //! This staged API makes it easy to hand the registry to tree code while the
 //! executor runs in a dedicated task.
 
+use std::{future::poll_fn, sync::Arc, task::Poll};
+
 use anyhow::{Result, anyhow};
 use beetry_core::{
     AbortTask, ExecutorConcept, NodeTask, QueryTask, RegisterTask, TaskDescription, TaskStatus,
 };
-use futures::StreamExt;
-use futures::stream::FuturesUnordered;
-use std::future::poll_fn;
-use std::sync::Arc;
-use std::task::Poll;
-use tokio::sync::Notify;
-use tokio::sync::mpsc::error::TryRecvError;
-use tokio::sync::mpsc::{Receiver, Sender, channel};
+use futures::{StreamExt, stream::FuturesUnordered};
+use tokio::sync::{
+    Notify,
+    mpsc::{Receiver, Sender, channel, error::TryRecvError},
+};
 use tracing::{debug, instrument};
 
 /// Configuration for an [`Executor`].

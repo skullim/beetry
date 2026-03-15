@@ -66,23 +66,25 @@
 
 mod reconstruct;
 
-use crate::reconstruct::TreeReconstructor;
+use std::{
+    path::{Path, PathBuf},
+    thread::JoinHandle,
+};
+
 use anyhow::{Result, anyhow};
-use beetry_core::leaf::Builder;
-use beetry_core::{BoxNode, Node, TickStatus, Ticker, TickerError, Tree};
+use beetry_core::{BoxNode, Node, TickStatus, Ticker, TickerError, Tree, leaf::Builder};
 use beetry_editor_types::persistence::tree::ValidTreeStore;
 use beetry_exec::{Executor, ExecutorConfig, Ready as ExecutorReady, WithRegistry};
+#[cfg(feature = "registry")]
+#[expect(unused_imports, reason = "import all built-in registered nodes")]
+use beetry_node::registry::*;
 use beetry_serialization::json;
 use futures::Stream;
-use std::path::{Path, PathBuf};
-use std::thread::JoinHandle;
 use thiserror::Error as ThisError;
 use tokio::sync::oneshot;
 use tracing::error;
 
-#[cfg(feature = "registry")]
-#[expect(unused_imports, reason = "import all built-in registered nodes")]
-use beetry_node::registry::*;
+use crate::reconstruct::TreeReconstructor;
 
 /// Typed-state engine for loading and running trees.
 pub struct TreeEngine<S> {

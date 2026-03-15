@@ -1,9 +1,10 @@
-use crate::repository::{NodeRepository, NodeSpecRepository};
 use anyhow::{Context, Result, anyhow};
 use beetry_editor_types::{
     id::{NodeId, NodeSpecId},
     spec::node::{NodeKind, NodeName, NodeSpec, ParamsSpec, PortsSpec},
 };
+
+use crate::repository::{NodeRepository, NodeSpecRepository};
 
 pub struct SpecView<'a> {
     pub(crate) spec_repo: &'a NodeSpecRepository,

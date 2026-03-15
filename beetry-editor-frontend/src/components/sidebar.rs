@@ -3,16 +3,15 @@ mod handlers;
 mod search;
 mod section;
 
-use crate::SharedSpecs;
-use crate::components::editor;
-use crate::ui::handler::define_handlers;
-use beetry_editor_types::spec::channel::ChannelSpec;
-use beetry_editor_types::spec::node::{NodeKind, NodeSpecKey};
-use dioxus::logger::tracing::info;
+use beetry_editor_types::spec::{
+    channel::ChannelSpec,
+    node::{NodeKind, NodeSpecKey},
+};
 use dioxus::prelude::*;
-use dioxus_logger::tracing::debug;
 use search::Search;
 use section::{ChannelSection, NodeSection};
+
+use crate::{SharedSpecs, components::editor, ui::handler::define_handlers};
 
 define_handlers!(on_new_node: NodeSpecKey,
                  on_new_channel: ChannelSpec);

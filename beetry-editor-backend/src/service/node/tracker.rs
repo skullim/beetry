@@ -1,4 +1,3 @@
-use crate::repository::NodeRepository;
 use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{
     id::{NodeId, NodeSpecId},
@@ -6,6 +5,7 @@ use beetry_editor_types::{
 };
 
 use super::NodeService;
+use crate::repository::NodeRepository;
 
 pub struct TrackerView<'a> {
     pub(crate) service: &'a NodeService,

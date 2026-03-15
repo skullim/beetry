@@ -1,4 +1,10 @@
-use crate::id::IdProvider;
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Display,
+    hash::Hash,
+    ops::AddAssign,
+};
+
 use anyhow::{Result, bail};
 use beetry_editor_types::{
     id::{ChannelId, ChannelSpecId, EdgeId, NodeId, NodePortId, NodeSpecId, PortConnectionId},
@@ -11,12 +17,8 @@ use beetry_editor_types::{
     spec::{channel::ChannelSpec, node::NodeSpec},
 };
 use num_traits::One;
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::Display,
-    hash::Hash,
-    ops::AddAssign,
-};
+
+use crate::id::IdProvider;
 
 pub struct EditorRepositoryView<'a> {
     pub node: NodeRepositoryFacadeView<'a>,

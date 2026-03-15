@@ -1,11 +1,16 @@
-use crate::ui::error::ErrorQueueState;
-use crate::ui::node::port::{self, ConnectionOrigin, layout};
-use crate::{Backend, Point};
-use beetry_editor_backend::api;
-use beetry_editor_backend::api::SpecByNodeIdQuery;
+use std::rc::Rc;
+
+use beetry_editor_backend::{api, api::SpecByNodeIdQuery};
 use beetry_editor_types::id::{NodeId, NodePortId};
 use dioxus::prelude::*;
-use std::rc::Rc;
+
+use crate::{
+    Backend, Point,
+    ui::{
+        error::ErrorQueueState,
+        node::port::{self, ConnectionOrigin, layout},
+    },
+};
 
 #[derive(PartialEq, Clone, Props)]
 pub struct RendererProps {
@@ -79,8 +84,7 @@ pub fn Renderer(props: RendererProps) -> Element {
                     port::Body {
                         key: "{port_id}",
                         id,
-                        position:
-                        #[expect(
+                        position: #[expect(
                             clippy::cast_precision_loss,
                             reason = "row index is reasonably small number"
                         )]

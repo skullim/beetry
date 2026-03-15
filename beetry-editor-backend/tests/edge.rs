@@ -1,8 +1,7 @@
 mod common;
 
 use anyhow::Result;
-use beetry_editor_backend::api;
-use beetry_editor_backend::api::EdgeQueryView;
+use beetry_editor_backend::{api, api::EdgeQueryView};
 use beetry_editor_types::output::edge::NodeEdge;
 use common::{NodeSpecCase, TestEditorService, TestSpecs, create_node, service, specs};
 use rstest::rstest;

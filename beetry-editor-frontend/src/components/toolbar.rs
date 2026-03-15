@@ -3,9 +3,10 @@ use dioxus::prelude::*;
 mod context;
 mod handlers;
 
-use crate::components::editor::state::svg::DimensionState;
-use crate::ui::error;
-use crate::ui::transfer;
+use crate::{
+    components::editor::state::svg::DimensionState,
+    ui::{error, transfer},
+};
 
 #[component]
 pub(crate) fn Toolbar(dimensions: DimensionState) -> Element {

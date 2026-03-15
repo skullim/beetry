@@ -10,7 +10,8 @@
 //! `beetry-example/src/domain/parking/project.json`
 
 // Import all crates that register plugins so they are available in the editor.
-use {beetry_example as _, beetry_node as _};
+use beetry_example as _;
+use beetry_node as _;
 
 fn main() {
     beetry_editor_frontend::launch();

@@ -1,8 +1,9 @@
+use std::collections::HashMap;
+
 use anyhow::{Result, anyhow};
 use beetry_message::{MessageHash, MessageHashProvider, MessageTypeProvider};
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, CopyGetters, Getters)]
 pub struct ChannelSpec {

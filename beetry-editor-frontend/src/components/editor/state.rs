@@ -5,7 +5,10 @@ use beetry_editor_types::output::channel::{
 };
 use dioxus::prelude::*;
 
-use crate::{Point, ui::channel, ui::node};
+use crate::{
+    Point,
+    ui::{channel, node},
+};
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct State {

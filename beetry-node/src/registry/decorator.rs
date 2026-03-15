@@ -1,10 +1,11 @@
-use crate::{Fail, Invert, Succeed, UntilFailure, UntilSuccess};
 use beetry_core::BoxNode;
 use beetry_editor_types::spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey};
-use beetry_plugin::node::{
-    DecoratorFactory, DecoratorPluginConstructor, DecoratorReconstructionData,
+use beetry_plugin::{
+    Plugin, decorator,
+    node::{DecoratorFactory, DecoratorPluginConstructor, DecoratorReconstructionData},
 };
-use beetry_plugin::{Plugin, decorator};
+
+use crate::{Fail, Invert, Succeed, UntilFailure, UntilSuccess};
 
 decorator!(
     InvertPlugin: "Invert";

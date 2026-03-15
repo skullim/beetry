@@ -2,9 +2,7 @@ use beetry_editor_backend::api;
 use beetry_editor_types::{id::NodeId, output::node::Parameters};
 use dioxus::prelude::*;
 
-use crate::Backend;
-use crate::signals::RequestNodeRender;
-use crate::ui::node;
+use crate::{Backend, signals::RequestNodeRender, ui::node};
 
 pub fn handlers(
     mut backend: Backend,

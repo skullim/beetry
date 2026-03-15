@@ -1,14 +1,13 @@
 mod execution;
 
+use std::{pin::Pin, str::FromStr};
+
+use anyhow::{Error, Result, anyhow};
 #[cfg(test)]
 pub use execution::MockRegisterTask;
-
 pub use execution::{AbortTask, ExecutorConcept, QueryTask, RegisterTask, TaskHandle};
 
 use crate::TickStatus;
-use anyhow::{Error, Result, anyhow};
-use std::pin::Pin;
-use std::str::FromStr;
 
 pub trait Task {
     fn run(self) -> impl Future<Output = TickStatus> + Send + 'static;

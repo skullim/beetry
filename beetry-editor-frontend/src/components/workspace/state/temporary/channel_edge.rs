@@ -1,7 +1,10 @@
-use crate::definitions::EdgePos;
-use crate::ui::edge;
-use crate::{Point, ui::node::port::ConnectionOrigin};
 use beetry_editor_types::id::{NodeId, NodePortId};
+
+use crate::{
+    Point,
+    definitions::EdgePos,
+    ui::{edge, node::port::ConnectionOrigin},
+};
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum State {

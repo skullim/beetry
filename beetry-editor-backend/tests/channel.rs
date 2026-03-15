@@ -1,10 +1,8 @@
 mod common;
 
 use anyhow::Result;
-use beetry_editor_backend::api;
-use beetry_editor_backend::api::ChannelQueryView;
-use beetry_editor_types::id::ChannelId;
-use beetry_editor_types::output::channel::ChannelConfigUpdate;
+use beetry_editor_backend::{api, api::ChannelQueryView};
+use beetry_editor_types::{id::ChannelId, output::channel::ChannelConfigUpdate};
 use common::{ChannelSpecCase, TestEditorService, TestSpecs, create_channel, service, specs};
 use rstest::rstest;
 

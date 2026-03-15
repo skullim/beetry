@@ -1,5 +1,6 @@
-use crate::id::NodeId;
 use serde::{Deserialize, Serialize};
+
+use crate::id::NodeId;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct NodeEdge {

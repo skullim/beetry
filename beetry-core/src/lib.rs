@@ -77,17 +77,15 @@ pub use leaf::{
 #[cfg(any(test, feature = "mock"))]
 pub use node::MockNode;
 pub use node::{BoxNode, Node, NonEmptyNodes};
-
 pub use root::Root;
 pub use tree::{PeriodicTick, Ticker, TickerError, Tree};
 pub type PeriodicTicker = Ticker<PeriodicTick>;
 
+pub use channel::{BoxReceiver, BoxSender, Receiver, Sender, TryRecvResult, TrySendResult, error};
 pub use task::{
     AbortTask, BoxTaskFuture, ExecutorConcept, NodeTask, QueryTask, RegisterTask, Task,
     TaskDescription, TaskHandle, TaskStatus,
 };
-
-pub use channel::{BoxReceiver, BoxSender, Receiver, Sender, TryRecvResult, TrySendResult, error};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TickStatus {

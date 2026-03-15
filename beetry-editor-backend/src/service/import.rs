@@ -1,3 +1,10 @@
+use anyhow::Result;
+use beetry_editor_types::{
+    output::edge::NodeEdge,
+    persistence::{editor, tree, ui},
+    spec::node::NodeSpecMap,
+};
+
 use crate::{
     channel::LoadChannelView,
     edge::EdgeViewMut,
@@ -9,12 +16,6 @@ use crate::{
         node::{LoadNodeView, NodeService},
     },
     ui::{ChannelUiViewMut, NodeUiViewMut, PortConnectionUiStateViewMut},
-};
-use anyhow::Result;
-use beetry_editor_types::{
-    output::edge::NodeEdge,
-    persistence::{editor, tree, ui},
-    spec::node::NodeSpecMap,
 };
 
 pub struct ImportViewMut<'a> {

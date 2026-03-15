@@ -1,9 +1,11 @@
 mod common;
 
 use anyhow::Result;
-use beetry_editor_backend::api;
-use beetry_editor_backend::api::{NodeTrackerQuery, SpecByNodeIdQuery, SpecBySpecIdQuery};
-use beetry_editor_backend::ui::NodeUiQuery;
+use beetry_editor_backend::{
+    api,
+    api::{NodeTrackerQuery, SpecByNodeIdQuery, SpecBySpecIdQuery},
+    ui::NodeUiQuery,
+};
 use beetry_editor_types::id::{NodeId, NodeSpecId};
 use common::{NodeSpecCase, TestEditorService, TestSpecs, create_node, service, specs};
 use rstest::rstest;

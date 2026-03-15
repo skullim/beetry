@@ -4,21 +4,23 @@ pub mod edge_menu;
 pub mod menu;
 pub mod renderer;
 
-use crate::Backend;
-use crate::Point;
-use crate::ui::error::ErrorQueueState;
-use crate::ui::handler::define_handlers;
-use crate::ui::shadow;
-use crate::ui::text::{self, text_width_from};
-use crate::ui::tooltip::TooltipCard;
-use beetry_editor_backend::api;
-use beetry_editor_backend::api::ChannelQueryView;
+use beetry_editor_backend::{api, api::ChannelQueryView};
 use beetry_editor_types::id::ChannelId;
 use beetry_plugin::Named;
 use dioxus::prelude::*;
 pub use menu::Menu;
-pub use renderer::ConnectionRenderer;
-pub use renderer::Renderer;
+pub use renderer::{ConnectionRenderer, Renderer};
+
+use crate::{
+    Backend, Point,
+    ui::{
+        error::ErrorQueueState,
+        handler::define_handlers,
+        shadow,
+        text::{self, text_width_from},
+        tooltip::TooltipCard,
+    },
+};
 
 pub mod layout {
     use crate::Point;

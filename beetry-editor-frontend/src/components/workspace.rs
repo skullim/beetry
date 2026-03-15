@@ -2,17 +2,14 @@ mod context;
 pub mod handlers;
 pub mod state;
 
+use dioxus::prelude::*;
 pub use state::State;
 
-use dioxus::logger::tracing::debug;
-use dioxus::prelude::*;
-
-use crate::components::editor;
-use crate::signals::RenderRequests;
-use crate::ui::channel;
-use crate::ui::handler::define_handlers;
-use crate::ui::node;
-use crate::ui::{self, edge};
+use crate::{
+    components::editor,
+    signals::RenderRequests,
+    ui::{self, channel, edge, handler::define_handlers, node},
+};
 
 define_handlers!(
     on_mouse_move: Event<MouseData>,

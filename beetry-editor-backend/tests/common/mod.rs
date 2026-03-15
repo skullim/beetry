@@ -1,16 +1,24 @@
+use std::collections::HashMap;
+
 use anyhow::{Result, anyhow};
 use beetry_editor_backend::{EditorService, api};
-use beetry_editor_types::id::{ChannelId, NodeId};
-use beetry_editor_types::output::channel::{ChannelConfigInput, ChannelKind, TokioChannelKind};
-use beetry_editor_types::output::ui::{ChannelUiData, NodeUiData, Point};
-use beetry_editor_types::spec::channel::ChannelSpec;
-use beetry_editor_types::spec::node::{
-    NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey, NodeSpecMap, PortsSpec,
+use beetry_editor_types::{
+    id::{ChannelId, NodeId},
+    output::{
+        channel::{ChannelConfigInput, ChannelKind, TokioChannelKind},
+        ui::{ChannelUiData, NodeUiData, Point},
+    },
+    spec::{
+        channel::ChannelSpec,
+        node::{
+            NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey, NodeSpecMap,
+            PortsSpec,
+        },
+    },
 };
 use beetry_message::{MessageHash, MessageHashProvider, MessageSpec, MessageTypeProvider};
 use mitsein::iter1::FromIterator1;
 use rstest::fixture;
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodeSpecCase {

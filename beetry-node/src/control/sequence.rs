@@ -1,6 +1,6 @@
-use crate::Indices;
-use crate::control::RunningNodesAborter;
 use beetry_core::{Node, NonEmptyNodes, TickStatus};
+
+use crate::{Indices, control::RunningNodesAborter};
 
 /// Ticks children from left to right until one fails or is still running.
 pub struct Sequence {
@@ -108,9 +108,10 @@ impl Node for MemSequence {
 
 #[cfg(test)]
 mod tests {
+    use beetry_core::{Node, TickStatus};
+
     use super::*;
     use crate::mock_test::{boxed, mock_returns};
-    use beetry_core::{Node, TickStatus};
 
     #[test]
     fn success_with_all_success() {

@@ -1,11 +1,13 @@
-use crate::{Point, ui::handler::define_handlers};
-use beetry_editor_types::id::ChannelId;
-use beetry_editor_types::output::channel::{
-    ChannelConfig, ChannelConfigInput, ChannelConfigUpdate, ChannelKind, TokioChannelKind,
+use beetry_editor_types::{
+    id::ChannelId,
+    output::channel::{
+        ChannelConfig, ChannelConfigInput, ChannelConfigUpdate, ChannelKind, TokioChannelKind,
+    },
 };
 use beetry_message::MessageHash;
 use dioxus::prelude::*;
-use dioxus_logger::tracing::debug;
+
+use crate::{Point, ui::handler::define_handlers};
 
 pub const DEFAULT_POSITION: Point = Point { x: 200.0, y: 100.0 };
 

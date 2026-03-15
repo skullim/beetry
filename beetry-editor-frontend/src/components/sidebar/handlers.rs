@@ -1,15 +1,17 @@
 use beetry_editor_backend::api;
-use beetry_editor_types::output::channel::ChannelConfig;
-use beetry_editor_types::spec::channel::ChannelSpec;
-use beetry_editor_types::{output::ui::NodeUiData, spec::node::NodeSpecKey};
+use beetry_editor_types::{
+    output::{channel::ChannelConfig, ui::NodeUiData},
+    spec::{channel::ChannelSpec, node::NodeSpecKey},
+};
 use dioxus::prelude::*;
 
 use super::Handlers;
-use crate::components::editor;
-use crate::signals::RequestNodeRender;
-use crate::ui::channel;
-use crate::ui::node::parameter;
-use crate::{Backend, SharedSpecs, ui::node};
+use crate::{
+    Backend, SharedSpecs,
+    components::editor,
+    signals::RequestNodeRender,
+    ui::{channel, node, node::parameter},
+};
 
 pub fn handlers(
     specs: SharedSpecs,

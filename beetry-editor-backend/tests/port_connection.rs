@@ -1,12 +1,18 @@
 mod common;
 
 use anyhow::Result;
-use beetry_editor_backend::api;
-use beetry_editor_backend::api::ChannelQueryView;
-use beetry_editor_backend::node::{PortConnectionQuery, PortStateQuery};
-use beetry_editor_types::id::{NodePortId, PortConnectionId};
-use beetry_editor_types::output::node::{PortSource, PortState};
-use beetry_editor_types::output::ui::{PortConnectionUiData, VisibilityKind};
+use beetry_editor_backend::{
+    api,
+    api::ChannelQueryView,
+    node::{PortConnectionQuery, PortStateQuery},
+};
+use beetry_editor_types::{
+    id::{NodePortId, PortConnectionId},
+    output::{
+        node::{PortSource, PortState},
+        ui::{PortConnectionUiData, VisibilityKind},
+    },
+};
 use common::{
     ChannelSpecCase, NodeSpecCase, TestEditorService, TestSpecs, create_channel, create_node,
     service, specs,

@@ -1,6 +1,6 @@
-use crate::Indices;
-use crate::control::RunningNodesAborter;
 use beetry_core::{Node, NonEmptyNodes, TickStatus};
+
+use crate::{Indices, control::RunningNodesAborter};
 
 /// Ticks children from left to right until one succeeds or is still running.
 pub struct Fallback {
@@ -58,9 +58,10 @@ impl Node for Fallback {
 
 #[cfg(test)]
 mod tests {
+    use beetry_core::{Node, TickStatus};
+
     use super::*;
     use crate::mock_test::{boxed, mock_returns};
-    use beetry_core::{Node, TickStatus};
 
     #[test]
     fn success_with_first_success() {

@@ -1,19 +1,20 @@
 use beetry_editor_backend::api;
 use beetry_editor_types::{
     id::{NodeId, NodePortId},
-    output::edge::NodeEdge,
-    output::node::{PortSource, PortState},
-    output::ui::Point,
+    output::{
+        edge::NodeEdge,
+        node::{PortSource, PortState},
+        ui::Point,
+    },
 };
-use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
 
 use super::{Backend, RenderRequests};
-use crate::components::workspace::state::{menu, temporary};
-use crate::definitions::{EdgePos, IndexedDragOffset};
-use crate::ui::error::ErrorQueueState;
-use crate::ui::node;
-use crate::ui::node::port::ConnectionOrigin;
+use crate::{
+    components::workspace::state::{menu, temporary},
+    definitions::{EdgePos, IndexedDragOffset},
+    ui::{error::ErrorQueueState, node, node::port::ConnectionOrigin},
+};
 
 pub fn input_handlers(
     mut temp: temporary::State,

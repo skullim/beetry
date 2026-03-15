@@ -1,10 +1,17 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::repository::EdgeRepository;
-use crate::service::node::{SpecView, TrackerView};
 use anyhow::{Result, anyhow, bail};
-use beetry_editor_types::{id::EdgeId, id::NodeId, output::edge::NodeEdge, spec::node::NodeKind};
+use beetry_editor_types::{
+    id::{EdgeId, NodeId},
+    output::edge::NodeEdge,
+    spec::node::NodeKind,
+};
 use tracing::warn;
+
+use crate::{
+    repository::EdgeRepository,
+    service::node::{SpecView, TrackerView},
+};
 
 /// User-facing API, internally this layer maps the concrete repository to
 /// corresponding service

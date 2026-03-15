@@ -1,9 +1,8 @@
-use crate::TaskStatus;
-use crate::task::NodeTask;
 use anyhow::Result;
-
 #[cfg(test)]
 use mockall::automock;
+
+use crate::{TaskStatus, task::NodeTask};
 
 pub trait ExecutorConcept {
     fn run(&mut self) -> impl Future<Output = Result<()>>;

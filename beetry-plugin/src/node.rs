@@ -1,13 +1,16 @@
-use crate::{BoxPlugin, ConstructPlugin, Named, PluginConstructor, PluginError, unique_plugins};
+use std::{collections::BTreeMap, marker::PhantomData};
+
 use anyhow::Result;
 use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
 use beetry_core::{BoxActionBehavior, BoxConditionBehavior, BoxNode, NonEmptyNodes};
-use beetry_editor_types::output::node::{ParameterValue, Parameters};
-use beetry_editor_types::spec::node::{NodeSpec, ParamsSpec};
+use beetry_editor_types::{
+    output::node::{ParameterValue, Parameters},
+    spec::node::{NodeSpec, ParamsSpec},
+};
 use bon::Builder;
 use serde::Deserialize;
-use std::collections::BTreeMap;
-use std::marker::PhantomData;
+
+use crate::{BoxPlugin, ConstructPlugin, Named, PluginConstructor, PluginError, unique_plugins};
 
 pub type LeafReconstructionData = NodeReconstructionData<LeafContext>;
 pub type ActionReconstructionData = LeafReconstructionData;
@@ -177,10 +180,10 @@ inventory::collect! {DecoratorPluginConstructor}
 
 #[cfg(test)]
 mod tests {
-    use crate::Plugin;
+    use beetry_editor_types::spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey};
 
     use super::*;
-    use beetry_editor_types::spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey};
+    use crate::Plugin;
 
     struct TestPluginA {
         spec: NodeSpec,

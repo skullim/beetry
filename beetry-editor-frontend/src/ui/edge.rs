@@ -3,16 +3,16 @@ pub mod renderer;
 pub mod temporary;
 
 use beetry_editor_types::id::EdgeId;
+use dioxus::prelude::*;
 pub use menu::Menu;
 pub use renderer::Renderer;
 pub use temporary::Temporary;
 
-use dioxus::prelude::*;
-
-use crate::Point;
-use crate::definitions::EdgePos;
-use crate::ui::curve::Curve;
-use crate::ui::handler::define_handlers;
+use crate::{
+    Point,
+    definitions::EdgePos,
+    ui::{curve::Curve, handler::define_handlers},
+};
 
 define_handlers!(on_menu: (EdgeId, Point));
 

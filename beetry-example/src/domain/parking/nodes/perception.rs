@@ -6,10 +6,11 @@ use tokio::sync::mpsc::{
 };
 use tracing::info;
 
+use super::{
+    super::messages::{SlotCandidates, TargetSlot, VehicleState},
+    ParkingMilestone,
+};
 use crate::domain::Pose;
-
-use super::super::messages::{SlotCandidates, TargetSlot, VehicleState};
-use super::ParkingMilestone;
 
 pub struct DetectParkingSlots<R, S> {
     pose_recv: R,

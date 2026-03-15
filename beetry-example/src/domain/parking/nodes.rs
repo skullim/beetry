@@ -4,8 +4,7 @@ mod planning;
 mod publishers;
 mod verification;
 
-use std::fmt;
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParkingMilestone {

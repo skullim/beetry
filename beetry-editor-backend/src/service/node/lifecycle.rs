@@ -1,7 +1,3 @@
-use crate::{
-    repository::{ChannelRepository, ChannelSpecRepository, NodeRepositoryFacadeViewMut},
-    service::{channel::ChannelService, edge},
-};
 use anyhow::Result;
 use beetry_editor_types::{
     id::{NodeId, NodePortId, NodeSpecId, PortConnectionId},
@@ -11,6 +7,10 @@ use beetry_editor_types::{
 };
 
 use super::{NodeService, PortConnectionViewMut, PortStateViewMut};
+use crate::{
+    repository::{ChannelRepository, ChannelSpecRepository, NodeRepositoryFacadeViewMut},
+    service::{channel::ChannelService, edge},
+};
 
 pub struct LoadNodeView<'s, 'r> {
     node_service: &'s mut NodeService,

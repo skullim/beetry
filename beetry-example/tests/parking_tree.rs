@@ -1,13 +1,14 @@
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
+
 use anyhow::{Result, anyhow};
 use beetry_core::{PeriodicTick, PeriodicTicker};
 use beetry_engine::{TreeEngine, TreeEngineConfig};
 use beetry_example::domain::parking::ParkingMilestone;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
 use tracing::{Event, Subscriber};
-use tracing_subscriber::layer::Context;
-use tracing_subscriber::prelude::*;
-use tracing_subscriber::{Layer, Registry};
+use tracing_subscriber::{Layer, Registry, layer::Context, prelude::*};
 
 #[derive(Clone)]
 struct EventCaptureLayer {

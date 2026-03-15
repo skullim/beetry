@@ -1,10 +1,15 @@
-use crate::definitions::EdgePos;
-use crate::signals::RequestEdgeRender;
-use crate::ui::edge::Edge;
-use crate::{Backend, ui::error::ErrorQueueState};
-use beetry_editor_backend::api;
-use beetry_editor_backend::api::{EdgeQueryView, NodeUiQuery};
+use beetry_editor_backend::{
+    api,
+    api::{EdgeQueryView, NodeUiQuery},
+};
 use dioxus::prelude::*;
+
+use crate::{
+    Backend,
+    definitions::EdgePos,
+    signals::RequestEdgeRender,
+    ui::{edge::Edge, error::ErrorQueueState},
+};
 
 // Conditions to re-render the edges:
 // - new edge created

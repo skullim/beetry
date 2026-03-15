@@ -1,18 +1,18 @@
-use beetry_editor_backend::api;
-use beetry_editor_backend::api::{NodeTrackerQuery, NodeUiQueryProcessor};
-use beetry_editor_types::id::NodeId;
+use beetry_editor_backend::{
+    api,
+    api::{NodeTrackerQuery, NodeUiQueryProcessor},
+};
+use beetry_editor_types::{id::NodeId, spec::node::NodeKind};
 use dioxus::prelude::*;
-use dioxus_logger::tracing::debug;
 
-use crate::Backend;
-use crate::Point;
-use crate::signals::RequestNodeRender;
-use crate::ui::error::ErrorQueueState;
-use crate::ui::node::control::Control;
-use crate::ui::node::decorator::Decorator;
-use crate::ui::node::leaf::Leaf;
-use crate::ui::node::root::Root;
-use beetry_editor_types::spec::node::NodeKind;
+use crate::{
+    Backend, Point,
+    signals::RequestNodeRender,
+    ui::{
+        error::ErrorQueueState,
+        node::{control::Control, decorator::Decorator, leaf::Leaf, root::Root},
+    },
+};
 
 // Conditions to re-render the nodes:
 // - new node created

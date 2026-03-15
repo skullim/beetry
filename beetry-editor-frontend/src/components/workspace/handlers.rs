@@ -4,19 +4,20 @@ pub mod edge;
 pub mod node;
 pub mod pin;
 
-use crate::Backend;
-use crate::components::editor::state::svg::State as SvgState;
-use crate::components::workspace::state::{self, temporary};
-use crate::signals::RenderRequests;
-use crate::{Point, components::workspace};
-use beetry_editor_backend::api;
-use beetry_editor_backend::api::NodeUiQuery;
-use dioxus::logger::tracing::debug;
+use beetry_editor_backend::{api, api::NodeUiQuery};
 use dioxus::prelude::*;
-
-use crate::ui::{channel as ui_channel, edge as ui_edge};
-
 pub use state::drag::{DragChannelState, DragNodeState};
+
+use crate::{
+    Backend, Point,
+    components::{
+        editor::state::svg::State as SvgState,
+        workspace,
+        workspace::state::{self, temporary},
+    },
+    signals::RenderRequests,
+    ui::{channel as ui_channel, edge as ui_edge},
+};
 
 pub fn handlers(
     state: &workspace::State,

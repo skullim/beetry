@@ -1,8 +1,9 @@
-use crate::id::ChannelSpecId;
 use anyhow::{Result, anyhow};
 use derive_more::{Display, From};
 use getset::{CopyGetters, MutGetters, Setters};
 use serde::{Deserialize, Serialize};
+
+use crate::id::ChannelSpecId;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChannelData {

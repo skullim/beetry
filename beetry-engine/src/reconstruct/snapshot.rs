@@ -17,8 +17,7 @@ use bon::Builder;
 use derive_more::From;
 use getset::{CopyGetters, Getters};
 use itertools::Itertools;
-use mitsein::iter1::FromIterator1;
-use mitsein::vec1::Vec1;
+use mitsein::{iter1::FromIterator1, vec1::Vec1};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

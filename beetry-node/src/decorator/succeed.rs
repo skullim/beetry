@@ -34,9 +34,10 @@ where
 
 #[cfg(test)]
 mod tests {
+    use beetry_core::{Node, TickStatus};
+
     use super::*;
     use crate::mock_test::mock_returns;
-    use beetry_core::{Node, TickStatus};
 
     #[test]
     fn success_stays_success() {
