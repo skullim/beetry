@@ -6,7 +6,6 @@ license.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-beetry-core = { version = "0.1.0", path = "../beetry-core" }
 beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
 embed-doc-image = "0.1.4"
 mitsein.workspace = true
@@ -14,6 +13,7 @@ num-traits.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
+beetry-message = { version = "0.1.0", path = "../beetry-message" }
 rstest = "0.26.1"
 
 [lints]

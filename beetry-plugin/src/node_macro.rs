@@ -14,7 +14,7 @@
 /// action! {
 ///     MultiParamsPlugin: "Multi Params";
 ///     params(parameters): MultiParamsParams::provide();
-///     create: MultiParams::new(ParamsReconstructor::reconstruct(parameters)?);
+///     create: MultiParams::new(ParamsDeserializer::deserialize(parameters)?);
 /// }
 /// ```
 ///
@@ -320,7 +320,7 @@ macro_rules! __leaf_plugin_extract_ports {
     ($port_kind:ident, [], $data:ident) => {};
     ($port_kind:ident, [$($port_name:ident : $port_ty:ty => $port_desc:literal),+], $data:ident) => {
         let ports =
-            $crate::__macro_support::beetry_channel::downcast! {$port_kind = &mut $data.inner.$port_kind, expected = [$($port_ty),*]}
+            $crate::__macro_support::beetry_channel::downcast! {$port_kind = &mut $data.context.$port_kind, expected = [$($port_ty),*]}
                 .map_err(|_| $crate::__macro_support::anyhow::anyhow!(concat!("failed to obtain typed ", stringify!($port_kind))))?;
         let ($($port_name,)*) = ports;
     };
@@ -491,7 +491,7 @@ macro_rules! __control_plugin_impl {
 
                     factory: ControlFactory::new(Box::new(|data: ControlReconstructionData| {
                         let $params_binding = data.parameters;
-                        let $children_binding = data.inner.children;
+                        let $children_binding = data.context.children;
 
                         Ok(Box::new($create) as BoxNode)
                     })),
@@ -548,7 +548,7 @@ macro_rules! __decorator_plugin_impl {
                     factory: DecoratorFactory::new(Box::new(
                         |data: DecoratorReconstructionData| {
                             let $params_binding = data.parameters;
-                            let $child_binding = data.inner.child;
+                            let $child_binding = data.context.child;
 
                             Ok(Box::new($create) as BoxNode)
                         },

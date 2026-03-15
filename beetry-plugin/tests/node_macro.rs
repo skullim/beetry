@@ -1,9 +1,9 @@
 use anyhow::Result;
 use beetry_core::{ActionBehavior, ConditionBehavior, NodeTask};
-use beetry_editor_types::spec::message::Message;
 use beetry_editor_types::spec::node::{
     FieldDefinition, FieldMetadata, FieldTypeSpec, NodeKind, NodeSpec, ParamsSpec,
 };
+use beetry_message::Message;
 use beetry_plugin::{Plugin, action, condition};
 use bon::Builder;
 use mitsein::iter1::IntoIterator1;

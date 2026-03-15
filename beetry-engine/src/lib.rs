@@ -64,12 +64,14 @@
 //! This keeps the default periodic model simple while making it easy to integrate
 //! custom scheduling, external wake-up signals, or mixed ticking strategies.
 
+mod reconstruct;
+
+use crate::reconstruct::TreeReconstructor;
 use anyhow::{Result, anyhow};
 use beetry_core::leaf::Builder;
 use beetry_core::{BoxNode, Node, TickStatus, Ticker, TickerError, Tree};
 use beetry_editor_types::persistence::tree::ValidTreeStore;
 use beetry_exec::{Executor, ExecutorConfig, Ready as ExecutorReady, WithRegistry};
-use beetry_reconstruction::TreeReconstructor;
 use beetry_serialization::json;
 use futures::Stream;
 use std::path::{Path, PathBuf};

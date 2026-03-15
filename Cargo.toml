@@ -11,10 +11,9 @@ members = [
     "beetry-example",
     "beetry-exec",
     "beetry-macros",
+    "beetry-message",
     "beetry-node",
     "beetry-plugin",
-    "beetry-reconstruction",
-    "beetry-reconstruction-types",
     "beetry-serialization",
 ]
 

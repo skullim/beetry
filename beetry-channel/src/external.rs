@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 
-use beetry_core::MessageHash;
+use beetry_message::MessageHash;
 
 use crate::any::AnyBoxReceiver;
 
 //@todo external senders/receivers should not be part of channel, but rather
-//@todo node
-// also, registry should identify which node the given (message hash, receiver)
-// pair belongs to
+// node also, registry should identify which node the given (message hash,
+// receiver) pair belongs to
 #[derive(Default)]
 pub struct ReceiverRegistry {
     registry: HashMap<MessageHash, AnyBoxReceiver>,

@@ -9,10 +9,12 @@ anyhow.workspace = true
 beetry-channel = { version = "0.1.0", path = "../beetry-channel" }
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
 beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
-beetry-reconstruction-types = { version = "0.1.0", path = "../beetry-reconstruction-types" }
+beetry-message = { version = "0.1.0", path = "../beetry-message" }
 bon.workspace = true
 inventory = "0.3.21"
 mitsein.workspace = true
+serde.workspace = true
+serde-value.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]

@@ -45,17 +45,17 @@
 //!
 //! See [`action!`], [`condition!`], [`control!`], and [`decorator!`] for the
 //! macro-level examples that show how to attach a params schema with
-//! `params(...)` and reconstruct the typed value at runtime.
+//! `params(...)` and deserialize the typed value at runtime.
 
 pub mod channel;
 mod channel_macro;
 pub mod node;
 mod node_macro;
 
+pub use crate::node::{ParamsDeserializer, ProvideParamSpec};
 pub use beetry_editor_types::spec::node::{
-    FieldDefinition, FieldMetadata, FieldTypeSpec, ParamsSpec, ProvideParamSpec,
+    FieldDefinition, FieldMetadata, FieldTypeSpec, ParamsSpec,
 };
-pub use beetry_reconstruction_types::params::ParamsReconstructor;
 
 pub trait Plugin {
     type Spec;
@@ -161,16 +161,14 @@ macro_rules! submit {
 
 #[doc(hidden)]
 pub mod __macro_support {
+    pub use crate::node::{ActionReconstructionData, ConditionReconstructionData};
     pub use anyhow;
     pub use beetry_channel;
     pub use beetry_core::{BoxActionBehavior, BoxConditionBehavior};
     pub use beetry_editor_types::spec::channel::ChannelSpec;
-    pub use beetry_editor_types::spec::message::MessageSpec;
     pub use beetry_editor_types::spec::node::{
         NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey, PortsSpec,
     };
-    pub use beetry_reconstruction_types::node::{
-        ActionReconstructionData, ConditionReconstructionData,
-    };
+    pub use beetry_message::MessageSpec;
     pub use mitsein::iter1::FromIterator1;
 }

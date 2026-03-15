@@ -1,7 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{id::NodePortId, spec::message::MessageSpec};
+use crate::id::NodePortId;
 use anyhow::{Result, anyhow};
+use beetry_message::MessageSpec;
 use bon::Builder;
 use derive_more::{Display, From};
 use getset::{CopyGetters, Getters, MutGetters};
@@ -221,10 +222,6 @@ pub enum NodePortKind {
 }
 
 // Parameters
-
-pub trait ProvideParamSpec {
-    fn provide() -> ParamsSpec;
-}
 
 #[derive(Debug, Clone)]
 pub struct ParamsSpec {
