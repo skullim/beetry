@@ -10,10 +10,9 @@ mod signals;
 mod specs;
 mod ui;
 
+pub(crate) use backend::Backend;
 use beetry_editor_types::output::ui::Point;
 use dioxus::{desktop::WindowBuilder, logger::tracing::Level};
-
-pub(crate) use backend::Backend;
 pub use specs::{SharedSpecs, Specs};
 
 #[expect(

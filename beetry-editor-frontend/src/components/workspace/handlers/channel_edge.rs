@@ -3,8 +3,10 @@ use beetry_editor_types::id::PortConnectionId;
 use dioxus::prelude::*;
 
 use super::{Backend, RenderRequests};
-use crate::components::workspace::state::menu;
-use crate::ui::channel::{edge, edge_menu};
+use crate::{
+    components::workspace::state::menu,
+    ui::channel::{edge, edge_menu},
+};
 
 pub fn handlers(mut menu: menu::State) -> edge::Handlers {
     let on_menu = move |(conn, position): (PortConnectionId, crate::Point)| {

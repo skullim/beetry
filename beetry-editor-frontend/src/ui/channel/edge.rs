@@ -1,13 +1,17 @@
-use crate::ui::curve::Curve;
-use crate::ui::error::ErrorQueueState;
-use crate::ui::handler::define_handlers;
-use crate::ui::node::port::ConnectionOrigin;
-use crate::{Backend, Point};
-use beetry_editor_backend::api;
-use beetry_editor_backend::ui::PortConnectionUiQuery;
-use beetry_editor_types::id::PortConnectionId;
-use beetry_editor_types::output::ui::{PortConnectionUiData, VisibilityKind};
+use beetry_editor_backend::{api, ui::PortConnectionUiQuery};
+use beetry_editor_types::{
+    id::PortConnectionId,
+    output::ui::{PortConnectionUiData, VisibilityKind},
+};
 use dioxus::prelude::*;
+
+use crate::{
+    Backend, Point,
+    ui::{
+        curve::Curve, error::ErrorQueueState, handler::define_handlers,
+        node::port::ConnectionOrigin,
+    },
+};
 
 define_handlers!(
     on_menu: (PortConnectionId, Point)
@@ -83,9 +87,10 @@ pub fn Edge(props: EdgeProps) -> Element {
                 onclick: move |evt| {
                     evt.stop_propagation();
                     if let Err(e) = state
-                        .set(PortConnectionUiData::new(VisibilityKind::Hidden), backend, props.conn) {
-                            error_queue.push(e);
-                        }
+                        .set(PortConnectionUiData::new(VisibilityKind::Hidden), backend, props.conn)
+                    {
+                        error_queue.push(e);
+                    }
                 },
                 oncontextmenu: move |evt| {
                     evt.prevent_default();
@@ -105,13 +110,10 @@ pub fn Edge(props: EdgeProps) -> Element {
                 port_width: props.port_width,
                 on_click: move |()| {
                     if let Err(e) = state
-                        .set(
-                            PortConnectionUiData::new(VisibilityKind::Visible),
-                            backend,
-                            props.conn,
-                        ) {
-                            error_queue.push(e);
-                        }
+                        .set(PortConnectionUiData::new(VisibilityKind::Visible), backend, props.conn)
+                    {
+                        error_queue.push(e);
+                    }
                 },
             }
         }

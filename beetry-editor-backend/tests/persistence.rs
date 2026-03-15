@@ -1,11 +1,17 @@
 mod common;
 
 use anyhow::Result;
-use beetry_editor_backend::api;
-use beetry_editor_backend::api::{EdgeQueryView, NodeTrackerQuery};
-use beetry_editor_types::id::{NodePortId, PortConnectionId};
-use beetry_editor_types::output::edge::NodeEdge;
-use beetry_editor_types::output::ui::{PortConnectionUiData, VisibilityKind};
+use beetry_editor_backend::{
+    api,
+    api::{EdgeQueryView, NodeTrackerQuery},
+};
+use beetry_editor_types::{
+    id::{NodePortId, PortConnectionId},
+    output::{
+        edge::NodeEdge,
+        ui::{PortConnectionUiData, VisibilityKind},
+    },
+};
 use common::{
     ChannelSpecCase, NodeSpecCase, TestEditorService, TestSpecs, create_channel, create_node,
     service, specs,

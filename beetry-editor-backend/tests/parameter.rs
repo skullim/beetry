@@ -1,10 +1,11 @@
 mod common;
 
 use anyhow::Result;
-use beetry_editor_backend::api;
-use beetry_editor_backend::api::ParameterValueQuery;
-use beetry_editor_types::id::NodeId;
-use beetry_editor_types::output::node::{ParameterValue, Parameters};
+use beetry_editor_backend::{api, api::ParameterValueQuery};
+use beetry_editor_types::{
+    id::NodeId,
+    output::node::{ParameterValue, Parameters},
+};
 use common::{NodeSpecCase, TestEditorService, TestSpecs, create_node, service, specs};
 use rstest::rstest;
 

@@ -1,10 +1,3 @@
-use crate::{
-    repository::{
-        ChannelRepository, ChannelRepositoryFacadeViewMut, ChannelSpecRepository, NodeRepository,
-        NodeSpecRepository, PortConnectionRepository, PortStateRepository,
-    },
-    service::channel::{ChannelService, ChannelViewMut, ConnectionContext},
-};
 use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{
     id::{NodeId, NodePortId, PortConnectionId},
@@ -13,6 +6,13 @@ use beetry_editor_types::{
 };
 
 use super::{SpecByNodeIdQuery, SpecByNodeIdQueryView, SpecBySpecIdQueryView, SpecView};
+use crate::{
+    repository::{
+        ChannelRepository, ChannelRepositoryFacadeViewMut, ChannelSpecRepository, NodeRepository,
+        NodeSpecRepository, PortConnectionRepository, PortStateRepository,
+    },
+    service::channel::{ChannelService, ChannelViewMut, ConnectionContext},
+};
 
 pub trait PortStateQuery {
     fn state(&self, node_id: NodeId, port_id: NodePortId) -> Result<&PortState>;

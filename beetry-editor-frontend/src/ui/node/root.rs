@@ -2,11 +2,14 @@ use std::rc::Rc;
 
 use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
-use dioxus_logger::tracing::debug;
 
-use crate::Point;
-use crate::ui::node::base::{NodeBase, NodeStyle};
-use crate::ui::node::pin::output;
+use crate::{
+    Point,
+    ui::node::{
+        base::{NodeBase, NodeStyle},
+        pin::output,
+    },
+};
 
 #[derive(Props, PartialEq, Clone)]
 pub struct RootProps {

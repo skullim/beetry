@@ -1,10 +1,12 @@
 use anyhow::Result;
 
 pub mod json {
-    use super::Result;
+    use std::path::Path;
+
     use anyhow::Context;
     use serde::Serialize;
-    use std::path::Path;
+
+    use super::Result;
 
     fn serialize<T: Serialize>(value: &T) -> Result<String> {
         Ok(serde_json::to_string(value)?)

@@ -1,26 +1,31 @@
-use crate::Point;
-use beetry_editor_backend::EditorService;
-use beetry_editor_backend::api;
-use beetry_editor_backend::api::{ChannelQueryView, ChannelUiQuery, NodeUiQuery};
-use beetry_editor_backend::node::PortConnectionQuery;
-use beetry_editor_types::id::{ChannelId, NodeId, PortConnectionId};
-use beetry_editor_types::spec::node::NodePortKind;
+use beetry_editor_backend::{
+    EditorService, api,
+    api::{
+        ChannelQueryView, ChannelUiQuery, NodeUiQuery, SpecByNodeIdQuery, node::ports::RowIndex,
+    },
+    node::PortConnectionQuery,
+};
+use beetry_editor_types::{
+    id::{ChannelId, NodeId, PortConnectionId},
+    spec::node::NodePortKind,
+};
 use beetry_plugin::Named;
 use dioxus::prelude::*;
 
-use crate::Backend;
-use crate::definitions::EdgePos;
-use crate::signals::{RequestChannelEdgeRender, RequestChannelRender};
-use crate::ui::channel::Channel;
-use crate::ui::channel::edge::Edge;
-use crate::ui::channel::layout as channel_layout;
-use crate::ui::error::ErrorQueueState;
-use crate::ui::node::base::{NODE_HEIGHT, NODE_WIDTH};
-use crate::ui::node::port::ConnectionOrigin;
-use crate::ui::node::port::layout;
-use crate::ui::text;
-use beetry_editor_backend::api::SpecByNodeIdQuery;
-use beetry_editor_backend::api::node::ports::RowIndex;
+use crate::{
+    Backend, Point,
+    definitions::EdgePos,
+    signals::{RequestChannelEdgeRender, RequestChannelRender},
+    ui::{
+        channel::{self, Channel, edge::Edge},
+        error::ErrorQueueState,
+        node::{
+            base::{NODE_HEIGHT, NODE_WIDTH},
+            port::{ConnectionOrigin, layout},
+        },
+        text,
+    },
+};
 
 struct ConnectionEntry {
     channel_id: ChannelId,
@@ -222,8 +227,8 @@ fn sender_edge_pos(node_port_center: Point, channel_pos: &Point) -> EdgePos {
     EdgePos {
         start: node_port_center,
         end: Point {
-            x: channel_pos.x + channel_layout::PORT_CENTER.x,
-            y: channel_pos.y + channel_layout::PORT_CENTER.y,
+            x: channel_pos.x + channel::layout::PORT_CENTER.x,
+            y: channel_pos.y + channel::layout::PORT_CENTER.y,
         },
     }
 }
@@ -237,10 +242,10 @@ fn receiver_edge_pos(
         start: node_port_center,
         end: Point {
             x: channel_pos.x
-                + channel_layout::PORT_WIDTH
+                + channel::layout::PORT_WIDTH
                 + channel_body_width
-                + channel_layout::PORT_CENTER.x,
-            y: channel_pos.y + channel_layout::PORT_CENTER.y,
+                + channel::layout::PORT_CENTER.x,
+            y: channel_pos.y + channel::layout::PORT_CENTER.y,
         },
     }
 }

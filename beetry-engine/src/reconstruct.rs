@@ -7,28 +7,33 @@
 
 mod snapshot;
 
+use std::collections::HashMap;
+
+use anyhow::{Context, Result, anyhow};
+use beetry_channel::external;
+use beetry_core::{BoxNode, NonEmptyNodes, RegisterTask, Root, TaskHandle, Tree, leaf};
+use beetry_editor_types::{
+    id::ChannelId,
+    output::node::Parameters,
+    persistence,
+    spec::node::{LeafKind, NodeName, NodeSpec},
+};
+use beetry_message::MessageHash;
+use beetry_plugin::{
+    BoxPlugin, Named, Plugin,
+    channel::{BoxChannelPlugin, ChannelPluginConstructor, TypeErasedChannel},
+    node::{
+        ActionPluginConstructor, BoxActionPlugin, BoxConditionPlugin, BoxControlPlugin,
+        BoxDecoratorPlugin, ConditionPluginConstructor, ControlContext, ControlPluginConstructor,
+        ControlReconstructionData, DecoratorContext, DecoratorPluginConstructor,
+        DecoratorReconstructionData, LeafContext, LeafReconstructionData,
+    },
+};
+use tracing::debug;
+
 use self::snapshot::{
     Control, Decorator, Leaf, LeafSpecProvider, Node, NodeData, TreeSnapshotBuilder,
 };
-use anyhow::{Context, Result, anyhow};
-use beetry_channel::external;
-use beetry_core::leaf;
-use beetry_core::{BoxNode, NonEmptyNodes, RegisterTask, Root, TaskHandle, Tree};
-use beetry_editor_types::id::ChannelId;
-use beetry_editor_types::output::node::Parameters;
-use beetry_editor_types::persistence;
-use beetry_editor_types::spec::node::{LeafKind, NodeName, NodeSpec};
-use beetry_message::MessageHash;
-use beetry_plugin::channel::{BoxChannelPlugin, ChannelPluginConstructor, TypeErasedChannel};
-use beetry_plugin::node::{
-    ActionPluginConstructor, BoxActionPlugin, BoxConditionPlugin, BoxControlPlugin,
-    BoxDecoratorPlugin, ConditionPluginConstructor, ControlContext, ControlPluginConstructor,
-    ControlReconstructionData, DecoratorContext, DecoratorPluginConstructor,
-    DecoratorReconstructionData, LeafContext, LeafReconstructionData,
-};
-use beetry_plugin::{BoxPlugin, Named, Plugin};
-use std::collections::HashMap;
-use tracing::debug;
 
 pub struct TreeReconstructor {
     ext_receivers: external::ReceiverRegistry,

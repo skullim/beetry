@@ -1,12 +1,13 @@
-use crate::Point;
-use crate::ui::handler::define_handlers;
-use crate::ui::node::tooltip::Tooltip;
-use crate::ui::shadow;
+use std::rc::Rc;
+
 use beetry_editor_types::id::NodeId;
 use bon::Builder;
-use dioxus::html::input_data::MouseButton;
-use dioxus::prelude::*;
-use std::rc::Rc;
+use dioxus::{html::input_data::MouseButton, prelude::*};
+
+use crate::{
+    Point,
+    ui::{handler::define_handlers, node::tooltip::Tooltip, shadow},
+};
 
 pub const NODE_WIDTH: f64 = 100.0;
 pub const NODE_HEIGHT: f64 = 100.0;

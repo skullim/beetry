@@ -1,7 +1,7 @@
-use crate::Indices;
-use crate::control::RunningNodesAborter;
 use beetry_core::{Node, NonEmptyNodes, TickStatus};
 use bon::Builder;
+
+use crate::{Indices, control::RunningNodesAborter};
 
 /// Threshold configuration for [`ParallelThreshold`].
 #[derive(Debug, Clone, Copy, Builder)]
@@ -89,16 +89,17 @@ impl Node for ParallelThreshold {
 
 #[cfg(feature = "registry")]
 mod registry_support {
-    use super::ParallelThresholdParams;
-    use anyhow::{Error, anyhow};
-    use beetry_editor_types::output::node::Parameters;
-    use beetry_editor_types::spec::node::{
-        FieldDefinition, FieldMetadata, FieldName, FieldTypeSpec, ParamsSpec,
-    };
-    use beetry_plugin::ProvideParamSpec;
-    use beetry_plugin::node::ParamsDeserializer;
-    use mitsein::iter1::IntoIterator1;
     use std::sync::Arc;
+
+    use anyhow::{Error, anyhow};
+    use beetry_editor_types::{
+        output::node::Parameters,
+        spec::node::{FieldDefinition, FieldMetadata, FieldName, FieldTypeSpec, ParamsSpec},
+    };
+    use beetry_plugin::{ProvideParamSpec, node::ParamsDeserializer};
+    use mitsein::iter1::IntoIterator1;
+
+    use super::ParallelThresholdParams;
 
     impl ProvideParamSpec for ParallelThresholdParams {
         fn provide() -> ParamsSpec {

@@ -1,10 +1,11 @@
-use crate::repository::ParamValuesRepository;
 use anyhow::{Result, anyhow};
 use beetry_editor_types::{
     id::NodeId,
     output::node::{ParameterValue, Parameters},
     spec::node::FieldTypeSpec,
 };
+
+use crate::repository::ParamValuesRepository;
 
 pub struct ParameterValueQueryView<'a> {
     pub(crate) repo: &'a ParamValuesRepository,

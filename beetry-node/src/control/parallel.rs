@@ -1,6 +1,6 @@
-use crate::Indices;
-use crate::control::RunningNodesAborter;
 use beetry_core::{Node, NonEmptyNodes, TickStatus};
+
+use crate::{Indices, control::RunningNodesAborter};
 
 /// Ticks all children each step, failing on the first failure and succeeding
 /// only once all children succeed.
@@ -63,9 +63,10 @@ impl Node for Parallel {
 
 #[cfg(test)]
 mod tests {
+    use beetry_core::{Node, TickStatus};
+
     use super::*;
     use crate::mock_test::{boxed, mock_returns};
-    use beetry_core::{Node, TickStatus};
 
     #[test]
     fn success_with_all_success() {

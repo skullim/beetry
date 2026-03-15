@@ -1,6 +1,7 @@
+use std::cmp::Ordering;
+
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
 
 /// Describes the hash of the message type (and not concrete message type
 /// instance).

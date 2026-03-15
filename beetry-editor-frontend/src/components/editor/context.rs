@@ -1,10 +1,9 @@
 use dioxus::prelude::*;
 
 use super::handlers;
-use crate::components::editor;
-use crate::signals::RenderRequests;
-use crate::ui::error::ErrorQueueState;
-use crate::{Backend, SharedSpecs};
+use crate::{
+    Backend, SharedSpecs, components::editor, signals::RenderRequests, ui::error::ErrorQueueState,
+};
 
 #[component]
 pub(super) fn Provider(state: editor::State, children: Element) -> Element {

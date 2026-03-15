@@ -2,10 +2,11 @@ use beetry_core::{ConditionBehavior, Receiver};
 use beetry_plugin::condition;
 use tracing::info;
 
+use super::{
+    super::messages::{ManeuverStatus, ProximityState, TargetSlot, VehicleState},
+    ParkingMilestone,
+};
 use crate::domain::Pose;
-
-use super::super::messages::{ManeuverStatus, ProximityState, TargetSlot, VehicleState};
-use super::ParkingMilestone;
 
 pub struct VerifyFinalPose<PR, TR> {
     pose_recv: PR,

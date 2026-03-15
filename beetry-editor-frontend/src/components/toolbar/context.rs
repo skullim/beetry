@@ -1,10 +1,10 @@
 use dioxus::prelude::*;
 
 use super::handlers;
-use crate::Backend;
-use crate::components::editor::state::svg::DimensionState;
-use crate::signals::RenderRequests;
-use crate::ui::error::ErrorQueueState;
+use crate::{
+    Backend, components::editor::state::svg::DimensionState, signals::RenderRequests,
+    ui::error::ErrorQueueState,
+};
 
 #[component]
 pub(super) fn Provider(dimensions: DimensionState, children: Element) -> Element {

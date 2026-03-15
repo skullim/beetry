@@ -1,5 +1,4 @@
-use std::collections::HashSet;
-use std::fmt;
+use std::{collections::HashSet, fmt};
 
 use mitsein::vec1::{Vec1, vec1};
 use serde::{Deserialize, Serialize};
@@ -7,10 +6,7 @@ use thiserror::Error;
 
 use crate::{
     id::{ChannelId, NodeId, NodePortId, NodeSpecId, PortConnectionId},
-    persistence::{
-        channel::Store as ChannelStore, node::RecordView, node::SpecStore,
-        node::Store as NodeStore, parameter::Store as ParameterStore, port::Store as PortStore,
-    },
+    persistence::{channel, node, parameter, port},
     spec::node::NodeKind,
 };
 
@@ -45,18 +41,18 @@ impl TryFrom<Store> for ValidTreeStore {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Store {
-    pub node: NodeStore,
-    pub port: PortStore,
-    pub parameter: ParameterStore,
-    pub channel: ChannelStore,
+    pub node: node::Store,
+    pub port: port::Store,
+    pub parameter: parameter::Store,
+    pub channel: channel::Store,
 }
 
 impl Store {
     pub fn new(
-        node: NodeStore,
-        port: PortStore,
-        parameter: ParameterStore,
-        channel: ChannelStore,
+        node: node::Store,
+        port: port::Store,
+        parameter: parameter::Store,
+        channel: channel::Store,
     ) -> Self {
         Self {
             node,
@@ -154,9 +150,9 @@ fn validate_tree(tree: &Store) -> Result<(), ValidationErrors> {
     Err(ValidationErrors(errors))
 }
 
-fn validate_root<'a, I>(mut nodes: I, specs: &SpecStore) -> Result<NodeId, ValidationError>
+fn validate_root<'a, I>(mut nodes: I, specs: &node::SpecStore) -> Result<NodeId, ValidationError>
 where
-    I: Iterator<Item = RecordView<'a>>,
+    I: Iterator<Item = node::RecordView<'a>>,
 {
     nodes
         .find_map(|record| {
@@ -218,7 +214,7 @@ fn validate_all_nodes_connected<'a, I>(
     visited_nodes: &HashSet<NodeId>,
     errors: &mut Vec<ValidationError>,
 ) where
-    I: Iterator<Item = RecordView<'a>>,
+    I: Iterator<Item = node::RecordView<'a>>,
 {
     for node_id in nodes
         .map(|record| *record.id())

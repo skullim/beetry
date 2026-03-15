@@ -3,16 +3,13 @@ mod handlers;
 pub mod state;
 
 use dioxus::prelude::*;
-use dioxus_logger::tracing::debug;
-
-use crate::components::sidebar::Sidebar;
-use crate::components::toolbar::Toolbar;
-use crate::components::topbar::Topbar;
-use crate::components::workspace::Workspace;
-use crate::signals::RenderRequests;
-use crate::ui::theme::GlobalStyle;
-
 pub use state::State;
+
+use crate::{
+    components::{sidebar::Sidebar, toolbar::Toolbar, topbar::Topbar, workspace::Workspace},
+    signals::RenderRequests,
+    ui::theme::GlobalStyle,
+};
 
 #[component]
 pub(crate) fn Editor() -> Element {
@@ -41,7 +38,9 @@ fn Layout(state: State) -> Element {
                     Topbar {}
                     Workspace { render_requests, editor_state: state }
                 }
-                div { class: "bt-panel", Toolbar { dimensions: state.svg.dimensions } }
+                div { class: "bt-panel",
+                    Toolbar { dimensions: state.svg.dimensions }
+                }
             }
         }
     }

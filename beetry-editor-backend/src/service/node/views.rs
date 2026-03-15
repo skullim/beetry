@@ -1,9 +1,8 @@
-use crate::repository::NodeRepositoryFacadeView;
-
 use super::{
     NodeService, ParameterValueQueryView, PortConnectionQuery, PortConnectionQueryView,
     PortSpecQuery, PortSpecQueryView, PortStateQueryView, SpecView, TrackerView,
 };
+use crate::repository::NodeRepositoryFacadeView;
 
 pub struct NodeView<'a> {
     facade_view: NodeRepositoryFacadeView<'a>,

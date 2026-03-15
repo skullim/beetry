@@ -1,18 +1,19 @@
-use crate::Backend;
-use crate::ui::error::ErrorQueueState;
-use crate::{Point, ui::handler::define_handlers};
-use beetry_editor_backend::api::{self, ParameterValueQuery};
-use beetry_editor_backend::api::{ParameterValueParser, SpecByNodeIdQuery};
-use beetry_editor_types::output::node::ParameterValue;
-use beetry_editor_types::spec::node::FieldDefinition;
+use std::rc::Rc;
+
+use beetry_editor_backend::api::{
+    self, ParameterValueParser, ParameterValueQuery, SpecByNodeIdQuery,
+};
 use beetry_editor_types::{
     id::NodeId,
-    output::node::Parameters,
-    spec::node::{FieldName, FieldTypeSpec, ParamsSpec},
+    output::node::{ParameterValue, Parameters},
+    spec::node::{FieldDefinition, FieldName, FieldTypeSpec, ParamsSpec},
 };
 use dioxus::prelude::*;
-use dioxus_logger::tracing::debug;
-use std::rc::Rc;
+
+use crate::{
+    Backend, Point,
+    ui::{error::ErrorQueueState, handler::define_handlers},
+};
 
 pub const DEFAULT_DIALOG_POSITION: Point = Point { x: 300.0, y: 200.0 };
 

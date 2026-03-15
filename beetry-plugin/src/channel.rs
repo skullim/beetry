@@ -1,12 +1,11 @@
 use anyhow::{Result, anyhow};
+use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
+use beetry_core::{BoxReceiver, BoxSender};
 use beetry_editor_types::{
     output::channel::{ChannelConfig, ChannelKind, TokioChannelKind},
     spec::channel::ChannelSpec,
 };
 use bon::Builder;
-
-use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
-use beetry_core::{BoxReceiver, BoxSender};
 
 use crate::{BoxPlugin, ConstructPlugin, Named, PluginConstructor, PluginError, unique_plugins};
 

@@ -1,5 +1,6 @@
-use crate::ui::{channel as ui_channel, edge as ui_edge, node as ui_node};
 use dioxus::prelude::*;
+
+use crate::ui::{channel as ui_channel, edge as ui_edge, node as ui_node};
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct State {

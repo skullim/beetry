@@ -1,5 +1,6 @@
-use num_traits::One;
 use std::{hash::Hash, ops::AddAssign};
+
+use num_traits::One;
 
 #[derive(Debug, Default)]
 pub struct IdProvider<I> {

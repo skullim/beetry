@@ -22,10 +22,8 @@ pub mod input;
 #[cfg(feature = "tokio")]
 pub mod tokio;
 
-pub use input::Input;
-
-pub use bon::{bon, builder};
-
 // reexport for macro
 pub use anyhow;
+pub use bon::{bon, builder};
+pub use input::Input;
 pub use tupleops;

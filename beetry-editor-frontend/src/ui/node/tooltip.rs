@@ -1,10 +1,8 @@
-use crate::Backend;
-use crate::Point;
-use crate::ui::tooltip::TooltipCard;
-use beetry_editor_backend::api;
-use beetry_editor_backend::api::ParameterValueQuery;
+use beetry_editor_backend::{api, api::ParameterValueQuery};
 use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
+
+use crate::{Backend, Point, ui::tooltip::TooltipCard};
 
 #[derive(Props, Clone, PartialEq)]
 pub struct TooltipProps {

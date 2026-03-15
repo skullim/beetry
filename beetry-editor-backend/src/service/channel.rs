@@ -1,9 +1,5 @@
 use std::collections::HashMap;
 
-use crate::repository::{
-    ChannelRepository, ChannelRepositoryFacadeView, ChannelRepositoryFacadeViewMut,
-    ChannelSpecRepository,
-};
 use anyhow::{Result, anyhow, bail};
 use beetry_editor_types::{
     id::{ChannelId, ChannelSpecId, NodeId},
@@ -12,10 +8,17 @@ use beetry_editor_types::{
         TokioChannelKind,
     },
     persistence,
-    spec::channel::ChannelSpec,
-    spec::node::{NodePortKind, NodePortSpec},
+    spec::{
+        channel::ChannelSpec,
+        node::{NodePortKind, NodePortSpec},
+    },
 };
 use tracing::warn;
+
+use crate::repository::{
+    ChannelRepository, ChannelRepositoryFacadeView, ChannelRepositoryFacadeViewMut,
+    ChannelSpecRepository,
+};
 
 pub struct ChannelView<'a> {
     facade_view: ChannelRepositoryFacadeView<'a>,

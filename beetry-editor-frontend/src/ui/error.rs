@@ -1,11 +1,12 @@
-use chrono::{DateTime, Local, Utc};
 use core::fmt;
-use dioxus::prelude::*;
 use std::{
     collections::VecDeque,
     ops::{Deref, DerefMut},
     time::{SystemTime, UNIX_EPOCH},
 };
+
+use chrono::{DateTime, Local, Utc};
+use dioxus::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct ErrorQueueState(Signal<ErrorQueue>);

@@ -1,21 +1,28 @@
-use beetry_editor_backend::api;
-use beetry_editor_backend::node::PortConnectionQuery;
-use beetry_editor_backend::node::PortStateQuery;
-use beetry_editor_types::output::node::PortState;
 use std::rc::Rc;
 
-use crate::Backend;
-use crate::Point;
-use crate::definitions::IndexedDragOffset;
-use crate::signals::RenderRequests;
-use crate::ui::handler::define_handlers;
-use crate::ui::node::port::{ConnectionOrigin, layout};
-use crate::ui::text::{self, text_width_from};
-use crate::ui::{channel, shadow};
-use beetry_editor_backend::api::SpecByNodeIdQuery;
-use beetry_editor_types::{id::NodeId, id::NodePortId};
-use dioxus::html::input_data::MouseButton;
-use dioxus::prelude::*;
+use beetry_editor_backend::{
+    api,
+    api::SpecByNodeIdQuery,
+    node::{PortConnectionQuery, PortStateQuery},
+};
+use beetry_editor_types::{
+    id::{NodeId, NodePortId},
+    output::node::PortState,
+};
+use dioxus::{html::input_data::MouseButton, prelude::*};
+
+use crate::{
+    Backend, Point,
+    definitions::IndexedDragOffset,
+    signals::RenderRequests,
+    ui::{
+        channel,
+        handler::define_handlers,
+        node::port::{ConnectionOrigin, layout},
+        shadow,
+        text::{self, text_width_from},
+    },
+};
 
 define_handlers!(on_mouse_down: (ConnectionOrigin, IndexedDragOffset, NodePortId),
                  on_menu: (Point, NodeId, NodePortId, Signal<bool>),

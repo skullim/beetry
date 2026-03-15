@@ -17,9 +17,10 @@ pub use crate::{
 pub mod contract;
 
 pub mod node {
-    use crate::api::contract::NodeLifecycleApi;
     use anyhow::Result;
     use beetry_editor_types::{id::NodeId, output::ui::NodeUiData, spec::node::NodeSpec};
+
+    use crate::api::contract::NodeLifecycleApi;
 
     pub fn create(
         api: &mut impl NodeLifecycleApi,
@@ -49,8 +50,7 @@ pub mod node {
     }
 
     pub mod tracker {
-        use crate::api::contract::NodeQueryApi;
-        use crate::service::node::NodeTrackerQuery;
+        use crate::{api::contract::NodeQueryApi, service::node::NodeTrackerQuery};
 
         pub fn query(api: &impl NodeQueryApi) -> impl NodeTrackerQuery {
             NodeQueryApi::tracker(api)
@@ -58,10 +58,15 @@ pub mod node {
     }
 
     pub mod parameters {
-        use crate::api::ParameterValueQuery;
-        use crate::api::contract::{ParameterCommandApi, ParameterQueryApi};
-        use crate::service::node::ParameterValueMut;
         use beetry_editor_types::{id::NodeId, output::node::Parameters};
+
+        use crate::{
+            api::{
+                ParameterValueQuery,
+                contract::{ParameterCommandApi, ParameterQueryApi},
+            },
+            service::node::ParameterValueMut,
+        };
 
         pub fn create(api: &mut impl ParameterCommandApi, id: NodeId, params: Parameters) {
             ParameterCommandApi::parameters_mut(api).create(id, params);
@@ -73,15 +78,16 @@ pub mod node {
     }
 
     pub mod ports {
-        use crate::{
-            api::contract::{PortCommandApi, PortLifecycleApi, PortQueryApi},
-            node::{PortConnectionQuery, PortStateQuery},
-        };
         use anyhow::Result;
         use beetry_editor_types::{
             id::{NodeId, NodePortId, PortConnectionId},
             output::{node::PortState, ui::PortConnectionUiData},
             spec::node::NodePortKind,
+        };
+
+        use crate::{
+            api::contract::{PortCommandApi, PortLifecycleApi, PortQueryApi},
+            node::{PortConnectionQuery, PortStateQuery},
         };
         pub type RowIndex = usize;
 
@@ -129,12 +135,13 @@ pub mod node {
 }
 
 pub mod edge {
+    use anyhow::Result;
+    use beetry_editor_types::{id::EdgeId, output::edge::NodeEdge};
+
     use crate::{
         api::contract::{EdgeCommandApi, EdgeQueryApi},
         edge::EdgeQueryView,
     };
-    use anyhow::Result;
-    use beetry_editor_types::{id::EdgeId, output::edge::NodeEdge};
 
     pub fn create(api: &mut impl EdgeCommandApi, edge: NodeEdge) -> Result<EdgeId> {
         EdgeCommandApi::create(api, edge)
@@ -150,10 +157,6 @@ pub mod edge {
 }
 
 pub mod channel {
-    use crate::{
-        api::contract::{ChannelCommandApi, ChannelLifecycleApi, ChannelQueryApi},
-        channel::ChannelQueryView,
-    };
     use anyhow::Result;
     use beetry_editor_types::{
         id::ChannelId,
@@ -162,6 +165,11 @@ pub mod channel {
             ui::ChannelUiData,
         },
         spec::channel::ChannelSpec,
+    };
+
+    use crate::{
+        api::contract::{ChannelCommandApi, ChannelLifecycleApi, ChannelQueryApi},
+        channel::ChannelQueryView,
     };
 
     pub fn create(
@@ -192,12 +200,13 @@ pub mod channel {
 
 pub mod ui {
     pub mod node {
+        use anyhow::Result;
+        use beetry_editor_types::{id::NodeId, output::ui::Point};
+
         use crate::{
             api::contract::{NodeUiCommandApi, NodeUiQueryApi},
             ui::NodeUiQuery,
         };
-        use anyhow::Result;
-        use beetry_editor_types::{id::NodeId, output::ui::Point};
 
         pub fn update_position(
             api: &mut impl NodeUiCommandApi,
@@ -213,12 +222,13 @@ pub mod ui {
     }
 
     pub mod channel {
+        use anyhow::Result;
+        use beetry_editor_types::{id::ChannelId, output::ui::Point};
+
         use crate::{
             api::contract::{ChannelUiCommandApi, ChannelUiQueryApi},
             ui::ChannelUiQuery,
         };
-        use anyhow::Result;
-        use beetry_editor_types::{id::ChannelId, output::ui::Point};
 
         pub fn update_position(
             api: &mut impl ChannelUiCommandApi,
@@ -234,12 +244,13 @@ pub mod ui {
     }
 
     pub mod port {
+        use anyhow::Result;
+        use beetry_editor_types::{id::PortConnectionId, output::ui::PortConnectionUiData};
+
         use crate::{
             api::contract::{PortConnectionUiCommandApi, PortConnectionUiQueryApi},
             ui::PortConnectionUiQuery,
         };
-        use anyhow::Result;
-        use beetry_editor_types::{id::PortConnectionId, output::ui::PortConnectionUiData};
 
         pub fn update_data(
             api: &mut impl PortConnectionUiCommandApi,
@@ -256,9 +267,10 @@ pub mod ui {
 }
 
 pub mod project {
-    use crate::api::contract::{ExportApi, ImportApi};
     use anyhow::Result;
     use beetry_editor_types::persistence::{editor, tree::ValidTreeStore};
+
+    use crate::api::contract::{ExportApi, ImportApi};
 
     pub fn import(api: &mut impl ImportApi, store: editor::StateStore) -> Result<()> {
         api.import_project(store)

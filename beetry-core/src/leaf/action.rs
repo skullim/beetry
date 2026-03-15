@@ -1,10 +1,13 @@
-use crate::task::{RegisterTask, TaskHandle, TaskStatus};
-use crate::{Node, NodeTask, TickStatus};
-use anyhow::Result;
 use core::fmt;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
+
+use anyhow::Result;
 use tracing::{debug, error};
+
+use crate::{
+    Node, NodeTask, TickStatus,
+    task::{RegisterTask, TaskHandle, TaskStatus},
+};
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait Behavior {
@@ -184,8 +187,10 @@ mod tests {
     use mockall::mock;
 
     use super::*;
-    use crate::task::{AbortTask, MockRegisterTask, QueryTask};
-    use crate::{Task, TaskDescription};
+    use crate::{
+        Task, TaskDescription,
+        task::{AbortTask, MockRegisterTask, QueryTask},
+    };
 
     mock! {
         TaskHandle {}

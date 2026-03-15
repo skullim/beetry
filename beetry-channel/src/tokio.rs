@@ -85,9 +85,8 @@ pub mod broadcast {
     }
 
     use beetry_core::{TryRecvResult, TrySendResult};
-    use tokio::sync::broadcast::channel as tokio_channel;
-
     use error::{TokioSendError, TokioTryRecvError};
+    use tokio::sync::broadcast::channel as tokio_channel;
 
     #[derive(Debug)]
     pub struct Receiver<T>(tokio::sync::broadcast::Receiver<T>);

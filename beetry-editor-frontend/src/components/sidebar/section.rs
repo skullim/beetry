@@ -1,7 +1,7 @@
-use super::Handlers;
-use beetry_editor_types::spec::channel::ChannelSpec;
-use beetry_editor_types::spec::node::NodeSpecKey;
+use beetry_editor_types::spec::{channel::ChannelSpec, node::NodeSpecKey};
 use dioxus::prelude::*;
+
+use super::Handlers;
 
 pub type NodeItems = Vec<(NodeSpecKey, String)>;
 pub type ChannelItems = Vec<(ChannelSpec, String)>;

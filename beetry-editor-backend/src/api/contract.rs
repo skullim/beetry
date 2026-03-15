@@ -5,6 +5,22 @@
 //! depend on a narrow interface, while [`crate::EditorService`] can implement
 //! the full backend surface in one place.
 
+use anyhow::{Result, bail};
+use beetry_editor_types::{
+    id::{ChannelId, EdgeId, NodeId, NodePortId, PortConnectionId},
+    output::{
+        channel::{ChannelConfigInput, ChannelConfigUpdate, ChannelData},
+        edge::NodeEdge,
+        node::PortState,
+        ui::{ChannelUiData, NodeUiData, Point, PortConnectionUiData},
+    },
+    persistence::{editor, tree::ValidTreeStore},
+    spec::{
+        channel::ChannelSpec,
+        node::{NodePortKind, NodeSpec, NodeSpecMap},
+    },
+};
+
 use crate::{
     channel::{ChannelQueryView, ChannelView},
     edge::{EdgeQueryView, EdgeView},
@@ -30,21 +46,6 @@ use crate::{
         ChannelUiQuery, ChannelUiQueryView, ChannelUiViewMut, NodeUiQuery, NodeUiQueryView,
         NodeUiViewMut, PortConnectionUiQuery, PortConnectionUiQueryView,
         PortConnectionUiStateViewMut,
-    },
-};
-use anyhow::{Result, bail};
-use beetry_editor_types::{
-    id::{ChannelId, EdgeId, NodeId, NodePortId, PortConnectionId},
-    output::{
-        channel::{ChannelConfigInput, ChannelConfigUpdate, ChannelData},
-        edge::NodeEdge,
-        node::PortState,
-        ui::{ChannelUiData, NodeUiData, Point, PortConnectionUiData},
-    },
-    persistence::{editor, tree::ValidTreeStore},
-    spec::{
-        channel::ChannelSpec,
-        node::{NodePortKind, NodeSpec, NodeSpecMap},
     },
 };
 

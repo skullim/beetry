@@ -1,15 +1,20 @@
-use crate::Backend;
-use crate::Point;
-use crate::ui::error::ErrorQueueState;
-use crate::ui::node::base::{NodeBase, NodeStyle, NodeWithMenu};
-use crate::ui::node::{pin::input, port};
-use beetry_editor_backend::api;
-use beetry_editor_backend::api::SpecByNodeIdQuery;
-use beetry_editor_types::id::NodeId;
-use beetry_editor_types::spec::node::LeafKind;
-use dioxus::prelude::*;
-use dioxus_logger::tracing::debug;
 use std::rc::Rc;
+
+use beetry_editor_backend::{api, api::SpecByNodeIdQuery};
+use beetry_editor_types::{id::NodeId, spec::node::LeafKind};
+use dioxus::prelude::*;
+
+use crate::{
+    Backend, Point,
+    ui::{
+        error::ErrorQueueState,
+        node::{
+            base::{NodeBase, NodeStyle, NodeWithMenu},
+            pin::input,
+            port,
+        },
+    },
+};
 
 fn style(kind: LeafKind, name: &str) -> NodeStyle {
     let (fill_color, hover_color) = match kind {

@@ -1,7 +1,7 @@
-use crate::{Point, ui::handler::define_handlers};
 use beetry_editor_types::id::NodeId;
 use dioxus::prelude::*;
-use dioxus_logger::tracing::debug;
+
+use crate::{Point, ui::handler::define_handlers};
 
 define_handlers!(on_delete: NodeId,
           on_update: NodeId,

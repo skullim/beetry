@@ -1,18 +1,18 @@
-use beetry_editor_backend::api;
-use beetry_editor_backend::api::ChannelQueryView;
+use beetry_editor_backend::{api, api::ChannelQueryView};
 use beetry_editor_types::{
     id::{ChannelId, PortConnectionId},
     output::ui::{Point, PortConnectionUiData, VisibilityKind},
 };
 use dioxus::{html::input_data::MouseButton, prelude::*};
 
-use crate::components::editor::state::svg::ZoomState;
-use crate::components::workspace::{self, state::menu};
-use crate::ui::channel;
-use crate::ui::error::ErrorQueueState;
-use crate::ui::node::port::ConnectionOrigin;
-
 use super::{Backend, DragChannelState, RenderRequests};
+use crate::{
+    components::{
+        editor::state::svg::ZoomState,
+        workspace::{self, state::menu},
+    },
+    ui::{channel, error::ErrorQueueState, node::port::ConnectionOrigin},
+};
 
 pub fn handlers(
     mut state: workspace::State,

@@ -1,6 +1,6 @@
+use std::{marker::PhantomData, sync::Arc};
+
 use crate::{ActionBehavior, BoxNode, ConditionBehavior, RegisterTask, TaskHandle};
-use std::marker::PhantomData;
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Builder<R, T> {

@@ -1,13 +1,14 @@
-use crate::{id::ChannelId, spec::node::FieldName};
+use std::{collections::BTreeMap, fmt};
+
 use anyhow::{Result, bail};
 use mitsein::{
     btree_set1::BTreeSet1,
     iter1::{FromIterator1, IntoIterator1},
 };
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
-use std::fmt;
 use tracing::error;
+
+use crate::{id::ChannelId, spec::node::FieldName};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ParameterValue {

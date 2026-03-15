@@ -15,9 +15,11 @@ use beetry_core::{PeriodicTick, PeriodicTicker};
 use beetry_engine::{TreeEngine, TreeEngineConfig};
 #[expect(unused_imports, reason = "import all node and channel plugins")]
 use beetry_example::domain::*;
-use tracing_subscriber::filter::{LevelFilter, Targets};
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::{Layer, Registry};
+use tracing_subscriber::{
+    Layer, Registry,
+    filter::{LevelFilter, Targets},
+    layer::SubscriberExt,
+};
 use tracing_tree::HierarchicalLayer;
 
 #[tokio::main]

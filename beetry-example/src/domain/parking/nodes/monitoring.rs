@@ -2,17 +2,17 @@ use anyhow::Result;
 use beetry_core::{
     ActionBehavior, ConditionBehavior, NodeTask, Receiver, Sender, Task, TickStatus,
 };
-use beetry_plugin::ProvideParamSpec;
-use beetry_plugin::node::ParamsDeserializer;
-use beetry_plugin::{action, condition};
+use beetry_plugin::{ProvideParamSpec, action, condition, node::ParamsDeserializer};
 use tokio::sync::mpsc::{
     Receiver as TokioReceiver, Sender as TokioSender, channel as mpsc_channel,
 };
 use tracing::info;
 
-use super::super::messages::{BrakeState, ProximityState, SafetyStatus, VehicleState};
-use super::ParkingMilestone;
-use super::publishers::PublishInterval;
+use super::{
+    super::messages::{BrakeState, ProximityState, SafetyStatus, VehicleState},
+    ParkingMilestone,
+    publishers::PublishInterval,
+};
 
 enum SafetyUpdate {
     Proximity(ProximityState),

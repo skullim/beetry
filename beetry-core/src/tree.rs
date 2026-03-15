@@ -2,8 +2,7 @@ mod ticker;
 
 pub use ticker::{Error as TickerError, PeriodicTick, Ticker};
 
-use crate::root::Root;
-use crate::{Node, TickStatus};
+use crate::{Node, TickStatus, root::Root};
 
 pub struct Tree<N> {
     root: Root<N>,

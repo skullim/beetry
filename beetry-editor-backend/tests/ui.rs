@@ -1,8 +1,10 @@
 mod common;
 
 use anyhow::Result;
-use beetry_editor_backend::api;
-use beetry_editor_backend::api::{ChannelUiQuery, NodeUiQuery};
+use beetry_editor_backend::{
+    api,
+    api::{ChannelUiQuery, NodeUiQuery},
+};
 use beetry_editor_types::output::ui::{ChannelUiData, NodeUiData, Point};
 use common::{ChannelSpecCase, NodeSpecCase, TestEditorService, TestSpecs, service, specs};
 use rstest::rstest;

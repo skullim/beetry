@@ -1,5 +1,6 @@
-use crate::TickStatus;
 use mitsein::vec1::Vec1;
+
+use crate::TickStatus;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 /// Runtime contract for executable behavior tree nodes.

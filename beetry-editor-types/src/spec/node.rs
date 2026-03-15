@@ -1,6 +1,5 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::id::NodePortId;
 use anyhow::{Result, anyhow};
 use beetry_message::MessageSpec;
 use bon::Builder;
@@ -9,6 +8,8 @@ use getset::{CopyGetters, Getters, MutGetters};
 use mitsein::{btree_map1::BTreeMap1, iter1::FromIterator1};
 use serde::{Deserialize, Serialize};
 use strum_macros::AsRefStr;
+
+use crate::id::NodePortId;
 
 #[derive(Debug, Builder, Clone, Getters, MutGetters)]
 pub struct NodeSpec {
