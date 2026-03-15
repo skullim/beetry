@@ -13,11 +13,15 @@ anyhow.workspace = true
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
 beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
 beetry-exec = { version = "0.1.0", path = "../beetry-exec" }
-beetry-node = { version = "0.1.0", path = "../beetry-node", optional = true, features = ["registry"] }
+beetry-node = { version = "0.1.0", path = "../beetry-node", optional = true, features = [
+    "registry",
+] }
 beetry-reconstruction = { version = "0.1.0", path = "../beetry-reconstruction" }
 beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }
 futures.workspace = true
-rfd = { version = "0.17.2", default-features = false, features = ["xdg-portal"] }
+rfd = { version = "0.17.2", default-features = false, features = [
+    "xdg-portal",
+] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "sync"] }
 tracing.workspace = true
