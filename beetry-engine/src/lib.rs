@@ -70,7 +70,7 @@ use beetry_core::{BoxNode, Node, TickStatus, Ticker, TickerError, Tree};
 use beetry_editor_types::persistence::tree::ValidTreeStore;
 use beetry_exec::{Executor, ExecutorConfig, Ready as ExecutorReady, WithRegistry};
 use beetry_reconstruction::TreeReconstructor;
-use beetry_serialization::{Deserializer, JsonDeserializer};
+use beetry_serialization::json;
 use futures::Stream;
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
@@ -176,7 +176,7 @@ impl TreeEngine<Configured> {
 
 fn load_valid_tree(path: &Path) -> Result<ValidTreeStore> {
     let content = std::fs::read_to_string(path)?;
-    JsonDeserializer::deserialize(&content)
+    json::load_from(&content)
 }
 
 async fn select_import_file() -> Result<PathBuf> {
