@@ -17,6 +17,37 @@ pub struct State {
     pub(crate) element_spawn_point: Signal<Point>,
     pub(crate) svg: svg::State,
     pub(crate) default_channel_config: CopyValue<ChannelConfig>,
+    pub(crate) reload_ws: ReloadWorkspaceFlag,
+}
+
+/// Requests dropping the current `Workspace` subtree so Dioxus mounts a fresh
+/// one.
+///
+/// This is used after project import because imported nodes/channels may reuse
+/// ids that already existed in the UI. Without remounting, Dioxus can preserve
+/// component-local state for those ids and stale frontend data may remain
+/// visible.
+#[derive(Default, Clone, Copy, PartialEq)]
+pub struct ReloadWorkspaceFlag {
+    flag: Signal<bool>,
+}
+
+impl ReloadWorkspaceFlag {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn set(&mut self) {
+        self.flag.set(true);
+    }
+
+    pub fn read_val(&self) -> bool {
+        (self.flag)()
+    }
+
+    pub fn clear(&mut self) {
+        self.flag.toggle();
+    }
 }
 
 impl State {
@@ -30,6 +61,7 @@ impl State {
                 1,
                 ChannelKind::Tokio(TokioChannelKind::Mpsc),
             ))),
+            reload_ws: ReloadWorkspaceFlag::new(),
         }
     }
 }

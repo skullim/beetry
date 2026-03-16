@@ -8,7 +8,7 @@ use rfd::FileDialog;
 
 use crate::{
     Backend,
-    components::editor::state::svg::DimensionState,
+    components::editor::state::{ReloadWorkspaceFlag, svg::DimensionState},
     signals::RenderRequests,
     ui::{error::ErrorQueueState, transfer},
 };
@@ -39,10 +39,12 @@ pub(super) fn import_handlers(
     mut error_queue: ErrorQueueState,
     backend: Backend,
     mut render_requests: RenderRequests,
+    mut reload_ws: ReloadWorkspaceFlag,
 ) -> transfer::import::Handlers {
     let on_click = move |()| {
         match do_import(backend, dimensions) {
             Ok(()) => {
+                reload_ws.set();
                 render_requests.request_all();
             }
             Err(e) => {

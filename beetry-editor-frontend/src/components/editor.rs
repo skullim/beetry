@@ -27,6 +27,15 @@ fn Layout(state: State) -> Element {
 
     let render_requests = use_context::<RenderRequests>();
 
+    let workspace = if state.reload_ws.read_val() {
+        // Force here to drop old Workspace and rerender again.
+        // Rerender will execute else branch as we are clearing the reload flag
+        state.reload_ws.clear();
+        rsx! {}
+    } else {
+        rsx! {Workspace { render_requests, editor_state: state  }}
+    };
+
     rsx! {
         GlobalStyle {}
         div { class: "bt-editor-shell",
@@ -36,10 +45,10 @@ fn Layout(state: State) -> Element {
                 }
                 div { class: "bt-panel bt-workspace-shell",
                     Topbar {}
-                    Workspace { render_requests, editor_state: state }
+                    {workspace}
                 }
                 div { class: "bt-panel",
-                    Toolbar { dimensions: state.svg.dimensions }
+                    Toolbar { dimensions: state.svg.dimensions, reload_ws: state.reload_ws }
                 }
             }
         }
