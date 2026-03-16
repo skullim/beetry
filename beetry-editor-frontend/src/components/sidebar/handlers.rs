@@ -1,6 +1,6 @@
 use beetry_editor_backend::api;
 use beetry_editor_types::{
-    output::{channel::ChannelConfig, ui::NodeUiData},
+    output::ui::NodeUiData,
     spec::{channel::ChannelSpec, node::NodeSpecKey},
 };
 use dioxus::prelude::*;
@@ -18,7 +18,6 @@ pub fn handlers(
     mut request: RequestNodeRender,
     mut backend: Backend,
     mut state: editor::State,
-    default_channel_config: CopyValue<ChannelConfig>,
 ) -> Handlers {
     let on_new_node = move |node_spec_key: NodeSpecKey| -> Result<()> {
         let node_spec = specs.nodes.spec(&node_spec_key)?;
@@ -51,7 +50,7 @@ pub fn handlers(
             mode: channel::dialog::Mode::Create {
                 spec_key: spec.msg_hash(),
             },
-            config: default_channel_config,
+            config: state.default_channel_config,
         });
         Ok(())
     };
