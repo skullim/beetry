@@ -39,6 +39,7 @@ impl Parse for InputMacro {
         Ok(InputMacro { name, fields })
     }
 }
+
 impl Parse for Field {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Field {
@@ -67,7 +68,7 @@ pub fn receivers(item: TokenStream) -> TokenStream {
         .zip(type_params.iter())
         .map(|(f, tname)| {
             let fty = &f.ty;
-            quote! { #tname: beetry_core::Receiver<#fty> }
+            quote! { #tname: beetry::Receiver<#fty> }
         })
         .collect();
 
@@ -75,7 +76,7 @@ pub fn receivers(item: TokenStream) -> TokenStream {
     let input_types = fields.iter().zip(type_params.iter()).map(|(f, tname)| {
         let fname = &f.ident; // Extract outside
         let fty = &f.ty; // Extract outside
-        quote! { #fname: beetry_channel::Input<#tname, #fty> }
+        quote! { #fname: beetry::Input<#tname, #fty> }
     });
 
     // Generate each getter method
@@ -83,7 +84,7 @@ pub fn receivers(item: TokenStream) -> TokenStream {
         let fname = &f.ident;
         let fty = &f.ty;
         quote! {
-            pub fn #fname(&mut self) -> beetry_core::TryRecvResult<#fty> {
+            pub fn #fname(&mut self) -> beetry::TryRecvResult<#fty> {
                 self.#fname.get()
             }
         }
@@ -104,7 +105,7 @@ pub fn receivers(item: TokenStream) -> TokenStream {
             #[builder]
             pub fn new(#(#field_names: #type_params),*) -> Self {
                 Self {
-                    #(#field_names: beetry_channel::Input::new(#field_names),)*
+                    #(#field_names: beetry::Input::new(#field_names),)*
                 }
             }
 

@@ -1,6 +1,5 @@
 use anyhow::Result;
-use beetry_core::{ActionBehavior, NodeTask, Receiver, Sender, Task, TickStatus};
-use beetry_macros::receivers;
+use beetry::{ActionBehavior, NodeTask, Receiver, Sender, Task, TickStatus, receivers};
 use beetry_plugin::action;
 use bon::bon;
 

@@ -1,4 +1,4 @@
-use beetry_macros::Message;
+use beetry::Message;
 use beetry_message::Message;
 use type_hash::TypeHash;
 
