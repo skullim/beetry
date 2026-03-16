@@ -6,7 +6,7 @@ use dioxus::{html::input_data::MouseButton, prelude::*};
 
 use crate::{
     Point,
-    ui::{handler::define_handlers, node::tooltip::Tooltip, shadow},
+    ui::{handler::define_handlers, node::tooltip::Tooltip, style::shadow},
 };
 
 pub const NODE_WIDTH: f64 = 100.0;

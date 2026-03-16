@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::{Point, ui::text};
+use crate::{Point, ui::style::text};
 
 #[derive(Props, Clone, PartialEq)]
 pub struct TooltipCardProps {

@@ -4,6 +4,8 @@ pub mod edge_menu;
 pub mod menu;
 pub mod renderer;
 
+use std::rc::Rc;
+
 use beetry_editor_backend::{api, api::ChannelQueryView};
 use beetry_editor_types::id::ChannelId;
 use beetry_plugin::Named;
@@ -13,11 +15,15 @@ pub use renderer::{ConnectionRenderer, Renderer};
 
 use crate::{
     Backend, Point,
+    signals::RenderRequests,
     ui::{
         error::ErrorQueueState,
         handler::define_handlers,
-        shadow,
-        text::{self, text_width_from},
+        style::{
+            connection::{Fill, FillHover, Stroke},
+            shadow,
+            text::{self, text_width_from},
+        },
         tooltip::TooltipCard,
     },
 };
@@ -25,14 +31,16 @@ use crate::{
 pub mod layout {
     use crate::Point;
 
-    pub const PORT_WIDTH: f64 = 40.0;
+    pub const WIDTH: f64 = 40.0;
     pub const HEIGHT: f64 = 25.0;
     pub const TOOLTIP_GAP: Point = Point { x: 8.0, y: 0.0 };
     pub const PORT_CENTER: Point = Point {
-        x: PORT_WIDTH / 2.0,
+        x: WIDTH / 2.0,
         y: HEIGHT / 2.0,
     };
+    pub const PORT_DIMENSIONS: Point = Point { x: 10.0, y: 10.0 };
 }
+const PORT_CIRCLE_INDICATOR_FILL: &str = "rgba(255,255,255,0.8)";
 
 define_handlers!(receiver_on_mouse_up: ChannelId,
           sender_on_mouse_up: ChannelId,
@@ -44,6 +52,25 @@ define_handlers!(receiver_on_mouse_up: ChannelId,
 pub struct ChannelProps {
     id: ChannelId,
     position: Point,
+}
+
+struct BodyData {
+    name: String,
+    kind_label: String,
+    capacity_label: String,
+}
+
+fn query_connected(backend: &Backend, errors: &mut ErrorQueueState, id: ChannelId) -> (bool, bool) {
+    backend.with(|s| {
+        let query = api::channel::query(s);
+        match query.config(id) {
+            Ok(config) => (config.count().sender() > 0, config.count().receiver() > 0),
+            Err(e) => {
+                errors.push(e);
+                (false, false)
+            }
+        }
+    })
 }
 
 #[component]
@@ -62,30 +89,18 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
     }) else {
         return rsx! {};
     };
-    let name = spec.name();
-    let (kind_label, capacity_label, sender_connected, receiver_connected) =
-        match channel_query_api.config(id) {
-            Ok(config) => (
-                config.kind().to_string(),
-                config.capacity().to_string(),
-                config.count().sender() > 0,
-                config.count().receiver() > 0,
-            ),
-            Err(e) => {
-                errors.push(e);
-                ("unknown".to_string(), "unknown".to_string(), false, false)
-            }
-        };
+    let mut is_connected = use_signal(|| query_connected(&backend, &mut errors, id));
+    {
+        let render_requests = use_context::<RenderRequests>();
+        use_memo(move || {
+            render_requests.channel_edges.track();
+            is_connected.set(query_connected(&backend, &mut errors, id));
+        });
+    }
 
-    let font_size = text::FONT_SIZE_SMALL;
-    let body_width = text_width_from(name, font_size);
-
-    let mut sender_hovered = use_signal(|| false);
-    let mut body_hovered = use_signal(|| false);
-    let mut receiver_hovered = use_signal(|| false);
-
+    let (is_sender_connected, is_receiver_connected) = is_connected();
+    let body_width = text_width_from(spec.name(), text::FONT_SIZE_SMALL);
     let handlers = use_context::<Handlers>();
-    let on_menu = move |evt| handlers.on_menu.call((id, evt));
 
     rsx! {
         g {
@@ -93,214 +108,270 @@ pub(crate) fn Channel(props: ChannelProps) -> Element {
                 handlers.on_mouse_down.call((id, position, evt));
             },
 
-            // Sender port (left side)
+            SenderBody {
+                id,
+                position,
+                is_connected: is_sender_connected,
+            }
+            MainBody {
+                id,
+                position,
+                body_width,
+            }
+            ReceiverBody {
+                id,
+                position,
+                body_width,
+                is_connected: is_receiver_connected,
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct VisualOptions {
+    fill: &'static str,
+    stroke: &'static str,
+    filter: &'static str,
+}
+
+impl VisualOptions {
+    fn sender(connected: bool, is_hovered: bool) -> Self {
+        let fill = if connected {
+            if is_hovered {
+                FillHover::SENDER
+            } else {
+                Fill::SENDER
+            }
+        } else {
+            Fill::UNCONNECTED
+        };
+        let stroke = if connected {
+            Stroke::DEFAULT
+        } else if is_hovered {
+            Stroke::UNCONNECTED_HOVER
+        } else {
+            Stroke::UNCONNECTED_DEFAULT
+        };
+
+        Self {
+            fill,
+            stroke,
+            filter: Self::filter(is_hovered),
+        }
+    }
+
+    fn receiver(connected: bool, is_hovered: bool) -> Self {
+        let fill = if connected {
+            if is_hovered {
+                FillHover::RECEIVER
+            } else {
+                Fill::RECEIVER
+            }
+        } else {
+            Fill::UNCONNECTED
+        };
+        let stroke = if connected {
+            Stroke::DEFAULT
+        } else if is_hovered {
+            Stroke::UNCONNECTED_HOVER
+        } else {
+            Stroke::UNCONNECTED_DEFAULT
+        };
+
+        Self {
+            fill,
+            stroke,
+            filter: Self::filter(is_hovered),
+        }
+    }
+
+    fn body(is_hovered: bool) -> Self {
+        let fill = if is_hovered {
+            FillHover::BODY
+        } else {
+            Fill::BODY
+        };
+
+        Self {
+            fill,
+            stroke: Stroke::DEFAULT,
+            filter: Self::filter(is_hovered),
+        }
+    }
+
+    fn filter(is_hovered: bool) -> &'static str {
+        if is_hovered {
+            shadow::FilterUrl::SHADOW_HOVER
+        } else {
+            shadow::FilterUrl::SHADOW
+        }
+    }
+}
+
+#[derive(Props, PartialEq, Clone)]
+struct SenderBodyProps {
+    id: ChannelId,
+    position: Point,
+    is_connected: bool,
+}
+
+#[component]
+fn SenderBody(props: SenderBodyProps) -> Element {
+    let mut is_hovered = use_signal(|| false);
+    let visuals = VisualOptions::sender(props.is_connected, is_hovered());
+    let handlers = use_context::<Handlers>();
+    let on_menu = handlers.on_menu;
+
+    rsx! {
+        g {
             rect {
-                onmouseup: move |_| { handlers.sender_on_mouse_up.call(id) },
-                oncontextmenu: on_menu,
-                onmouseenter: move |_| sender_hovered.set(true),
-                onmouseleave: move |_| sender_hovered.set(false),
-                x: "{position.x}",
-                y: "{position.y}",
-                width: "{layout::PORT_WIDTH}",
+                onmouseup: move |_| { handlers.sender_on_mouse_up.call(props.id) },
+                oncontextmenu: move |evt| on_menu.call((props.id, evt)),
+                onmouseenter: move |_| is_hovered.set(true),
+                onmouseleave: move |_| is_hovered.set(false),
+                x: "{props.position.x}",
+                y: "{props.position.y}",
+                width: "{layout::WIDTH}",
                 height: "{layout::HEIGHT}",
-                rx: "10",
-                ry: "10",
-                fill: if sender_connected { if *sender_hovered.read() { GradientHoverUrl::SENDER } else { GradientUrl::SENDER } } else if *sender_hovered.read() { GradientHoverUrl::DISCONNECTED_SENDER } else { GradientUrl::DISCONNECTED_SENDER },
-                filter: if *sender_hovered.read() { shadow::FilterUrl::SHADOW_HOVER } else { shadow::FilterUrl::SHADOW },
-                stroke: "rgba(255,255,255,0.3)",
-                stroke_width: "1",
+                rx: "{layout::PORT_DIMENSIONS.x}",
+                ry: "{layout::PORT_DIMENSIONS.y}",
+                fill: visuals.fill,
+                filter: visuals.filter,
+                stroke: visuals.stroke,
+                stroke_width: Stroke::WIDTH,
                 style: "cursor: grab;",
             }
-
-            // Main body
-            rect {
-                oncontextmenu: on_menu,
-                onmouseenter: move |_| {
-                    body_hovered.set(true);
-                },
-                onmouseleave: move |_| {
-                    body_hovered.set(false);
-                },
-                x: "{position.x + layout::PORT_WIDTH}",
-                y: "{position.y}",
-                width: "{body_width}",
-                height: "{layout::HEIGHT}",
-                rx: "10",
-                ry: "10",
-                fill: if *body_hovered.read() { GradientHoverUrl::BODY } else { GradientUrl::BODY },
-                filter: if *body_hovered.read() { shadow::FilterUrl::SHADOW_HOVER } else { shadow::FilterUrl::SHADOW },
-                stroke: "rgba(255,255,255,0.3)",
-                stroke_width: "1",
-                style: "cursor: grab;",
+            circle {
+                cx: "{props.position.x + layout::PORT_CENTER.x}",
+                cy: "{props.position.y + layout::PORT_CENTER.y}",
+                r: "3",
+                fill: PORT_CIRCLE_INDICATOR_FILL,
+                pointer_events: "none",
             }
+        }
+    }
+}
 
-            // Receiver port (right side)
+#[derive(Props, PartialEq, Clone)]
+struct MainBodyProps {
+    id: ChannelId,
+    position: Point,
+    body_width: f64,
+}
+
+#[component]
+fn MainBody(props: MainBodyProps) -> Element {
+    let backend = use_context::<Backend>();
+    let data = use_hook(move || {
+        backend.with(|s| {
+            let query = api::channel::query(s);
+            let on_unknown = || "unknown".to_string();
+
+            let name = query
+                .spec(props.id)
+                .map_or_else(|_| on_unknown(), |spec| spec.name().to_string());
+            let (kind_label, capacity_label) = query.config(props.id).map_or_else(
+                |_| (on_unknown(), on_unknown()),
+                |config| (config.kind().to_string(), config.capacity().to_string()),
+            );
+
+            Rc::new(BodyData {
+                name,
+                kind_label,
+                capacity_label,
+            })
+        })
+    });
+
+    let handlers = use_context::<Handlers>();
+    let mut is_hovered = use_signal(|| false);
+    let visuals = VisualOptions::body(is_hovered());
+    rsx! {
+        g {
             rect {
-                onmouseup: move |_| { handlers.receiver_on_mouse_up.call(id) },
-                oncontextmenu: on_menu,
-                onmouseenter: move |_| receiver_hovered.set(true),
-                onmouseleave: move |_| receiver_hovered.set(false),
-                x: "{position.x + layout::PORT_WIDTH + body_width}",
-                y: "{position.y}",
-                width: "{layout::PORT_WIDTH}",
+                oncontextmenu: move |evt| handlers.on_menu.call((props.id, evt)),
+                onmouseenter: move |_| is_hovered.set(true),
+                onmouseleave: move |_| is_hovered.set(false),
+                x: "{props.position.x + layout::WIDTH}",
+                y: "{props.position.y}",
+                width: "{props.body_width}",
                 height: "{layout::HEIGHT}",
-                rx: "10",
-                ry: "10",
-                fill: if receiver_connected { if *receiver_hovered.read() {
-                    GradientHoverUrl::RECEIVER
-                } else {
-                    GradientUrl::RECEIVER
-                } } else if *receiver_hovered.read() { GradientHoverUrl::DISCONNECTED_RECEIVER } else { GradientUrl::DISCONNECTED_RECEIVER },
-                filter: if *receiver_hovered.read() { shadow::FilterUrl::SHADOW_HOVER } else { shadow::FilterUrl::SHADOW },
-                stroke: "rgba(255,255,255,0.3)",
-                stroke_width: "1",
+                rx: "{layout::PORT_DIMENSIONS.x}",
+                ry: "{layout::PORT_DIMENSIONS.y}",
+                fill: visuals.fill,
+                filter: visuals.filter,
                 style: "cursor: grab;",
             }
 
             text {
                 class: "bt-text-sm",
-                x: "{position.x + layout::PORT_WIDTH + (body_width / 2.0)}",
-                y: "{position.y + 16.0}",
+                x: "{props.position.x + layout::WIDTH + (props.body_width / 2.0)}",
+                y: "{props.position.y + 16.0}",
                 fill: "white",
                 font_weight: "medium",
                 text_anchor: "middle",
                 pointer_events: "none",
-                "{name}"
+                "{data.name}"
             }
 
-            if *body_hovered.read() {
+            if is_hovered() {
                 TooltipCard {
                     anchor: Point {
-                        x: position.x + (layout::PORT_WIDTH * 2.0) + body_width + layout::TOOLTIP_GAP.x,
-                        y: position.y + layout::TOOLTIP_GAP.y,
+                        x: props.position.x + (layout::WIDTH * 2.0) + props.body_width + layout::TOOLTIP_GAP.x,
+                        y: props.position.y + layout::TOOLTIP_GAP.y,
                     },
                     lines: vec![
-                        format!("ID : {id}"),
-                        format!("Type : {kind_label}"),
-                        format!("Capacity : {capacity_label}"),
+                        format!("ID : {}", props.id),
+                        format!("Type : {}", data.kind_label),
+                        format!("Capacity : {}", data.capacity_label),
                     ],
                 }
             }
-
-            // Port indicators (small dots)
-            // Sender
-            circle {
-                cx: "{position.x + layout::PORT_CENTER.x}",
-                cy: "{position.y + layout::PORT_CENTER.y}",
-                r: "3",
-                fill: "rgba(255,255,255,0.8)",
-                pointer_events: "none",
-            }
-            // Receiver
-            circle {
-                cx: "{position.x + layout::PORT_WIDTH + body_width + layout::PORT_CENTER.x}",
-                cy: "{position.y + layout::PORT_CENTER.y}",
-                r: "3",
-                fill: "rgba(255,255,255,0.8)",
-                pointer_events: "none",
-            }
         }
     }
 }
 
-pub fn style_defs() -> Element {
+#[derive(Props, PartialEq, Clone)]
+struct ReceiverBodyProps {
+    id: ChannelId,
+    position: Point,
+    body_width: f64,
+    is_connected: bool,
+}
+
+#[component]
+fn ReceiverBody(props: ReceiverBodyProps) -> Element {
+    let mut is_hovered = use_signal(|| false);
+    let visuals = VisualOptions::receiver(props.is_connected, is_hovered());
+    let handlers = use_context::<Handlers>();
+
     rsx! {
-        defs {
-            linearGradient { id: "channel-sender-gradient",
-                stop { offset: "5%", stop_color: "#10B981" }
-                stop { offset: "95%", stop_color: "#059669" }
+        g {
+            rect {
+                onmouseup: move |_| { handlers.receiver_on_mouse_up.call(props.id) },
+                oncontextmenu: move |evt|  handlers.on_menu.call((props.id, evt)),
+                onmouseenter: move |_| is_hovered.set(true),
+                onmouseleave: move |_| is_hovered.set(false),
+                x: "{props.position.x + layout::WIDTH + props.body_width}",
+                y: "{props.position.y}",
+                width: "{layout::WIDTH}",
+                height: "{layout::HEIGHT}",
+                rx: "{layout::PORT_DIMENSIONS.x}",
+                ry: "{layout::PORT_DIMENSIONS.y}",
+                fill: visuals.fill,
+                filter: visuals.filter,
+                stroke: visuals.stroke,
+                stroke_width: Stroke::WIDTH,
+                style: "cursor: grab;",
             }
-
-            linearGradient { id: "channel-external-sender-gradient",
-                stop { offset: "5%", stop_color: "#095038ff" }
-                stop { offset: "95%", stop_color: "#033d2bff" }
-            }
-
-            linearGradient { id: "channel-body-gradient",
-                stop { offset: "5%", stop_color: "#3B82F6" }
-                stop { offset: "95%", stop_color: "#1D4ED8" }
-            }
-
-            linearGradient { id: "channel-receiver-gradient",
-                stop { offset: "5%", stop_color: "#6B7280" }
-                stop { offset: "95%", stop_color: "#374151" }
-            }
-
-            linearGradient { id: "channel-disconnected-sender-gradient",
-                stop { offset: "5%", stop_color: "#b45309" }
-                stop { offset: "95%", stop_color: "#92400e" }
-            }
-
-            linearGradient { id: "channel-disconnected-receiver-gradient",
-                stop { offset: "5%", stop_color: "#f43f5e" }
-                stop { offset: "95%", stop_color: "#e11d48" }
-            }
-
-            linearGradient { id: "channel-external-receiver-gradient",
-                stop { offset: "5%", stop_color: "#24272cff" }
-                stop { offset: "95%", stop_color: "#0a0c0fff" }
-            }
-
-            linearGradient { id: "channel-sender-gradient-hover",
-                stop { offset: "5%", stop_color: "#34D399" }
-                stop { offset: "95%", stop_color: "#10B981" }
-            }
-
-            linearGradient { id: "channel-external-sender-gradient-hover",
-                stop { offset: "5%", stop_color: "#21966bff" }
-                stop { offset: "95%", stop_color: "#058d60ff" }
-            }
-
-            linearGradient { id: "channel-body-gradient-hover",
-                stop { offset: "5%", stop_color: "#60A5FA" }
-                stop { offset: "95%", stop_color: "#3B82F6" }
-            }
-
-            linearGradient { id: "channel-receiver-gradient-hover",
-                stop { offset: "5%", stop_color: "#9CA3AF" }
-                stop { offset: "95%", stop_color: "#6B7280" }
-            }
-
-            linearGradient { id: "channel-disconnected-sender-gradient-hover",
-                stop { offset: "5%", stop_color: "#d97706" }
-                stop { offset: "95%", stop_color: "#b45309" }
-            }
-
-            linearGradient { id: "channel-disconnected-receiver-gradient-hover",
-                stop { offset: "5%", stop_color: "#fb7185" }
-                stop { offset: "95%", stop_color: "#f43f5e" }
-            }
-
-            linearGradient { id: "channel-external-receiver-gradient-hover",
-                stop { offset: "5%", stop_color: "#393d44ff" }
-                stop { offset: "95%", stop_color: "#14171bff" }
+            circle {
+                cx: "{props.position.x + layout::WIDTH + props.body_width + layout::PORT_CENTER.x}",
+                cy: "{props.position.y + layout::PORT_CENTER.y}",
+                r: "3",
+                fill: PORT_CIRCLE_INDICATOR_FILL,
+                pointer_events: "none",
             }
         }
     }
-}
-
-pub struct GradientUrl;
-
-impl GradientUrl {
-    pub const SENDER: &'static str = "url(#channel-sender-gradient)";
-    pub const SENDER_EXTERNAL: &'static str = "url(#channel-external-sender-gradient)";
-    pub const BODY: &'static str = "url(#channel-body-gradient)";
-    pub const RECEIVER: &'static str = "url(#channel-receiver-gradient)";
-    pub const RECEIVER_EXTERNAL: &'static str = "url(#channel-external-receiver-gradient)";
-    pub const DISCONNECTED_SENDER: &'static str = "url(#channel-disconnected-sender-gradient)";
-    pub const DISCONNECTED_RECEIVER: &'static str = "url(#channel-disconnected-receiver-gradient)";
-}
-
-pub struct GradientHoverUrl;
-
-impl GradientHoverUrl {
-    pub const SENDER: &'static str = "url(#channel-sender-gradient-hover)";
-    pub const SENDER_EXTERNAL: &'static str = "url(#channel-external-sender-gradient-hover)";
-    pub const BODY: &'static str = "url(#channel-body-gradient-hover)";
-    pub const RECEIVER: &'static str = "url(#channel-receiver-gradient-hover)";
-    pub const RECEIVER_EXTERNAL: &'static str = "url(#channel-external-receiver-gradient-hover)";
-    pub const DISCONNECTED_SENDER: &'static str =
-        "url(#channel-disconnected-sender-gradient-hover)";
-    pub const DISCONNECTED_RECEIVER: &'static str =
-        "url(#channel-disconnected-receiver-gradient-hover)";
 }
