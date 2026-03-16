@@ -59,9 +59,9 @@ fn Canvas(state: State, editor_state: editor::State, render_requests: RenderRequ
                     fill: "#1a2a46",
                 }
 
-                {ui::channel::style_defs()}
+                {ui::style::connection::style_defs()}
                 {ui::node::style_defs()}
-                {ui::shadow::style_defs()}
+                {ui::style::shadow::style_defs()}
 
                 edge::Renderer { render_edges: render_requests.edges }
                 channel::ConnectionRenderer { render_channel_edges: render_requests.channel_edges }

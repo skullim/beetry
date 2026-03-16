@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::{definitions::EdgePos, ui::curve::Curve};
+use crate::{definitions::EdgePos, ui::style::curve::Curve};
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum State {

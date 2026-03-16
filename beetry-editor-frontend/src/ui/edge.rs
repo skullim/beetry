@@ -11,7 +11,7 @@ pub use temporary::Temporary;
 use crate::{
     Point,
     definitions::EdgePos,
-    ui::{curve::Curve, handler::define_handlers},
+    ui::{handler::define_handlers, style::curve::Curve},
 };
 
 define_handlers!(on_menu: (EdgeId, Point));

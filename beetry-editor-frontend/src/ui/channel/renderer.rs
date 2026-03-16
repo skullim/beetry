@@ -23,7 +23,7 @@ use crate::{
             base::{NODE_HEIGHT, NODE_WIDTH},
             port::{ConnectionOrigin, layout},
         },
-        text,
+        style::text,
     },
 };
 
@@ -242,7 +242,7 @@ fn receiver_edge_pos(
         start: node_port_center,
         end: Point {
             x: channel_pos.x
-                + channel::layout::PORT_WIDTH
+                + channel::layout::WIDTH
                 + channel_body_width
                 + channel::layout::PORT_CENTER.x,
             y: channel_pos.y + channel::layout::PORT_CENTER.y,
