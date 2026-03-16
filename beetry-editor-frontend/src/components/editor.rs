@@ -8,7 +8,7 @@ pub use state::State;
 use crate::{
     components::{sidebar::Sidebar, toolbar::Toolbar, topbar::Topbar, workspace::Workspace},
     signals::RenderRequests,
-    ui::theme::GlobalStyle,
+    ui::style::theme::GlobalStyle,
 };
 
 #[component]

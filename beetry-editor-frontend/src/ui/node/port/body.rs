@@ -16,11 +16,13 @@ use crate::{
     definitions::IndexedDragOffset,
     signals::RenderRequests,
     ui::{
-        channel,
         handler::define_handlers,
         node::port::{ConnectionOrigin, layout},
-        shadow,
-        text::{self, text_width_from},
+        style::{
+            connection::{Fill, FillHover, Stroke},
+            shadow,
+            text::{self, text_width_from},
+        },
     },
 };
 
@@ -83,30 +85,20 @@ pub fn Body(props: BodyProps) -> Element {
     });
 
     let fill = match (origin, is_hovered(), is_external(), is_connected()) {
-        (ConnectionOrigin::Sender, true, false, false) => {
-            channel::GradientHoverUrl::DISCONNECTED_SENDER
-        }
-        (ConnectionOrigin::Sender, false, false, false) => {
-            channel::GradientUrl::DISCONNECTED_SENDER
-        }
-        (ConnectionOrigin::Receiver, true, false, false) => {
-            channel::GradientHoverUrl::DISCONNECTED_RECEIVER
-        }
-        (ConnectionOrigin::Receiver, false, false, false) => {
-            channel::GradientUrl::DISCONNECTED_RECEIVER
-        }
+        (_, _, false, false) => Fill::UNCONNECTED,
+        (_, true, true, _) => FillHover::EXTERNAL_PORT,
+        (_, false, true, _) => Fill::EXTERNAL_PORT,
 
-        (ConnectionOrigin::Sender, true, true, _) => channel::GradientHoverUrl::SENDER_EXTERNAL,
-        (ConnectionOrigin::Sender, false, true, _) => channel::GradientUrl::SENDER_EXTERNAL,
-        (ConnectionOrigin::Receiver, true, true, _) => channel::GradientHoverUrl::RECEIVER_EXTERNAL,
-        (ConnectionOrigin::Receiver, false, true, _) => channel::GradientUrl::RECEIVER_EXTERNAL,
-
-        (ConnectionOrigin::Sender, true, false, true) => channel::GradientHoverUrl::SENDER,
-        (ConnectionOrigin::Sender, false, false, true) => channel::GradientUrl::SENDER,
-        (ConnectionOrigin::Receiver, true, false, true) => channel::GradientHoverUrl::RECEIVER,
-        (ConnectionOrigin::Receiver, false, false, true) => channel::GradientUrl::RECEIVER,
+        (ConnectionOrigin::Sender, true, false, true) => FillHover::SENDER,
+        (ConnectionOrigin::Sender, false, false, true) => Fill::SENDER,
+        (ConnectionOrigin::Receiver, true, false, true) => FillHover::RECEIVER,
+        (ConnectionOrigin::Receiver, false, false, true) => Fill::RECEIVER,
     };
-
+    let stroke = match (is_external(), is_connected(), is_hovered()) {
+        (false, false, true) => Stroke::UNCONNECTED_HOVER,
+        (false, false, false) => Stroke::UNCONNECTED_DEFAULT,
+        _ => Stroke::DEFAULT,
+    };
     let (x, text_x) = match origin {
         ConnectionOrigin::Receiver => (position.x - port_width, position.x - (port_width / 2.0)),
         ConnectionOrigin::Sender => (position.x, position.x + (port_width / 2.0)),
@@ -125,8 +117,8 @@ pub fn Body(props: BodyProps) -> Element {
                 ry: "4",
                 fill,
                 filter: if is_hovered() { shadow::FilterUrl::SHADOW_HOVER } else { shadow::FilterUrl::SHADOW },
-                stroke: "rgba(255,255,255,0.2)",
-                stroke_width: "1",
+                stroke,
+                stroke_width: Stroke::WIDTH,
                 onmouseenter: move |_| is_hovered.set(true),
                 onmouseleave: move |_| is_hovered.set(false),
                 onmousedown: move |evt| {

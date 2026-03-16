@@ -8,8 +8,8 @@ use dioxus::prelude::*;
 use crate::{
     Backend, Point,
     ui::{
-        curve::Curve, error::ErrorQueueState, handler::define_handlers,
-        node::port::ConnectionOrigin,
+        error::ErrorQueueState, handler::define_handlers, node::port::ConnectionOrigin,
+        style::curve::Curve,
     },
 };
 
