@@ -4,14 +4,14 @@ mod context;
 mod handlers;
 
 use crate::{
-    components::editor::state::svg::DimensionState,
+    components::editor::state::{ReloadWorkspaceFlag, svg::DimensionState},
     ui::{error, transfer},
 };
 
 #[component]
-pub(crate) fn Toolbar(dimensions: DimensionState) -> Element {
+pub(crate) fn Toolbar(dimensions: DimensionState, reload_ws: ReloadWorkspaceFlag) -> Element {
     rsx! {
-        context::Provider { dimensions, Layout {} }
+        context::Provider { dimensions, reload_ws, Layout {} }
     }
 }
 
