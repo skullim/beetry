@@ -1,5 +1,10 @@
 #[cfg(test)]
 mod tests {
+    mod beetry {
+        pub use beetry_channel::Input;
+        pub use beetry_core::{Receiver, TryRecvResult};
+    }
+
     use beetry_channel::tokio::mpsc;
     use beetry_core::Sender;
     use beetry_macros::receivers;

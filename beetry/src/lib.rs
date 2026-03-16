@@ -45,11 +45,6 @@
 //! [`beetry_plugin::channel!`] for registering a channel message type and
 //! [`beetry_channel`] for the currently supported channel kinds.
 //!
-//! ### Example
-//!
-//! - [`beetry_example`]: end-to-end examples showing the full behavior tree
-//!   lifecycle.
-//!
 //! ## Editor
 //!
 //! The editor layer lets applications author trees against plugin-provided
@@ -151,3 +146,11 @@
 //! editor is already structurally sound. This shortens the feedback loop,
 //! reduces avoidable runtime failures, and makes the editor a more reliable
 //! tool for building production trees.
+
+// Re-export macro dependencies
+pub use beetry_channel::Input;
+pub use beetry_core::{
+    ActionBehavior, NodeTask, Receiver, Sender, Task, TickStatus, TryRecvResult,
+};
+// Follow standard practice to re-export macro through main crate
+pub use beetry_macros::{Message, receivers};
