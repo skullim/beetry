@@ -19,7 +19,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get() {
+    fn data_transmitted() {
         let (mut sensor_sender, sensor_receiver) = mpsc::channel::<i32>(1);
         let (mut command_sender, command_receiver) = mpsc::channel::<String>(1);
         let (mut status_sender, status_receiver) = mpsc::channel::<bool>(1);
@@ -38,13 +38,13 @@ mod tests {
         assert_eq!(inputs.command().unwrap(), "move_forward");
         assert!(inputs.status().unwrap());
 
-        assert!(inputs.sensor_data().is_err());
-        assert!(inputs.command().is_err());
-        assert!(inputs.status().is_err());
+        inputs.sensor_data().unwrap_err();
+        inputs.command().unwrap_err();
+        inputs.status().unwrap_err();
     }
 
     #[test]
-    fn test_drain() {
+    fn drain() {
         let (mut sensor_sender, sensor_receiver) = mpsc::channel::<i32>(1);
         let (mut command_sender, command_receiver) = mpsc::channel::<String>(1);
         let (mut status_sender, status_receiver) = mpsc::channel::<bool>(1);
@@ -61,8 +61,8 @@ mod tests {
 
         inputs.drain();
 
-        assert!(inputs.sensor_data().is_err());
-        assert!(inputs.command().is_err());
-        assert!(inputs.status().is_err());
+        inputs.sensor_data().unwrap_err();
+        inputs.command().unwrap_err();
+        inputs.status().unwrap_err();
     }
 }
