@@ -49,7 +49,7 @@ impl std::fmt::Debug for Factory {
 
 impl Factory {
     #[must_use]
-    pub fn from_msg_type<T: Clone + Default + 'static>() -> Self {
+    pub fn from_msg<M: Clone + Default + 'static>() -> Self {
         Self {
             func: (Box::new(|config| {
                 let capacity = config.capacity();
@@ -62,19 +62,19 @@ impl Factory {
                 let (senders, receivers) = match config.kind() {
                     ChannelKind::Tokio(TokioChannelKind::Broadcast) => {
                         let (sender, receiver) =
-                            beetry_channel::tokio::broadcast::channel::<T>(capacity);
+                            beetry_channel::tokio::broadcast::channel::<M>(capacity);
 
                         let receivers: Vec<_> =
-                            std::iter::once(Box::new(receiver) as BoxReceiver<T>)
+                            std::iter::once(Box::new(receiver) as BoxReceiver<M>)
                                 .chain(
                                     std::iter::repeat_with(|| {
-                                        Box::new(sender.subscribe()) as BoxReceiver<T>
+                                        Box::new(sender.subscribe()) as BoxReceiver<M>
                                     })
                                     .take(n_receivers - 1),
                                 )
                                 .collect();
                         let senders: Vec<_> =
-                            std::iter::repeat_with(|| Box::new(sender.clone()) as BoxSender<T>)
+                            std::iter::repeat_with(|| Box::new(sender.clone()) as BoxSender<M>)
                                 .take(n_senders)
                                 .collect();
 
@@ -82,30 +82,30 @@ impl Factory {
                     }
                     ChannelKind::Tokio(TokioChannelKind::Mpsc) => {
                         let (sender, receiver) =
-                            beetry_channel::tokio::mpsc::channel::<T>(capacity);
+                            beetry_channel::tokio::mpsc::channel::<M>(capacity);
 
                         let senders: Vec<_> =
-                            std::iter::repeat_with(|| Box::new(sender.clone()) as BoxSender<T>)
+                            std::iter::repeat_with(|| Box::new(sender.clone()) as BoxSender<M>)
                                 .take(n_senders)
                                 .collect();
-                        let receivers = vec![Box::new(receiver) as BoxReceiver<T>];
+                        let receivers = vec![Box::new(receiver) as BoxReceiver<M>];
 
                         (senders, receivers)
                     }
                     ChannelKind::Tokio(TokioChannelKind::Watch) => {
-                        let (sender, receiver) = beetry_channel::tokio::watch::channel::<T>();
+                        let (sender, receiver) = beetry_channel::tokio::watch::channel::<M>();
 
                         let receivers: Vec<_> =
-                            std::iter::once(Box::new(receiver) as BoxReceiver<T>)
+                            std::iter::once(Box::new(receiver) as BoxReceiver<M>)
                                 .chain(
                                     std::iter::repeat_with(|| {
-                                        Box::new(sender.subscribe()) as BoxReceiver<T>
+                                        Box::new(sender.subscribe()) as BoxReceiver<M>
                                     })
                                     .take(n_receivers - 1),
                                 )
                                 .collect();
                         let senders: Vec<_> =
-                            std::iter::repeat_with(|| Box::new(sender.clone()) as BoxSender<T>)
+                            std::iter::repeat_with(|| Box::new(sender.clone()) as BoxSender<M>)
                                 .take(n_senders)
                                 .collect();
 

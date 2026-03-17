@@ -41,7 +41,7 @@ macro_rules! channel {
             {
                 Self {
                     spec: $crate::__macro_support::ChannelSpec::new::<$msg_ty>(),
-                    factory: $crate::channel::Factory::from_msg_type::<$msg_ty>(),
+                    factory: $crate::channel::Factory::from_msg::<$msg_ty>(),
                 }
             }
 

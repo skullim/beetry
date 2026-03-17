@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use anyhow::{Result, anyhow};
-use beetry_message::{MessageHash, MessageHashProvider, MessageTypeProvider};
+use beetry_message::{Message, MessageHash};
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 
@@ -16,10 +16,10 @@ pub struct ChannelSpec {
 
 impl ChannelSpec {
     #[must_use]
-    pub fn new<T: MessageHashProvider + MessageTypeProvider>() -> Self {
+    pub fn new<M: Message>() -> Self {
         Self {
-            msg_hash: T::hash(),
-            msg_type_name: T::as_str().to_string(),
+            msg_hash: M::hash(),
+            msg_type_name: M::as_str().to_string(),
         }
     }
 

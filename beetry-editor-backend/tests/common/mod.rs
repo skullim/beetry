@@ -16,9 +16,10 @@ use beetry_editor_types::{
         },
     },
 };
-use beetry_message::{MessageHash, MessageHashProvider, MessageSpec, MessageTypeProvider};
+use beetry_message::{Message, MessageSpec};
 use mitsein::iter1::FromIterator1;
 use rstest::fixture;
+use type_hash::TypeHash;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodeSpecCase {
@@ -246,32 +247,12 @@ pub fn channel_position() -> Point {
     Point { x: 0.0, y: 0.0 }
 }
 
-#[derive(Debug)]
+#[derive(Debug, TypeHash)]
 struct TestMessageA;
 
-impl MessageHashProvider for TestMessageA {
-    fn hash() -> MessageHash {
-        MessageHash::new(0xBEE7)
-    }
-}
+impl Message for TestMessageA {}
 
-impl MessageTypeProvider for TestMessageA {
-    fn as_str() -> &'static str {
-        "TestMessageA"
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, TypeHash)]
 struct TestMessageB;
 
-impl MessageHashProvider for TestMessageB {
-    fn hash() -> MessageHash {
-        MessageHash::new(0xBEE8)
-    }
-}
-
-impl MessageTypeProvider for TestMessageB {
-    fn as_str() -> &'static str {
-        "TestMessageB"
-    }
-}
+impl Message for TestMessageB {}
