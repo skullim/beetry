@@ -8,3 +8,7 @@ target
 
 Cargo.lock
 .vscode
+
+/book/book/
+/book/*.js
+/book/*.css

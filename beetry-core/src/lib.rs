@@ -54,15 +54,6 @@
 //! Note: Action abort is currently implemented as a blocking operation: it
 //! signals the executor to abort the task, then waits until the task reaches a
 //! terminal state.
-//!
-//! #### Execution sequence
-//!
-//! The following sequence shows the high-level interaction between an
-//! [`Action`], task registration, the executor, and a [`TaskHandle`]:
-//! once an action task is successfully scheduled, that tick returns
-//! [`TickStatus::Running`].
-#![doc = simple_mermaid::mermaid!("../docs/action_execution_sequence.mmd")]
-//!
 
 mod channel;
 pub mod leaf;
