@@ -17,3 +17,6 @@ bon.workspace = true
 [dev-dependencies]
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
 beetry-channel = { version = "0.1.0", path = "../beetry-channel" }
+
+[lints]
+workspace = true
