@@ -1,6 +1,11 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{DeriveInput, parse_macro_input};
+use syn::{
+    DeriveInput, Ident, Result, Token, Type, braced,
+    parse::{Parse, ParseStream},
+    parse_macro_input,
+    punctuated::Punctuated,
+};
 
 #[proc_macro_derive(Message)]
 pub fn derive_message(input: TokenStream) -> TokenStream {
@@ -13,97 +18,82 @@ pub fn derive_message(input: TokenStream) -> TokenStream {
     .into()
 }
 
-use syn::{
-    Ident, Result, Token, Type, braced,
-    parse::{Parse, ParseStream},
-    punctuated::Punctuated,
-};
-
-struct InputMacro {
+struct ReceiversInput {
     name: Ident,
     fields: Punctuated<Field, Token![,]>,
 }
 
 struct Field {
     ident: Ident,
-    _colon_token: Token![:],
     ty: Type,
 }
 
-impl Parse for InputMacro {
+impl Parse for ReceiversInput {
     fn parse(input: ParseStream) -> Result<Self> {
         let name: Ident = input.parse()?;
         let content;
         braced!(content in input);
         let fields = content.parse_terminated(Field::parse, Token![,])?;
-        Ok(InputMacro { name, fields })
+        Ok(Self { name, fields })
     }
 }
 
 impl Parse for Field {
     fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Field {
-            ident: input.parse()?,
-            _colon_token: input.parse()?,
-            ty: input.parse()?,
-        })
+        let ident = input.parse()?;
+        input.parse::<Token![:]>()?;
+        let ty = input.parse()?;
+        Ok(Self { ident, ty })
     }
 }
 
 #[proc_macro]
-pub fn receivers(item: TokenStream) -> TokenStream {
-    let InputMacro { name, fields } = parse_macro_input!(item as InputMacro);
+pub fn receivers(input: TokenStream) -> TokenStream {
+    let ReceiversInput { name, fields } = parse_macro_input!(input as ReceiversInput);
 
-    // Generate dummy type names: R1, R2, R3, ...
-    let type_params: Vec<Ident> = (1..=fields.len())
-        .map(|i| format_ident!("R{}", i))
-        .collect();
+    let receiver_types: Vec<Ident> = (1..=fields.len()).map(|i| format_ident!("R{i}")).collect();
+    let field_names: Vec<_> = fields.iter().map(|field| &field.ident).collect();
 
-    // Used for new() fn and struct fields
-    let field_names: Vec<_> = fields.iter().map(|f| &f.ident).collect();
-
-    // For where clauses
-    let receiver_type_bounds: Vec<_> = fields
+    let type_bounds: Vec<_> = fields
         .iter()
-        .zip(type_params.iter())
-        .map(|(f, tname)| {
-            let fty = &f.ty;
-            quote! { #tname: beetry::Receiver<#fty> }
+        .zip(&receiver_types)
+        .map(|(field, receiver_ty)| {
+            let ty = &field.ty;
+            quote! { #receiver_ty: beetry::Receiver<#ty> }
         })
         .collect();
 
-    // For actual struct field types
-    let input_types = fields.iter().zip(type_params.iter()).map(|(f, tname)| {
-        let fname = &f.ident; // Extract outside
-        let fty = &f.ty; // Extract outside
-        quote! { #fname: beetry::Input<#tname, #fty> }
-    });
+    let field_types = fields
+        .iter()
+        .zip(receiver_types.iter())
+        .map(|(field, tname)| {
+            let Field { ident, ty } = field;
+            quote! { #ident: beetry::Input<#tname, #ty> }
+        });
 
-    // Generate each getter method
-    let getter_methods = fields.iter().zip(type_params.iter()).map(|(f, _tname)| {
-        let fname = &f.ident;
-        let fty = &f.ty;
+    let getter_methods = fields.iter().map(|field| {
+        let ident = &field.ident;
+        let ty = &field.ty;
         quote! {
-            pub fn #fname(&mut self) -> beetry::TryRecvResult<#fty> {
-                self.#fname.get()
+            pub fn #ident(&mut self) -> beetry::TryRecvResult<#ty> {
+                self.#ident.get()
             }
         }
     });
 
-    // Compose all code
-    let output = quote! {
-        pub struct #name<#(#type_params),*>
+    quote! {
+        pub struct #name<#(#receiver_types),*>
         {
-            #(#input_types,)*
+            #(#field_types,)*
         }
 
         #[bon]
-        impl<#(#type_params),*> #name<#(#type_params),*>
+        impl<#(#receiver_types),*> #name<#(#receiver_types),*>
         where
-            #(#receiver_type_bounds),*
+            #(#type_bounds),*
         {
             #[builder]
-            pub fn new(#(#field_names: #type_params),*) -> Self {
+            pub fn new(#(#field_names: #receiver_types),*) -> Self {
                 Self {
                     #(#field_names: beetry::Input::new(#field_names),)*
                 }
@@ -115,6 +105,6 @@ pub fn receivers(item: TokenStream) -> TokenStream {
 
             #(#getter_methods)*
         }
-    };
-    output.into()
+    }
+    .into()
 }
