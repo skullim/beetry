@@ -27,13 +27,13 @@ pub struct MessageSpec {
 
 impl MessageSpec {
     #[must_use]
-    pub fn new<T>(desc: impl Into<String>) -> Self
+    pub fn new<M>(desc: impl Into<String>) -> Self
     where
-        T: MessageHashProvider + 'static,
+        M: Message,
     {
         Self {
             desc: desc.into(),
-            hash: T::hash(),
+            hash: M::hash(),
         }
     }
 
@@ -55,31 +55,16 @@ impl Ord for MessageSpec {
     }
 }
 
-/// Marker trait for types that should be considered as message type.
-pub trait Message {}
-
-pub trait MessageHashProvider {
-    fn hash() -> MessageHash;
-}
-
-impl<T> MessageHashProvider for T
-where
-    T: Message + type_hash::TypeHash,
-{
+/// Trait for types that should be considered as message type.
+pub trait Message: type_hash::TypeHash {
     fn hash() -> MessageHash {
-        MessageHash::new(T::type_hash())
+        MessageHash::new(Self::type_hash())
     }
-}
 
-pub trait MessageTypeProvider {
-    fn as_str() -> &'static str;
-}
-
-impl<T: Message> MessageTypeProvider for T {
     fn as_str() -> &'static str {
-        std::any::type_name::<T>()
+        std::any::type_name::<Self>()
             .split("::")
             .last()
-            .unwrap_or_else(|| std::any::type_name::<T>())
+            .unwrap_or_else(|| std::any::type_name::<Self>())
     }
 }
