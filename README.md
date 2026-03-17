@@ -9,6 +9,9 @@ that must react to changing conditions over time. They are common in robotics,
 games, and autonomous systems as they provide a structured way to compose
 complex behavior from smaller reusable parts.
 
+Beetry is in an early stage of development. The core ideas are in place, but
+the public API may still change between releases.
+
 ## Beetry features
 
 - Plugin-based extensibility
