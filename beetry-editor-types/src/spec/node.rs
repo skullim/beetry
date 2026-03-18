@@ -6,6 +6,7 @@ use bon::Builder;
 use derive_more::{Display, From};
 use getset::{CopyGetters, Getters, MutGetters};
 use mitsein::{btree_map1::BTreeMap1, iter1::FromIterator1};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum_macros::AsRefStr;
 
@@ -69,7 +70,9 @@ impl NodeSpec {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, CopyGetters, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, Hash, Getters, CopyGetters, Serialize, Deserialize, JsonSchema,
+)]
 pub struct NodeSpecKey {
     #[getset(get = "pub")]
     name: NodeName,
@@ -97,7 +100,18 @@ pub struct NodeSpecValue {
 }
 
 #[derive(
-    Debug, Display, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, From,
+    Debug,
+    Display,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize,
+    From,
+    JsonSchema,
 )]
 pub struct NodeName(pub String);
 
@@ -113,7 +127,7 @@ impl From<&'static str> for NodeName {
     }
 }
 
-#[derive(Debug, From, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, From, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub enum NodeKind {
     Control,
     Decorator,
@@ -139,7 +153,9 @@ impl NodeKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
+)]
 pub enum LeafKind {
     Action,
     Condition,

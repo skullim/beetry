@@ -1,0 +1,512 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ValidTreeStore",
+  "type": "object",
+  "properties": {
+    "channel": {
+      "$ref": "#/$defs/Store4"
+    },
+    "node": {
+      "$ref": "#/$defs/Store"
+    },
+    "parameter": {
+      "$ref": "#/$defs/Store3"
+    },
+    "port": {
+      "$ref": "#/$defs/Store2"
+    }
+  },
+  "required": [
+    "node",
+    "port",
+    "parameter",
+    "channel"
+  ],
+  "$defs": {
+    "ChannelConfig": {
+      "type": "object",
+      "properties": {
+        "capacity": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "count": {
+          "$ref": "#/$defs/SenderReceiverCount"
+        },
+        "kind": {
+          "$ref": "#/$defs/ChannelKind"
+        }
+      },
+      "required": [
+        "capacity",
+        "count",
+        "kind"
+      ]
+    },
+    "ChannelData": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/ChannelConfig"
+        },
+        "spec_id": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "spec_id",
+        "config"
+      ]
+    },
+    "ChannelKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "Tokio": {
+              "$ref": "#/$defs/TokioChannelKind"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Tokio"
+          ]
+        }
+      ]
+    },
+    "ChannelSpec": {
+      "type": "object",
+      "properties": {
+        "msg_hash": {
+          "$ref": "#/$defs/MessageHash"
+        },
+        "msg_type_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "msg_hash",
+        "msg_type_name"
+      ]
+    },
+    "DataStore": {
+      "type": "object",
+      "properties": {
+        "store": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^\\d+$": {
+              "$ref": "#/$defs/ChannelData"
+            }
+          }
+        }
+      },
+      "required": [
+        "store"
+      ]
+    },
+    "LeafKind": {
+      "type": "string",
+      "enum": [
+        "Action",
+        "Condition"
+      ]
+    },
+    "MessageHash": {
+      "description": "Describes the hash of the message type (and not concrete message type\ninstance).",
+      "type": "object",
+      "properties": {
+        "hash": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "hash"
+      ]
+    },
+    "NodeKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Control",
+            "Decorator",
+            "Root"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Leaf": {
+              "$ref": "#/$defs/LeafKind"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Leaf"
+          ]
+        }
+      ]
+    },
+    "NodeName": {
+      "type": "string"
+    },
+    "NodeSpecKey": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/NodeKind"
+        },
+        "name": {
+          "$ref": "#/$defs/NodeName"
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ]
+    },
+    "ParameterValue": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "Bool": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Bool"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "U16": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "U16"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "U64": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "U64"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "I64": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "I64"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "F64": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "F64"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "String": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "String"
+          ]
+        }
+      ]
+    },
+    "Parameters": {
+      "type": "object",
+      "properties": {
+        "map": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/ParameterValue"
+          }
+        }
+      },
+      "required": [
+        "map"
+      ]
+    },
+    "PortConnectionId": {
+      "type": "object",
+      "properties": {
+        "channel_id": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "node_id": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "port_id": {
+          "type": "integer",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "node_id",
+        "port_id",
+        "channel_id"
+      ]
+    },
+    "PortSource": {
+      "type": "string",
+      "enum": [
+        "Internal",
+        "External"
+      ]
+    },
+    "PortState": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/PortSource"
+        }
+      },
+      "required": [
+        "source"
+      ]
+    },
+    "RecordStore": {
+      "type": "object",
+      "properties": {
+        "store": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^\\d+$": {
+              "$ref": "#/$defs/RecordValue"
+            }
+          }
+        }
+      },
+      "required": [
+        "store"
+      ]
+    },
+    "RecordValue": {
+      "type": "object",
+      "properties": {
+        "children": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          }
+        },
+        "spec_id": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "spec_id",
+        "children"
+      ]
+    },
+    "SenderReceiverCount": {
+      "description": "Represents the current state of connected senders and receivers\nOn channel creation there are no senders and receivers",
+      "type": "object",
+      "properties": {
+        "receiver": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "sender": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "sender",
+        "receiver"
+      ]
+    },
+    "SpecStore": {
+      "type": "object",
+      "properties": {
+        "store": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^\\d+$": {
+              "$ref": "#/$defs/NodeSpecKey"
+            }
+          }
+        }
+      },
+      "required": [
+        "store"
+      ]
+    },
+    "SpecStore2": {
+      "type": "object",
+      "properties": {
+        "store": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^\\d+$": {
+              "$ref": "#/$defs/ChannelSpec"
+            }
+          }
+        }
+      },
+      "required": [
+        "store"
+      ]
+    },
+    "Store": {
+      "type": "object",
+      "properties": {
+        "nodes": {
+          "$ref": "#/$defs/RecordStore"
+        },
+        "specs": {
+          "$ref": "#/$defs/SpecStore"
+        }
+      },
+      "required": [
+        "specs",
+        "nodes"
+      ]
+    },
+    "Store2": {
+      "type": "object",
+      "properties": {
+        "connections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PortConnectionId"
+          },
+          "uniqueItems": true
+        },
+        "states": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^\\d+$": {
+              "type": "object",
+              "additionalProperties": false,
+              "patternProperties": {
+                "^\\d+$": {
+                  "$ref": "#/$defs/PortState"
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "states",
+        "connections"
+      ]
+    },
+    "Store3": {
+      "type": "object",
+      "properties": {
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^\\d+$": {
+              "$ref": "#/$defs/Values"
+            }
+          }
+        }
+      },
+      "required": [
+        "parameters"
+      ]
+    },
+    "Store4": {
+      "type": "object",
+      "properties": {
+        "channels": {
+          "$ref": "#/$defs/DataStore"
+        },
+        "specs": {
+          "$ref": "#/$defs/SpecStore2"
+        }
+      },
+      "required": [
+        "specs",
+        "channels"
+      ]
+    },
+    "TokioChannelKind": {
+      "type": "string",
+      "enum": [
+        "Mpsc",
+        "Broadcast",
+        "Watch"
+      ]
+    },
+    "Values": {
+      "type": "object",
+      "properties": {
+        "params": {
+          "$ref": "#/$defs/Parameters"
+        }
+      },
+      "required": [
+        "params"
+      ]
+    }
+  }
+}

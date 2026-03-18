@@ -28,7 +28,6 @@ beetry-node = { path = "../beetry-node" }
 beetry-macros = { path = "../beetry-macros" }
 beetry-message = { path = "../beetry-message" }
 beetry-plugin = { path = "../beetry-plugin", optional = true }
-simple-mermaid.workspace = true
 
 [lints]
 workspace = true

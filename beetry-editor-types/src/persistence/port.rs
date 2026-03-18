@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -20,7 +21,7 @@ impl StateRecord {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Store {
     states: HashMap<NodeId, StateMap>,
     connections: HashSet<PortConnectionId>,

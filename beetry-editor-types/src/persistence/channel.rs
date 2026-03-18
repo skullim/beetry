@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
     spec::channel::ChannelSpec,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Store {
     pub specs: SpecStore,
     pub channels: DataStore,
@@ -22,7 +23,7 @@ impl FromIterator<(ChannelSpecId, ChannelSpec)> for SpecStore {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct SpecStore {
     store: BTreeMap<ChannelSpecId, ChannelSpec>,
 }
@@ -55,7 +56,7 @@ impl FromIterator<(ChannelId, ChannelData)> for DataStore {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct DataStore {
     store: BTreeMap<ChannelId, ChannelData>,
 }

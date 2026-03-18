@@ -1,6 +1,7 @@
 use std::{collections::HashSet, fmt};
 
 use mitsein::vec1::{Vec1, vec1};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -10,7 +11,7 @@ use crate::{
     spec::node::NodeKind,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct MaybeValid(pub Store);
 
 impl From<ValidTreeStore> for MaybeValid {
@@ -20,9 +21,9 @@ impl From<ValidTreeStore> for MaybeValid {
 }
 
 // Proxy object to store valid tree.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(try_from = "Store")]
-pub struct ValidTreeStore(Store);
+pub struct ValidTreeStore(#[schemars(with = "Store")] Store);
 
 impl ValidTreeStore {
     pub fn into_inner(self) -> Store {
@@ -39,7 +40,7 @@ impl TryFrom<Store> for ValidTreeStore {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Store {
     pub node: node::Store,
     pub port: port::Store,

@@ -14,7 +14,7 @@ bon.workspace = true
 inventory = "0.3.21"
 mitsein.workspace = true
 serde.workspace = true
-serde-value.workspace = true
+serde-value = "0.7.0"
 thiserror.workspace = true
 
 [dev-dependencies]

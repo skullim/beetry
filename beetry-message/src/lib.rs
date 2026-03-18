@@ -1,11 +1,14 @@
 use std::cmp::Ordering;
 
 use getset::{CopyGetters, Getters};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// Describes the hash of the message type (and not concrete message type
 /// instance).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
+)]
 pub struct MessageHash {
     hash: u64,
 }
@@ -17,7 +20,9 @@ impl MessageHash {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, CopyGetters, Getters, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, Hash, CopyGetters, Getters, Serialize, Deserialize, JsonSchema,
+)]
 pub struct MessageSpec {
     #[get = "pub"]
     desc: String,

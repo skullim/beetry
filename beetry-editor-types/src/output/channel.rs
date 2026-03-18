@@ -1,11 +1,12 @@
 use anyhow::{Result, anyhow};
 use derive_more::{Display, From};
 use getset::{CopyGetters, MutGetters, Setters};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::id::ChannelSpecId;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ChannelData {
     pub spec_id: ChannelSpecId,
     pub config: ChannelConfig,
@@ -17,7 +18,9 @@ impl ChannelData {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, CopyGetters, Setters, MutGetters)]
+#[derive(
+    Debug, Clone, PartialEq, Serialize, Deserialize, CopyGetters, Setters, MutGetters, JsonSchema,
+)]
 pub struct ChannelConfig {
     #[getset(get_copy = "pub", set = "pub")]
     capacity: usize, // there might be channels with 0 capacity
@@ -54,7 +57,7 @@ impl From<ChannelConfig> for ChannelConfigUpdate {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ChannelConfigInput {
     pub capacity: usize,
     pub kind: ChannelKind,
@@ -66,17 +69,17 @@ impl ChannelConfigInput {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ChannelConfigUpdate {
     pub capacity: usize,
 }
 
-#[derive(Debug, Display, From, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Display, From, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub enum ChannelKind {
     Tokio(TokioChannelKind),
 }
 
-#[derive(Debug, Display, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Display, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub enum TokioChannelKind {
     Mpsc,
     Broadcast,
@@ -85,7 +88,9 @@ pub enum TokioChannelKind {
 
 /// Represents the current state of connected senders and receivers
 /// On channel creation there are no senders and receivers
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, CopyGetters)]
+#[derive(
+    Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, CopyGetters, JsonSchema,
+)]
 #[getset(get_copy = "pub")]
 pub struct SenderReceiverCount {
     sender: usize,

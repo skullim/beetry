@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{id::NodeId, output::node::Parameters};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Store {
     parameters: HashMap<NodeId, Values>,
 }
@@ -29,7 +30,7 @@ impl Store {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Values {
     pub params: Parameters,
 }

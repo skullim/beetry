@@ -1,5 +1,6 @@
 use derive_more::{AddAssign, Display};
 use num_traits::One;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 macro_rules! derive_id {
@@ -16,6 +17,7 @@ macro_rules! derive_id {
             Hash,
             Serialize,
             Deserialize,
+            JsonSchema,
             Display,
             AddAssign,
         )]
@@ -64,7 +66,7 @@ derive_id!(EdgeId as u16);
 derive_id!(ChannelId as u16);
 derive_id!(ChannelSpecId as u16);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct PortConnectionId {
     pub node_id: NodeId,
     pub port_id: NodePortId,

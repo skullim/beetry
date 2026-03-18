@@ -3,9 +3,12 @@ use std::collections::HashMap;
 use anyhow::{Result, anyhow};
 use beetry_message::{Message, MessageHash};
 use getset::{CopyGetters, Getters};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, CopyGetters, Getters)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, CopyGetters, Getters, JsonSchema,
+)]
 pub struct ChannelSpec {
     // labels concrete channel and its factory
     #[get_copy = "pub"]

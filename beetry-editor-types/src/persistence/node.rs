@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use getset::{CopyGetters, Getters};
 use indexmap::IndexSet;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -9,14 +10,14 @@ use crate::{
     spec::node::NodeSpecKey,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Store {
     pub specs: SpecStore,
     pub nodes: RecordStore,
 }
 
 // The remaining parts of spec are to be loaded by the appropriate plugin.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct SpecStore {
     // BTreeMap in favor of HashMap to have nicely ordered entries.
     store: BTreeMap<NodeSpecId, NodeSpecKey>,
@@ -44,7 +45,7 @@ impl SpecStore {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct RecordStore {
     store: BTreeMap<NodeId, RecordValue>,
 }
@@ -92,10 +93,11 @@ pub struct RecordView<'a> {
     pub value: &'a RecordValue,
 }
 
-#[derive(Debug, Getters, CopyGetters, Serialize, Deserialize)]
+#[derive(Debug, Getters, CopyGetters, Serialize, Deserialize, JsonSchema)]
 pub struct RecordValue {
     #[getset(get_copy = "pub")]
     spec_id: NodeSpecId,
+    #[schemars(with = "Vec<NodeId>")]
     children: IndexSet<NodeId>,
 }
 

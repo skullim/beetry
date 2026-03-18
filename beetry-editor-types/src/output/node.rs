@@ -5,12 +5,13 @@ use mitsein::{
     btree_set1::BTreeSet1,
     iter1::{FromIterator1, IntoIterator1},
 };
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tracing::error;
 
 use crate::{id::ChannelId, spec::node::FieldName};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub enum ParameterValue {
     Bool(bool),
     U16(u16),
@@ -83,7 +84,7 @@ impl fmt::Display for ParameterValue {
     }
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Parameters {
     map: BTreeMap<FieldName, ParameterValue>,
 }
@@ -200,7 +201,7 @@ impl PortConnectionState {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct PortState {
     source: PortSource,
 }
@@ -215,7 +216,7 @@ impl PortState {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub enum PortSource {
     Internal,
     External,
