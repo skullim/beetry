@@ -4,10 +4,6 @@ version = "0.1.0"
 edition = "2024"
 license.workspace = true
 
-[features]
-default = ["desktop"]
-desktop = ["dioxus/desktop"]
-
 [dependencies]
 anyhow.workspace = true
 beetry-message = { version = "0.1.0", path = "../beetry-message" }
@@ -17,7 +13,7 @@ beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }
 beetry-editor-backend = { version = "0.1.0", path = "../beetry-editor-backend" }
 bon.workspace = true
 chrono = "0.4.42"
-dioxus = { version = "0.7.3", features = [] }
+dioxus = { version = "0.7.3", features = ["desktop"] }
 dioxus-logger = "0.7.3"
 rfd = { version = "0.17.2", default-features = false, features = [
     "xdg-portal",

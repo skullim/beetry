@@ -7,13 +7,13 @@ license.workspace = true
 
 [features]
 default = ["plugin", "editor", "tokio"]
-plugin = ["dep:beetry-plugin", "beetry-engine/plugin", "beetry-node/plugin"]
-editor = [
-    "plugin",
-    "dep:beetry-editor-backend",
-    "dep:beetry-editor-frontend",
+plugin = [
+    "dep:beetry-plugin",
     "dep:beetry-editor-types",
+    "beetry-engine/plugin",
+    "beetry-node/plugin",
 ]
+editor = ["plugin", "dep:beetry-editor-backend", "dep:beetry-editor-frontend"]
 tokio = ["beetry-channel/tokio"]
 
 [dependencies]

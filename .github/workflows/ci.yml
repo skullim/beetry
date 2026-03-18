@@ -38,9 +38,13 @@ jobs:
         cargo clippy --version &&
         cargo fmt --version
 
+    - name: Install cargo-hack
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-hack
     - uses: Swatinem/rust-cache@v2
     - name: Check
-      run: cargo check
+      run: cargo hack check --each-feature
     - name: Lint
       run: cargo clippy --tests -- -D warnings
     - name: Docs
@@ -48,7 +52,7 @@ jobs:
     - name: Format
       run: cargo +nightly fmt -- --check
     - name: Test
-      run: cargo test
+      run: cargo hack test --each-feature
     - name: Cargo deny
       run: >
         cargo install cargo-deny --locked &&
