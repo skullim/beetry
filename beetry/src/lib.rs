@@ -147,10 +147,14 @@
 //! reduces avoidable runtime failures, and makes the editor a more reliable
 //! tool for building production trees.
 
-// Re-export macro dependencies
-pub use beetry_channel::Input;
-pub use beetry_core::{
-    ActionBehavior, NodeTask, Receiver, Sender, Task, TickStatus, TryRecvResult,
-};
-// Follow standard practice to re-export macro through main crate
-pub use beetry_macros::{Message, receivers};
+pub mod channel;
+#[cfg(feature = "editor")]
+pub mod editor;
+pub mod leaf;
+pub mod node;
+#[cfg(feature = "plugin")]
+pub mod plugin;
+pub mod runtime;
+
+pub use beetry_macros::Message;
+pub use beetry_message::Message;

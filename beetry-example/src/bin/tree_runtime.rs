@@ -11,8 +11,7 @@
 use std::time::Duration;
 
 use anyhow::Result;
-use beetry_core::{PeriodicTick, PeriodicTicker};
-use beetry_engine::{TreeEngine, TreeEngineConfig};
+use beetry::runtime::{PeriodicTick, PeriodicTicker, TreeEngine, TreeEngineConfig};
 #[expect(unused_imports, reason = "import all node and channel plugins")]
 use beetry_example::domain::*;
 use tracing_subscriber::{

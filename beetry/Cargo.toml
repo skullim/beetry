@@ -5,17 +5,29 @@ version = "0.1.0"
 edition = "2024"
 license.workspace = true
 
+[features]
+default = ["plugin", "editor", "tokio"]
+plugin = ["dep:beetry-plugin", "beetry-engine/plugin", "beetry-node/plugin"]
+editor = [
+    "plugin",
+    "dep:beetry-editor-backend",
+    "dep:beetry-editor-frontend",
+    "dep:beetry-editor-types",
+]
+tokio = ["beetry-channel/tokio"]
+
 [dependencies]
 beetry-channel = { path = "../beetry-channel" }
 beetry-core = { path = "../beetry-core" }
 beetry-engine = { path = "../beetry-engine" }
-beetry-editor-backend = { path = "../beetry-editor-backend" }
-beetry-editor-frontend = { path = "../beetry-editor-frontend" }
-beetry-editor-types = { path = "../beetry-editor-types" }
+beetry-editor-backend = { path = "../beetry-editor-backend", optional = true }
+beetry-editor-frontend = { path = "../beetry-editor-frontend", optional = true }
+beetry-editor-types = { path = "../beetry-editor-types", optional = true }
 beetry-exec = { path = "../beetry-exec" }
 beetry-node = { path = "../beetry-node" }
 beetry-macros = { path = "../beetry-macros" }
-beetry-plugin = { path = "../beetry-plugin" }
+beetry-message = { path = "../beetry-message" }
+beetry-plugin = { path = "../beetry-plugin", optional = true }
 simple-mermaid.workspace = true
 
 [lints]

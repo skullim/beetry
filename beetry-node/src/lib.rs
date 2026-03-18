@@ -4,13 +4,13 @@
 //! nodes available by default in Beetry.
 //!
 //! Compatibility with the editor integration and plugin-based registration is
-//! guarded behind the `registry` feature.
+//! guarded behind the `plugin` feature.
 
 mod control;
 mod decorator;
 
-#[cfg(feature = "registry")]
-pub mod registry;
+#[cfg(feature = "plugin")]
+pub mod plugin;
 
 use beetry_core::NonEmptyNodes;
 pub use control::{Fallback, MemSequence, Parallel, ParallelParams, Sequence};

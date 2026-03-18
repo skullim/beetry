@@ -15,18 +15,7 @@ path = "src/bin/tree_authoring.rs"
 
 [dependencies]
 anyhow.workspace = true
-beetry-core = { version = "0.1.0", path = "../beetry-core" }
 beetry = { path = "../beetry" }
-beetry-engine = { version = "0.1.0", path = "../beetry-engine", features = [
-    "registry",
-] }
-beetry-editor-frontend = { version = "0.1.0", path = "../beetry-editor-frontend" }
-beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
-beetry-message = { version = "0.1.0", path = "../beetry-message" }
-beetry-node = { version = "0.1.0", path = "../beetry-node", features = [
-    "registry",
-] }
-beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
 bon.workspace = true
 mitsein.workspace = true
 serde.workspace = true

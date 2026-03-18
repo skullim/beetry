@@ -1,6 +1,10 @@
 use anyhow::Result;
-use beetry::{ActionBehavior, NodeTask, Receiver, Sender, Task, TickStatus, receivers};
-use beetry_plugin::action;
+use beetry::{
+    channel::{Receiver, Sender, receivers},
+    leaf::{ActionBehavior, NodeTask, Task},
+    plugin::action,
+    runtime::TickStatus,
+};
 use bon::bon;
 
 use crate::domain::Pose;

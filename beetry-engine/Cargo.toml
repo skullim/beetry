@@ -6,7 +6,7 @@ license.workspace = true
 
 [features]
 default = []
-registry = ["dep:beetry-node"]
+plugin = ["dep:beetry-node", "dep:beetry-plugin", "dep:beetry-serialization"]
 
 [dependencies]
 anyhow.workspace = true
@@ -16,10 +16,10 @@ beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
 beetry-exec = { version = "0.1.0", path = "../beetry-exec" }
 beetry-message = { version = "0.1.0", path = "../beetry-message" }
 beetry-node = { version = "0.1.0", path = "../beetry-node", optional = true, features = [
-    "registry",
+    "plugin",
 ] }
-beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
-beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }
+beetry-plugin = { version = "0.1.0", path = "../beetry-plugin", optional = true }
+beetry-serialization = { version = "0.1.0", path = "../beetry-serialization", optional = true }
 bon.workspace = true
 derive_more.workspace = true
 futures.workspace = true

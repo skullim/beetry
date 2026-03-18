@@ -1,5 +1,4 @@
 use beetry::Message;
-use beetry_message::Message;
 use type_hash::TypeHash;
 
 pub mod parking;
@@ -17,4 +16,4 @@ impl Pose {
     }
 }
 
-beetry_plugin::channel! {PoseChannel: Pose}
+beetry::plugin::channel! {PoseChannel: Pose}

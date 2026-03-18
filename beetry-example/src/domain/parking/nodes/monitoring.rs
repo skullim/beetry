@@ -1,8 +1,10 @@
 use anyhow::Result;
-use beetry_core::{
-    ActionBehavior, ConditionBehavior, NodeTask, Receiver, Sender, Task, TickStatus,
+use beetry::{
+    channel::{Receiver, Sender},
+    leaf::{ActionBehavior, ConditionBehavior, NodeTask, Task},
+    plugin::{ParamsDeserializer, ProvideParamSpec, action, condition},
+    runtime::TickStatus,
 };
-use beetry_plugin::{ProvideParamSpec, action, condition, node::ParamsDeserializer};
 use tokio::sync::mpsc::{
     Receiver as TokioReceiver, Sender as TokioSender, channel as mpsc_channel,
 };

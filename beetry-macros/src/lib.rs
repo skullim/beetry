@@ -59,7 +59,7 @@ pub fn receivers(input: TokenStream) -> TokenStream {
         .zip(&receiver_types)
         .map(|(field, receiver_ty)| {
             let ty = &field.ty;
-            quote! { #receiver_ty: beetry::Receiver<#ty> }
+            quote! { #receiver_ty: beetry::channel::Receiver<#ty> }
         })
         .collect();
 
@@ -68,14 +68,14 @@ pub fn receivers(input: TokenStream) -> TokenStream {
         .zip(receiver_types.iter())
         .map(|(field, tname)| {
             let Field { ident, ty } = field;
-            quote! { #ident: beetry::Input<#tname, #ty> }
+            quote! { #ident: beetry::channel::Input<#tname, #ty> }
         });
 
     let getter_methods = fields.iter().map(|field| {
         let ident = &field.ident;
         let ty = &field.ty;
         quote! {
-            pub fn #ident(&mut self) -> beetry::TryRecvResult<#ty> {
+            pub fn #ident(&mut self) -> beetry::channel::TryRecvResult<#ty> {
                 self.#ident.get()
             }
         }
@@ -95,7 +95,7 @@ pub fn receivers(input: TokenStream) -> TokenStream {
             #[builder]
             pub fn new(#(#field_names: #receiver_types),*) -> Self {
                 Self {
-                    #(#field_names: beetry::Input::new(#field_names),)*
+                    #(#field_names: beetry::channel::Input::new(#field_names),)*
                 }
             }
 
