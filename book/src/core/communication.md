@@ -14,23 +14,20 @@ necessary to know that some value exists in shared state, but also to know
 which preceding node is responsible for writing it and whether that write is
 guaranteed to happen on the relevant execution path. To verify that, a user
 has to inspect the implementation details of multiple nodes instead of
-understanding the data flow directly from the tree view. That makes the design more
-error-prone and raises the cost of extending behavior.
+understanding the data flow directly from the tree view. That makes the design and change more
+error-prone.
 
 ## Communication model
 
 Beetry takes a different approach. Nodes communicate through an opt-in system of
-typed messages and channels, which makes dependencies visible and intentional. A node declares the
-inputs it expects and the outputs it produces, and those relationships become
-part of the tree definition instead of hidden conventions.
+typed messages and channels. A node declares its inputs and outputs, 
+which become the API contract of the node.
 
 This has a few practical benefits:
 
-- data flow is easier to inspect and review
-- dependencies are clearer when extending a tree
-- message contracts remain type-safe
-- data can be modeled more intentionally because the flow is visible during
-  tree design
+- messages remain type-safe, with no need for type erasure
+- data flow is explicit, which encourages more deliberate design
+- dependencies are clear
 - the editor can validate more of the tree structure before runtime
 
 Communication in Beetry has two parts:
@@ -38,7 +35,7 @@ Communication in Beetry has two parts:
 - messages, which define the typed values exchanged between nodes
 - channels, which define how those values are delivered
 
-This communication model is recommended, but not mandatory. Shared state can still be passed to leaf nodes through the corresponding Behavior traits when needed.
+This communication model is recommended, but not mandatory. Shared state can still be passed to leaf nodes when needed.
 
 ## Data flow
 

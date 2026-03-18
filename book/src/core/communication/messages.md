@@ -9,9 +9,7 @@ This separation matters because the same kind of data may be useful in
 different communication contexts. A message answers the question "what is being
 sent?", while a channel answers "how is it delivered?".
 
-In practice, message types are usually simple domain data models.
-
-For example:
+In practice, message types are usually simple domain data models, for example:
 
 ```rust
 use beetry::Message;

@@ -20,5 +20,4 @@ Leaf behavior is introduced through two main contracts:
 
 These contracts let applications inject their own behavior into the tree
 without changing the execution model itself. The next section explains how all
-of these node kinds participate in the same runtime model through the `Node`
-interface.
+of these node kinds participate in the same runtime model.
