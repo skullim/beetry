@@ -1,7 +1,7 @@
 # Beetry
 
 <p align="center">
-<img src="./logo.png" alt="My image" width="400" height="261">
+    <img src="./logo.png" alt="Logo" width="400" height="261">
 </p>
 
 Behavior trees are used to model decision-making and task execution in systems

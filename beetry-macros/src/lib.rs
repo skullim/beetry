@@ -7,6 +7,7 @@ use syn::{
     punctuated::Punctuated,
 };
 
+/// Derives [`Message`] for a type.
 #[proc_macro_derive(Message)]
 pub fn derive_message(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

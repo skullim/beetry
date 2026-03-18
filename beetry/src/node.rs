@@ -1,3 +1,5 @@
+//! Shared node trait and built-in non-leaf node types.
+
 pub use beetry_core::{BoxNode, Node, NonEmptyNodes, Root};
 #[cfg(feature = "plugin")]
 pub use beetry_node::plugin;
