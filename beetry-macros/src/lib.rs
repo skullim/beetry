@@ -30,7 +30,7 @@ struct Field {
 }
 
 impl Parse for ReceiversInput {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream<'_>) -> Result<Self> {
         let name: Ident = input.parse()?;
         let content;
         braced!(content in input);
@@ -40,7 +40,7 @@ impl Parse for ReceiversInput {
 }
 
 impl Parse for Field {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream<'_>) -> Result<Self> {
         let ident = input.parse()?;
         input.parse::<Token![:]>()?;
         let ty = input.parse()?;

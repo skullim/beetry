@@ -118,3 +118,15 @@ unnecessary_struct_initialization = "warn"
 unused_peekable = "warn"
 use_self = "warn"
 while_float = "warn"
+
+[workspace.lints.rust]
+closure-returning-async-block = "warn"
+elided_lifetimes_in_paths = "warn"
+explicit_outlives_requirements = "warn"
+keyword_idents_2024 = "warn"
+redundant-lifetimes = "warn"
+unsafe_code = "deny"
+unused_qualifications = "warn"
+
+[workspace.lints.rustdoc]
+unescaped_backticks = "warn"

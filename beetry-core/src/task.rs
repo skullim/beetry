@@ -22,7 +22,7 @@ pub struct TaskDescription {
 }
 
 impl FromStr for TaskDescription {
-    type Err = anyhow::Error;
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self { desc: s.into() })
     }

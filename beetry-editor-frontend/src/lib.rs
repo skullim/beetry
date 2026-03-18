@@ -1,3 +1,6 @@
+// A lot of false positives when linting Dioxus macros
+#![allow(unused_qualifications)]
+
 //! Dioxus-based frontend for the Beetry editor.
 //!
 //! This crate contains the desktop UI used to author behavior tree projects.

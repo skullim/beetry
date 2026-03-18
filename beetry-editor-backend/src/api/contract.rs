@@ -29,7 +29,6 @@ use crate::{
         ParameterValueQueryView, ParameterValueViewMut, PortConnectionQuery,
         PortConnectionQueryView, PortSpecQuery, PortStateQuery, PortStateQueryView,
         SpecByNodeIdQuery, SpecByNodeIdQueryView, SpecBySpecIdQuery, SpecBySpecIdQueryView,
-        TrackerView,
     },
     repository::{
         EditorRepository, EditorRepositoryView, EditorRepositoryViewMut, NodeRepositoryFacadeView,
@@ -229,7 +228,7 @@ impl NodeQueryApi for EditorService {
     fn tracker(&self) -> impl NodeTrackerQuery {
         let EditorRepositoryView { node, .. } = self.repo.view();
         let NodeRepositoryFacadeView { node: nodes, .. } = node;
-        TrackerView::new(&self.node_service, nodes)
+        node::TrackerView::new(&self.node_service, nodes)
     }
 }
 

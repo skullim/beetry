@@ -190,11 +190,11 @@ pub mod channel {
         id: ChannelId,
         update: ChannelConfigUpdate,
     ) -> Result<()> {
-        crate::api::contract::ChannelCommandApi::update_config(api, id, update)
+        ChannelCommandApi::update_config(api, id, update)
     }
 
     pub fn query(api: &impl ChannelQueryApi) -> impl ChannelQueryView {
-        crate::api::contract::ChannelQueryApi::query(api)
+        ChannelQueryApi::query(api)
     }
 }
 
@@ -213,11 +213,11 @@ pub mod ui {
             id: NodeId,
             position: Point,
         ) -> Result<()> {
-            crate::api::contract::NodeUiCommandApi::update_position(api, id, position)
+            NodeUiCommandApi::update_position(api, id, position)
         }
 
         pub fn query(api: &impl NodeUiQueryApi) -> impl NodeUiQuery {
-            crate::api::contract::NodeUiQueryApi::query(api)
+            NodeUiQueryApi::query(api)
         }
     }
 
@@ -235,11 +235,11 @@ pub mod ui {
             id: ChannelId,
             position: Point,
         ) -> Result<()> {
-            crate::api::contract::ChannelUiCommandApi::update_position(api, id, position)
+            ChannelUiCommandApi::update_position(api, id, position)
         }
 
         pub fn query(api: &impl ChannelUiQueryApi) -> impl ChannelUiQuery {
-            crate::api::contract::ChannelUiQueryApi::query(api)
+            ChannelUiQueryApi::query(api)
         }
     }
 
@@ -257,11 +257,11 @@ pub mod ui {
             id: PortConnectionId,
             data: PortConnectionUiData,
         ) -> Result<()> {
-            crate::api::contract::PortConnectionUiCommandApi::update_data(api, id, data)
+            PortConnectionUiCommandApi::update_data(api, id, data)
         }
 
         pub fn query(api: &impl PortConnectionUiQueryApi) -> impl PortConnectionUiQuery {
-            crate::api::contract::PortConnectionUiQueryApi::query(api)
+            PortConnectionUiQueryApi::query(api)
         }
     }
 }

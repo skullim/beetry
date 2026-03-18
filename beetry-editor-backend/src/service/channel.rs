@@ -89,7 +89,7 @@ impl<'a> ChannelViewMut<'a> {
         ChannelService::update_config(self.facade_view.channel, id, update)
     }
 
-    pub(crate) fn validate_connection(&self, context: &ConnectionContext) -> Result<()> {
+    pub(crate) fn validate_connection(&self, context: &ConnectionContext<'_>) -> Result<()> {
         ChannelService::validate_connection(
             self.facade_view.spec,
             self.facade_view.channel,
@@ -97,7 +97,7 @@ impl<'a> ChannelViewMut<'a> {
         )
     }
 
-    pub(crate) fn on_connected(&mut self, context: &ConnectionContext) -> Result<()> {
+    pub(crate) fn on_connected(&mut self, context: &ConnectionContext<'_>) -> Result<()> {
         ChannelService::on_connected(self.facade_view.channel, context)
     }
 
@@ -230,7 +230,7 @@ impl ChannelService {
 
     fn on_connected(
         channel_repo: &mut ChannelRepository,
-        context: &ConnectionContext,
+        context: &ConnectionContext<'_>,
     ) -> Result<()> {
         let count_mut = Self::config_mut(channel_repo, context.channel)?.count_mut();
         match context.spec.kind {
@@ -259,7 +259,7 @@ impl ChannelService {
     fn validate_connection(
         channel_spec_repo: &ChannelSpecRepository,
         channel_repo: &ChannelRepository,
-        conn_ctx: &ConnectionContext,
+        conn_ctx: &ConnectionContext<'_>,
     ) -> Result<()> {
         Self::ensure_exists(channel_repo, conn_ctx.channel)?;
         let channel_spec = Self::spec(channel_spec_repo, channel_repo, conn_ctx.channel)?;

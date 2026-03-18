@@ -10,7 +10,7 @@ use crate::{
     Backend, SharedSpecs,
     components::editor,
     signals::RequestNodeRender,
-    ui::{channel, node, node::parameter},
+    ui::{channel, node::parameter},
 };
 
 pub fn handlers(
@@ -28,10 +28,10 @@ pub fn handlers(
         let id = backend.with_mut(|s| api::node::create(s, node_spec, ui_data))?;
 
         if node_spec.has_params() {
-            state.parameter.set(node::parameter::State::Visible {
+            state.parameter.set(parameter::State::Visible {
                 position: parameter::DEFAULT_DIALOG_POSITION,
                 id,
-                mode: node::parameter::Mode::Create,
+                mode: parameter::Mode::Create,
             });
         }
 

@@ -38,7 +38,7 @@ pub fn handlers(
             let mouse_coords = evt.client_coordinates();
 
             let zoom = zoom.get();
-            let updated_pos = crate::Point {
+            let updated_pos = Point {
                 x: mouse_coords.x / zoom - offset.x,
                 y: mouse_coords.y / zoom - offset.y,
             };
@@ -57,7 +57,7 @@ pub fn handlers(
             let mouse_coords = evt.client_coordinates();
 
             let zoom = zoom.get();
-            let updated_pos = crate::Point {
+            let updated_pos = Point {
                 x: mouse_coords.x / zoom - offset.x,
                 y: mouse_coords.y / zoom - offset.y,
             };
