@@ -9,17 +9,19 @@ use crate::{
     ui::{
         error::ErrorQueueState,
         node::{
-            base::{NodeBase, NodeStyle, NodeWithMenu},
+            base::{NODE_WIDTH, NodeBase, NodeStyle, NodeWithMenu},
             pin::{input, output},
         },
+        style::text::{FONT_SIZE_NORMAL, truncate_label},
     },
 };
 
 fn style(name: &str) -> NodeStyle {
+    let label = truncate_label(name, FONT_SIZE_NORMAL, NODE_WIDTH);
     NodeStyle::builder()
         .fill_gradient("url(#control-gradient)")
         .hover_gradient("url(#control-hover)")
-        .label(name)
+        .label(label)
         .height(70.0)
         .build()
 }

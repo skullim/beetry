@@ -9,14 +9,16 @@ use crate::{
     ui::{
         error::ErrorQueueState,
         node::{
-            base::{NodeBase, NodeStyle, NodeWithMenu},
+            base::{NODE_WIDTH, NodeBase, NodeStyle, NodeWithMenu},
             pin::input,
             port,
         },
+        style::text::{FONT_SIZE_NORMAL, truncate_label},
     },
 };
 
 fn style(kind: LeafKind, name: &str) -> NodeStyle {
+    let label = truncate_label(name, FONT_SIZE_NORMAL, NODE_WIDTH);
     let (fill_color, hover_color) = match kind {
         LeafKind::Action => ("url(#action-gradient)", "url(#action-hover)"),
         LeafKind::Condition => ("url(#condition-gradient)", "url(#condition-hover)"),
@@ -24,7 +26,7 @@ fn style(kind: LeafKind, name: &str) -> NodeStyle {
     NodeStyle::builder()
         .fill_gradient(fill_color)
         .hover_gradient(hover_color)
-        .label(name)
+        .label(label)
         .build()
 }
 

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::BTreeMap, sync::Arc};
 
 use anyhow::{Result, anyhow};
 use beetry_message::MessageSpec;
@@ -25,7 +25,7 @@ pub struct NodeSpec {
 
 #[derive(Debug, Clone)]
 pub struct NodeSpecMap {
-    map: HashMap<NodeSpecKey, NodeSpec>,
+    map: BTreeMap<NodeSpecKey, NodeSpec>,
 }
 
 impl FromIterator<(NodeSpecKey, NodeSpec)> for NodeSpecMap {
@@ -71,7 +71,18 @@ impl NodeSpec {
 }
 
 #[derive(
-    Debug, Clone, PartialEq, Eq, Hash, Getters, CopyGetters, Serialize, Deserialize, JsonSchema,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Getters,
+    CopyGetters,
+    Serialize,
+    Deserialize,
+    JsonSchema,
 )]
 pub struct NodeSpecKey {
     #[getset(get = "pub")]
@@ -127,7 +138,20 @@ impl From<&'static str> for NodeName {
     }
 }
 
-#[derive(Debug, From, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[derive(
+    Debug,
+    From,
+    Clone,
+    Copy,
+    PartialEq,
+    PartialOrd,
+    Ord,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize,
+    JsonSchema,
+)]
 pub enum NodeKind {
     Control,
     Decorator,

@@ -19,7 +19,6 @@ pub struct Store {
 // The remaining parts of spec are to be loaded by the appropriate plugin.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct SpecStore {
-    // BTreeMap in favor of HashMap to have nicely ordered entries.
     store: BTreeMap<NodeSpecId, NodeSpecKey>,
 }
 
