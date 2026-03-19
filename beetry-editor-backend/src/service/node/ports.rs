@@ -178,6 +178,18 @@ impl PortConnectionViewMut<'_> {
         {
             bail!("attempted to connect port that is marked as external");
         }
+        if self
+            .port_conn_repo
+            .is_port_connected(id.node_id, id.port_id)
+        {
+            bail!(
+                "attempted to connect channel: {} to already connected port (node id: {}, port id: {})",
+                id.channel_id,
+                id.node_id,
+                id.port_id
+            )
+        }
+
         let mut coordinator = self.coordinator(id.node_id)?;
         coordinator.validate_connection(id)?;
         coordinator.on_connected(id)?;

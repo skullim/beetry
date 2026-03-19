@@ -116,6 +116,42 @@ fn connecting_second_receiver_to_mpsc_channel_fails(
 }
 
 #[rstest]
+fn connecting_second_channel_to_same_port_fails(
+    mut service: TestEditorService,
+    specs: TestSpecs,
+) -> Result<()> {
+    let sender = create_node(&mut service, &specs, NodeSpecCase::SenderA)?;
+    let first_channel = create_channel(
+        &mut service,
+        &specs,
+        ChannelSpecCase::MessageA,
+        TestSpecs::default_mpsc_config(),
+    )?;
+    let second_channel = create_channel(
+        &mut service,
+        &specs,
+        ChannelSpecCase::MessageA,
+        TestSpecs::default_mpsc_config(),
+    )?;
+    let port_id = NodePortId::new(0);
+
+    api::node::ports::connect(
+        &mut service,
+        PortConnectionId::new(sender, port_id, first_channel),
+        visible_conn_ui(),
+    )?;
+
+    let second_connect = api::node::ports::connect(
+        &mut service,
+        PortConnectionId::new(sender, port_id, second_channel),
+        visible_conn_ui(),
+    );
+    assert!(second_connect.is_err());
+
+    Ok(())
+}
+
+#[rstest]
 fn connecting_mismatched_channel_type_fails(
     mut service: TestEditorService,
     specs: TestSpecs,
