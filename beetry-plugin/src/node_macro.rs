@@ -243,6 +243,9 @@ macro_rules! __leaf_plugin_impl {
         params_binding: $params_binding:ident,
         create: $create:expr $(,)?
     ) => {
+        $crate::__leaf_plugin_assert_unique_receivers!([$($receiver_ty),*]);
+        $crate::__leaf_plugin_assert_unique_senders!([$($sender_ty),*]);
+
         pub struct $plugin_name {
             spec: $crate::__macro_support::NodeSpec,
             factory: $factory_type,
@@ -295,6 +298,24 @@ macro_rules! __leaf_plugin_impl {
         }
 
         $crate::submit!(<$plugin_constructor>::new::<$plugin_name>());
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __leaf_plugin_assert_unique_receivers {
+    ([]) => {};
+    ([$($port_ty:ty),+]) => {
+        $crate::__macro_support::beetry_macros::assert_unique_receivers!($($port_ty),*);
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __leaf_plugin_assert_unique_senders {
+    ([]) => {};
+    ([$($port_ty:ty),+]) => {
+        $crate::__macro_support::beetry_macros::assert_unique_senders!($($port_ty),*);
     };
 }
 

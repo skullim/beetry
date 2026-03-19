@@ -1,75 +1,74 @@
 use anyhow::Result;
 use beetry::{
+    Message,
     channel::{Receiver, Sender, receivers},
     leaf::{ActionBehavior, NodeTask, Task},
     plugin::action,
     runtime::TickStatus,
 };
 use bon::bon;
+use type_hash::TypeHash;
 
 use crate::domain::Pose;
 
+macro_rules! define_multi_port_pose {
+    ($msg_ty:ident, $channel_ty:ident) => {
+        #[derive(Debug, Clone, Copy, Default, TypeHash, Message)]
+        pub struct $msg_ty(pub Pose);
+
+        impl From<Pose> for $msg_ty {
+            fn from(value: Pose) -> Self {
+                Self(value)
+            }
+        }
+
+        impl From<$msg_ty> for Pose {
+            fn from(value: $msg_ty) -> Self {
+                value.0
+            }
+        }
+
+        beetry::plugin::channel! {$channel_ty: $msg_ty}
+    };
+}
+
+define_multi_port_pose!(PoseA, PoseAChannel);
+define_multi_port_pose!(PoseB, PoseBChannel);
+define_multi_port_pose!(PoseC, PoseCChannel);
+define_multi_port_pose!(PoseD, PoseDChannel);
+define_multi_port_pose!(PoseE, PoseEChannel);
+
 receivers! {
-    MultiPortsReceivers {
-        in1: Pose,
-        in2: Pose,
-        in3: Pose,
-        in4: Pose,
-        in5: Pose,
+    MultiPortSubscriberReceivers {
+        in1: PoseA,
+        in2: PoseB,
+        in3: PoseC,
+        in4: PoseD,
+        in5: PoseE,
     }
 }
 
-pub struct MultiPorts<R1, R2, R3, R4, R5, S1, S2, S3, S4, S5>
+pub struct MultiPortSubscriber<R1, R2, R3, R4, R5>
 where
-    R1: Receiver<Pose>,
-    R2: Receiver<Pose>,
-    R3: Receiver<Pose>,
-    R4: Receiver<Pose>,
-    R5: Receiver<Pose>,
-    S1: Sender<Pose>,
-    S2: Sender<Pose>,
-    S3: Sender<Pose>,
-    S4: Sender<Pose>,
-    S5: Sender<Pose>,
+    R1: Receiver<PoseA>,
+    R2: Receiver<PoseB>,
+    R3: Receiver<PoseC>,
+    R4: Receiver<PoseD>,
+    R5: Receiver<PoseE>,
 {
-    receivers: MultiPortsReceivers<R1, R2, R3, R4, R5>,
-    out1: S1,
-    out2: S2,
-    out3: S3,
-    out4: S4,
-    out5: S5,
+    receivers: MultiPortSubscriberReceivers<R1, R2, R3, R4, R5>,
 }
 
-impl<R1, R2, R3, R4, R5, S1, S2, S3, S4, S5> MultiPorts<R1, R2, R3, R4, R5, S1, S2, S3, S4, S5>
+impl<R1, R2, R3, R4, R5> MultiPortSubscriber<R1, R2, R3, R4, R5>
 where
-    R1: Receiver<Pose>,
-    R2: Receiver<Pose>,
-    R3: Receiver<Pose>,
-    R4: Receiver<Pose>,
-    R5: Receiver<Pose>,
-    S1: Sender<Pose>,
-    S2: Sender<Pose>,
-    S3: Sender<Pose>,
-    S4: Sender<Pose>,
-    S5: Sender<Pose>,
+    R1: Receiver<PoseA>,
+    R2: Receiver<PoseB>,
+    R3: Receiver<PoseC>,
+    R4: Receiver<PoseD>,
+    R5: Receiver<PoseE>,
 {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        receivers: MultiPortsReceivers<R1, R2, R3, R4, R5>,
-        out1: S1,
-        out2: S2,
-        out3: S3,
-        out4: S4,
-        out5: S5,
-    ) -> Self {
-        Self {
-            receivers,
-            out1,
-            out2,
-            out3,
-            out4,
-            out5,
-        }
+    pub fn new(receivers: MultiPortSubscriberReceivers<R1, R2, R3, R4, R5>) -> Self {
+        Self { receivers }
     }
 
     fn restore_initial_state(&mut self) {
@@ -77,44 +76,24 @@ where
     }
 }
 
-impl<R1, R2, R3, R4, R5, S1, S2, S3, S4, S5> ActionBehavior
-    for MultiPorts<R1, R2, R3, R4, R5, S1, S2, S3, S4, S5>
+impl<R1, R2, R3, R4, R5> ActionBehavior for MultiPortSubscriber<R1, R2, R3, R4, R5>
 where
-    R1: Receiver<Pose>,
-    R2: Receiver<Pose>,
-    R3: Receiver<Pose>,
-    R4: Receiver<Pose>,
-    R5: Receiver<Pose>,
-    S1: Sender<Pose>,
-    S2: Sender<Pose>,
-    S3: Sender<Pose>,
-    S4: Sender<Pose>,
-    S5: Sender<Pose>,
+    R1: Receiver<PoseA>,
+    R2: Receiver<PoseB>,
+    R3: Receiver<PoseC>,
+    R4: Receiver<PoseD>,
+    R5: Receiver<PoseE>,
 {
     fn task(&mut self) -> Result<NodeTask> {
-        let in1 = self.receivers.in1()?;
-        let in2 = self.receivers.in2()?;
-        let in3 = self.receivers.in3()?;
-        let in4 = self.receivers.in4()?;
-        let in5 = self.receivers.in5()?;
+        let _: [Pose; 5] = [
+            self.receivers.in1()?.into(),
+            self.receivers.in2()?.into(),
+            self.receivers.in3()?.into(),
+            self.receivers.in4()?.into(),
+            self.receivers.in5()?.into(),
+        ];
 
-        self.out1
-            .try_send(in1)
-            .map_err(|error| anyhow::anyhow!("failed to send out1: {error}"))?;
-        self.out2
-            .try_send(in2)
-            .map_err(|error| anyhow::anyhow!("failed to send out2: {error}"))?;
-        self.out3
-            .try_send(in3)
-            .map_err(|error| anyhow::anyhow!("failed to send out3: {error}"))?;
-        self.out4
-            .try_send(in4)
-            .map_err(|error| anyhow::anyhow!("failed to send out4: {error}"))?;
-        self.out5
-            .try_send(in5)
-            .map_err(|error| anyhow::anyhow!("failed to send out5: {error}"))?;
-
-        Ok(NodeTask::new(MultiPortsTask))
+        Ok(NodeTask::new(MultiPortSubscriberTask))
     }
 
     fn reset(&mut self) {
@@ -126,42 +105,114 @@ where
     }
 }
 
-struct MultiPortsTask;
+pub struct MultiPortPublisher<S1, S2, S3, S4, S5>
+where
+    S1: Sender<PoseA>,
+    S2: Sender<PoseB>,
+    S3: Sender<PoseC>,
+    S4: Sender<PoseD>,
+    S5: Sender<PoseE>,
+{
+    out1: S1,
+    out2: S2,
+    out3: S3,
+    out4: S4,
+    out5: S5,
+}
 
-impl Task for MultiPortsTask {
+impl<S1, S2, S3, S4, S5> MultiPortPublisher<S1, S2, S3, S4, S5>
+where
+    S1: Sender<PoseA>,
+    S2: Sender<PoseB>,
+    S3: Sender<PoseC>,
+    S4: Sender<PoseD>,
+    S5: Sender<PoseE>,
+{
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(out1: S1, out2: S2, out3: S3, out4: S4, out5: S5) -> Self {
+        Self {
+            out1,
+            out2,
+            out3,
+            out4,
+            out5,
+        }
+    }
+}
+
+impl<S1, S2, S3, S4, S5> ActionBehavior for MultiPortPublisher<S1, S2, S3, S4, S5>
+where
+    S1: Sender<PoseA>,
+    S2: Sender<PoseB>,
+    S3: Sender<PoseC>,
+    S4: Sender<PoseD>,
+    S5: Sender<PoseE>,
+{
+    fn task(&mut self) -> Result<NodeTask> {
+        self.out1
+            .try_send(Pose::new(1.0, 1.0).into())
+            .map_err(|error| anyhow::anyhow!("failed to send out1: {error}"))?;
+        self.out2
+            .try_send(Pose::new(2.0, 2.0).into())
+            .map_err(|error| anyhow::anyhow!("failed to send out2: {error}"))?;
+        self.out3
+            .try_send(Pose::new(3.0, 3.0).into())
+            .map_err(|error| anyhow::anyhow!("failed to send out3: {error}"))?;
+        self.out4
+            .try_send(Pose::new(4.0, 4.0).into())
+            .map_err(|error| anyhow::anyhow!("failed to send out4: {error}"))?;
+        self.out5
+            .try_send(Pose::new(5.0, 5.0).into())
+            .map_err(|error| anyhow::anyhow!("failed to send out5: {error}"))?;
+
+        Ok(NodeTask::new(MultiPortPublisherTask))
+    }
+}
+
+struct MultiPortSubscriberTask;
+
+impl Task for MultiPortSubscriberTask {
+    async fn run(self) -> TickStatus {
+        TickStatus::Success
+    }
+}
+
+struct MultiPortPublisherTask;
+
+impl Task for MultiPortPublisherTask {
     async fn run(self) -> TickStatus {
         TickStatus::Success
     }
 }
 
 action! {
-    MultiPortsPlugin: "Multi Ports";
+    MultiPortSubscriberPlugin: "Multi Port Subscriber";
     receivers: [
-        in1: Pose => "Pose input 1",
-        in2: Pose => "Pose input 2",
-        in3: Pose => "Pose input 3",
-        in4: Pose => "Pose input 4",
-        in5: Pose => "Pose input 5",
+        in1: PoseA => "Pose A",
+        in2: PoseB => "Pose B",
+        in3: PoseC => "Pose C",
+        in4: PoseD => "Pose D",
+        in5: PoseE => "Pose E",
     ];
-    senders: [
-        out1: Pose => "Pose output 1",
-        out2: Pose => "Pose output 2",
-        out3: Pose => "Pose output 3",
-        out4: Pose => "Pose output 4",
-        out5: Pose => "Pose output 5",
-    ];
-    create: MultiPorts::new(
-        MultiPortsReceivers::builder()
+    create: MultiPortSubscriber::new(
+        MultiPortSubscriberReceivers::builder()
             .in1(in1)
             .in2(in2)
             .in3(in3)
             .in4(in4)
             .in5(in5)
-            .build(),
-        out1,
-        out2,
-        out3,
-        out4,
-        out5
+            .build()
     );
+}
+
+action! {
+    MultiPortPublisherPlugin: "Multi Port Publisher";
+    senders: [
+        out1: PoseA => "Pose A",
+        out2: PoseB => "Pose B",
+        out3: PoseC => "Pose C",
+        out4: PoseD => "Pose D",
+        out5: PoseE => "Pose E",
+    ];
+    create: MultiPortPublisher::new(out1, out2, out3, out4, out5);
 }

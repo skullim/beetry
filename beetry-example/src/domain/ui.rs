@@ -1,6 +1,7 @@
 mod nodes;
 
 pub use nodes::{
-    MultiParams, MultiParamsParams, MultiParamsPlugin, MultiPorts, MultiPortsPlugin,
-    MultiPortsReceivers,
+    MultiParams, MultiParamsParams, MultiParamsPlugin, MultiPortPublisher,
+    MultiPortPublisherPlugin, MultiPortSubscriber, MultiPortSubscriberPlugin,
+    MultiPortSubscriberReceivers,
 };

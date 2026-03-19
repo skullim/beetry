@@ -169,6 +169,7 @@ pub mod __macro_support {
         channel::ChannelSpec,
         node::{NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey, PortsSpec},
     };
+    pub use beetry_macros;
     pub use beetry_message::MessageSpec;
     pub use mitsein::iter1::FromIterator1;
 

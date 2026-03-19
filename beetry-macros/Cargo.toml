@@ -8,7 +8,7 @@ license.workspace = true
 proc-macro = true
 
 [dependencies]
-proc-macro-error = "1.0.4"
+proc-macro-error2 = "2.0.1"
 proc-macro2 = "1.0.106"
 quote = "1.0.44"
 syn = { version = "2.0.116", features = ["full"] }
@@ -17,6 +17,7 @@ bon.workspace = true
 [dev-dependencies]
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
 beetry-channel = { version = "0.1.0", path = "../beetry-channel" }
+trybuild = "1.0.112"
 
 [lints]
 workspace = true
