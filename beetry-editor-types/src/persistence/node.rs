@@ -63,6 +63,10 @@ impl RecordStore {
         self.store.get(id)
     }
 
+    pub fn remove(&mut self, id: &NodeId) -> Option<RecordValue> {
+        self.store.remove(id)
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = RecordView<'_>> {
         self.store
             .iter()
@@ -93,7 +97,7 @@ pub struct RecordView<'a> {
     pub value: &'a RecordValue,
 }
 
-#[derive(Debug, Getters, CopyGetters, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize, JsonSchema)]
 pub struct RecordValue {
     #[getset(get_copy = "pub")]
     spec_id: NodeSpecId,

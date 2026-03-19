@@ -10,7 +10,7 @@ use beetry_editor_types::{
     id::{ChannelId, NodeId, NodePortId},
     output::node::Parameters,
     persistence,
-    spec::node::{LeafKind, NodeKind, NodeName, NodePortKind, NodeSpec, NodeSpecKey},
+    spec::node::{LeafKind, NodeKind, NodeName, NodePortKind, NodeSpecKey},
 };
 use beetry_message::{MessageHash, MessageSpec};
 use bon::Builder;
@@ -19,6 +19,8 @@ use getset::{CopyGetters, Getters};
 use itertools::Itertools;
 use mitsein::{iter1::FromIterator1, vec1::Vec1};
 use serde::{Deserialize, Serialize};
+
+use crate::reconstruct::NodePluginRegistry;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Root {
@@ -116,37 +118,29 @@ impl Leaf {
     }
 }
 
-pub trait LeafSpecProvider {
-    fn action_spec<'a>(&'a self, name: &NodeName) -> Result<&'a NodeSpec>;
-    fn condition_spec<'a>(&'a self, name: &NodeName) -> Result<&'a NodeSpec>;
+pub struct TreeSnapshotBuilder<'a> {
+    node_store: persistence::node::Store,
+    param_store: persistence::parameter::Store,
+    port_store: persistence::port::Store,
+    plugins: &'a NodePluginRegistry,
 }
 
-pub struct TreeSnapshotBuilder<'a, P> {
-    node_store: &'a persistence::node::Store,
-    param_store: &'a mut persistence::parameter::Store,
-    port_store: &'a mut persistence::port::Store,
-    leaf_specs: &'a P,
-}
-
-impl<'a, P> TreeSnapshotBuilder<'a, P>
-where
-    P: LeafSpecProvider,
-{
+impl<'a> TreeSnapshotBuilder<'a> {
     pub fn new(
-        node_store: &'a persistence::node::Store,
-        param_store: &'a mut persistence::parameter::Store,
-        port_store: &'a mut persistence::port::Store,
-        leaf_specs: &'a P,
+        node_store: persistence::node::Store,
+        param_store: persistence::parameter::Store,
+        port_store: persistence::port::Store,
+        plugins: &'a NodePluginRegistry,
     ) -> Self {
         Self {
             node_store,
             param_store,
             port_store,
-            leaf_specs,
+            plugins,
         }
     }
 
-    pub fn build_root_snapshot(&mut self) -> Result<Root> {
+    pub fn build_root(&mut self) -> Result<Root> {
         let root_id = self
             .node_store
             .nodes
@@ -172,39 +166,6 @@ where
             .with_context(|| anyhow!("root node {root_id:?} does not have a child node"))?;
 
         Ok(Root::new(self.build_node(root_child)?))
-    }
-
-    fn build_node(&mut self, node_id: NodeId) -> Result<Node> {
-        let node_record =
-            self.node_store.nodes.get(&node_id).with_context(|| {
-                anyhow!("node with id {node_id:?} does not exist in node store")
-            })?;
-        let spec_id = node_record.spec_id();
-        let spec_key = self
-            .node_store
-            .specs
-            .get(&spec_id)
-            .with_context(|| anyhow!("node spec with id {spec_id} does not exist"))?;
-        let kind = spec_key.kind();
-        let name = spec_key.name().clone();
-
-        match kind {
-            NodeKind::Control => self.build_control(node_id, name, node_record.children()),
-            NodeKind::Decorator => {
-                let child_id = node_record
-                    .children()
-                    .exactly_one()
-                    .map_err(|children_iter| {
-                        anyhow!(
-                            "expected exactly one child for decorator node {name}, got {}",
-                            children_iter.count()
-                        )
-                    })?;
-                self.build_decorator(node_id, name, *child_id)
-            }
-            NodeKind::Leaf(leaf_kind) => self.build_leaf(node_id, name, leaf_kind),
-            NodeKind::Root => bail!("unexpected Root node found during tree traversal"),
-        }
     }
 
     fn build_control<'b>(
@@ -253,8 +214,8 @@ where
 
     fn build_leaf(&mut self, node_id: NodeId, name: NodeName, leaf_kind: LeafKind) -> Result<Node> {
         let spec = match leaf_kind {
-            LeafKind::Action => self.leaf_specs.action_spec(&name)?,
-            LeafKind::Condition => self.leaf_specs.condition_spec(&name)?,
+            LeafKind::Action => self.plugins.action.get(&name)?.spec(),
+            LeafKind::Condition => self.plugins.condition.get(&name)?.spec(),
         };
 
         let mut receivers = BTreeSet::new();
@@ -304,6 +265,39 @@ where
             .data(leaf_snapshot)
             .parameters(params)
             .build())
+    }
+
+    fn build_node(&mut self, node_id: NodeId) -> Result<Node> {
+        let node_record =
+            self.node_store.nodes.remove(&node_id).with_context(|| {
+                anyhow!("node with id {node_id:?} does not exist in node store")
+            })?;
+        let spec_id = node_record.spec_id();
+        let spec_key = self
+            .node_store
+            .specs
+            .get(&spec_id)
+            .with_context(|| anyhow!("node spec with id {spec_id} does not exist"))?;
+        let kind = spec_key.kind();
+        let name = spec_key.name().clone();
+
+        match kind {
+            NodeKind::Control => self.build_control(node_id, name, node_record.children()),
+            NodeKind::Decorator => {
+                let child_id = node_record
+                    .children()
+                    .exactly_one()
+                    .map_err(|children_iter| {
+                        anyhow!(
+                            "expected exactly one child for decorator node {name}, got {}",
+                            children_iter.count()
+                        )
+                    })?;
+                self.build_decorator(node_id, name, *child_id)
+            }
+            NodeKind::Leaf(leaf_kind) => self.build_leaf(node_id, name, leaf_kind),
+            NodeKind::Root => bail!("unexpected Root node found during tree traversal"),
+        }
     }
 }
 

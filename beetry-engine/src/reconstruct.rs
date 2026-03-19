@@ -16,7 +16,7 @@ use beetry_editor_types::{
     id::ChannelId,
     output::node::Parameters,
     persistence,
-    spec::node::{LeafKind, NodeName, NodeSpec},
+    spec::node::{LeafKind, NodeName},
 };
 use beetry_message::MessageHash;
 use beetry_plugin::{
@@ -31,9 +31,7 @@ use beetry_plugin::{
 };
 use tracing::debug;
 
-use self::snapshot::{
-    Control, Decorator, Leaf, LeafSpecProvider, Node, NodeData, TreeSnapshotBuilder,
-};
+use self::snapshot::{Control, Decorator, Leaf, Node, NodeData, TreeSnapshotBuilder};
 
 pub struct TreeReconstructor {
     ext_receivers: external::ReceiverRegistry,
@@ -68,15 +66,10 @@ impl TreeReconstructor {
         let tree = tree.into_inner();
         let channel_factory_map = ChannelHashToPluginMap::new(ChannelPluginConstructor::plugins()?);
         let mut channels = Self::try_reconstruct_channels(tree.channel, &channel_factory_map)?;
-        let mut param_store = tree.parameter;
-        let mut port_store = tree.port;
-        let mut tree_snapshot_builder = TreeSnapshotBuilder::new(
-            &tree.node,
-            &mut param_store,
-            &mut port_store,
-            &self.node_plugins,
-        );
-        let root = tree_snapshot_builder.build_root_snapshot()?;
+        let (node, port, parameter) = (tree.node, tree.port, tree.parameter);
+        let mut tree_snapshot_builder =
+            TreeSnapshotBuilder::new(node, parameter, port, &self.node_plugins);
+        let root = tree_snapshot_builder.build_root()?;
 
         let child = Self::try_reconstruct_tree(
             root.child,
@@ -309,11 +302,11 @@ impl TreeReconstructor {
     }
 }
 
-struct NodePluginRegistry {
-    action: ActionToPluginMap,
-    condition: ConditionToPluginMap,
-    control: ControlToPluginMap,
-    decorator: DecoratorToPluginMap,
+pub struct NodePluginRegistry {
+    pub action: ActionToPluginMap,
+    pub condition: ConditionToPluginMap,
+    pub control: ControlToPluginMap,
+    pub decorator: DecoratorToPluginMap,
 }
 
 impl NodePluginRegistry {
@@ -324,16 +317,6 @@ impl NodePluginRegistry {
             control: ControlToPluginMap::new(ControlPluginConstructor::plugins()?),
             decorator: DecoratorToPluginMap::new(DecoratorPluginConstructor::plugins()?),
         })
-    }
-}
-
-impl LeafSpecProvider for NodePluginRegistry {
-    fn action_spec<'a>(&'a self, name: &NodeName) -> Result<&'a NodeSpec> {
-        Ok(self.action.get(name)?.spec())
-    }
-
-    fn condition_spec<'a>(&'a self, name: &NodeName) -> Result<&'a NodeSpec> {
-        Ok(self.condition.get(name)?.spec())
     }
 }
 
@@ -361,7 +344,7 @@ impl ChannelHashToPluginMap {
     }
 }
 
-struct NodeNameToPluginMap<P> {
+pub struct NodeNameToPluginMap<P> {
     map: HashMap<NodeName, P>,
 }
 
