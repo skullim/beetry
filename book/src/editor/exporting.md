@@ -9,7 +9,7 @@ flowchart TD
         CS[(Channel specs)]
     end
 
-    subgraph EditorLayer["Editor / Authoring"]
+    subgraph EditorLayer["Editor / Designing"]
         E[Editor project state]
         N[Configure nodes and parameters]
         C[Connect tree edges and channels]

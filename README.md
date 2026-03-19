@@ -4,24 +4,46 @@
     <img src="./logo.png" alt="Logo" width="400" height="261">
 </p>
 
-Behavior trees are used to model decision-making and task execution in systems
-that must react to changing conditions over time. They are common in robotics,
-games, and autonomous systems as they provide a structured way to compose
-complex behavior from smaller reusable parts.
+## Introduction
 
-Beetry is in an early stage of development. The core ideas are in place, but
-the public API may still change between releases.
+Beetry is a framework built around the concept of behavior trees, providing tools to model, execute, and interact with them.
 
-## Beetry features
+### What is a behavior tree?
+
+Behavior trees are used to model decision-making and task execution in complex,
+reactive systems. They promote composability by breaking behavior into small, modular nodes that are coordinated by different types of control nodes to model complex behaviors for different use cases.
+
+They are an alternative to [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine), helping mitigate state explosion and the need to model transitions explicitly.
+
+To read more about behavior trees, see
+[behavior tree](https://en.wikipedia.org/wiki/Behavior_tree_(artificial_intelligence,_robotics_and_control)).
+
+## Framework features
 
 - Plugin-based extensibility
 - Native asynchronous execution
 - Explicit data flow between nodes through channels
 - User-defined ticking
-- Early validation during tree authoring
+- Early validation during tree design
 
-For a detailed description of these features, see the `beetry` crate docs in [beetry/src/lib.rs](beetry/src/lib.rs).
+## Getting Started
+
+Beetry's public API is provided through the `beetry` crate (see
+[API docs](beetry/src/lib.rs)).
+
+If you want to contribute reusable generic nodes or channel implementations,
+add them to `beetry-node` and `beetry-channel`, respectively.
+
+The remaining workspace crates are considered internal APIs and may change
+without stability guarantees.
+
+## Editor
+
+Beetry provides an editor for creating and saving projects, as well as
+generating trees to be executed at runtime.
+
+<video controls src="https://github.com/user-attachments/assets/1640300e-9836-462a-af67-8cdbdab43064"></video>
 
 ## Example
 
-See [beetry-example](beetry-example), which contains an end-to-end autonomous parking example built on Beetry's plugin system. It shows how domain-specific messages, channels, and nodes can be exposed to the editor, serialized into a tree, reconstructed, and executed by the runtime.
+See the [example](beetry-example) crate for an end-to-end autonomous parking example built on Beetry's plugin system. It shows how domain-specific messages, channels, and nodes can be exposed to the editor and executed by the runtime.

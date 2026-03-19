@@ -11,7 +11,7 @@ What Beetry offers:
 - runtime that supports native asynchronous execution
 - explicit data flow between nodes through typed channels
 - user-defined ticking mechanism
-- early validation during tree authoring
+- early validation during tree design
 - a native GUI editor
 
 This book introduces the core ideas behind Beetry. It explains how trees are executed

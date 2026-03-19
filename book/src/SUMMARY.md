@@ -15,7 +15,7 @@
   - [Registering Nodes](./plugins/nodes.md)
   - [Registering Channels](./plugins/channels.md)
 - [Editor](./editor.md)
-  - [Authoring](./editor/authoring.md)
+  - [Designing](./editor/designing.md)
   - [Importing](./editor/importing.md)
   - [Exporting](./editor/exporting.md)
 - [Limitations](./limitations.md)

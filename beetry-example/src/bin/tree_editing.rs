@@ -1,8 +1,5 @@
 //! Opens the Beetry editor with the example plugin set registered.
 //!
-//! Run with:
-//! `cargo run -p beetry-example --bin tree_authoring`
-//!
 //! To work with the parking example, import the corresponding project `.json`
 //! file into the editor.
 //!

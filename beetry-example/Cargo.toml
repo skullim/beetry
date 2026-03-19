@@ -10,8 +10,8 @@ name = "tree_runtime"
 path = "src/bin/tree_runtime.rs"
 
 [[bin]]
-name = "tree_authoring"
-path = "src/bin/tree_authoring.rs"
+name = "tree_editing"
+path = "src/bin/tree_editing.rs"
 
 [dependencies]
 anyhow.workspace = true
