@@ -13,17 +13,15 @@ plugin = [
     "beetry-engine/plugin",
     "beetry-node/plugin",
 ]
-editor = ["plugin", "dep:beetry-editor-backend", "dep:beetry-editor-frontend"]
+editor = ["plugin", "dep:beetry-editor-frontend"]
 tokio = ["beetry-channel/tokio"]
 
 [dependencies]
 beetry-channel = { path = "../beetry-channel" }
 beetry-core = { path = "../beetry-core" }
 beetry-engine = { path = "../beetry-engine" }
-beetry-editor-backend = { path = "../beetry-editor-backend", optional = true }
 beetry-editor-frontend = { path = "../beetry-editor-frontend", optional = true }
 beetry-editor-types = { path = "../beetry-editor-types", optional = true }
-beetry-exec = { path = "../beetry-exec" }
 beetry-node = { path = "../beetry-node" }
 beetry-macros = { path = "../beetry-macros" }
 beetry-message = { path = "../beetry-message" }
