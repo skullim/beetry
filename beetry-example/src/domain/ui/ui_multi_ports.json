@@ -1,0 +1,300 @@
+{
+    "node": {
+        "specs": {
+            "store": {
+                "0": {
+                    "name": "Root",
+                    "kind": "Root"
+                },
+                "1": {
+                    "name": "Multi Port Publisher",
+                    "kind": {
+                        "Leaf": "Action"
+                    }
+                },
+                "2": {
+                    "name": "Multi Port Subscriber",
+                    "kind": {
+                        "Leaf": "Action"
+                    }
+                },
+                "3": {
+                    "name": "Sequence",
+                    "kind": "Control"
+                }
+            }
+        },
+        "nodes": {
+            "store": {
+                "0": {
+                    "spec_id": 0,
+                    "children": [
+                        5
+                    ]
+                },
+                "2": {
+                    "spec_id": 2,
+                    "children": []
+                },
+                "3": {
+                    "spec_id": 1,
+                    "children": []
+                },
+                "4": {
+                    "spec_id": 2,
+                    "children": []
+                },
+                "5": {
+                    "spec_id": 3,
+                    "children": [
+                        3,
+                        2,
+                        4
+                    ]
+                }
+            }
+        }
+    },
+    "port": {
+        "states": {
+            "0": {},
+            "3": {
+                "4": {
+                    "source": "Internal"
+                },
+                "1": {
+                    "source": "Internal"
+                },
+                "3": {
+                    "source": "Internal"
+                },
+                "0": {
+                    "source": "Internal"
+                },
+                "2": {
+                    "source": "Internal"
+                }
+            },
+            "5": {},
+            "2": {
+                "0": {
+                    "source": "Internal"
+                },
+                "4": {
+                    "source": "Internal"
+                },
+                "2": {
+                    "source": "Internal"
+                },
+                "3": {
+                    "source": "Internal"
+                },
+                "1": {
+                    "source": "Internal"
+                }
+            },
+            "4": {
+                "1": {
+                    "source": "Internal"
+                },
+                "2": {
+                    "source": "Internal"
+                },
+                "3": {
+                    "source": "Internal"
+                },
+                "4": {
+                    "source": "Internal"
+                },
+                "0": {
+                    "source": "Internal"
+                }
+            }
+        },
+        "connections": [
+            {
+                "node_id": 3,
+                "port_id": 2,
+                "channel_id": 6
+            },
+            {
+                "node_id": 3,
+                "port_id": 3,
+                "channel_id": 9
+            },
+            {
+                "node_id": 4,
+                "port_id": 3,
+                "channel_id": 9
+            },
+            {
+                "node_id": 3,
+                "port_id": 1,
+                "channel_id": 5
+            },
+            {
+                "node_id": 3,
+                "port_id": 4,
+                "channel_id": 7
+            },
+            {
+                "node_id": 2,
+                "port_id": 4,
+                "channel_id": 7
+            },
+            {
+                "node_id": 4,
+                "port_id": 2,
+                "channel_id": 6
+            },
+            {
+                "node_id": 4,
+                "port_id": 1,
+                "channel_id": 5
+            },
+            {
+                "node_id": 2,
+                "port_id": 1,
+                "channel_id": 5
+            },
+            {
+                "node_id": 2,
+                "port_id": 3,
+                "channel_id": 9
+            },
+            {
+                "node_id": 4,
+                "port_id": 4,
+                "channel_id": 7
+            },
+            {
+                "node_id": 3,
+                "port_id": 0,
+                "channel_id": 8
+            },
+            {
+                "node_id": 4,
+                "port_id": 0,
+                "channel_id": 8
+            },
+            {
+                "node_id": 2,
+                "port_id": 0,
+                "channel_id": 8
+            },
+            {
+                "node_id": 2,
+                "port_id": 2,
+                "channel_id": 6
+            }
+        ]
+    },
+    "parameter": {
+        "parameters": {}
+    },
+    "channel": {
+        "specs": {
+            "store": {
+                "0": {
+                    "msg_hash": {
+                        "hash": 14936812682624361455
+                    },
+                    "msg_type_name": "PoseA"
+                },
+                "1": {
+                    "msg_hash": {
+                        "hash": 12383689559197385902
+                    },
+                    "msg_type_name": "PoseB"
+                },
+                "2": {
+                    "msg_hash": {
+                        "hash": 14115698820061440997
+                    },
+                    "msg_type_name": "PoseC"
+                },
+                "3": {
+                    "msg_hash": {
+                        "hash": 762712500057230228
+                    },
+                    "msg_type_name": "PoseD"
+                },
+                "4": {
+                    "msg_hash": {
+                        "hash": 2514599907018732515
+                    },
+                    "msg_type_name": "PoseE"
+                }
+            }
+        },
+        "channels": {
+            "store": {
+                "5": {
+                    "spec_id": 1,
+                    "config": {
+                        "capacity": 1,
+                        "count": {
+                            "sender": 1,
+                            "receiver": 2
+                        },
+                        "kind": {
+                            "Tokio": "Broadcast"
+                        }
+                    }
+                },
+                "6": {
+                    "spec_id": 2,
+                    "config": {
+                        "capacity": 1,
+                        "count": {
+                            "sender": 1,
+                            "receiver": 2
+                        },
+                        "kind": {
+                            "Tokio": "Broadcast"
+                        }
+                    }
+                },
+                "7": {
+                    "spec_id": 4,
+                    "config": {
+                        "capacity": 1,
+                        "count": {
+                            "sender": 1,
+                            "receiver": 2
+                        },
+                        "kind": {
+                            "Tokio": "Broadcast"
+                        }
+                    }
+                },
+                "8": {
+                    "spec_id": 0,
+                    "config": {
+                        "capacity": 1,
+                        "count": {
+                            "sender": 1,
+                            "receiver": 2
+                        },
+                        "kind": {
+                            "Tokio": "Broadcast"
+                        }
+                    }
+                },
+                "9": {
+                    "spec_id": 3,
+                    "config": {
+                        "capacity": 1,
+                        "count": {
+                            "sender": 1,
+                            "receiver": 2
+                        },
+                        "kind": {
+                            "Tokio": "Broadcast"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
