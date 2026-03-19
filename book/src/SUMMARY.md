@@ -18,3 +18,4 @@
   - [Authoring](./editor/authoring.md)
   - [Importing](./editor/importing.md)
   - [Exporting](./editor/exporting.md)
+- [Limitations](./limitations.md)
