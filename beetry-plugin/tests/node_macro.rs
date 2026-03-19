@@ -1,7 +1,7 @@
 use anyhow::Result;
 use beetry_core::{ActionBehavior, ConditionBehavior, NodeTask};
 use beetry_editor_types::spec::node::{
-    FieldDefinition, FieldMetadata, FieldTypeSpec, NodeKind, NodeSpec, ParamsSpec,
+    FieldDefinition, FieldMetadata, FieldTypeSpec, NodeKind, NodeSpec, ParamsSpec, PortKey,
 };
 use beetry_message::Message;
 use beetry_plugin::{Plugin, action, condition};
@@ -117,6 +117,15 @@ mod action_fixture {
         };
     }
 
+    action! {
+        TestActionSameTypeReceiversPlugin: "Test Action Duplicate Typed Receivers";
+        receivers: [rx_a: MsgA => "rx a", rx_b: MsgA => "rx b"];
+        create: {
+            let _ = (&rx_a, &rx_b);
+            StubAction
+        };
+    }
+
     #[test]
     fn action_macro_builds_minimal_plugin_spec() {
         let plugin = TestActionMinimalPlugin::new();
@@ -169,6 +178,15 @@ mod action_fixture {
                 .sender_count(2)
                 .build(),
         );
+    }
+
+    #[test]
+    fn action_macro_uses_identifier_as_port_key() {
+        let plugin = TestActionSameTypeReceiversPlugin::new();
+        let ports = plugin.spec().ports().as_ref().unwrap();
+
+        assert_eq!(ports.specs().next().unwrap().key, PortKey::new("rx_a"));
+        assert_eq!(ports.specs().nth(1).unwrap().key, PortKey::new("rx_b"));
     }
 }
 

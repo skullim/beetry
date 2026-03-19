@@ -12,7 +12,7 @@ use beetry_editor_types::{
         channel::ChannelSpec,
         node::{
             NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey, NodeSpecMap,
-            PortsSpec,
+            PortKey, PortsSpec,
         },
     },
 };
@@ -90,6 +90,7 @@ impl Default for TestSpecs {
                         NodeKind::action(),
                     ))
                     .ports(PortsSpec::from_iter1([NodePortSpec {
+                        key: PortKey::new("tx"),
                         kind: NodePortKind::Sender,
                         msg_spec: MessageSpec::new::<TestMessageA>("sender-a"),
                     }]))
@@ -103,6 +104,7 @@ impl Default for TestSpecs {
                         NodeKind::action(),
                     ))
                     .ports(PortsSpec::from_iter1([NodePortSpec {
+                        key: PortKey::new("rx"),
                         kind: NodePortKind::Receiver,
                         msg_spec: MessageSpec::new::<TestMessageA>("receiver-a"),
                     }]))
@@ -117,10 +119,12 @@ impl Default for TestSpecs {
                     ))
                     .ports(PortsSpec::from_iter1([
                         NodePortSpec {
+                            key: PortKey::new("tx"),
                             kind: NodePortKind::Sender,
                             msg_spec: MessageSpec::new::<TestMessageA>("duplex-a-sender"),
                         },
                         NodePortSpec {
+                            key: PortKey::new("rx"),
                             kind: NodePortKind::Receiver,
                             msg_spec: MessageSpec::new::<TestMessageA>("duplex-a-receiver"),
                         },
@@ -135,6 +139,7 @@ impl Default for TestSpecs {
                         NodeKind::action(),
                     ))
                     .ports(PortsSpec::from_iter1([NodePortSpec {
+                        key: PortKey::new("tx"),
                         kind: NodePortKind::Sender,
                         msg_spec: MessageSpec::new::<TestMessageB>("sender-b"),
                     }]))

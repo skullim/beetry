@@ -167,7 +167,10 @@ pub mod __macro_support {
     pub use beetry_core::{BoxActionBehavior, BoxConditionBehavior};
     pub use beetry_editor_types::spec::{
         channel::ChannelSpec,
-        node::{NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey, PortsSpec},
+        node::{
+            NodeKind, NodeName, NodePortKind, NodePortSpec, NodeSpec, NodeSpecKey, PortKey,
+            PortsSpec,
+        },
     };
     pub use beetry_macros;
     pub use beetry_message::MessageSpec;

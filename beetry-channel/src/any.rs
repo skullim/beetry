@@ -58,37 +58,6 @@ impl<T: 'static> From<BoxSender<T>> for AnyBoxSender {
     }
 }
 
-#[macro_export]
-macro_rules! downcast {
-    (receivers = $receivers: expr, expected = [$($exp_ty: ty),+]) => {
-        {
-            // casting tuples of results to result of tuple for easier user processing
-            $crate::tupleops::all_ok(( $(
-                {
-                  let expected_idx = $receivers.iter()
-                    .position(|any_recv| any_recv.is_receiver_of::<$exp_ty>())
-                    .ok_or_else(|| $crate::anyhow::anyhow!("no expected receiver found"))?;
-                  $receivers.remove(expected_idx).into_receiver_of::<$exp_ty>()
-                }
-            ),+ ,))
-        }
-    };
-
-    (senders = $senders: expr, expected = [$($exp_ty: ty),+]) => {
-        {
-            // casting tuples of results to result of tuple for easier user processing
-            $crate::tupleops::all_ok(( $(
-                {
-                  let expected_idx = $senders.iter()
-                    .position(|any_sender| any_sender.is_sender_of::<$exp_ty>())
-                    .ok_or_else(|| $crate::anyhow::anyhow!("no expected sender found"))?;
-                  $senders.remove(expected_idx).into_sender_of::<$exp_ty>()
-                }
-            ),+ ,))
-        }
-    };
-}
-
 #[cfg(test)]
 mod tests {
     use std::marker::PhantomData;

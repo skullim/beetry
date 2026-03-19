@@ -252,8 +252,22 @@ impl PortsSpec {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct NodePortSpec {
+    pub key: PortKey,
     pub kind: NodePortKind,
     pub msg_spec: MessageSpec,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, From)]
+pub struct PortKey(String);
+
+impl PortKey {
+    pub fn new(key: impl Into<String>) -> Self {
+        Self(key.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
 #[derive(Debug, Display, AsRefStr, Clone, Copy, PartialEq, Eq, Hash)]

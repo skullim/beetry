@@ -10,7 +10,7 @@ async fn ui_tree_runs_in_engine() -> Result<()> {
     let mut engine = TreeEngine::new(TreeEngineConfig::default())
         .tree_from_path(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/src/domain/ui/ui_multi_ports.json"
+            "/src/domain/ui/tree.json"
         ))?
         .start_executor()?;
     let ticker = PeriodicTicker::new(PeriodicTick::new(Duration::from_millis(10)));

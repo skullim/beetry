@@ -36,7 +36,7 @@ impl TreeEngine<Configured> {
     pub fn valid_tree(self, valid_tree: ValidTreeStore) -> Result<TreeEngine<BoxTreeLoaded>> {
         let (executor, registry) = self.state.executor.into_ready_with_registry();
         let builder = Builder::new(registry);
-        let mut reconstructor = TreeReconstructor::new()?;
+        let reconstructor = TreeReconstructor::new()?;
         let tree = reconstructor.try_reconstruct(valid_tree, &builder)?;
 
         Ok(TreeEngine {

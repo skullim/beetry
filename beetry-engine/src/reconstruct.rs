@@ -7,10 +7,9 @@
 
 mod snapshot;
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use anyhow::{Context, Result, anyhow};
-use beetry_channel::external;
 use beetry_core::{BoxNode, NonEmptyNodes, RegisterTask, Root, TaskHandle, Tree, leaf};
 use beetry_editor_types::{
     id::ChannelId,
@@ -34,28 +33,18 @@ use tracing::debug;
 use self::snapshot::{Control, Decorator, Leaf, Node, NodeData, TreeSnapshotBuilder};
 
 pub struct TreeReconstructor {
-    ext_receivers: external::ReceiverRegistry,
     node_plugins: NodePluginRegistry,
 }
 
 impl TreeReconstructor {
     pub fn new() -> Result<Self> {
         Ok(Self {
-            ext_receivers: external::ReceiverRegistry::new(),
-            node_plugins: NodePluginRegistry::new()?,
-        })
-    }
-
-    #[allow(dead_code)]
-    pub fn with_receiver_registry(ext_receivers: external::ReceiverRegistry) -> Result<Self> {
-        Ok(Self {
-            ext_receivers,
             node_plugins: NodePluginRegistry::new()?,
         })
     }
 
     pub fn try_reconstruct<RT, TH>(
-        &mut self,
+        &self,
         tree: persistence::tree::ValidTreeStore,
         builder: &leaf::Builder<RT, TH>,
     ) -> Result<Tree<BoxNode>>
@@ -71,13 +60,8 @@ impl TreeReconstructor {
             TreeSnapshotBuilder::new(node, parameter, port, &self.node_plugins);
         let root = tree_snapshot_builder.build_root()?;
 
-        let child = Self::try_reconstruct_tree(
-            root.child,
-            &self.node_plugins,
-            &mut channels,
-            &mut self.ext_receivers,
-            builder,
-        )?;
+        let child =
+            Self::try_reconstruct_tree(root.child, &self.node_plugins, &mut channels, builder)?;
         Ok(Tree::new(Root::new(child)))
     }
 
@@ -113,7 +97,6 @@ impl TreeReconstructor {
         mut node: Node,
         node_plugins: &NodePluginRegistry,
         channel_map: &mut ChannelIdToChannelMap,
-        ext_receivers_registry: &mut external::ReceiverRegistry,
         builder: &leaf::Builder<RT, TH>,
     ) -> Result<BoxNode>
     where
@@ -128,7 +111,6 @@ impl TreeReconstructor {
                 control,
                 node_plugins,
                 channel_map,
-                ext_receivers_registry,
                 builder,
             ),
             NodeData::Decorator(decorator) => Self::try_reconstruct_decorator(
@@ -137,7 +119,6 @@ impl TreeReconstructor {
                 decorator,
                 node_plugins,
                 channel_map,
-                ext_receivers_registry,
                 builder,
             ),
             NodeData::Leaf(leaf) => Self::try_reconstruct_leaf(
@@ -146,7 +127,6 @@ impl TreeReconstructor {
                 leaf,
                 node_plugins,
                 channel_map,
-                ext_receivers_registry,
                 builder,
             ),
         }
@@ -158,7 +138,6 @@ impl TreeReconstructor {
         control: Control,
         node_plugins: &NodePluginRegistry,
         channel_map: &mut ChannelIdToChannelMap,
-        ext_receivers_registry: &mut external::ReceiverRegistry,
         builder: &leaf::Builder<RT, TH>,
     ) -> Result<BoxNode>
     where
@@ -168,15 +147,7 @@ impl TreeReconstructor {
         let children: Vec<_> = control
             .into_children()
             .into_iter()
-            .map(|child| {
-                Self::try_reconstruct_tree(
-                    child,
-                    node_plugins,
-                    channel_map,
-                    ext_receivers_registry,
-                    builder,
-                )
-            })
+            .map(|child| Self::try_reconstruct_tree(child, node_plugins, channel_map, builder))
             .collect::<Result<_>>()?;
         let children = NonEmptyNodes::try_from(children)
             .map_err(|_| anyhow!("wrong export, no children found for control node"))?;
@@ -199,20 +170,14 @@ impl TreeReconstructor {
         decorator: Decorator,
         node_plugins: &NodePluginRegistry,
         channel_map: &mut ChannelIdToChannelMap,
-        ext_receivers_registry: &mut external::ReceiverRegistry,
         builder: &leaf::Builder<RT, TH>,
     ) -> Result<BoxNode>
     where
         RT: RegisterTask<TH> + 'static,
         TH: TaskHandle + 'static,
     {
-        let child = Self::try_reconstruct_tree(
-            decorator.into_child(),
-            node_plugins,
-            channel_map,
-            ext_receivers_registry,
-            builder,
-        )?;
+        let child =
+            Self::try_reconstruct_tree(decorator.into_child(), node_plugins, channel_map, builder)?;
 
         let factory = node_plugins
             .decorator
@@ -232,29 +197,32 @@ impl TreeReconstructor {
         mut leaf: Leaf,
         node_plugins: &NodePluginRegistry,
         channel_map: &mut ChannelIdToChannelMap,
-        ext_receivers_registry: &mut external::ReceiverRegistry,
         builder: &leaf::Builder<RT, TH>,
     ) -> Result<BoxNode>
     where
         RT: RegisterTask<TH> + 'static,
         TH: TaskHandle + 'static,
     {
-        let mut receivers: Vec<_> = leaf
+        let receivers: BTreeMap<_, _> = leaf
             .take_receivers()
             .into_iter()
-            .map(|id| Self::try_get_channel_mut(channel_map, id)?.try_take_receiver())
+            .map(|(key, id)| {
+                Ok((
+                    key,
+                    Self::try_get_channel_mut(channel_map, id)?.try_take_receiver()?,
+                ))
+            })
             .collect::<Result<_>>()?;
 
-        for hash in leaf.take_ext_receivers() {
-            if let Some(external_receiver) = ext_receivers_registry.take(hash) {
-                receivers.push(external_receiver);
-            }
-        }
-
-        let senders: Vec<_> = leaf
+        let senders: BTreeMap<_, _> = leaf
             .take_senders()
             .into_iter()
-            .map(|id| Self::try_get_channel_mut(channel_map, id)?.try_take_sender())
+            .map(|(key, id)| {
+                Ok((
+                    key,
+                    Self::try_get_channel_mut(channel_map, id)?.try_take_sender()?,
+                ))
+            })
             .collect::<Result<_>>()?;
 
         let data = LeafReconstructionData::builder()

@@ -10,7 +10,6 @@ plugin = ["dep:beetry-node", "dep:beetry-plugin", "dep:beetry-serialization"]
 
 [dependencies]
 anyhow.workspace = true
-beetry-channel = { version = "0.1.0", path = "../beetry-channel" }
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
 beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
 beetry-exec = { version = "0.1.0", path = "../beetry-exec" }
@@ -29,7 +28,6 @@ mitsein.workspace = true
 rfd = { version = "0.17.2", default-features = false, features = [
     "xdg-portal",
 ] }
-serde.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "sync"] }
 tracing.workspace = true

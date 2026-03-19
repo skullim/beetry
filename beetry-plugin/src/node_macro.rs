@@ -243,9 +243,6 @@ macro_rules! __leaf_plugin_impl {
         params_binding: $params_binding:ident,
         create: $create:expr $(,)?
     ) => {
-        $crate::__leaf_plugin_assert_unique_receivers!([$($receiver_ty),*]);
-        $crate::__leaf_plugin_assert_unique_senders!([$($sender_ty),*]);
-
         pub struct $plugin_name {
             spec: $crate::__macro_support::NodeSpec,
             factory: $factory_type,
@@ -322,28 +319,46 @@ macro_rules! __leaf_plugin_assert_unique_senders {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! __leaf_plugin_extract_receivers {
-    ($ports:tt, $data:ident) => {
-        $crate::__leaf_plugin_extract_ports!(receivers, $ports, $data);
+    ([], $data:ident) => {};
+    ([$($port_name:ident : $port_ty:ty => $port_desc:literal),+], $data:ident) => {
+        $(
+            let $port_name = $data
+                .context
+                .take_receiver(&$crate::__macro_support::PortKey::new(stringify!($port_name)))?
+                .into_receiver_of::<$port_ty>()
+                .map_err(|_| {
+                    $crate::__macro_support::anyhow::anyhow!(
+                        concat!(
+                            "failed to obtain typed receiver for port '",
+                            stringify!($port_name),
+                            "'"
+                        )
+                    )
+                })?;
+        )+
     };
 }
 
 #[doc(hidden)]
 #[macro_export]
 macro_rules! __leaf_plugin_extract_senders {
-    ($ports:tt, $data:ident) => {
-        $crate::__leaf_plugin_extract_ports!(senders, $ports, $data);
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! __leaf_plugin_extract_ports {
-    ($port_kind:ident, [], $data:ident) => {};
-    ($port_kind:ident, [$($port_name:ident : $port_ty:ty => $port_desc:literal),+], $data:ident) => {
-        let ports =
-            $crate::__macro_support::beetry_channel::downcast! {$port_kind = &mut $data.context.$port_kind, expected = [$($port_ty),*]}
-                .map_err(|_| $crate::__macro_support::anyhow::anyhow!(concat!("failed to obtain typed ", stringify!($port_kind))))?;
-        let ($($port_name,)*) = ports;
+    ([], $data:ident) => {};
+    ([$($port_name:ident : $port_ty:ty => $port_desc:literal),+], $data:ident) => {
+        $(
+            let $port_name = $data
+                .context
+                .take_sender(&$crate::__macro_support::PortKey::new(stringify!($port_name)))?
+                .into_sender_of::<$port_ty>()
+                .map_err(|_| {
+                    $crate::__macro_support::anyhow::anyhow!(
+                        concat!(
+                            "failed to obtain typed sender for port '",
+                            stringify!($port_name),
+                            "'"
+                        )
+                    )
+                })?;
+        )+
     };
 }
 
@@ -360,6 +375,7 @@ macro_rules! __leaf_plugin_build_ports {
             >>::from_iter1([
                 $(
                     $crate::__macro_support::NodePortSpec {
+                        key: $crate::__macro_support::PortKey::new(stringify!($receiver_name)),
                         kind: $crate::__macro_support::NodePortKind::Receiver,
                         msg_spec: $crate::__macro_support::MessageSpec::new::<$receiver_ty>($receiver_desc),
                     }
@@ -374,6 +390,7 @@ macro_rules! __leaf_plugin_build_ports {
             >>::from_iter1([
                 $(
                     $crate::__macro_support::NodePortSpec {
+                        key: $crate::__macro_support::PortKey::new(stringify!($sender_name)),
                         kind: $crate::__macro_support::NodePortKind::Sender,
                         msg_spec: $crate::__macro_support::MessageSpec::new::<$sender_ty>($sender_desc),
                     }
@@ -388,12 +405,14 @@ macro_rules! __leaf_plugin_build_ports {
             >>::from_iter1([
                 $(
                     $crate::__macro_support::NodePortSpec {
+                        key: $crate::__macro_support::PortKey::new(stringify!($receiver_name)),
                         kind: $crate::__macro_support::NodePortKind::Receiver,
                         msg_spec: $crate::__macro_support::MessageSpec::new::<$receiver_ty>($receiver_desc),
                     }
                 ),+,
                 $(
                     $crate::__macro_support::NodePortSpec {
+                        key: $crate::__macro_support::PortKey::new(stringify!($sender_name)),
                         kind: $crate::__macro_support::NodePortKind::Sender,
                         msg_spec: $crate::__macro_support::MessageSpec::new::<$sender_ty>($sender_desc),
                     }

@@ -3,26 +3,25 @@
 //! It restores the tree hierarchy and produces a nested snapshot
 //! representation that can later be consumed to build the runtime tree.
 
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 
 use anyhow::{Context, Result, anyhow, bail};
 use beetry_editor_types::{
     id::{ChannelId, NodeId, NodePortId},
     output::node::Parameters,
     persistence,
-    spec::node::{LeafKind, NodeKind, NodeName, NodePortKind, NodeSpecKey},
+    spec::node::{LeafKind, NodeKind, NodeName, NodePortKind, NodeSpecKey, PortKey},
 };
-use beetry_message::{MessageHash, MessageSpec};
+use beetry_message::MessageSpec;
 use bon::Builder;
 use derive_more::From;
 use getset::{CopyGetters, Getters};
 use itertools::Itertools;
 use mitsein::{iter1::FromIterator1, vec1::Vec1};
-use serde::{Deserialize, Serialize};
 
 use crate::reconstruct::NodePluginRegistry;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Root {
     pub child: Node,
 }
@@ -33,7 +32,7 @@ impl Root {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Builder)]
+#[derive(Debug, Clone, Builder)]
 pub struct Node {
     #[builder(into)]
     pub name: NodeName,
@@ -49,14 +48,14 @@ impl Node {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, From)]
+#[derive(Debug, Clone, From)]
 pub enum NodeData {
     Control(Control),
     Decorator(Decorator),
     Leaf(Leaf),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Getters)]
+#[derive(Debug, Clone, Getters)]
 pub struct Control {
     children: Vec1<Node>,
 }
@@ -73,7 +72,7 @@ impl Control {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Decorator {
     child: Box<Node>,
 }
@@ -90,30 +89,22 @@ impl Decorator {
     }
 }
 
-#[derive(Debug, Clone, Builder, Serialize, Deserialize, Getters, CopyGetters)]
+#[derive(Debug, Clone, Builder, Getters, CopyGetters)]
 pub struct Leaf {
     #[get_copy = "pub"]
     kind: LeafKind,
-    #[builder(default, with = <_>::from_iter)]
-    receivers: BTreeSet<ChannelId>,
-    #[builder(default, with = <_>::from_iter)]
-    senders: BTreeSet<ChannelId>,
     #[builder(default)]
-    ext_receivers: Vec<MessageHash>,
+    receivers: BTreeMap<PortKey, ChannelId>,
     #[builder(default)]
-    ext_senders: Vec<MessageHash>,
+    senders: BTreeMap<PortKey, ChannelId>,
 }
 
 impl Leaf {
-    pub fn take_receivers(&mut self) -> impl IntoIterator<Item = ChannelId> {
+    pub fn take_receivers(&mut self) -> impl IntoIterator<Item = (PortKey, ChannelId)> {
         std::mem::take(&mut self.receivers)
     }
 
-    pub fn take_ext_receivers(&mut self) -> impl IntoIterator<Item = MessageHash> {
-        std::mem::take(&mut self.ext_receivers)
-    }
-
-    pub fn take_senders(&mut self) -> impl IntoIterator<Item = ChannelId> {
+    pub fn take_senders(&mut self) -> impl IntoIterator<Item = (PortKey, ChannelId)> {
         std::mem::take(&mut self.senders)
     }
 }
@@ -218,31 +209,31 @@ impl<'a> TreeSnapshotBuilder<'a> {
             LeafKind::Condition => self.plugins.condition.get(&name)?.spec(),
         };
 
-        let mut receivers = BTreeSet::new();
-        let mut senders = BTreeSet::new();
-        let mut ext_receivers = Vec::new();
-        let mut ext_senders = Vec::new();
+        let mut receivers = BTreeMap::new();
+        let mut senders = BTreeMap::new();
 
-        for (port_id, port_state) in self.port_store.take_state(&node_id).into_iter().flatten() {
+        for (port_id, _port_state) in self.port_store.take_state(&node_id).into_iter().flatten() {
             let port_spec = spec
                 .ports()
                 .as_ref()
                 .ok_or_else(|| anyhow!("expected port specification for node {name}"))?
                 .spec(port_id)?;
-            if port_state.is_external() {
-                match port_spec.kind {
-                    NodePortKind::Receiver => ext_receivers.push(port_spec.msg_spec.hash()),
-                    NodePortKind::Sender => ext_senders.push(port_spec.msg_spec.hash()),
-                }
-                continue;
-            }
+            let port_key = port_spec.key.clone();
 
-            let port_connections = self.port_store.connections_iter().filter_map(|conn| {
-                (conn.node_id == node_id && conn.port_id == port_id).then_some(&conn.channel_id)
+            let channel_id = self.port_store.connections_iter().find_map(|conn| {
+                (conn.node_id == node_id && conn.port_id == port_id).then_some(conn.channel_id)
             });
             match port_spec.kind {
-                NodePortKind::Receiver => receivers.extend(port_connections),
-                NodePortKind::Sender => senders.extend(port_connections),
+                NodePortKind::Receiver => {
+                    if let Some(channel_id) = channel_id {
+                        receivers.insert(port_key, channel_id);
+                    }
+                }
+                NodePortKind::Sender => {
+                    if let Some(channel_id) = channel_id {
+                        senders.insert(port_key, channel_id);
+                    }
+                }
             }
         }
 
@@ -256,8 +247,6 @@ impl<'a> TreeSnapshotBuilder<'a> {
             .kind(leaf_kind)
             .receivers(receivers)
             .senders(senders)
-            .ext_receivers(ext_receivers)
-            .ext_senders(ext_senders)
             .build();
 
         Ok(Node::builder()

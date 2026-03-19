@@ -5,7 +5,7 @@ use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
 use beetry_core::{BoxActionBehavior, BoxConditionBehavior, BoxNode, NonEmptyNodes};
 use beetry_editor_types::{
     output::node::{ParameterValue, Parameters},
-    spec::node::{NodeSpec, ParamsSpec},
+    spec::node::{NodeSpec, ParamsSpec, PortKey},
 };
 use bon::Builder;
 use serde::Deserialize;
@@ -27,15 +27,27 @@ pub struct NodeReconstructionData<C> {
 
 #[derive(Debug, Default, Builder)]
 pub struct LeafContext {
-    #[builder(default, into)]
-    pub receivers: Vec<AnyBoxReceiver>,
-    #[builder(default, into)]
-    pub senders: Vec<AnyBoxSender>,
+    #[builder(default)]
+    pub receivers: BTreeMap<PortKey, AnyBoxReceiver>,
+    #[builder(default)]
+    pub senders: BTreeMap<PortKey, AnyBoxSender>,
 }
 
 impl LeafContext {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn take_receiver(&mut self, key: &PortKey) -> Result<AnyBoxReceiver> {
+        self.receivers
+            .remove(key)
+            .ok_or_else(|| anyhow::anyhow!("failed to obtain receiver for port '{}'", key.as_str()))
+    }
+
+    pub fn take_sender(&mut self, key: &PortKey) -> Result<AnyBoxSender> {
+        self.senders
+            .remove(key)
+            .ok_or_else(|| anyhow::anyhow!("failed to obtain sender for port '{}'", key.as_str()))
     }
 }
 
