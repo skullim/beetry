@@ -15,7 +15,44 @@ impl TreeEngine<Configured> {
     /// Loads a tree from a file path and returns an engine in the
     /// [`TreeLoaded`] state.
     ///
-    /// This is the path-based loading entry point for serialized trees.
+    ///```no_run
+    /// use std::time::Duration;
+    ///
+    /// use anyhow::Result;
+    /// use beetry_core::{PeriodicTick, Ticker};
+    /// use beetry_engine::{TreeEngine, TreeEngineConfig};
+    ///
+    /// # #[tokio::main(flavor = "current_thread")]
+    /// async fn main() -> Result<()> {
+    ///     let mut engine = TreeEngine::new(TreeEngineConfig::default())
+    ///         .tree_from_path("tree.json")?
+    ///         .start_executor()?;
+    ///     let ticker = Ticker::new(PeriodicTick::new(Duration::from_millis(50)));
+    ///     let status = engine.tick_till_terminal(ticker).await?;
+    ///     Ok(())
+    /// }
+    /// ```
+    ///
+    /// `PeriodicTick` is the default choice for most applications, but the
+    /// engine accepts any `Ticker<S>` where `S` is a `Stream<Item = ()>`.
+    /// ```no_run
+    /// use anyhow::Result;
+    /// use beetry_core::Ticker;
+    /// use beetry_engine::{TreeEngine, TreeEngineConfig};
+    /// use futures::stream;
+    ///
+    /// # #[tokio::main(flavor = "current_thread")]
+    /// async fn main() -> Result<()> {
+    ///     let mut engine = TreeEngine::new(TreeEngineConfig::default())
+    ///         .tree_from_path("tree.json")?
+    ///         .start_executor()?;
+    ///
+    ///     let custom_ticks = stream::iter([(), (), (), ()]);
+    ///     let ticker = Ticker::new(custom_ticks);
+    ///     let _status = engine.tick_till_terminal(ticker).await?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn tree_from_path(self, path: impl AsRef<Path>) -> Result<TreeEngine<BoxTreeLoaded>> {
         let valid_tree = load_valid_tree(path.as_ref())?;
         self.valid_tree(valid_tree)

@@ -14,55 +14,6 @@
 //! 2. [`TreeEngine`] in the [`TreeLoaded`] state: tree attached by one of the
 //!    supported methods
 //! 3. [`TreeEngine`] in the [`Runnable`] state: tree ready to be ticked
-//!
-//! ## Running a tree
-//!
-//! Typical flow with the built-in periodic ticker:
-//!
-//! ```no_run
-//! use anyhow::Result;
-//! use std::time::Duration;
-//! use beetry_core::{PeriodicTick, Ticker};
-//! use beetry_engine::{TreeEngine, TreeEngineConfig};
-//!
-//! # #[tokio::main(flavor = "current_thread")]
-//! async fn main() -> Result<()> {
-//!     let mut engine = TreeEngine::new(TreeEngineConfig::default())
-//!         .tree_from_path("tree.json")?
-//!         .start_executor()?;
-//!     let ticker = Ticker::new(PeriodicTick::new(Duration::from_millis(50)));
-//!     let status = engine.tick_till_terminal(ticker).await?;
-//!     Ok(())
-//! }
-
-//! ```
-//! 
-//! `PeriodicTick` is the default choice for most applications, but the engine
-//! accepts any `Ticker<S>` where `S` is a `Stream<Item = ()>`.
-//!
-//! That means applications can define their own ticking policy and still use the
-//! same engine:
-//! ```no_run
-//! use anyhow::Result;
-//! use beetry_core::Ticker;
-//! use beetry_engine::{TreeEngine, TreeEngineConfig};
-//! use futures::stream;
-//!
-//! # #[tokio::main(flavor = "current_thread")]
-//! async fn main() -> Result<()> {
-//!     let mut engine = TreeEngine::new(TreeEngineConfig::default())
-//!         .tree_from_path("tree.json")?
-//!         .start_executor()?;
-//!
-//!     let custom_ticks = stream::iter([(), (), (), ()]);
-//!     let ticker = Ticker::new(custom_ticks);
-//!     let _status = engine.tick_till_terminal(ticker).await?;
-//!     Ok(())
-//! }
-//! ```
-//! 
-//! This keeps the default periodic model simple while making it easy to integrate
-//! custom scheduling, external wake-up signals, or mixed ticking strategies.
 
 #[cfg(feature = "plugin")]
 mod plugin_support;
