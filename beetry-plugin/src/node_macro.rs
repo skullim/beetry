@@ -300,24 +300,6 @@ macro_rules! __leaf_plugin_impl {
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! __leaf_plugin_assert_unique_receivers {
-    ([]) => {};
-    ([$($port_ty:ty),+]) => {
-        $crate::__macro_support::beetry_macros::assert_unique_receivers!($($port_ty),*);
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! __leaf_plugin_assert_unique_senders {
-    ([]) => {};
-    ([$($port_ty:ty),+]) => {
-        $crate::__macro_support::beetry_macros::assert_unique_senders!($($port_ty),*);
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
 macro_rules! __leaf_plugin_extract_receivers {
     ([], $data:ident) => {};
     ([$($port_name:ident : $port_ty:ty => $port_desc:literal),+], $data:ident) => {

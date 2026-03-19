@@ -1,8 +1,5 @@
-use std::collections::HashSet;
-
 use proc_macro::TokenStream;
-use proc_macro_error2::{abort, proc_macro_error};
-use quote::{ToTokens, format_ident, quote};
+use quote::{format_ident, quote};
 use syn::{
     DeriveInput, Ident, Result, Token, Type, braced,
     parse::{Parse, ParseStream},
@@ -111,46 +108,4 @@ pub fn receivers(input: TokenStream) -> TokenStream {
         }
     }
     .into()
-}
-
-struct UniqueTypesInput {
-    types: Punctuated<Type, Token![,]>,
-}
-
-impl Parse for UniqueTypesInput {
-    fn parse(input: ParseStream<'_>) -> Result<Self> {
-        let types = input.parse_terminated(Type::parse, Token![,])?;
-        Ok(Self { types })
-    }
-}
-
-#[proc_macro_error]
-#[proc_macro]
-pub fn assert_unique_types(input: TokenStream) -> TokenStream {
-    assert_unique_types_with_label(input, "type")
-}
-
-#[proc_macro_error]
-#[proc_macro]
-pub fn assert_unique_receivers(input: TokenStream) -> TokenStream {
-    assert_unique_types_with_label(input, "receiver port type")
-}
-
-#[proc_macro_error]
-#[proc_macro]
-pub fn assert_unique_senders(input: TokenStream) -> TokenStream {
-    assert_unique_types_with_label(input, "sender port type")
-}
-
-fn assert_unique_types_with_label(input: TokenStream, label: &str) -> TokenStream {
-    let UniqueTypesInput { types } = parse_macro_input!(input as UniqueTypesInput);
-    let mut unique = HashSet::new();
-    for t in types {
-        if unique.contains(&t) {
-            let duplicated = t.to_token_stream().to_string();
-            abort!(t, format!("{label} `{duplicated}` is not unique"));
-        }
-        unique.insert(t);
-    }
-    quote! {}.into()
 }

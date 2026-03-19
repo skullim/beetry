@@ -1,5 +1,0 @@
-error: type `u32` is not unique
- --> tests/assert_unique_types/fail_duplicate.rs:3:27
-  |
-3 | assert_unique_types!(u32, u32);
-  |                           ^^^
