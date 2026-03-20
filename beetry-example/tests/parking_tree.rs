@@ -78,7 +78,7 @@ fn extract_milestones(events: &[String]) -> Vec<ParkingMilestone> {
     milestones
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
 async fn parking_tree_execution_matches_milestones() -> Result<()> {
     let events = init_global_tracing();
     let mut engine = TreeEngine::new(TreeEngineConfig::default())

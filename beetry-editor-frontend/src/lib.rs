@@ -28,7 +28,7 @@ pub fn launch() {
     let cfg = dioxus::desktop::Config::default().with_window(
         WindowBuilder::new()
             .with_always_on_top(false)
-            .with_title("Beetry Editor 🌳"),
+            .with_title("Beetry Editor 🐝🌳"),
     );
     dioxus::LaunchBuilder::desktop()
         .with_cfg(cfg)

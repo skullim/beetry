@@ -5,7 +5,7 @@ use beetry::runtime::{PeriodicTick, PeriodicTicker, TreeEngine, TreeEngineConfig
 #[expect(unused_imports, reason = "import all node and channel plugins")]
 use beetry_example::domain::*;
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
 async fn ui_tree_runs_in_engine() -> Result<()> {
     let mut engine = TreeEngine::new(TreeEngineConfig::default())
         .tree_from_path(concat!(

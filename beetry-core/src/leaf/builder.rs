@@ -1,6 +1,8 @@
 use std::{marker::PhantomData, sync::Arc};
 
-use crate::{ActionBehavior, BoxNode, ConditionBehavior, RegisterTask, TaskHandle};
+use crate::{
+    Action, ActionBehavior, BoxNode, Condition, ConditionBehavior, RegisterTask, TaskHandle,
+};
 
 #[derive(Clone)]
 pub struct Builder<R, T> {
@@ -20,11 +22,18 @@ where
         }
     }
 
-    pub fn action(&self, behavior: impl ActionBehavior + 'static) -> BoxNode {
-        Box::new(crate::Action::new(behavior, Arc::clone(&self.registry)))
+    pub fn action(
+        &self,
+        behavior: impl ActionBehavior + 'static,
+    ) -> Action<R, T, impl ActionBehavior> {
+        Action::new(behavior, Arc::clone(&self.registry))
     }
 
-    pub fn condition(&self, behavior: impl ConditionBehavior + 'static) -> BoxNode {
-        Box::new(crate::Condition::new(behavior))
+    pub fn action_box(&self, behavior: impl ActionBehavior + 'static) -> BoxNode {
+        Box::new(Action::new(behavior, Arc::clone(&self.registry)))
+    }
+
+    pub fn condition_box(&self, behavior: impl ConditionBehavior + 'static) -> BoxNode {
+        Box::new(Condition::new(behavior))
     }
 }

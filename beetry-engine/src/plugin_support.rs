@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Result, anyhow};
-use beetry_core::{BoxNode, leaf::Builder};
+use beetry_core::BoxNode;
 use beetry_editor_types::persistence::tree::ValidTreeStore;
 #[expect(unused_imports, reason = "import all built-in registered nodes")]
 use beetry_node::plugin::*;
@@ -71,13 +71,14 @@ impl TreeEngine<Configured> {
     /// This is the in-memory loading entry point when the caller already has a
     /// [`ValidTreeStore`].
     pub fn valid_tree(self, valid_tree: ValidTreeStore) -> Result<TreeEngine<BoxTreeLoaded>> {
-        let (executor, registry) = self.state.executor.into_ready_with_registry();
-        let builder = Builder::new(registry);
         let reconstructor = TreeReconstructor::new()?;
-        let tree = reconstructor.try_reconstruct(valid_tree, &builder)?;
+        let tree = reconstructor.try_reconstruct(valid_tree, &self.state.builder)?;
 
         Ok(TreeEngine {
-            state: TreeLoaded { tree, executor },
+            state: TreeLoaded {
+                tree,
+                executor: self.state.executor,
+            },
         })
     }
 }

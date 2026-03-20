@@ -246,7 +246,7 @@ impl TreeReconstructor {
                     })?
                     .factory();
                 let action = factory.try_create(data)?;
-                Ok(builder.action(action))
+                Ok(builder.action_box(action))
             }
             LeafKind::Condition => {
                 let factory = node_plugins
@@ -256,7 +256,7 @@ impl TreeReconstructor {
                         anyhow!("condition factory for node: {node_name} does not exist")
                     })?
                     .factory();
-                Ok(builder.condition(factory.try_create(data)?))
+                Ok(builder.condition_box(factory.try_create(data)?))
             }
         }
     }

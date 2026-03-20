@@ -23,8 +23,8 @@ mod reconstruct;
 use std::thread::JoinHandle;
 
 use anyhow::{Result, anyhow};
-use beetry_core::{Node, TickStatus, Ticker, TickerError, Tree};
-use beetry_exec::{Executor, ExecutorConfig, Ready as ExecutorReady, WithRegistry};
+use beetry_core::{Action, ActionBehavior, Node, TickStatus, Ticker, TickerError, Tree, leaf};
+use beetry_exec::{Executor, ExecutorConfig, Ready as ExecutorReady, TaskHandle, TaskRegistry};
 use futures::Stream;
 use thiserror::Error as ThisError;
 use tokio::sync::oneshot;
@@ -37,7 +37,8 @@ pub struct TreeEngine<S> {
 
 /// Marker state for an engine that is configured and ready to load a tree.
 pub struct Configured {
-    executor: Executor<WithRegistry>,
+    executor: Executor<ExecutorReady>,
+    builder: leaf::Builder<TaskRegistry, TaskHandle>,
 }
 
 /// Marker state for an engine with a loaded tree that has not started running
@@ -72,11 +73,24 @@ pub enum Error {
 impl TreeEngine<Configured> {
     /// Creates a new engine in the [`Configured`] state.
     pub fn new(config: TreeEngineConfig) -> Self {
+        let (executor, registry) = Executor::new(config.executor).into_ready_with_registry();
         Self {
             state: Configured {
-                executor: Executor::new(config.executor),
+                executor,
+                builder: leaf::Builder::new(registry),
             },
         }
+    }
+
+    /// Registers an action defined by a custom [`ActionBehavior`].
+    ///
+    /// Each action must be registered with the [`TreeEngine`] before it can be
+    /// inserted into a fully constructed [`Tree`].
+    pub fn register_action(
+        &self,
+        behavior: impl ActionBehavior + 'static,
+    ) -> Action<TaskRegistry, TaskHandle, impl ActionBehavior> {
+        self.state.builder.action(behavior)
     }
 
     /// Attaches an already constructed tree and returns an engine in the
@@ -85,9 +99,11 @@ impl TreeEngine<Configured> {
     where
         N: Node,
     {
-        let (executor, _registry) = self.state.executor.into_ready_with_registry();
         TreeEngine {
-            state: TreeLoaded { tree, executor },
+            state: TreeLoaded {
+                tree,
+                executor: self.state.executor,
+            },
         }
     }
 }
