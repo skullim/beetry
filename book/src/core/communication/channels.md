@@ -34,4 +34,5 @@ With `mpsc`, keep in mind that once a sender successfully sends a message,
 aborting any intermediate node on the execution path might not clear the
 receiver buffer. In the worst case, stale messages can fill the bounded buffer
 and cause later sends to fail.  
-To minimize this risk, the sender and receiver should ideally be neighboring nodes in the execution path.
+To minimize this risk, the sender and receiver should ideally be neighboring
+nodes in the execution path.

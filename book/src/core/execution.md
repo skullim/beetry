@@ -8,8 +8,8 @@ different responsibilities.
 ## What is a tick?
 
 Execution in Beetry is centered around the `Node` interface. Every executable
-node implements the same core lifecycle: it can be ticked, aborted, and reset. 
- 
+node implements the same core lifecycle: it can be ticked, aborted, and reset.
+
 `tick` is a single execution step in which the tree asks a node to make
 progress and report its current state.  
 `reset` clears any execution state so the node or subtree can start again from
@@ -20,8 +20,9 @@ example when a parent decides that a child should no longer be ticked.
 This gives all node kinds a common runtime contract while still allowing them
 to behave differently during execution.
 
-This contract is fully synchronous. The tree can execute correctly only if
-every node implements it without blocking. If any node blocks during `tick`, it can delay or stall execution of the whole tree.
+This contract is fully synchronous. The tree can execute correctly only if every
+node implements it without blocking. If any node blocks during `tick`, it can
+delay or stall execution of the whole tree.
 
 The result of a tick is described by `TickStatus`:
 

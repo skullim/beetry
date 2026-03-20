@@ -29,6 +29,7 @@ carry stable type metadata used by the framework for registration, typing, and
 editor integration.
 
 Recommended message types are:
+
 - domain-oriented
 - easy to understand without node-specific context
 - reusable across multiple nodes

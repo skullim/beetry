@@ -11,7 +11,9 @@ In Beetry, nodes typically fall into four roles:
 - conditions, which evaluate a predicate
 - actions, which perform work
 
-Control nodes and decorators shape the structure and control flow of a tree. Conditions and actions sit at the leaves and provide the domain-specific logic for a particular use case.
+Control nodes and decorators shape the structure and control flow of a tree.
+Conditions and actions sit at the leaves and provide the domain-specific logic
+for a particular use case.
 
 Leaf behavior is introduced through two main contracts:
 
