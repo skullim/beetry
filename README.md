@@ -1,5 +1,5 @@
 # Beetry
-
+<!-- markdownlint-disable MD033 -->
 <p align="center">
     <img src="./logo.png" alt="Logo" width="400" height="261">
 </p>

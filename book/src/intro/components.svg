@@ -1,0 +1,52 @@
+<svg width="440" height="320" viewBox="0 0 440 320" xmlns="http://www.w3.org/2000/svg" role="img"
+    aria-label="Beetry framework components">
+    <defs>
+        <linearGradient id="hexFill" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="50%" stop-color="#9a5d17" />
+            <stop offset="100%" stop-color="#f1b018" />
+        </linearGradient>
+
+        <style>
+            .outer {
+                stroke: #2a1709;
+                stroke-width: 6;
+                stroke-linejoin: round;
+            }
+
+            .ring {
+                fill: #f1b018;
+            }
+
+            .inner {
+                fill: none;
+                stroke: rgba(0, 0, 0, 0.75);
+                stroke-width: 5;
+                stroke-linejoin: round;
+            }
+
+            .label {
+                font-family: "Open Sans", sans-serif;
+                font-size: 22px;
+                font-weight: 700;
+                fill: #2a1709;
+                text-anchor: middle;
+                dominant-baseline: middle;
+            }
+        </style>
+    </defs>
+
+    <polygon class="outer" fill="url(#hexFill)" points="220,20 290,60 290,140 220,180 150,140 150,60" />
+    <polygon class="ring" points="220,38 275,70 275,130 220,162 165,130 165,70" />
+    <polygon class="inner" points="220,38 275,70 275,130 220,162 165,130 165,70" />
+    <text class="label" x="220" y="100">Runtime</text>
+
+    <polygon class="outer" fill="url(#hexFill)" points="150,140 220,180 220,260 150,300 80,260 80,180" />
+    <polygon class="ring" points="150,158 205,190 205,250 150,282 95,250 95,190" />
+    <polygon class="inner" points="150,158 205,190 205,250 150,282 95,250 95,190" />
+    <text class="label" x="150" y="220">Plugins</text>
+
+    <polygon class="outer" fill="url(#hexFill)" points="290,140 360,180 360,260 290,300 220,260 220,180" />
+    <polygon class="ring" points="290,158 345,190 345,250 290,282 235,250 235,190" />
+    <polygon class="inner" points="290,158 345,190 345,250 290,282 235,250 235,190" />
+    <text class="label" x="290" y="220">Editor</text>
+</svg>

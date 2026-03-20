@@ -1,4 +1,4 @@
-# Node Communication
+# Inter-Node Communication
 
 Most nodes define inputs they consume and outputs they produce. In a behavior
 tree, that means data often has to move from one node to another. To keep nodes
@@ -65,4 +65,82 @@ the same time, users can decide under which node statuses a particular message
 is forwarded, preserving full flexibility.
 
 The following sections introduce the mechanisms used to implement explicit
-node-to-node communication.
+inter-node communication.
+
+## Messages
+
+In Beetry, messages describe the data itself, not the way that data is
+transported. For example, a pose estimate, a trajectory, or a safety status can
+all be modeled as message types. Channels then define how values of those
+types are delivered.
+
+This separation matters because the same kind of data may be useful in
+different communication contexts. A message answers the question "what is being
+sent?", while a channel answers "how is it delivered?".
+
+In practice, message types are usually simple domain data models, for example:
+
+```rust
+use beetry::Message;
+use beetry_message::Message;
+use type_hash::TypeHash;
+
+#[derive(Debug, Clone, Copy, Default, TypeHash, Message)]
+pub struct Pose {
+    pub x: f32,
+    pub y: f32,
+}
+```
+
+To be used as a Beetry message, a type must implement the `Message`
+trait. In most cases this is done through the derive macro. Message types also
+carry stable type metadata used by the framework for registration, typing, and
+editor integration.
+
+Recommended message types are:
+
+- domain-oriented
+- easy to understand without node-specific context
+- reusable across multiple nodes
+
+Once a message type exists, it can be exposed to the plugin system and paired
+with one of the supported channel kinds.
+
+## Channels
+
+Channels define how messages are delivered between nodes.
+
+In Beetry, channels are built on top of the core `Sender` and `Receiver`
+traits. These traits define the minimal non-blocking interface needed for
+communication between nodes.
+
+This makes communication explicit in two ways:
+
+- the message type describes the data contract
+- the channel kind describes the delivery behavior
+
+Choosing the right channel matters because different kinds of data have
+different runtime needs. Some values should be queued, some should represent
+the latest known state, and some should be fanned out to multiple consumers.
+
+Beetry currently provides several channel kinds:
+
+- `mpsc`
+- `watch`
+- `broadcast`
+
+## Selecting a channel
+
+- use `mpsc` when messages should be processed one by one and every queued item
+  matters
+- use `watch` when only the latest value matters, such as status or sensor
+  state
+- use `broadcast` when the same message should be delivered to multiple
+  receivers
+
+With `mpsc`, keep in mind that once a sender successfully sends a message,
+aborting any intermediate node on the execution path might not clear the
+receiver buffer. In the worst case, stale messages can fill the bounded buffer
+and cause later sends to fail.
+To minimize this risk, the sender and receiver should ideally be neighboring
+nodes in the execution path.
