@@ -86,10 +86,10 @@ impl TreeEngine<Configured> {
     ///
     /// Each action must be registered with the [`TreeEngine`] before it can be
     /// inserted into a fully constructed [`Tree`].
-    pub fn register_action(
-        &self,
-        behavior: impl ActionBehavior + 'static,
-    ) -> Action<TaskRegistry, TaskHandle, impl ActionBehavior> {
+    pub fn register_action<B>(&self, behavior: B) -> Action<TaskRegistry, TaskHandle, B>
+    where
+        B: ActionBehavior + 'static,
+    {
         self.state.builder.action(behavior)
     }
 

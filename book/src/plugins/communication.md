@@ -132,8 +132,9 @@ sent?", while a channel answers "how is it delivered?".
 In practice, message types are usually simple domain data models, for example:
 
 ```rust
+# extern crate beetry;
+# extern crate type_hash;
 use beetry::Message;
-use beetry_message::Message;
 use type_hash::TypeHash;
 
 #[derive(Debug, Clone, Copy, Default, TypeHash, Message)]
@@ -157,6 +158,30 @@ Recommended message types are:
 Once a message type exists, it can be exposed to the plugin system and paired
 with one of the supported channel kinds.
 
+For that, Beetry provides the `channel!` macro. It creates a channel plugin for
+the given message type, publishes the corresponding channel metadata to the
+editor and persistence layer, and registers the plugin through inventory.
+
+For example, the `Pose` message above can be registered like this:
+
+```rust
+# extern crate beetry;
+# extern crate type_hash;
+use beetry::Message;
+use type_hash::TypeHash;
+
+#[derive(Debug, Clone, Copy, Default, TypeHash, Message)]
+pub struct Pose {
+    pub x: f32,
+    pub y: f32,
+}
+
+beetry::plugin::channel! {PoseChannel: Pose}
+```
+
+Here, `PoseChannel` is the plugin type, and `Pose` is the message type the
+channel will carry.
+
 ## Channels
 
 Channels define how messages are delivered between nodes.
@@ -170,28 +195,9 @@ This makes communication explicit in two ways:
 - the message type describes the data contract
 - the channel kind describes the delivery behavior
 
-Choosing the right channel matters because different kinds of data have
+Providing multiple channel implementations matters because different kinds of data have
 different runtime needs. Some values should be queued, some should represent
 the latest known state, and some should be fanned out to multiple consumers.
 
-Beetry currently provides several channel kinds:
-
-- `mpsc`
-- `watch`
-- `broadcast`
-
-## Selecting a channel
-
-- use `mpsc` when messages should be processed one by one and every queued item
-  matters
-- use `watch` when only the latest value matters, such as status or sensor
-  state
-- use `broadcast` when the same message should be delivered to multiple
-  receivers
-
-With `mpsc`, keep in mind that once a sender successfully sends a message,
-aborting any intermediate node on the execution path might not clear the
-receiver buffer. In the worst case, stale messages can fill the bounded buffer
-and cause later sends to fail.
-To minimize this risk, the sender and receiver should ideally be neighboring
-nodes in the execution path.
+See the [channel library](./channel-library.md) chapter for more details about
+the available channel types.

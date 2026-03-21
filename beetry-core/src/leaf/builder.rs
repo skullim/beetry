@@ -22,10 +22,10 @@ where
         }
     }
 
-    pub fn action(
-        &self,
-        behavior: impl ActionBehavior + 'static,
-    ) -> Action<R, T, impl ActionBehavior> {
+    pub fn action<B>(&self, behavior: B) -> Action<R, T, B>
+    where
+        B: ActionBehavior + 'static,
+    {
         Action::new(behavior, Arc::clone(&self.registry))
     }
 

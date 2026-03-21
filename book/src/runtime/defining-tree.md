@@ -16,12 +16,18 @@ Root
 In code, this can be written as:
 
 ```rust,no_run
+// Some parts of boilerplate code has been hidden, if you want to see all click Show hidden lines in the top right corner of the box
+
+# // This is only needed by mdbook to link the crates
+# extern crate tokio;
+# extern crate anyhow;
+# extern crate beetry;
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use beetry::{
     leaf::{ActionBehavior, NodeTask, Task},
-    node::{Root, Sequence},
+    node::{BoxNode, Root, MemSequence},
     runtime::{PeriodicTick, PeriodicTicker, TickStatus, Tree, TreeEngine, TreeEngineConfig},
 };
 use tokio::sync::mpsc;
@@ -45,6 +51,28 @@ impl ActionBehavior for DetectFlower {
     }
 }
 
+struct DetectFlowerTask {
+    send: mpsc::Sender<Pose>,
+}
+
+impl Task for DetectFlowerTask {
+    async fn run(self) -> TickStatus {
+        // detect flower dummy implementation
+        # if self
+        #     .send
+        #     .try_send(Pose {
+        #         x: 1.3,
+        #         y: 2.1,
+        #         z: 0.7,
+        #     })
+        #     .is_err()
+        # {
+        #     return TickStatus::Failure;
+        # }
+        TickStatus::Success
+    }
+}
+
 struct FlyTo {
     recv: mpsc::Receiver<Pose>,
 }
@@ -57,6 +85,21 @@ impl ActionBehavior for FlyTo {
     }
 }
 
+struct FlyToTask {
+    pose: Option<Pose>,
+}
+
+impl Task for FlyToTask {
+    async fn run(self) -> TickStatus {
+        // fly to dummy implementation
+        # let Some(pose) = self.pose else {
+        #     return TickStatus::Failure;
+        # };
+        # let _ = (pose.x, pose.y, pose.z);
+        TickStatus::Success
+    }
+}
+
 struct CollectPollen;
 
 impl ActionBehavior for CollectPollen {
@@ -65,54 +108,22 @@ impl ActionBehavior for CollectPollen {
     }
 }
 
-struct DetectFlowerTask {
-    send: mpsc::Sender<Pose>,
-}
-
-impl Task for DetectFlowerTask {
-    async fn run(self) -> TickStatus {
-        // Logic to detect a flower would have been be implemented here 
-        if self.send.try_send(Pose {
-            x: 1.3,
-            y: 2.1,
-            z: 0.7,
-        }).is_err() {
-            return TickStatus::Failure;
-        }
-        TickStatus::Success
-    }
-}
-
-struct FlyToTask {
-    pose: Option<Pose>,
-}
-
-impl Task for FlyToTask {
-    async fn run(self) -> TickStatus {
-        let _ = self.pose;
-        // Logic to fly to pose would have been implemented here 
-        TickStatus::Success
-    }
-}
-
 struct CollectPollenTask;
 
 impl Task for CollectPollenTask {
     async fn run(self) -> TickStatus {
-        // Logic to collect pollen would have been implemented here 
         TickStatus::Success
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let (send, recv) = mpsc::channel(1);
     let engine = TreeEngine::new(TreeEngineConfig::default());
-
-    let tree = Tree::new(Root::new(Sequence::new([
-        Box::new(engine.register_action(DetectFlower { send })),
-        Box::new(engine.register_action(FlyTo { recv })),
-        Box::new(engine.register_action(CollectPollen)),
+    let (send, recv) = mpsc::channel(1);
+    let tree = Tree::new(Root::new(MemSequence::new([
+        Box::new(engine.register_action(DetectFlower { send })) as BoxNode,
+        Box::new(engine.register_action(FlyTo { recv })) as BoxNode,
+        Box::new(engine.register_action(CollectPollen)) as BoxNode,
     ])));
 
     let mut engine = engine.tree(tree).start_executor()?;

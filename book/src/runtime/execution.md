@@ -2,8 +2,8 @@
 
 Beetry executes behavior trees by repeatedly ticking nodes until the tree
 reaches a terminal state. Every node participates in the same runtime model,
-which keeps execution predictable even when different node kinds have very
-different responsibilities.
+which keeps execution predictable even when different node kinds have
+different roles.
 
 ## What is a tick?
 
@@ -24,6 +24,10 @@ This contract is fully synchronous. The tree can execute correctly only if every
 node implements it without blocking. If any node blocks during `tick`, it can
 delay or stall execution of the whole tree.
 
+> [!IMPORTANT]
+>
+> When implementing `Node`, none of its methods should block.
+
 The result of a tick is described by `TickStatus`:
 
 - `Success` means the node finished successfully
@@ -36,8 +40,7 @@ Now that the idea of ticking and `TickStatus` is clear, the next question is
 when ticks should happen. In many behavior tree systems, the tree is ticked
 periodically, for example every 20 ms. In Beetry, the application selects the
 ticking policy. Beetry exposes the `Ticker` interface so applications can
-define their own tick source, and it provides `PeriodicTick` as one built-in
-periodic implementation.
+define their own tick source. Beetry provides `PeriodicTick` implementation that is the default choice in many scenarios.
 
 ## Action lifecycle
 
@@ -90,3 +93,11 @@ sequenceDiagram
 This approach keeps the node interface synchronous and non-blocking, while
 still allowing long-running work to execute in the background. As a result,
 multiple leaf nodes can make progress concurrently.
+
+> [!IMPORTANT]
+>
+> Because `Action` is scheduled on the executor and returns `Running` on the
+> first tick, non-memory control nodes such as `Sequence` may restart earlier
+> children on later ticks instead of resuming from the currently running one.
+> In practice, `Action` nodes should usually be combined with memory-based
+> control nodes such as `MemSequence`.

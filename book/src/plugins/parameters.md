@@ -19,11 +19,14 @@ that remains structured and inspectable by the framework.
 ## Registration
 
 A parameter is usually introduced by defining a serializable Rust type, and then
-deriving a `ParamsSpec` for that type.
+implementing `ProvideParamSpec` for that type.
 
 For example, a node may accept a retry limit:
 
-```rust, no_run
+```rust
+# extern crate anyhow;
+# extern crate beetry;
+# extern crate mitsein;
 use std::sync::Arc;
 
 use anyhow::anyhow;
@@ -32,9 +35,8 @@ use beetry::plugin::{
     ProvideParamSpec,
 };
 use mitsein::iter1::IntoIterator1;
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct RetryParams {
     retry_limit: u64,
 }
@@ -60,16 +62,4 @@ impl ProvideParamSpec for RetryParams {
 }
 ```
 
-This example shows both parts of parameter definition:
-
-- `RetryParams` is the typed value that will later be deserialized and passed to
-  the node
-- `ProvideParamSpec` publishes the editor-facing schema for that value
-
-The field type, here `FieldTypeSpec::U64`, defines the basic accepted value
-kind. The validator attached through `FieldMetadata::new(...)` adds an extra
-constraint, in this case requiring `retry_limit` to be greater than zero.
-
-This separation is important. The type tells the framework how to store and
-reconstruct the value, while the validator allows domain-specific correctness
-checks to be enforced early.
+Above, we defined a parameter with a single field, gave it a name, assigned it a type (`FieldTypeSpec::U64`), attached a custom validator, and provided a custom description.

@@ -10,7 +10,7 @@
   - [Inter-Node Communication](./plugins/communication.md)
   - [Parameters](./plugins/parameters.md)
   - [Nodes](./plugins/nodes.md)
-  - [Channels](./plugins/channel-library.md)
+  - [Channel Library](./plugins/channel-library.md)
 - [Editor](./editor.md)
   - [Designing](./editor/designing.md)
   - [Importing](./editor/importing.md)
