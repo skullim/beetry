@@ -1,4 +1,4 @@
-# Channel Library
+# Channels
 
 Unlike the execution model or the communication contracts, the channel library
 is not the main abstraction this book needs to explain. Channels are an

@@ -128,13 +128,18 @@ custom action logic, `Tree` to define the hierarchy of nodes, and
 
 There are a few things worth keeping in mind.
 
-First, Beetry does not force a specific inter-node communication.
-In this example, a Tokio channel is used to send and receiver `Pose`, but the same tree could use a blackboard, shared state, or any other IPC-style mechanism if desired.
+First, Beetry does not force a specific inter-node communication. In this
+example, a Tokio channel is used to send and receiver `Pose`, but the same tree
+could use a blackboard, shared state, or any other IPC-style mechanism if
+desired.
 
-Second, the shape of the tree is small, so its
-structure is easy to understand. Adding or removing one or two
-nodes is not a major problem at this scale. In practical applications, however,
-trees usually become much wider and deeper. Once that happens, reasoning about their structure in code becomes harder. In practice, trees of realistic size are usually designed in the editor
- (see [Editor](../editor.md) chapter for more details).
+Second, the shape of the tree is small, so its structure is easy to understand.
+Adding or removing one or two nodes is not a major problem at this scale. In
+practical applications, however, trees usually become much wider and deeper.
+Once that happens, reasoning about their structure in code becomes harder. In
+practice, trees of realistic size are usually designed in the editor (see
+[Editor](../editor.md) chapter for more details).
 
-Using an editor makes it easier to reason about a tree, at the cost of boxing nodes and slightly restricting the constructor API, since arbitrary data cannot be passed directly.
+Using an editor makes it easier to reason about a tree, at the cost of boxing
+nodes and slightly restricting the constructor API, since arbitrary data cannot
+be passed directly.
