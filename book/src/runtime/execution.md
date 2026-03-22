@@ -39,8 +39,9 @@ The result of a tick is described by `TickStatus`:
 Now that the idea of ticking and `TickStatus` is clear, the next question is
 when ticks should happen. In many behavior tree systems, the tree is ticked
 periodically, for example every 20 ms. In Beetry, the application selects the
-ticking policy. Beetry exposes the `Ticker` interface so applications can
-define their own tick source. Beetry provides `PeriodicTick` implementation that is the default choice in many scenarios.
+ticking policy. Beetry exposes the `Ticker` interface so applications can define
+their own tick source. Beetry provides `PeriodicTick` implementation that is the
+default choice in many scenarios.
 
 ## Action lifecycle
 

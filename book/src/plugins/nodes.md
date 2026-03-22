@@ -200,6 +200,7 @@ action! {
     create: FollowTrajectory::new(trajectory, command);
 }
 ```
+
 >[!TIP]
 > If you are adding a generic reusable node, see the
 > [Node Library](../runtime/node-library.md) chapter for how to add it to the

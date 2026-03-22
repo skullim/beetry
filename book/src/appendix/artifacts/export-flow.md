@@ -1,4 +1,9 @@
-# Pipeline
+# Export Flow
+
+The following diagram outlines how a validated tree is exported from the editor
+and later reconstructed into a runtime tree. Exporting a project artifact is
+very similar, except that the tree is not validated, which allows intermediate
+editor state to be stored as well.
 
 ```mermaid
 flowchart TD

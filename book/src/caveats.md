@@ -1,6 +1,7 @@
 # Caveats
 
-## Duplicate identifiers
+## Plugins
+### Duplicate identifiers
 
 Each plugin type must declare a unique identifier. For example it is totally
 fine to have control and decorator node with the same name, but two control

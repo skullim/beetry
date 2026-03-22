@@ -8,10 +8,9 @@ To support this, Beetry defines two main design goals for such inputs:
 - they must support validation, so incorrect values can be detected as early as
   possible
 
-Beetry addresses this with `Parameter`. A `Parameter` describes the input value
-expected by a node using an enum that models the primitive types. A `Parameter`
-can also attach an optional validator that checks additional constraints beyond
-the basic value type.
+Beetry addresses this with parameters. Parameter values are described through
+typed field specifications, which can also attach optional validators for
+constraints beyond the basic value type.
 
 This gives nodes part of the flexibility of ordinary constructors, but in a form
 that remains structured and inspectable by the framework.
@@ -62,4 +61,6 @@ impl ProvideParamSpec for RetryParams {
 }
 ```
 
-Above, we defined a parameter with a single field, gave it a name, assigned it a type (`FieldTypeSpec::U64`), attached a custom validator, and provided a custom description.
+Above, we defined a parameter with a single field, gave it a name, assigned it a
+type (`FieldTypeSpec::U64`), attached a custom validator, and provided a custom
+description.
