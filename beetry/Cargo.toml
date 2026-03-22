@@ -9,6 +9,7 @@ license.workspace = true
 default = ["plugin", "editor", "tokio"]
 plugin = [
     "dep:beetry-plugin",
+    "dep:beetry-channel",
     "dep:beetry-editor-types",
     "beetry-engine/plugin",
     "beetry-node/plugin",
@@ -17,7 +18,7 @@ editor = ["plugin", "dep:beetry-editor-frontend"]
 tokio = ["beetry-channel/tokio"]
 
 [dependencies]
-beetry-channel = { path = "../beetry-channel" }
+beetry-channel = { path = "../beetry-channel", optional = true }
 beetry-core = { path = "../beetry-core" }
 beetry-engine = { path = "../beetry-engine" }
 beetry-editor-frontend = { path = "../beetry-editor-frontend", optional = true }

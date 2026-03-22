@@ -1,6 +1,5 @@
 use anyhow::{Result, anyhow};
-use beetry_channel::{AnyBoxReceiver, AnyBoxSender};
-use beetry_core::{BoxReceiver, BoxSender};
+use beetry_channel::{AnyBoxReceiver, AnyBoxSender, BoxReceiver, BoxSender};
 use beetry_editor_types::{
     output::channel::{ChannelConfig, ChannelKind, TokioChannelKind},
     spec::channel::ChannelSpec,

@@ -1,7 +1,8 @@
 use std::any::Any;
 
 use anyhow::{Result, anyhow};
-use beetry_core::{BoxReceiver, BoxSender, Receiver};
+
+use crate::{BoxReceiver, BoxSender, Receiver};
 
 #[derive(Debug)]
 pub struct AnyBoxReceiver(Box<dyn Any>);
@@ -62,9 +63,8 @@ impl<T: 'static> From<BoxSender<T>> for AnyBoxSender {
 mod tests {
     use std::marker::PhantomData;
 
-    use beetry_core::{Receiver, Sender, TryRecvResult, TrySendResult};
-
     use super::*;
+    use crate::{Receiver, Sender, TryRecvResult, TrySendResult};
 
     struct ReceiverStub<T>(pub Option<T>);
 

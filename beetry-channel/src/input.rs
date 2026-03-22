@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use beetry_core::{Receiver, TryRecvResult};
+use crate::{Receiver, TryRecvResult};
 
 pub struct Input<R, T> {
     receiver: R,

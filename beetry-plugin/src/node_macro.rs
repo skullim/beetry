@@ -87,7 +87,8 @@
 ///
 /// ```rust, no_run
 /// # use anyhow::Result;
-/// # use beetry_core::{ActionBehavior, NodeTask, Receiver, Sender};
+/// # use beetry_channel::{Receiver, Sender};
+/// # use beetry_core::{ActionBehavior, NodeTask};
 /// # use beetry_macros::Message;
 /// # use beetry_message::Message;
 /// # use beetry_plugin::action;

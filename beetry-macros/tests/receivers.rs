@@ -2,13 +2,11 @@
 mod tests {
     mod beetry {
         pub mod channel {
-            pub use beetry_channel::Input;
-            pub use beetry_core::{Receiver, TryRecvResult};
+            pub use beetry_channel::{Input, Receiver, TryRecvResult};
         }
     }
 
-    use beetry_channel::tokio::mpsc;
-    use beetry_core::Sender;
+    use beetry_channel::{Sender, tokio::mpsc};
     use beetry_macros::receivers;
     use bon::bon;
 

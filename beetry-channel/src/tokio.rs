@@ -1,9 +1,10 @@
-use beetry_core::{Receiver, Sender};
+use crate::{Receiver, Sender};
 
 pub mod mpsc {
     mod error {
-        use beetry_core::error;
         use tokio::sync::mpsc::error::{TryRecvError, TrySendError};
+
+        use crate::error;
 
         pub struct TokioTrySendError<T>(pub TrySendError<T>);
         pub struct TokioTryRecvError(pub TryRecvError);
@@ -27,10 +28,12 @@ pub mod mpsc {
         }
     }
 
-    use beetry_core::{TryRecvResult, TrySendResult};
     use tokio::sync::mpsc::channel as tokio_channel;
 
-    use crate::tokio::mpsc::error::{TokioTryRecvError, TokioTrySendError};
+    use crate::{
+        TryRecvResult, TrySendResult,
+        tokio::mpsc::error::{TokioTryRecvError, TokioTrySendError},
+    };
 
     #[derive(Debug)]
     pub struct Receiver<T>(tokio::sync::mpsc::Receiver<T>);
@@ -59,8 +62,9 @@ pub mod mpsc {
 
 pub mod broadcast {
     mod error {
-        use beetry_core::error;
         use tokio::sync::broadcast::error::{SendError, TryRecvError};
+
+        use crate::error;
 
         pub struct TokioSendError<T>(pub SendError<T>);
         pub struct TokioTryRecvError(pub TryRecvError);
@@ -84,9 +88,10 @@ pub mod broadcast {
         }
     }
 
-    use beetry_core::{TryRecvResult, TrySendResult};
     use error::{TokioSendError, TokioTryRecvError};
     use tokio::sync::broadcast::channel as tokio_channel;
+
+    use crate::{TryRecvResult, TrySendResult};
 
     #[derive(Debug)]
     pub struct Receiver<T>(tokio::sync::broadcast::Receiver<T>);
@@ -130,8 +135,9 @@ pub mod broadcast {
 
 pub mod watch {
     mod error {
-        use beetry_core::error;
         use tokio::sync::watch::error::{RecvError, SendError};
+
+        use crate::error;
 
         pub struct TokioSendError<T>(pub SendError<T>);
         pub struct TokioRecvError(pub RecvError);
@@ -151,9 +157,10 @@ pub mod watch {
         }
     }
 
-    use beetry_core::{TryRecvResult, TrySendResult, error::TryRecvError};
     use error::{TokioRecvError, TokioSendError};
     use tokio::sync::watch::channel as tokio_channel;
+
+    use crate::{TryRecvResult, TrySendResult, error::TryRecvError};
 
     #[derive(Debug)]
     pub struct Receiver<T>(tokio::sync::watch::Receiver<T>);

@@ -11,8 +11,6 @@
 //! - [`ConditionBehavior`]: the behavior contract used by [`Condition`] leaf
 //!   nodes
 //! - [`ActionBehavior`]: the behavior contract used by [`Action`] leaf nodes
-//! - [`Sender`] and [`Receiver`]: the channel-facing traits used for message
-//!   passing between nodes
 //!
 //! ## `Node`
 //!
@@ -28,14 +26,6 @@
 //!
 //! Because [`Ticker`] can be built from a custom stream, each application can
 //! define its own ticking mechanism without changing the tree implementation.
-//!
-//! ## Channel
-//!
-//! Beetry models communication between nodes through channel abstractions
-//! rather than through a shared blackboard in the core runtime.
-//!
-//! [`Sender`] and [`Receiver`] define the minimal non-blocking contracts for
-//! sending and receiving typed messages.
 //!
 //! ## Leaf behavior concepts
 //!
@@ -56,7 +46,6 @@
 //! signals the executor to abort the task, then waits until the task reaches a
 //! terminal state.
 
-mod channel;
 pub mod leaf;
 mod node;
 mod root;
@@ -73,7 +62,6 @@ pub use root::Root;
 pub use tree::{PeriodicTick, Ticker, TickerError, Tree};
 pub type PeriodicTicker = Ticker<PeriodicTick>;
 
-pub use channel::{BoxReceiver, BoxSender, Receiver, Sender, TryRecvResult, TrySendResult, error};
 pub use task::{
     AbortTask, BoxTaskFuture, ExecutorConcept, NodeTask, QueryTask, RegisterTask, Task,
     TaskDescription, TaskHandle, TaskStatus,

@@ -15,6 +15,7 @@
 //!
 //! None of the features are required to execute a tree defined in code.
 
+#[cfg(feature = "plugin")]
 pub mod channel;
 #[cfg(feature = "editor")]
 pub mod editor;
