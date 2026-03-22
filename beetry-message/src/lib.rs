@@ -1,3 +1,8 @@
+//! Message typing primitives for Beetry.
+//!
+//! This crate is an internal Beetry implementation crate and is not considered
+//! part of the public API. For public APIs, use the `beetry` crate.
+
 use std::cmp::Ordering;
 
 use getset::{CopyGetters, Getters};
@@ -60,7 +65,7 @@ impl Ord for MessageSpec {
     }
 }
 
-/// Trait for types that should be considered as message type.
+/// Trait for types that should be considered as a message type.
 pub trait Message: type_hash::TypeHash {
     fn hash() -> MessageHash {
         MessageHash::new(Self::type_hash())

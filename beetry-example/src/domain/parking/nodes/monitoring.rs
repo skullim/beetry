@@ -2,7 +2,7 @@ use anyhow::Result;
 use beetry::{
     channel::{Receiver, Sender},
     leaf::{ActionBehavior, ConditionBehavior, NodeTask, Task},
-    plugin::{ParamsDeserializer, ProvideParamSpec, action, condition},
+    plugin::{action, condition, parameter, parameter::ProvideParamSpec},
     runtime::TickStatus,
 };
 use tokio::sync::mpsc::{
@@ -160,7 +160,7 @@ action! {
         proximity_recv,
         brake_recv,
         send,
-        &ParamsDeserializer::deserialize(parameters)?,
+        &parameter::Deserializer::deserialize(parameters)?,
     );
 }
 

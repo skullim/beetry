@@ -4,10 +4,7 @@ use anyhow::{Result, anyhow};
 use beetry::{
     channel::Sender,
     leaf::{ActionBehavior, NodeTask, Task},
-    plugin::{
-        FieldDefinition, FieldMetadata, FieldName, FieldTypeSpec, ParamsDeserializer, ParamsSpec,
-        ProvideParamSpec, action,
-    },
+    plugin::{action, parameter, parameter::ProvideParamSpec},
     runtime::TickStatus,
 };
 use mitsein::iter1::IntoIterator1;
@@ -109,7 +106,7 @@ action! {
     VehicleStatePublisherPlugin: "VehicleStatePublisher";
     params(parameters): PublishInterval::provide();
     senders: [send: VehicleState => "Vehicle state"];
-    create: VehicleStatePublisher::new(send, &ParamsDeserializer::deserialize(parameters)?);
+    create: VehicleStatePublisher::new(send, &parameter::Deserializer::deserialize(parameters)?);
 }
 
 pub struct LocalizationPublisher<S> {
@@ -201,7 +198,7 @@ action! {
     LocalizationPublisherPlugin: "LocalizationPublisher";
     params(parameters): PublishInterval::provide();
     senders: [send: Pose => "Current pose"];
-    create: LocalizationPublisher::new(send, &ParamsDeserializer::deserialize(parameters)?);
+    create: LocalizationPublisher::new(send, &parameter::Deserializer::deserialize(parameters)?);
 }
 
 pub struct ProximityPublisher<S> {
@@ -287,7 +284,7 @@ action! {
     ProximityPublisherPlugin: "ProximityPublisher";
     params(parameters): PublishInterval::provide();
     senders: [send: ProximityState => "Proximity alert"];
-    create: ProximityPublisher::new(send, &ParamsDeserializer::deserialize(parameters)?);
+    create: ProximityPublisher::new(send, &parameter::Deserializer::deserialize(parameters)?);
 }
 
 pub struct BrakePublisher<S> {
@@ -370,7 +367,7 @@ action! {
     BrakePublisherPlugin: "BrakePublisher";
     params(parameters): PublishInterval::provide();
     senders: [send: BrakeState => "Emergency brake state"];
-    create: BrakePublisher::new(send, &ParamsDeserializer::deserialize(parameters)?);
+    create: BrakePublisher::new(send, &parameter::Deserializer::deserialize(parameters)?);
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -390,18 +387,20 @@ impl PublishInterval {
     }
 }
 
-impl ProvideParamSpec for PublishInterval {
-    fn provide() -> ParamsSpec {
+impl parameter::ProvideParamSpec for PublishInterval {
+    fn provide() -> parameter::Spec {
         [(
-            FieldName::from("interval_ms"),
-            FieldDefinition {
-                type_spec: FieldTypeSpec::U64(FieldMetadata::new(Arc::new(|value| {
-                    if *value == 0 {
-                        Err(anyhow!("interval must be greater than 0 ms"))
-                    } else {
-                        Ok(())
-                    }
-                }))),
+            "interval_ms".into(),
+            parameter::FieldDefinition {
+                type_spec: parameter::FieldTypeSpec::U64(parameter::FieldMetadata::new(Arc::new(
+                    |value| {
+                        if *value == 0 {
+                            Err(anyhow!("interval must be greater than 0 ms"))
+                        } else {
+                            Ok(())
+                        }
+                    },
+                ))),
                 description: Some("Publisher period in milliseconds".into()),
             },
         )]

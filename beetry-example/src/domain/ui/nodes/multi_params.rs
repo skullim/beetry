@@ -3,10 +3,7 @@ use std::sync::Arc;
 use anyhow::anyhow;
 use beetry::{
     leaf::{ActionBehavior, NodeTask, Task},
-    plugin::{
-        FieldDefinition, FieldMetadata, FieldName, FieldTypeSpec, ParamsDeserializer, ParamsSpec,
-        ProvideParamSpec, action,
-    },
+    plugin::{action, parameter, parameter::ProvideParamSpec},
     runtime::TickStatus,
 };
 use mitsein::iter1::IntoIterator1;
@@ -67,69 +64,77 @@ impl Task for MultiParamsTask {
     }
 }
 
-impl ProvideParamSpec for MultiParamsParams {
-    fn provide() -> ParamsSpec {
+impl parameter::ProvideParamSpec for MultiParamsParams {
+    fn provide() -> parameter::Spec {
         [
             (
-                FieldName::from("enabled"),
-                FieldDefinition {
-                    type_spec: FieldTypeSpec::Bool(FieldMetadata::default()),
+                "enabled".into(),
+                parameter::FieldDefinition {
+                    type_spec: parameter::FieldTypeSpec::Bool(parameter::FieldMetadata::default()),
                     description: Some("Enable or disable mission execution".into()),
                 },
             ),
             (
-                FieldName::from("retry_limit"),
-                FieldDefinition {
-                    type_spec: FieldTypeSpec::U64(FieldMetadata::new(Arc::new(|value| {
-                        if *value == 0 {
-                            Err(anyhow!("retry_limit must be greater than 0"))
-                        } else if *value > 20 {
-                            Err(anyhow!("retry_limit must be at most 20"))
-                        } else {
-                            Ok(())
-                        }
-                    }))),
+                "retry_limit".into(),
+                parameter::FieldDefinition {
+                    type_spec: parameter::FieldTypeSpec::U64(parameter::FieldMetadata::new(
+                        Arc::new(|value| {
+                            if *value == 0 {
+                                Err(anyhow!("retry_limit must be greater than 0"))
+                            } else if *value > 20 {
+                                Err(anyhow!("retry_limit must be at most 20"))
+                            } else {
+                                Ok(())
+                            }
+                        }),
+                    )),
                     description: Some("Maximum number of retry attempts".into()),
                 },
             ),
             (
-                FieldName::from("altitude_offset_m"),
-                FieldDefinition {
-                    type_spec: FieldTypeSpec::I64(FieldMetadata::new(Arc::new(|value| {
-                        if *value < -500 || *value > 500 {
-                            Err(anyhow!("altitude_offset_m must be in range [-500, 500]"))
-                        } else {
-                            Ok(())
-                        }
-                    }))),
+                "altitude_offset_m".into(),
+                parameter::FieldDefinition {
+                    type_spec: parameter::FieldTypeSpec::I64(parameter::FieldMetadata::new(
+                        Arc::new(|value| {
+                            if *value < -500 || *value > 500 {
+                                Err(anyhow!("altitude_offset_m must be in range [-500, 500]"))
+                            } else {
+                                Ok(())
+                            }
+                        }),
+                    )),
                     description: Some("Signed altitude offset in meters".into()),
                 },
             ),
             (
-                FieldName::from("target_accuracy_m"),
-                FieldDefinition {
-                    type_spec: FieldTypeSpec::F64(FieldMetadata::new(Arc::new(|value| {
-                        if *value <= 0.0 {
-                            Err(anyhow!("target_accuracy_m must be greater than 0"))
-                        } else if *value > 10.0 {
-                            Err(anyhow!("target_accuracy_m must be at most 10"))
-                        } else {
-                            Ok(())
-                        }
-                    }))),
+                "target_accuracy_m".into(),
+                parameter::FieldDefinition {
+                    type_spec: parameter::FieldTypeSpec::F64(parameter::FieldMetadata::new(
+                        Arc::new(|value| {
+                            if *value <= 0.0 {
+                                Err(anyhow!("target_accuracy_m must be greater than 0"))
+                            } else if *value > 10.0 {
+                                Err(anyhow!("target_accuracy_m must be at most 10"))
+                            } else {
+                                Ok(())
+                            }
+                        }),
+                    )),
                     description: Some("Desired localization accuracy in meters".into()),
                 },
             ),
             (
-                FieldName::from("profile_name"),
-                FieldDefinition {
-                    type_spec: FieldTypeSpec::String(FieldMetadata::new(Arc::new(|value| {
-                        if value.trim().is_empty() {
-                            Err(anyhow!("profile_name cannot be empty"))
-                        } else {
-                            Ok(())
-                        }
-                    }))),
+                "profile_name".into(),
+                parameter::FieldDefinition {
+                    type_spec: parameter::FieldTypeSpec::String(parameter::FieldMetadata::new(
+                        Arc::new(|value| {
+                            if value.trim().is_empty() {
+                                Err(anyhow!("profile_name cannot be empty"))
+                            } else {
+                                Ok(())
+                            }
+                        }),
+                    )),
                     description: Some("Configuration profile label".into()),
                 },
             ),
@@ -142,5 +147,5 @@ impl ProvideParamSpec for MultiParamsParams {
 action! {
     MultiParamsPlugin: "Multi Params";
     params(parameters): MultiParamsParams::provide();
-    create: MultiParams::new(ParamsDeserializer::deserialize(parameters)?);
+    create: MultiParams::new(parameter::Deserializer::deserialize(parameters)?);
 }

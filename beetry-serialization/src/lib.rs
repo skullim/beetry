@@ -1,3 +1,8 @@
+//! Serialization related functionality.
+//!
+//! This crate is an internal Beetry implementation crate and is not considered
+//! part of the public API. For public APIs, use the `beetry` crate.
+
 use anyhow::Result;
 
 pub mod json {

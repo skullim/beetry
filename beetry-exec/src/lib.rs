@@ -1,8 +1,11 @@
 //! # Beetry Exec
 //!
+//! This crate is an internal Beetry implementation crate and is not considered
+//! part of the public API. For public APIs, use the `beetry` crate.
+//!
 //! `beetry-exec` provides a task executor for Beetry action tasks.
 //!
-//! The crate is intentionally small and centers around two responsibilities:
+//! The crate provides the following types:
 //!
 //! - [`Executor`] runs registered [`NodeTask`] values to completion
 //! - [`TaskRegistry`] schedules new tasks and returns a [`TaskHandle`] for
@@ -31,7 +34,7 @@ use beetry_core::{
 use futures::{StreamExt, stream::FuturesUnordered};
 use tokio::sync::{
     Notify,
-    mpsc::{Receiver, Sender, channel, error::TryRecvError},
+    mpsc::{self, Receiver, Sender, error::TryRecvError},
 };
 use tracing::{debug, instrument};
 
@@ -112,11 +115,9 @@ impl Executor<Init> {
     )]
     /// Creates a new executor with an internal bounded task channel.
     ///
-    /// The returned executor is still in its setup phase. Use
-    /// [`Executor::into_ready_with_registry`] to split out the
-    /// [`TaskRegistry`] and obtain a runnable executor.
+    /// The returned executor is still in its setup phase.
     pub fn new(config: ExecutorConfig) -> Executor<WithRegistry> {
-        let (sender, recv) = channel(config.task_channel_capacity);
+        let (sender, recv) = mpsc::channel(config.task_channel_capacity);
         let registry = TaskRegistry::new(sender);
 
         Executor {
@@ -129,7 +130,7 @@ impl Executor<Init> {
 impl Executor<WithRegistry> {
     /// Finalizes setup and returns both the runnable executor and its registry.
     ///
-    /// This is the handoff point between initialization and runtime:
+    /// This is the transition point between initialization and runtime:
     ///
     /// - the returned [`Executor<Ready>`] can be driven with
     ///   [`ExecutorConcept::run`]
@@ -194,8 +195,7 @@ impl TaskRegistry {
 impl RegisterTask<TaskHandle> for TaskRegistry {
     #[instrument(skip_all, fields(task = %task.desc()))]
     fn register(&self, task: NodeTask) -> Result<TaskHandle> {
-        //@todo investigate if watch channel is not better suited here
-        let (status_send, status_recv) = channel(1);
+        let (status_send, status_recv) = mpsc::channel(1);
         let notify = Arc::new(Notify::new());
         let exe_task = ExecutionTask::new(task, status_send, Arc::clone(&notify));
         let handle = TaskHandle::new(

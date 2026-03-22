@@ -1,37 +1,9 @@
 //! # Beetry Plugin
 //!
-//! This crate provides the plugin registration and factory infrastructure
-//! needed when custom nodes or channels must be available in the editor or
-//! reconstructible from serialized trees.
+//! This crate is an internal Beetry implementation crate and is not considered
+//! part of the public API. For public APIs, use the `beetry` crate.
 //!
-//! At a high level, a plugin contributes two things:
-//!
-//! - a spec, so the editor and reconstruction pipeline know what exists
-//! - a factory, so runtime objects can be created from serialized tree data
-//!
-//! The macros provided by this crate generate the corresponding plugin type
-//! and register it automatically.
-//!
-//! ## Channel plugins
-//!
-//! Channel plugins start with a message type. The message must provide the
-//! metadata Beetry uses for typing and editor integration.
-//!
-//! See [`channel!`] for the full example and usage details.
-//!
-//! ## Node plugins
-//!
-//! Beetry provides node plugin macros for the main behavior tree categories:
-//!
-//! - [`action!`] for leaf nodes that perform work
-//! - [`condition!`] for leaf nodes that evaluate success or failure
-//! - [`control!`] for nodes that manage multiple children
-//! - [`decorator!`] for nodes that wrap a single child
-//!
-//! ## Parameters
-//!
-//! For nodes with customizable parameters, implement [`ProvideParamSpec`] for
-//! a params struct to expose editable parameter metadata to the editor.
+//! This crate provides the plugin related functionality.
 
 mod channel;
 mod channel_macro;

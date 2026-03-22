@@ -1,9 +1,10 @@
 //! # Beetry Core
 //!
+//! This crate is an internal Beetry implementation crate and is not considered
+//! part of the public API. For public APIs, use the `beetry` crate.
+//!
 //! `beetry-core` defines foundational behavior tree framework traits and
 //! concepts.
-//!
-//! Most users interact with this crate through four concepts:
 //!
 //! - [`Node`]: the trait every executable tree node implements
 //! - [`Ticker`]: a driver that advances a tree from an external tick source

@@ -1,3 +1,8 @@
+//! Procedural macros used by Beetry.
+//!
+//! This crate is an internal Beetry implementation crate and is not considered
+//! part of the public API. For public APIs, use the `beetry` crate.
+
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{

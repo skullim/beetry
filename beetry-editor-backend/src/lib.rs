@@ -1,12 +1,13 @@
 //! Backend services for the Beetry editor.
 //!
-//! This crate owns the editor-facing application layer operations. The layered
-//! architecture is displayed below:
+//! This crate is an internal Beetry implementation crate and is not considered
+//! part of the public API. For public APIs, use the `beetry` crate.
+//!
+//! The layered backend architecture is displayed below:
 #![doc = embed_doc_image::embed_image!(
     "backend_layers",
     "docs/layers.excalidraw.png"
 )]
-//! Consult [`api`] for offered API.
 
 //! ![Beetry editor backend layers][backend_layers]
 //! # FAQ

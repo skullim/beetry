@@ -1,5 +1,8 @@
 //! # Beetry Engine
 //!
+//! This crate is an internal Beetry implementation crate and is not considered
+//! part of the public API. For public APIs, use the `beetry` crate.
+//!
 //! [`TreeEngine`] is the high-level entry point for loading a tree, preparing
 //! the executor, and driving the tree until it reaches a terminal state.
 //! It is the most idiomatic way to set up and execute trees.
@@ -58,17 +61,15 @@ pub struct TreeEngineConfig {
 /// Errors that can occur while driving a tree with the engine.
 #[derive(Debug, ThisError)]
 pub enum Error {
-    /// The ticker failed while producing ticks for the tree.
     #[error(transparent)]
     TickerError(#[from] TickerError),
-    /// The executor failed before the tree reached a terminal state.
     #[error("executor failed before tree reached terminal state: {0}")]
     ExecutorFailure(String),
 }
 
 #[expect(
     clippy::multiple_inherent_impl,
-    reason = "other implementation is gated behind a feature"
+    reason = "other implementation is gated behind a plugin feature"
 )]
 impl TreeEngine<Configured> {
     /// Creates a new engine in the [`Configured`] state.
@@ -85,7 +86,8 @@ impl TreeEngine<Configured> {
     /// Registers an action defined by a custom [`ActionBehavior`].
     ///
     /// Each action must be registered with the [`TreeEngine`] before it can be
-    /// inserted into a fully constructed [`Tree`].
+    /// inserted into a [`Tree`]. In other words, all action nodes used by a
+    /// [`Tree`] instance must be registered first.
     pub fn register_action<B>(&self, behavior: B) -> Action<TaskRegistry, TaskHandle, B>
     where
         B: ActionBehavior + 'static,
