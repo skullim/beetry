@@ -19,8 +19,7 @@ use beetry_editor_types::{
 };
 use beetry_message::MessageHash;
 use beetry_plugin::{
-    BoxPlugin, Named, Plugin,
-    channel::{BoxChannelPlugin, ChannelPluginConstructor, TypeErasedChannel},
+    BoxChannelPlugin, BoxPlugin, ChannelPluginConstructor, Named, Plugin, TypeErasedChannel,
     node::{
         ActionPluginConstructor, BoxActionPlugin, BoxConditionPlugin, BoxControlPlugin,
         BoxDecoratorPlugin, ConditionPluginConstructor, ControlContext, ControlPluginConstructor,

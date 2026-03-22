@@ -2,9 +2,7 @@
 #![allow(unused_qualifications)]
 
 //! Dioxus-based frontend for the Beetry editor.
-//!
 //! This crate contains the desktop UI used to author behavior tree projects.
-//! Use [`launch`] to start the desktop editor application.
 
 mod backend;
 mod components;
@@ -22,7 +20,7 @@ pub use specs::{SharedSpecs, Specs};
     clippy::missing_panics_doc,
     reason = "logger should be always initialized"
 )]
-/// Launches the desktop Beetry editor application.
+/// Launches the desktop Beetry editor.
 pub fn launch() {
     dioxus_logger::init(Level::INFO).expect("failed to init logger");
     let cfg = dioxus::desktop::Config::default().with_window(

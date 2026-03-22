@@ -25,7 +25,8 @@ channels, and provide node parameters.
   Your browser does not support the video tag.
 </video>
 
-Node parameters cannot be created with invalid values, so such errors are detected early rather than at tree execution time.
+Node parameters cannot be created with invalid values, so such errors are
+detected early rather than at tree execution time.
 
 ## Connecting Elements
 

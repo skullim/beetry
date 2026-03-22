@@ -28,12 +28,12 @@ macro_rules! channel {
     ($plugin_id:ident : $msg_ty:ty) => {
         pub struct $plugin_id {
             spec: $crate::__macro_support::ChannelSpec,
-            factory: $crate::channel::Factory,
+            factory: $crate::Factory,
         }
 
         impl $crate::Plugin for $plugin_id {
             type Spec = $crate::__macro_support::ChannelSpec;
-            type Factory = $crate::channel::Factory;
+            type Factory = $crate::Factory;
 
             fn new() -> Self
             where
@@ -41,7 +41,7 @@ macro_rules! channel {
             {
                 Self {
                     spec: $crate::__macro_support::ChannelSpec::new::<$msg_ty>(),
-                    factory: $crate::channel::Factory::from_msg::<$msg_ty>(),
+                    factory: $crate::Factory::from_msg::<$msg_ty>(),
                 }
             }
 
@@ -58,6 +58,6 @@ macro_rules! channel {
             }
         }
 
-        $crate::submit!($crate::channel::ChannelPluginConstructor::new::<$plugin_id>());
+        $crate::submit!($crate::ChannelPluginConstructor::new::<$plugin_id>());
     };
 }

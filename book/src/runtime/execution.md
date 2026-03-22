@@ -55,8 +55,14 @@ execution via a state machine. On the first `tick`, it uses the
 user-provided `ActionBehavior` to create a task and register it with the
 executor, which returns a task handle. On later ticks, `Action` uses that
 handle to query the task status, or to abort the task if execution changes
-direction. Once the task reaches a terminal state, `Action` returns to its
-idle state and is ready to create a new task on a later `tick`.
+direction.
+
+Aborting is currently implemented by sending an abort request
+through the task handle and then polling until the task reports a terminal
+status.
+
+Once the task reaches a terminal state, `Action` returns to its idle
+state and is ready to create a new task on a later `tick`.
 
 The following sequence shows the high-level interaction between an `Action`,
 task registration, the executor, and a task handle.

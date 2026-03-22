@@ -1,6 +1,7 @@
 # Inter-Node Communication
 
 ## Comparison
+
 This section compares the main approaches to inter-node communication in
 behavior trees.
 

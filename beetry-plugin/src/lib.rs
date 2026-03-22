@@ -9,9 +9,6 @@
 //! - a spec, so the editor and reconstruction pipeline know what exists
 //! - a factory, so runtime objects can be created from serialized tree data
 //!
-//! This keeps the core crates generic while allowing each application to
-//! define its own behavior tree vocabulary.
-//!
 //! The macros provided by this crate generate the corresponding plugin type
 //! and register it automatically.
 //!
@@ -31,23 +28,12 @@
 //! - [`control!`] for nodes that manage multiple children
 //! - [`decorator!`] for nodes that wrap a single child
 //!
-//! Each macro-generated plugin:
-//!
-//! - publishes a `NodeSpec`
-//! - publishes port metadata and parameter metadata
-//! - provides a factory that reconstructs the runtime behavior from stored
-//!   parameters and resolved channel endpoints
-//!
 //! ## Parameters
 //!
 //! For nodes with customizable parameters, implement [`ProvideParamSpec`] for
 //! a params struct to expose editable parameter metadata to the editor.
-//!
-//! See [`action!`], [`condition!`], [`control!`], and [`decorator!`] for the
-//! macro-level examples that show how to attach a params schema with
-//! `params(...)` and deserialize the typed value at runtime.
 
-pub mod channel;
+mod channel;
 mod channel_macro;
 pub mod node;
 mod node_macro;
@@ -55,6 +41,7 @@ mod node_macro;
 pub use beetry_editor_types::spec::node::{
     FieldDefinition, FieldMetadata, FieldTypeSpec, ParamsSpec,
 };
+pub use channel::{BoxChannelPlugin, ChannelPluginConstructor, Factory, TypeErasedChannel};
 
 pub use crate::node::{ParamsDeserializer, ProvideParamSpec};
 

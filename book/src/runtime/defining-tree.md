@@ -22,16 +22,14 @@ In code, this can be written as:
 # extern crate tokio;
 # extern crate anyhow;
 # extern crate beetry;
-use std::time::Duration;
-
-use anyhow::{Result, anyhow};
-use beetry::{
-    leaf::{ActionBehavior, NodeTask, Task},
-    node::{BoxNode, Root, MemSequence},
-    runtime::{PeriodicTick, PeriodicTicker, TickStatus, Tree, TreeEngine, TreeEngineConfig},
-};
-use tokio::sync::mpsc;
-
+# use std::time::Duration;
+# use anyhow::{Result, anyhow};
+# use beetry::{
+#     leaf::{ActionBehavior, NodeTask, Task},
+#     node::{BoxNode, Root, MemSequence},
+#     runtime::{PeriodicTick, PeriodicTicker, TickStatus, Tree, TreeEngine, TreeEngineConfig},
+# };
+# use tokio::sync::mpsc;
 #[derive(Debug, Clone)]
 struct Pose {
     x: f32,

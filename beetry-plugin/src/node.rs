@@ -71,6 +71,41 @@ impl DecoratorContext {
     }
 }
 
+/// Provides parameter specification for a parameter type.
+///
+/// Implement this trait for a serializable params struct to describe which
+/// fields can be configured in the editor and how they should be validated.
+///
+/// ```rust, no_run
+/// # use beetry_editor_types::spec::node::{
+/// #     FieldDefinition, FieldMetadata, FieldTypeSpec, ParamsSpec,
+/// # };
+/// # use beetry_plugin::ProvideParamSpec;
+/// # use mitsein::iter1::IntoIterator1;
+/// use serde::Deserialize;
+///
+/// /// Not strictly required to implement `ProvideParamSpec` but param type
+/// /// must be deserializable to be usable with any node registration macro.
+/// /// See book chapter on plugin for in-depth explanation.
+/// #[derive(Deserialize)]
+/// struct RetryParams;
+///
+/// impl ProvideParamSpec for RetryParams {
+///     fn provide() -> ParamsSpec {
+///         [(
+///             "retry_limit".into(),
+///             FieldDefinition {
+///                 type_spec: FieldTypeSpec::U64(FieldMetadata::default()),
+///                 description: Some(
+///                     "Maximum number of retry attempts".into(),
+///                 ),
+///             },
+///         )]
+///         .into_iter1()
+///         .collect1()
+///     }
+/// }
+/// ```
 pub trait ProvideParamSpec {
     fn provide() -> ParamsSpec;
 }

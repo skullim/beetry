@@ -1,6 +1,15 @@
 # Caveats
 
+## Runtime
+
+### Action abort
+
+Action abort is currently implemented as a blocking operation. Beetry sends an
+abort request through the task handle and then polls until the task reports a
+terminal status.
+
 ## Plugins
+
 ### Duplicate identifiers
 
 Each plugin type must declare a unique identifier. For example it is totally

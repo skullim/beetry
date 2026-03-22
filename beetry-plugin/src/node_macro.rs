@@ -2,45 +2,138 @@
 ///
 /// The generated plugin:
 ///
-/// - publishes a `NodeSpec`
-/// - publishes port metadata and parameter metadata
-/// - provides a factory that reconstructs the runtime behavior from stored
-///   parameters and resolved channel endpoints
+/// - defines a `NodeSpec`
+/// - defines optional port metadata and parameter metadata
+/// - defines a factory that reconstructs the action from reconstruction data
 /// - registers itself automatically
 ///
-/// Minimal example:
 ///
-/// ```rust, ignore
+/// Minimal action without params or channels:
+///
+/// ```rust, no_run
+/// # use anyhow::Result;
+/// # use beetry_core::{ActionBehavior, NodeTask};
+/// # use beetry_plugin::action;
+///
+/// struct WaitForSignal;
+///
+/// impl ActionBehavior for WaitForSignal {
+///     fn task(&mut self) -> Result<NodeTask> {
+///         # todo!()
+///     }
+/// }
+///
 /// action! {
-///     MultiParamsPlugin: "Multi Params";
-///     params(parameters): MultiParamsParams::provide();
-///     create: MultiParams::new(ParamsDeserializer::deserialize(parameters)?);
+///     WaitForSignalPlugin: "Wait For Signal";
+///     create: WaitForSignal;
 /// }
 /// ```
 ///
-/// Example with typed inputs and outputs:
+/// Action with parameters:
 ///
-/// ```rust, ignore
+/// ```rust, no_run
+/// # use anyhow::Result;
+/// # use beetry_core::{ActionBehavior, NodeTask};
+/// # use beetry_editor_types::spec::node::{
+/// #     FieldDefinition, FieldMetadata, FieldTypeSpec, ParamsSpec,
+/// # };
+/// # use beetry_plugin::{ParamsDeserializer, ProvideParamSpec, action};
+/// # use mitsein::iter1::IntoIterator1;
+/// # use serde::Deserialize;
+/// #[derive(Deserialize)]
+/// struct RetryParams {
+///     retries: u64,
+/// }
+///
+/// impl ProvideParamSpec for RetryParams {
+///     fn provide() -> ParamsSpec {
+///         [(
+///             "retries".into(),
+///             FieldDefinition {
+///                 type_spec: FieldTypeSpec::U64(FieldMetadata::default()),
+///                 description: Some("Maximum retry count".into()),
+///             },
+///         )]
+///         .into_iter1()
+///         .collect1()
+///     }
+/// }
+///
+/// struct RetryAction {
+///     params: RetryParams,
+/// }
+///
+/// impl RetryAction {
+///     fn new(params: RetryParams) -> Self {
+///         Self { params }
+///     }
+/// }
+///
+/// impl ActionBehavior for RetryAction {
+///     fn task(&mut self) -> Result<NodeTask> {
+///         # let _ = self.params.retries;
+///         # todo!()
+///     }
+/// }
+///
 /// action! {
-///     MultiPortsPlugin: "Multi Ports";
-///     receivers: [
-///         in1: Pose => "Pose input 1",
-///         in2: Pose => "Pose input 2",
-///     ];
-///     senders: [
-///         out1: Pose => "Pose output 1",
-///         out2: Pose => "Pose output 2",
-///     ];
-///     create: MultiPorts::new(
-///         MultiPortsReceivers::builder()
-///             .in1(in1)
-///             .in2(in2)
-///             .build(),
-///         out1,
-///         out2
-///     );
+///     RetryActionPlugin: "Retry Action";
+///     params(parameters): RetryParams::provide();
+///     create: RetryAction::new(ParamsDeserializer::deserialize(parameters)?);
 /// }
 /// ```
+///
+/// Action with one receiver and one sender:
+///
+/// ```rust, no_run
+/// # use anyhow::Result;
+/// # use beetry_core::{ActionBehavior, NodeTask, Receiver, Sender};
+/// # use beetry_macros::Message;
+/// # use beetry_message::Message;
+/// # use beetry_plugin::action;
+/// # use type_hash::TypeHash;
+/// #[derive(Debug, Clone, Copy, Default, TypeHash, Message)]
+/// struct Pose;
+///
+/// struct RelayPose<R, S>
+/// where
+///     R: Receiver<Pose>,
+///     S: Sender<Pose>,
+/// {
+///     input: R,
+///     output: S,
+/// }
+///
+/// impl<R, S> RelayPose<R, S>
+/// where
+///     R: Receiver<Pose>,
+///     S: Sender<Pose>,
+/// {
+///     fn new(input: R, output: S) -> Self {
+///         Self { input, output }
+///     }
+/// }
+///
+/// impl<R, S> ActionBehavior for RelayPose<R, S>
+/// where
+///     R: Receiver<Pose>,
+///     S: Sender<Pose>,
+/// {
+///     fn task(&mut self) -> Result<NodeTask> {
+///         # let _ = (&mut self.input, &mut self.output);
+///         # todo!()
+///     }
+/// }
+///
+/// action! {
+///     RelayPosePlugin: "Relay Pose";
+///     receivers: [input: Pose => "Incoming pose"];
+///     senders: [output: Pose => "Republished pose"];
+///     create: RelayPose::new(input, output);
+/// }
+/// ```
+/// The DSL supports both parameters and ports, so action nodes that depend on
+/// channels and parameters can be defined by combining the examples above.
 #[macro_export]
 macro_rules! action {
     ($plugin_name:ident : $name:expr; $($tokens:tt)*) => {
@@ -67,6 +160,10 @@ macro_rules! action {
 ///
 /// Use when the node evaluates to success or failure without
 /// producing child nodes.
+///
+/// The DSL is the same as [`action!`]: `receivers`, `senders`, `params`, and
+/// `create` work the same way, but the constructed behavior must implement
+/// `ConditionBehavior` instead of `ActionBehavior`.
 #[macro_export]
 macro_rules! condition {
     ($plugin_name:ident : $name:expr; $($tokens:tt)*) => {
@@ -85,6 +182,159 @@ macro_rules! condition {
             params: none,
             params_binding: _parameters,
             tokens: $($tokens)*
+        }
+    };
+}
+
+/// Creates a decorator plugin for nodes that wrap a single child.
+///
+/// Minimal example with a bound child node:
+///
+/// ```rust, no_run
+/// # use beetry_core::{Node, TickStatus};
+/// # use beetry_core::BoxNode;
+/// # use beetry_editor_types::spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey};
+/// # use beetry_plugin::{
+/// #     Plugin,
+/// #     decorator,
+/// #     node::{DecoratorFactory, DecoratorPluginConstructor, DecoratorReconstructionData},
+/// # };
+///
+/// struct Invert<N>
+/// {
+///     child: N,
+/// }
+///
+/// impl<N> Invert<N>
+/// where
+///     N: Node,
+/// {
+///     fn new(child: N) -> Self {
+///         Self { child }
+///     }
+/// }
+///
+/// impl<N> Node for Invert<N>
+/// where
+///     N: Node,
+/// {
+///     fn tick(&mut self) -> TickStatus {
+///     #    match self.child.tick() {
+///     #        TickStatus::Success => TickStatus::Failure,
+///     #        TickStatus::Failure => TickStatus::Success,
+///     #        TickStatus::Running => TickStatus::Running,
+///     #    }
+///     }
+/// }
+///
+/// decorator!(
+///     InvertPlugin: "Invert";
+///     child(child),
+///     create: Invert::new(child),
+/// );
+/// ```
+///
+/// Parameters can be attached the same way as in [`action!`].
+#[macro_export]
+macro_rules! decorator {
+    ($plugin_name:ident : $name:expr; child($child_binding:ident),create: $create:expr,) => {
+        $crate::__decorator_plugin_impl! {
+            $plugin_name,
+            $name,
+            $child_binding,
+            none,
+            _parameters,
+            $create
+        }
+    };
+}
+
+/// Creates a control plugin for nodes that manage multiple children.
+///
+///
+/// Minimal example with bound child nodes:
+///
+/// ```rust, no_run
+/// # use beetry_core::{BoxNode, Node, NonEmptyNodes, TickStatus};
+/// # use beetry_editor_types::spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey};
+/// # use beetry_plugin::{
+/// #     Plugin,
+/// #     control,
+/// #     node::{ControlFactory, ControlPluginConstructor, ControlReconstructionData},
+/// # };
+///
+/// struct Sequence {
+///     children: NonEmptyNodes,
+/// }
+///
+/// impl Sequence {
+///     fn new(children: NonEmptyNodes) -> Self {
+///         Self { children }
+///     }
+/// }
+///
+/// impl Node for Sequence {
+///     fn tick(&mut self) -> TickStatus {
+///     #    for child in &mut self.children {
+///     #        match child.tick() {
+///     #            TickStatus::Success => continue,
+///     #            TickStatus::Failure => return TickStatus::Failure,
+///     #            TickStatus::Running => return TickStatus::Running,
+///     #        }
+///     #    }
+///     #
+///     #    TickStatus::Success
+///     }
+/// }
+///
+/// control!(
+///     SequencePlugin: "Sequence";
+///     children(children),
+///     create: Sequence::new(children),
+/// );
+/// ```
+///
+/// Parameters are attached the same way as in [`action!`].
+#[macro_export]
+macro_rules! control {
+    ($plugin_name:ident : $name:expr; children($children_binding:ident),create: $create:expr,) => {
+        $crate::__control_plugin_impl! {
+            $plugin_name,
+            $name,
+            $children_binding,
+            none,
+             _parameters,
+            $create
+        }
+    };
+    (
+        $plugin_name:ident :
+        $name:expr; children($children_binding:ident),params($params_binding:ident):
+        $params:expr,create:
+        $create:expr,
+    ) => {
+        $crate::__control_plugin_impl! {
+            $plugin_name,
+            $name,
+            $children_binding,
+            $params,
+            $params_binding,
+            $create
+        }
+    };
+    (
+        $plugin_name:ident :
+        $name:expr; children($children_binding:ident),params:
+        $params:expr,create:
+        $create:expr,
+    ) => {
+        $crate::__control_plugin_impl! {
+            $plugin_name,
+            $name,
+            $children_binding,
+            $params,
+            _parameters,
+            $create
         }
     };
 }
@@ -412,72 +662,6 @@ macro_rules! __leaf_plugin_build_params {
     };
     ($params:expr) => {
         Some($params)
-    };
-}
-
-/// Creates a control plugin for nodes that manage multiple children.
-///
-/// Use when reconstruction needs a `children(...)` binding and an
-/// optional parameter schema.
-#[macro_export]
-macro_rules! control {
-    ($plugin_name:ident : $name:expr; children($children_binding:ident),create: $create:expr,) => {
-        $crate::__control_plugin_impl! {
-            $plugin_name,
-            $name,
-            $children_binding,
-            none,
-             _parameters,
-            $create
-        }
-    };
-    (
-        $plugin_name:ident :
-        $name:expr; children($children_binding:ident),params($params_binding:ident):
-        $params:expr,create:
-        $create:expr,
-    ) => {
-        $crate::__control_plugin_impl! {
-            $plugin_name,
-            $name,
-            $children_binding,
-            $params,
-            $params_binding,
-            $create
-        }
-    };
-    (
-        $plugin_name:ident :
-        $name:expr; children($children_binding:ident),params:
-        $params:expr,create:
-        $create:expr,
-    ) => {
-        $crate::__control_plugin_impl! {
-            $plugin_name,
-            $name,
-            $children_binding,
-            $params,
-            _parameters,
-            $create
-        }
-    };
-}
-
-/// Creates a decorator plugin for nodes that wrap a single child.
-///
-/// Use when reconstruction needs a `child(...)` binding and the
-/// plugin shape is a single-child structural node.
-#[macro_export]
-macro_rules! decorator {
-    ($plugin_name:ident : $name:expr; child($child_binding:ident),create: $create:expr,) => {
-        $crate::__decorator_plugin_impl! {
-            $plugin_name,
-            $name,
-            $child_binding,
-            none,
-            _parameters,
-            $create
-        }
     };
 }
 

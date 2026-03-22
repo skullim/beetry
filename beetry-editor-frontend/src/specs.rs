@@ -5,7 +5,7 @@ use beetry_editor_types::spec::{
     node::{NodeSpec, NodeSpecMap},
 };
 use beetry_plugin::{
-    channel::ChannelPluginConstructor,
+    ChannelPluginConstructor,
     node::{
         ActionPluginConstructor, ConditionPluginConstructor, ControlPluginConstructor,
         DecoratorPluginConstructor,

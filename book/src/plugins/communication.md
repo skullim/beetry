@@ -33,21 +33,6 @@ In Beetry, messages describe the data itself, not the way that data is
 transported. For example, a pose estimate, a trajectory, or a safety status can
 all be modeled as message types.
 
-In practice, message types are usually simple domain data models, for example:
-
-```rust
-# extern crate beetry;
-# extern crate type_hash;
-use beetry::Message;
-use type_hash::TypeHash;
-
-#[derive(Debug, Clone, Copy, Default, TypeHash, Message)]
-pub struct Pose {
-    pub x: f32,
-    pub y: f32,
-}
-```
-
 To be used as a Beetry message, a type must implement the `Message`
 trait. In most cases this is done through the derive macro.
 
@@ -58,10 +43,12 @@ Recommended message types are:
 - reusable across multiple nodes
 
 Once a message type exists, it can be exposed to the plugin system and paired
-with one of the supported channel kinds.
+with one of the supported channel kinds. In practice this usually means:
 
-For that, Beetry provides the `channel!` macro.
-For example, the `Pose` message above can be registered like this:
+1. define a domain type and derive `Message` for it
+2. register it in the plugin system with the `channel!` macro
+
+For example:
 
 ```rust
 # extern crate beetry;

@@ -17,50 +17,8 @@ that remains structured and inspectable by the framework.
 
 ## Registration
 
-A parameter is usually introduced by defining a serializable Rust type, and then
-implementing `ProvideParamSpec` for that type.
+A parameter is usually introduced by defining a deserializable Rust type, and
+then implementing `ProvideParamSpec` for that type.
 
-For example, a node may accept a retry limit:
-
-```rust
-# extern crate anyhow;
-# extern crate beetry;
-# extern crate mitsein;
-use std::sync::Arc;
-
-use anyhow::anyhow;
-use beetry::plugin::{
-    FieldDefinition, FieldMetadata, FieldName, FieldTypeSpec, ParamsSpec,
-    ProvideParamSpec,
-};
-use mitsein::iter1::IntoIterator1;
-
-#[derive(Debug, Clone)]
-pub struct RetryParams {
-    retry_limit: u64,
-}
-
-impl ProvideParamSpec for RetryParams {
-    fn provide() -> ParamsSpec {
-        [(
-            FieldName::from("retry_limit"),
-            FieldDefinition {
-                type_spec: FieldTypeSpec::U64(FieldMetadata::new(Arc::new(|value| {
-                    if *value == 0 {
-                        Err(anyhow!("retry_limit must be greater than 0"))
-                    } else {
-                        Ok(())
-                    }
-                }))),
-                description: Some("Maximum number of retry attempts".into()),
-            },
-        )]
-        .into_iter1()
-        .collect1()
-    }
-}
-```
-
-Above, we defined a parameter with a single field, gave it a name, assigned it a
-type (`FieldTypeSpec::U64`), attached a custom validator, and provided a custom
-description.
+For the most up-to-date minimal example, check the `ProvideParamSpec` API docs
+in the `beetry::plugin` module.
