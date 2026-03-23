@@ -97,6 +97,7 @@ well as generating trees to be executed at runtime.
 
 ## Roadmap
 
+- [ ] Support external ports
 - [ ] Parameters 2.0: improve ergonomics and reusability
 - [ ] Subtree support in Beehive
 - [ ] User-defined executors
