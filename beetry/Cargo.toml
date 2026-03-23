@@ -1,9 +1,13 @@
 [package]
 name = "beetry"
-description = "Behavior tree framework. Implementation details will come in the next release."
+description = "Behavior tree framework with a runtime, plugin system, and Beehive editor."
 version = "0.1.0"
-edition = "2024"
+edition.workspace = true
 license.workspace = true
+readme.workspace = true
+repository.workspace = true
+categories.workspace = true
+keywords.workspace = true
 
 [features]
 default = ["plugin", "editor", "tokio"]

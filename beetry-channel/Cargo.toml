@@ -1,8 +1,13 @@
 [package]
 name = "beetry-channel"
+description = "Beetry library with reusable channel implementations."
 version = "0.1.0"
-edition = "2024"
+edition.workspace = true
 license.workspace = true
+readme.workspace = true
+repository.workspace = true
+categories.workspace = true
+keywords.workspace = true
 
 [features]
 default = ["tokio"]

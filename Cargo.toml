@@ -18,6 +18,20 @@ members = [
     "beetry-serialization",
 ]
 
+[workspace.package]
+edition = "2024"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/skullim/beetry"
+keywords = ["behavior-tree", "editor", "plugin", "execution", "async"]
+categories = [
+    "asynchronous",
+    "concurrency",
+    "development-tools",
+    "gui",
+    "visualization",
+]
+
 [workspace.dependencies]
 anyhow = "1.0.102"
 bon = "3.9.1"
@@ -43,11 +57,12 @@ panic = "abort"
 inherits = "release"
 debug = true
 
-[workspace.package]
-license = "MIT"
-
 [workspace.lints.clippy]
+cargo = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
+
+# cargo
+multiple_crate_versions = "allow"
 
 # pedantic
 missing_errors_doc = "allow"

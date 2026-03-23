@@ -1,8 +1,13 @@
 [package]
 name = "beetry-core"
+description = "Internal beetry crate. For the public API, check the beetry crate."
 version = "0.1.0"
-edition = "2024"
+edition.workspace = true
 license.workspace = true
+readme.workspace = true
+repository.workspace = true
+categories.workspace = true
+keywords.workspace = true
 
 [features]
 default = []
