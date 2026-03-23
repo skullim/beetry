@@ -104,4 +104,9 @@ produced before an abort or after a reset.
 
 To avoid those issues, Beetry synchronizes message propagation with ticking. At
 the same time, users can decide under which node statuses a particular message
-is forwarded, preserving full flexibility.
+is forwarded, preserving full flexibility. In the case of `Action` nodes, this
+data flow is typically implemented through action
+[hooks](../runtime/execution.md#hooks).
+
+This can introduce some boilerplate; see [Caveats](../caveats.md#message-propagation)
+for more details.

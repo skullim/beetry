@@ -55,14 +55,24 @@ execution via a state machine. On the first `tick`, it uses the
 user-provided `ActionBehavior` to create a task and register it with the
 executor, which returns a task handle. On later ticks, `Action` uses that
 handle to query the task status, or to abort the task if execution changes
-direction.
-
-Aborting is currently implemented by sending an abort request
-through the task handle and then polling until the task reports a terminal
-status.
+direction.[^action-abort]
 
 Once the task reaches a terminal state, `Action` returns to its idle
 state and is ready to create a new task on a later `tick`.
+
+### Hooks
+
+`ActionBehavior` provides hooks as part of its API. They are used to inject
+non-blocking logic that should run depending on the current `TickStatus`.
+
+This gives a synchronization mechanism between the background task and the
+action.
+
+This also means a task status is not always the final action result. If the
+task reports `Success`, but the action fails to complete the associated
+hook call, the action is treated as failed for that tick.
+
+### Execution Flow
 
 The following sequence shows the high-level interaction between an `Action`,
 task registration, the executor, and a task handle.
@@ -82,6 +92,7 @@ sequenceDiagram
     User ->>+ Action: tick()
     Action ->>+ TaskHandle: query()
     TaskHandle -->>- Action: status
+    Action -->> Action: call hook based on status
     Action -->>- User: status
 
     User ->>+ Action: abort()
@@ -100,6 +111,10 @@ sequenceDiagram
 This approach keeps the node interface synchronous and non-blocking, while
 still allowing long-running work to execute in the background. As a result,
 multiple leaf nodes can make progress concurrently.
+
+[^action-abort]: Aborting is currently implemented by sending an abort request
+through the task handle and then polling until the task reports a terminal
+status. See also [Caveats](../caveats.md#action-abort).
 
 > [!IMPORTANT]
 >
