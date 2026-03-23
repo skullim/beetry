@@ -95,6 +95,14 @@ well as generating trees to be executed at runtime.
 
 <video controls src="https://github.com/user-attachments/assets/1640300e-9836-462a-af67-8cdbdab43064"></video>
 
+## Roadmap
+
+- [ ] Parameters 2.0: improve ergonomics and reusability
+- [ ] Subtree support in Beehive
+- [ ] User-defined executors
+- [ ] Unique compile-time plugin registration
+- [ ] Better ergonomics for action node implementation
+
 ## License
 
 Licensed under either of
