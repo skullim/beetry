@@ -3,6 +3,7 @@ name = "beetry-node"
 description = "Beetry library with reusable behavior tree nodes."
 version = "0.1.0"
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 readme.workspace = true
 repository.workspace = true

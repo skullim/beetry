@@ -3,6 +3,7 @@ name = "beetry"
 description = "Behavior tree framework with a runtime, plugin system, and Beehive editor."
 version = "0.1.0"
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 readme.workspace = true
 repository.workspace = true
@@ -14,7 +15,6 @@ default = ["plugin", "editor", "tokio"]
 plugin = [
     "dep:beetry-plugin",
     "dep:beetry-channel",
-    "dep:beetry-editor-types",
     "beetry-engine/plugin",
     "beetry-node/plugin",
 ]
@@ -26,7 +26,6 @@ beetry-channel = { path = "../beetry-channel", optional = true }
 beetry-core = { path = "../beetry-core" }
 beetry-engine = { path = "../beetry-engine" }
 beetry-editor-frontend = { path = "../beetry-editor-frontend", optional = true }
-beetry-editor-types = { path = "../beetry-editor-types", optional = true }
 beetry-node = { path = "../beetry-node" }
 beetry-macros = { path = "../beetry-macros" }
 beetry-message = { path = "../beetry-message" }

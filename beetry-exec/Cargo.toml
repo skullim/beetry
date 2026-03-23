@@ -3,6 +3,7 @@ name = "beetry-exec"
 description = "Internal beetry crate. For the public API, check the beetry crate."
 version = "0.1.0"
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 readme.workspace = true
 repository.workspace = true

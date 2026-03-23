@@ -3,6 +3,7 @@ name = "beetry-channel"
 description = "Beetry library with reusable channel implementations."
 version = "0.1.0"
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 readme.workspace = true
 repository.workspace = true
