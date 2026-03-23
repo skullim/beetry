@@ -57,7 +57,7 @@ found.
 
 ## Editor comparison
 
-Beetry uses an editor called Beehive. At the time of writing,
+Beetry uses an editor called [Beehive](#beehive). At the time of writing,
 [`bonsai-bt`](https://github.com/Sollimann/bonsai) does not provide an editor,
 while [`BehaviorTree.CPP`](https://github.com/BehaviorTree/BehaviorTree.CPP)
 uses a separate editor called [`Groot2`](https://www.behaviortree.dev/groot/).
@@ -80,8 +80,11 @@ Beetry's public API is provided through the `beetry` crate (see
 If you want to contribute reusable generic nodes or channel implementations,
 add them to `beetry-node` and `beetry-channel`, respectively.
 
-The remaining workspace crates are considered internal APIs and may change
-without stability guarantees.
+### Example
+
+See the [example](beetry-example) crate for an end-to-end autonomous parking
+example built on Beetry's plugin system. It shows how domain-specific messages,
+channels, and nodes can be exposed to Beehive and executed by the runtime.
 
 ## Beehive
 
@@ -89,12 +92,6 @@ Beetry includes Beehive, a visual editor for creating and saving projects, as
 well as generating trees to be executed at runtime.
 
 <video controls src="https://github.com/user-attachments/assets/1640300e-9836-462a-af67-8cdbdab43064"></video>
-
-## Example
-
-See the [example](beetry-example) crate for an end-to-end autonomous parking
-example built on Beetry's plugin system. It shows how domain-specific messages,
-channels, and nodes can be exposed to Beehive and executed by the runtime.
 
 ## License
 
