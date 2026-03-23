@@ -28,6 +28,9 @@ channels, and provide node parameters.
 Node parameters cannot be created with invalid values, so such errors are
 detected early rather than at tree execution time.
 
+When you hover over an element, it shows at least the element ID. For nodes
+with parameters, the currently used parameter values are also shown.
+
 ## Connecting Elements
 
 Connecting nodes is as simple as clicking the output pin of a node and dragging

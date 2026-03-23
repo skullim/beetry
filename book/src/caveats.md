@@ -22,7 +22,10 @@ is produced by the background task and then forwarded via action
 hooks. This keeps message propagation synchronized with ticking, but it can
 introduce some boilerplate to implement such propagation.
 
-Beetry does not enforce a single propagation policy here, because the right semantics depend on the use case and on the meaning of the message. This preserves flexibility, but it also means users must decide when values should be propagated and when receiver queues should be cleared.
+Beetry does not enforce a single propagation policy here, because the right
+semantics depend on the use case and on the meaning of the message. This
+preserves flexibility, but it also means users must decide when values should be
+propagated and when receiver queues should be cleared.
 
 ### Duplicate identifiers
 

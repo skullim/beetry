@@ -2,7 +2,7 @@
 
 Beetry uses explicit inter-node communication. For a comparison with other
 approaches and the rationale behind this decision, see
-[Communication Methods Comparison](../appendix/communication-methods-comparison.md).
+[Communication Methods Comparison](../appendix/inter-node-communication.md).
 
 ## Model
 
@@ -108,5 +108,5 @@ is forwarded, preserving full flexibility. In the case of `Action` nodes, this
 data flow is typically implemented through action
 [hooks](../runtime/execution.md#hooks).
 
-This can introduce some boilerplate; see [Caveats](../caveats.md#message-propagation)
-for more details.
+This can introduce some boilerplate; see
+[Caveats](../caveats.md#message-propagation) for more details.

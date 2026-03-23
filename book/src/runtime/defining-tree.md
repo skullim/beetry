@@ -16,7 +16,8 @@ Root
 In code, this can be written as:
 
 ```rust,no_run
-// Some parts of boilerplate code has been hidden, if you want to see all click Show hidden lines in the top right corner of the box
+// Some parts of boilerplate code has been hidden, if you want to see all click 
+// Show hidden lines in the top right corner of the box
 
 # // This is only needed by mdbook to link the crates
 # extern crate tokio;
