@@ -52,9 +52,10 @@ For example:
 
 ```rust
 # extern crate beetry;
-# extern crate type_hash;
-use beetry::Message;
-use type_hash::TypeHash;
+use beetry::{
+    Message,
+    type_hash::{self, TypeHash},
+};
 
 #[derive(Debug, Clone, Copy, Default, TypeHash, Message)]
 pub struct Pose {

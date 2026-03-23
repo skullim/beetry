@@ -91,8 +91,8 @@
 /// # use beetry_core::{ActionBehavior, NodeTask};
 /// # use beetry_macros::Message;
 /// # use beetry_message::Message;
+/// # use beetry_message::type_hash::{self, TypeHash};
 /// # use beetry_plugin::action;
-/// # use type_hash::TypeHash;
 /// #[derive(Debug, Clone, Copy, Default, TypeHash, Message)]
 /// struct Pose;
 ///

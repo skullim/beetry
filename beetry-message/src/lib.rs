@@ -8,7 +8,9 @@ use std::cmp::Ordering;
 use getset::{CopyGetters, Getters};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
+/// Reexport macro needed to fully define Message to avoid users depending on
+/// external crate
+pub use type_hash;
 /// Describes the hash of the message type (and not concrete message type
 /// instance).
 #[derive(

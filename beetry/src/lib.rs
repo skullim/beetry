@@ -25,5 +25,9 @@ pub mod node;
 pub mod plugin;
 pub mod runtime;
 
+#[cfg(feature = "plugin")]
 pub use beetry_macros::Message;
+#[cfg(feature = "plugin")]
 pub use beetry_message::Message;
+#[cfg(feature = "plugin")]
+pub use beetry_message::type_hash;

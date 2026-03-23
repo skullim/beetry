@@ -1,5 +1,4 @@
-use beetry::Message;
-use type_hash::TypeHash;
+use beetry::{Message, type_hash, type_hash::TypeHash};
 
 #[derive(Debug, Clone, Copy, Default, TypeHash, Message)]
 pub struct VehicleState {
