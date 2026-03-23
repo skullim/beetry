@@ -11,7 +11,7 @@
   - [Parameters](./plugins/parameters.md)
   - [Nodes](./plugins/nodes.md)
   - [Channel Library](./plugins/channel-library.md)
-- [Editor](./editor.md)
+- [Beehive (Editor)](./editor.md)
 - [Appendix](./appendix.md)
   - [Artifacts](./appendix/artifacts.md)
     - [Serialization Format](./appendix/artifacts/serialization-format.md)

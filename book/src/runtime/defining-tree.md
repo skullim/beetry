@@ -147,9 +147,9 @@ Second, the shape of the tree is small, so its structure is easy to understand.
 Adding or removing one or two nodes is not a major problem at this scale. In
 practical applications, however, trees usually become much wider and deeper.
 Once that happens, reasoning about their structure in code becomes harder. In
-practice, trees of realistic size are usually designed in the editor (see
-[Editor](../editor.md) chapter for more details).
+practice, trees of realistic size are usually designed in Beehive (see
+[Beehive](../editor.md) chapter for more details).
 
-Using an editor makes it easier to reason about a tree, at the cost of boxing
+Using Beehive makes it easier to reason about a tree, at the cost of boxing
 nodes and slightly restricting the constructor API, since arbitrary data cannot
 be passed directly.

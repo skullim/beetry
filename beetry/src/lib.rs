@@ -10,7 +10,7 @@
 //! - `plugin`: enables plugin-based registration for custom nodes and channels.
 //!   This can be needed when one wants to read and execute a serialized tree
 //!   that contains user-defined nodes or channels.
-//! - `editor`: enables editor for project or tree editing.
+//! - `editor`: enables Beehive for project or tree editing.
 //! - `tokio`: enables Tokio-backed channels.
 //!
 //! None of the features are required to execute a tree defined in code.

@@ -1,12 +1,12 @@
-# Editor
+# Beehive
 
 As briefly mentioned in the [Defining Tree](./runtime/defining-tree.md)
-chapter, realistic behavior trees are usually created in the editor rather
-than directly in code.
+chapter, realistic behavior trees are usually created in Beehive rather than
+directly in code.
 
-The following screenshot shows the editor layout at a glance:
+The following screenshot shows the Beehive layout at a glance:
 
-[![Beetry editor overview](./editor/editor.png)](./editor/editor.png)
+[![Beehive overview](./editor/editor.png)](./editor/editor.png)
 
 ## Creating Elements
 
@@ -61,7 +61,7 @@ The following video shows basic workspace navigation.
 
 ## Toolbar
 
-On the right side of the editor, there is a toolbar that provides actions for
+On the right side of Beehive, there is a toolbar that provides actions for
 importing and exporting artifacts.
 
 In the bottom-left corner, an error dialog reports invalid actions. When the
