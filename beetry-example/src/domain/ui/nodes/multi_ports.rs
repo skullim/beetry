@@ -71,8 +71,9 @@ where
         self.restore_initial_state();
     }
 
-    fn on_aborted(&mut self) {
-        self.restore_initial_state();
+    fn on_aborted(&mut self) -> Result<()> {
+        self.reset();
+        Ok(())
     }
 }
 
@@ -120,21 +121,17 @@ where
     S5: Sender<Pose>,
 {
     fn task(&mut self) -> Result<NodeTask> {
-        self.out1
-            .try_send(Pose::new(1.0, 1.0))
-            .map_err(|error| anyhow::anyhow!("failed to send out1: {error}"))?;
-        self.out2
-            .try_send(Pose::new(2.0, 2.0))
-            .map_err(|error| anyhow::anyhow!("failed to send out2: {error}"))?;
-        self.out3
-            .try_send(Pose::new(3.0, 3.0))
-            .map_err(|error| anyhow::anyhow!("failed to send out3: {error}"))?;
-        self.out4
-            .try_send(Pose::new(4.0, 4.0))
-            .map_err(|error| anyhow::anyhow!("failed to send out4: {error}"))?;
-        self.out5
-            .try_send(Pose::new(5.0, 5.0))
-            .map_err(|error| anyhow::anyhow!("failed to send out5: {error}"))?;
+        let send_pose = |sender: &mut dyn Sender<Pose>, port: &str, pose| -> Result<()> {
+            sender
+                .try_send(pose)
+                .map_err(|error| anyhow::anyhow!("failed to send {port}: {error}"))
+        };
+
+        send_pose(&mut self.out1, "out1", Pose::new(1.0, 1.0))?;
+        send_pose(&mut self.out2, "out2", Pose::new(2.0, 2.0))?;
+        send_pose(&mut self.out3, "out3", Pose::new(3.0, 3.0))?;
+        send_pose(&mut self.out4, "out4", Pose::new(4.0, 4.0))?;
+        send_pose(&mut self.out5, "out5", Pose::new(5.0, 5.0))?;
 
         Ok(NodeTask::new(MultiPortPublisherTask))
     }

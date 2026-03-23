@@ -1,6 +1,8 @@
 use beetry::{Message, type_hash, type_hash::TypeHash};
 
 pub mod parking;
+
+/// This modules defines nodes that are related to checking out how UI works.
 pub mod ui;
 
 #[derive(Debug, Clone, Copy, Default, TypeHash, Message)]

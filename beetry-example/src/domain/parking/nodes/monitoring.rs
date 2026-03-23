@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, anyhow, bail};
 use beetry::{
     channel::{Receiver, Sender},
     leaf::{ActionBehavior, ConditionBehavior, NodeTask, Task},
@@ -66,21 +66,30 @@ where
         )))
     }
 
-    fn on_running(&mut self) {
-        if let Some(updates_send) = &self.updates_send {
-            while let Ok(v) = self.proximity_recv.try_recv() {
-                let _ = updates_send.try_send(SafetyUpdate::Proximity(v));
-            }
-            while let Ok(v) = self.brake_recv.try_recv() {
-                let _ = updates_send.try_send(SafetyUpdate::Brake(v));
-            }
-        }
+    fn on_running(&mut self) -> Result<()> {
+        let Some(safety_update_sender) = &self.updates_send else {
+            bail!("safety sender should have been set");
+        };
+        let Some(safety_status_receiver) = &mut self.status_recv else {
+            bail!("safety status receiver should have been set");
+        };
 
-        if let Some(recv) = &mut self.status_recv {
-            while let Ok(status) = recv.try_recv() {
-                let _ = self.send.try_send(status);
-            }
+        while let Ok(v) = self.proximity_recv.try_recv() {
+            safety_update_sender
+                .try_send(SafetyUpdate::Proximity(v))
+                .map_err(|error| anyhow!("failed to send proximity update: {error}"))?;
         }
+        while let Ok(v) = self.brake_recv.try_recv() {
+            safety_update_sender
+                .try_send(SafetyUpdate::Brake(v))
+                .map_err(|error| anyhow!("failed to send brake update: {error}"))?;
+        }
+        while let Ok(status) = safety_status_receiver.try_recv() {
+            self.send
+                .try_send(status)
+                .map_err(|error| anyhow!("failed to send safety status: {error}"))?;
+        }
+        Ok(())
     }
 
     fn reset(&mut self) {
@@ -88,14 +97,14 @@ where
         self.status_recv = None;
     }
 
-    fn on_aborted(&mut self) {
-        self.updates_send = None;
-        self.status_recv = None;
+    fn on_aborted(&mut self) -> Result<()> {
+        self.reset();
+        Ok(())
     }
 
-    fn on_failure(&mut self) {
-        self.updates_send = None;
-        self.status_recv = None;
+    fn on_failure(&mut self) -> Result<()> {
+        self.reset();
+        Ok(())
     }
 }
 
@@ -139,8 +148,8 @@ impl Task for PublishSafetyStatusTask {
                 "SafetyMonitor publish: safe={}, proximity={:?}, brake={:?}",
                 safe, self.last_proximity, self.last_brake
             );
-            if self.send.send(SafetyStatus { safe }).await.is_err() {
-                info!("SafetyMonitor task stopping: receiver disconnected");
+            if let Err(e) = self.send.send(SafetyStatus { safe }).await {
+                info!("SafetyMonitor task failed due to: {e}");
                 return TickStatus::Failure;
             }
             tokio::time::sleep(self.interval).await;

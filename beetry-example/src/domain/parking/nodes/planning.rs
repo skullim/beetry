@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, anyhow, bail};
 use beetry::{
     channel::{Receiver, Sender},
     leaf::{ActionBehavior, NodeTask, Task},
@@ -70,8 +70,8 @@ impl Task for PlanParkingTrajectoryTask {
         };
         let trajectory = Trajectory { waypoints };
         info!("PlanParkingTrajectory produced: {:?}", trajectory);
-        if self.send.send(trajectory).await.is_err() {
-            info!("PlanParkingTrajectory task failed: receiver disconnected");
+        if let Err(e) = self.send.send(trajectory).await {
+            info!("PlanParkingTrajectory task failed due to: {e}");
             return TickStatus::Failure;
         }
         info!("PlanParkingTrajectory task succeeded");
@@ -102,28 +102,36 @@ where
         )))
     }
 
-    fn on_running(&mut self) {
-        if let Some(recv) = &mut self.task_trajectory_recv {
-            while let Ok(trajectory) = recv.try_recv() {
-                let _ = self.send.try_send(trajectory);
-            }
+    fn on_running(&mut self) -> Result<()> {
+        let Some(task_trajectory_receiver) = &mut self.task_trajectory_recv else {
+            bail!("trajectory receiver should have been set");
+        };
+
+        while let Ok(trajectory) = task_trajectory_receiver.try_recv() {
+            self.send
+                .try_send(trajectory)
+                .map_err(|error| anyhow!("failed to send trajectory: {error}"))?;
         }
+        Ok(())
     }
 
-    fn on_success(&mut self) {
-        self.on_running();
+    fn on_success(&mut self) -> Result<()> {
+        self.on_running()?;
+        Ok(())
     }
 
     fn reset(&mut self) {
         self.task_trajectory_recv = None;
     }
 
-    fn on_aborted(&mut self) {
-        self.task_trajectory_recv = None;
+    fn on_aborted(&mut self) -> Result<()> {
+        self.reset();
+        Ok(())
     }
 
-    fn on_failure(&mut self) {
-        self.task_trajectory_recv = None;
+    fn on_failure(&mut self) -> Result<()> {
+        self.reset();
+        Ok(())
     }
 }
 
@@ -219,8 +227,8 @@ impl Task for FollowTrajectoryTask {
             };
             info!("FollowTrajectory progress: {:?}", status);
             ParkingMilestone::FollowProgress(progress).emit();
-            if self.send.send(status).await.is_err() {
-                info!("FollowTrajectory task failed: receiver disconnected");
+            if let Err(e) = self.send.send(status).await {
+                info!("FollowTrajectory task failed due to {e}");
                 return TickStatus::Failure;
             }
         }
@@ -258,28 +266,35 @@ where
         )))
     }
 
-    fn on_running(&mut self) {
-        if let Some(recv) = &mut self.task_maneuver_recv {
-            while let Ok(status) = recv.try_recv() {
-                let _ = self.send.try_send(status);
-            }
+    fn on_running(&mut self) -> Result<()> {
+        let Some(task_maneuver_receiver) = &mut self.task_maneuver_recv else {
+            bail!("maneuver status receiver should have been set");
+        };
+        while let Ok(status) = task_maneuver_receiver.try_recv() {
+            self.send
+                .try_send(status)
+                .map_err(|error| anyhow!("failed to send maneuver status: {error}"))?;
         }
+        Ok(())
     }
 
-    fn on_success(&mut self) {
-        self.on_running();
+    fn on_success(&mut self) -> Result<()> {
+        self.on_running()?;
+        Ok(())
     }
 
     fn reset(&mut self) {
         self.task_maneuver_recv = None;
     }
 
-    fn on_aborted(&mut self) {
-        self.task_maneuver_recv = None;
+    fn on_aborted(&mut self) -> Result<()> {
+        self.reset();
+        Ok(())
     }
 
-    fn on_failure(&mut self) {
-        self.task_maneuver_recv = None;
+    fn on_failure(&mut self) -> Result<()> {
+        self.reset();
+        Ok(())
     }
 }
 

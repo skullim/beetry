@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use anyhow::{Result, anyhow};
+use anyhow::{Result, anyhow, bail};
 use beetry::{
     channel::Sender,
     leaf::{ActionBehavior, NodeTask, Task},
@@ -49,20 +49,27 @@ where
         )))
     }
 
-    fn on_running(&mut self) {
-        if let Some(recv) = &mut self.recv {
-            while let Ok(state) = recv.try_recv() {
-                let _ = self.send.try_send(state);
-            }
+    fn on_running(&mut self) -> Result<()> {
+        let Some(task_vehicle_state_receiver) = &mut self.recv else {
+            bail!("vehicle state receiver should have been set");
+        };
+
+        while let Ok(state) = task_vehicle_state_receiver.try_recv() {
+            self.send
+                .try_send(state)
+                .map_err(|error| anyhow!("failed to send vehicle state: {error}"))?;
         }
+
+        Ok(())
     }
 
     fn reset(&mut self) {
         self.recv = None;
     }
 
-    fn on_aborted(&mut self) {
+    fn on_aborted(&mut self) -> Result<()> {
         self.recv = None;
+        Ok(())
     }
 }
 
@@ -93,8 +100,8 @@ impl Task for PublishVehicleStateTask {
                 speed_mps: if self.tick >= 8 { 0.0 } else { 1.0 },
             };
             info!("VehicleStatePublisher publish: {:?}", state);
-            if self.send.send(state).await.is_err() {
-                info!("VehicleStatePublisher task stopping: receiver disconnected");
+            if let Err(e) = self.send.send(state).await {
+                info!("VehicleStatePublisher task failed due to: {e}");
                 return TickStatus::Failure;
             }
             tokio::time::sleep(self.interval).await;
@@ -141,24 +148,30 @@ where
         )))
     }
 
-    fn on_running(&mut self) {
-        if let Some(recv) = &mut self.recv {
-            while let Ok(pose) = recv.try_recv() {
-                let _ = self.send.try_send(pose);
-            }
+    fn on_running(&mut self) -> Result<()> {
+        let Some(task_pose_receiver) = &mut self.recv else {
+            bail!("localization receiver should have been set");
+        };
+        while let Ok(pose) = task_pose_receiver.try_recv() {
+            self.send
+                .try_send(pose)
+                .map_err(|error| anyhow!("failed to send localization pose: {error}"))?;
         }
+        Ok(())
     }
 
     fn reset(&mut self) {
         self.recv = None;
     }
 
-    fn on_aborted(&mut self) {
+    fn on_aborted(&mut self) -> Result<()> {
         self.recv = None;
+        Ok(())
     }
 
-    fn on_failure(&mut self) {
+    fn on_failure(&mut self) -> Result<()> {
         self.recv = None;
+        Ok(())
     }
 }
 
@@ -185,8 +198,8 @@ impl Task for PublishLocalizationTask {
             self.x += 1.0;
             let pose = Pose::new(self.x, 0.0);
             info!("LocalizationPublisher publish: {:?}", pose);
-            if self.send.send(pose).await.is_err() {
-                info!("LocalizationPublisher task stopping: receiver disconnected");
+            if let Err(e) = self.send.send(pose).await {
+                info!("LocalizationPublisher task failed due to: {e}");
                 return TickStatus::Failure;
             }
             tokio::time::sleep(self.interval).await;
@@ -233,24 +246,30 @@ where
         )))
     }
 
-    fn on_running(&mut self) {
-        if let Some(recv) = &mut self.recv {
-            while let Ok(alert) = recv.try_recv() {
-                let _ = self.send.try_send(alert);
-            }
+    fn on_running(&mut self) -> Result<()> {
+        let Some(task_proximity_receiver) = &mut self.recv else {
+            bail!("proximity receiver should have been set");
+        };
+        while let Ok(alert) = task_proximity_receiver.try_recv() {
+            self.send
+                .try_send(alert)
+                .map_err(|error| anyhow!("failed to send proximity state: {error}"))?;
         }
+        Ok(())
     }
 
     fn reset(&mut self) {
         self.recv = None;
     }
 
-    fn on_aborted(&mut self) {
+    fn on_aborted(&mut self) -> Result<()> {
         self.recv = None;
+        Ok(())
     }
 
-    fn on_failure(&mut self) {
+    fn on_failure(&mut self) -> Result<()> {
         self.recv = None;
+        Ok(())
     }
 }
 
@@ -271,8 +290,8 @@ impl Task for PublishProximityTask {
         loop {
             let state = ProximityState { blocked: false };
             info!("ProximityPublisher publish: {:?}", state);
-            if self.send.send(state).await.is_err() {
-                info!("ProximityPublisher task stopping: receiver disconnected");
+            if let Err(e) = self.send.send(state).await {
+                info!("ProximityPublisher task failed due to: {e}");
                 return TickStatus::Failure;
             }
             tokio::time::sleep(self.interval).await;
@@ -316,24 +335,30 @@ where
         Ok(NodeTask::new(PublishBrakeTask::new(send, self.interval)))
     }
 
-    fn on_running(&mut self) {
-        if let Some(recv) = &mut self.recv {
-            while let Ok(state) = recv.try_recv() {
-                let _ = self.send.try_send(state);
-            }
+    fn on_running(&mut self) -> Result<()> {
+        let Some(task_brake_receiver) = &mut self.recv else {
+            bail!("brake receiver should have been set");
+        };
+        while let Ok(state) = task_brake_receiver.try_recv() {
+            self.send
+                .try_send(state)
+                .map_err(|error| anyhow!("failed to send brake state: {error}"))?;
         }
+        Ok(())
     }
 
     fn reset(&mut self) {
         self.recv = None;
     }
 
-    fn on_aborted(&mut self) {
-        self.recv = None;
+    fn on_aborted(&mut self) -> Result<()> {
+        self.reset();
+        Ok(())
     }
 
-    fn on_failure(&mut self) {
-        self.recv = None;
+    fn on_failure(&mut self) -> Result<()> {
+        self.reset();
+        Ok(())
     }
 }
 
@@ -354,8 +379,8 @@ impl Task for PublishBrakeTask {
         loop {
             let state = BrakeState { engaged: false };
             info!("BrakePublisher publish: {:?}", state);
-            if self.send.send(state).await.is_err() {
-                info!("BrakePublisher task stopping: receiver disconnected");
+            if let Err(e) = self.send.send(state).await {
+                info!("BrakePublisher task failed due to: {e}");
                 return TickStatus::Failure;
             }
             tokio::time::sleep(self.interval).await;

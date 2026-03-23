@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, anyhow, bail};
 use beetry::{
     channel::{Receiver, Sender},
     leaf::{ActionBehavior, NodeTask, Task},
@@ -55,28 +55,35 @@ where
         )))
     }
 
-    fn on_running(&mut self) {
-        if let Some(recv) = &mut self.task_candidates_recv {
-            while let Ok(candidates) = recv.try_recv() {
-                let _ = self.send.try_send(candidates);
-            }
+    fn on_running(&mut self) -> Result<()> {
+        let Some(task_candidates_receiver) = &mut self.task_candidates_recv else {
+            bail!("slot candidates receiver should have been set");
+        };
+        while let Ok(candidates) = task_candidates_receiver.try_recv() {
+            self.send
+                .try_send(candidates)
+                .map_err(|error| anyhow!("failed to send slot candidates: {error}"))?;
         }
+        Ok(())
     }
 
-    fn on_success(&mut self) {
-        self.on_running();
+    fn on_success(&mut self) -> Result<()> {
+        self.on_running()?;
+        Ok(())
     }
 
     fn reset(&mut self) {
         self.task_candidates_recv = None;
     }
 
-    fn on_aborted(&mut self) {
-        self.task_candidates_recv = None;
+    fn on_aborted(&mut self) -> Result<()> {
+        self.reset();
+        Ok(())
     }
 
-    fn on_failure(&mut self) {
-        self.task_candidates_recv = None;
+    fn on_failure(&mut self) -> Result<()> {
+        self.reset();
+        Ok(())
     }
 }
 
@@ -98,8 +105,8 @@ impl Task for DetectParkingSlotsTask {
         tokio::time::sleep(std::time::Duration::from_millis(150)).await;
         let candidates = SlotCandidates { count: 3 };
         info!("DetectParkingSlots produced: {:?}", candidates);
-        if self.send.send(candidates).await.is_err() {
-            info!("DetectParkingSlots task failed: receiver disconnected");
+        if let Err(e) = self.send.send(candidates).await {
+            info!("DetectParkingSlots task failed due to: {e}");
             return TickStatus::Failure;
         }
         info!("DetectParkingSlots task succeeded");
@@ -164,28 +171,35 @@ where
         )))
     }
 
-    fn on_running(&mut self) {
-        if let Some(recv) = &mut self.task_target_recv {
-            while let Ok(target) = recv.try_recv() {
-                let _ = self.send.try_send(target);
-            }
+    fn on_running(&mut self) -> Result<()> {
+        let Some(task_target_receiver) = &mut self.task_target_recv else {
+            bail!("target slot receiver should have been set");
+        };
+        while let Ok(target) = task_target_receiver.try_recv() {
+            self.send
+                .try_send(target)
+                .map_err(|error| anyhow!("failed to send target slot: {error}"))?;
         }
+        Ok(())
     }
 
-    fn on_success(&mut self) {
-        self.on_running();
+    fn on_success(&mut self) -> Result<()> {
+        self.on_running()?;
+        Ok(())
     }
 
     fn reset(&mut self) {
         self.task_target_recv = None;
     }
 
-    fn on_aborted(&mut self) {
-        self.task_target_recv = None;
+    fn on_aborted(&mut self) -> Result<()> {
+        self.reset();
+        Ok(())
     }
 
-    fn on_failure(&mut self) {
-        self.task_target_recv = None;
+    fn on_failure(&mut self) -> Result<()> {
+        self.reset();
+        Ok(())
     }
 }
 
@@ -220,8 +234,8 @@ impl Task for SelectBestSlotTask {
         let id = u32::from(self.candidates.count > 0 && self.vehicle.ready);
         let target = TargetSlot { id };
         info!("SelectBestSlot selected: {:?}", target);
-        if self.send.send(target).await.is_err() {
-            info!("SelectBestSlot task failed: receiver disconnected");
+        if let Err(e) = self.send.send(target).await {
+            info!("SelectBestSlot task failed due to: {e}");
             return TickStatus::Failure;
         }
         info!("SelectBestSlot task succeeded");

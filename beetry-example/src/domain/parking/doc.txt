@@ -9,7 +9,7 @@ Root
     │           ├── SelectBestSlot                   <- SlotCandidates, VehicleState
     │           │                                    -> TargetSlot
     │           ├── UntilSuccess
-    │           │   └── SequenceWithMemory           // plan-follow-verify loop
+    │           │   └── SequenceWithMemory
     │           │       ├── PlanParkingTrajectory    <- Pose, TargetSlot
     │           │       │                            -> Trajectory
     │           │       ├── FollowTrajectory         <- Trajectory, Pose, SafetyStatus

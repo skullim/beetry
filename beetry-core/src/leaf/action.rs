@@ -19,17 +19,24 @@ pub trait Behavior {
     /// Reset any action-local state for a fresh run.
     fn reset(&mut self) {}
 
-    /// Hook called when the scheduled task is still running.
-    fn on_running(&mut self) {}
+    /// Hook called on [`TaskStatus::Running`].
+    fn on_running(&mut self) -> Result<()> {
+        Ok(())
+    }
+    /// Hook called on [`TaskStatus::Success`].
+    fn on_success(&mut self) -> Result<()> {
+        Ok(())
+    }
 
-    /// Hook called after the scheduled task reports success.
-    fn on_success(&mut self) {}
-
-    /// Hook called after the scheduled task reports failure.
-    fn on_failure(&mut self) {}
+    /// Hook called on [`TaskStatus::Failure`]
+    fn on_failure(&mut self) -> Result<()> {
+        Ok(())
+    }
 
     /// Hook called after the action is aborted.
-    fn on_aborted(&mut self) {}
+    fn on_aborted(&mut self) -> Result<()> {
+        Ok(())
+    }
 }
 
 pub type BoxBehavior = Box<dyn Behavior>;
@@ -40,27 +47,29 @@ impl Behavior for BoxBehavior {
     fn reset(&mut self) {
         (**self).reset();
     }
-    fn on_running(&mut self) {
-        (**self).on_running();
+    fn on_running(&mut self) -> Result<()> {
+        (**self).on_running()
     }
-    fn on_success(&mut self) {
-        (**self).on_success();
+    fn on_success(&mut self) -> Result<()> {
+        (**self).on_success()
     }
-    fn on_failure(&mut self) {
-        (**self).on_failure();
+    fn on_failure(&mut self) -> Result<()> {
+        (**self).on_failure()
     }
-    fn on_aborted(&mut self) {
-        (**self).on_aborted();
+    fn on_aborted(&mut self) -> Result<()> {
+        (**self).on_aborted()
     }
 }
 
-fn visit_status(behavior: &mut dyn Behavior, status: TaskStatus) {
+fn visit_status(behavior: &mut impl Behavior, status: TaskStatus) -> TaskStatus {
     match status {
         TaskStatus::Success => behavior.on_success(),
         TaskStatus::Running => behavior.on_running(),
         TaskStatus::Failure => behavior.on_failure(),
         TaskStatus::Aborted => behavior.on_aborted(),
     }
+    .map(|()| status)
+    .unwrap_or(TaskStatus::Failure)
 }
 
 pub struct Action<R, TH, B>
@@ -137,21 +146,27 @@ where
     }
 
     fn abort(&mut self) {
+        let mut on_aborted = || {
+            if let Err(e) = self.behavior.on_aborted() {
+                error!("on aborted hook failed: {e}");
+            }
+        };
+
         match &mut self.state {
             State::Idle => {
-                self.behavior.on_aborted();
+                on_aborted();
             }
             State::Running(task_handle) => {
                 task_handle.abort();
                 loop {
                     let status = task_handle.query();
-                    debug!("aborted task terminal status: {status:?}");
                     if status.is_terminal() {
+                        debug!("aborted task terminal status: {status:?}");
                         break;
                     }
                     std::thread::sleep(Duration::from_millis(10));
                 }
-                self.behavior.on_aborted();
+                on_aborted();
                 debug!("switching state to idle");
                 self.state = State::Idle;
             }
@@ -256,7 +271,10 @@ mod tests {
         behavior
             .expect_task()
             .returning(|| Ok(NodeTask::new(TaskStub::new())));
-        behavior.expect_on_success().once().return_const(());
+        behavior
+            .expect_on_success()
+            .once()
+            .returning(|| Result::Ok(()));
 
         let mut action = Action::new(behavior, Arc::new(registry));
         assert_eq!(action.tick(), TickStatus::Running);
@@ -280,7 +298,10 @@ mod tests {
         behavior
             .expect_task()
             .returning(|| Ok(NodeTask::new(TaskStub::new())));
-        behavior.expect_on_running().once().return_const(());
+        behavior
+            .expect_on_running()
+            .once()
+            .returning(|| Result::Ok(()));
 
         let mut action = Action::new(behavior, Arc::new(registry));
         assert_eq!(action.tick(), TickStatus::Running);
@@ -304,7 +325,10 @@ mod tests {
         behavior
             .expect_task()
             .returning(|| Ok(NodeTask::new(TaskStub::new())));
-        behavior.expect_on_failure().once().return_const(());
+        behavior
+            .expect_on_failure()
+            .once()
+            .returning(|| Result::Ok(()));
 
         let mut action = Action::new(behavior, Arc::new(registry));
 
@@ -364,8 +388,14 @@ mod tests {
         behavior
             .expect_task()
             .returning(|| Ok(NodeTask::new(TaskStub::new())));
-        behavior.expect_on_aborted().once().return_const(());
-        behavior.expect_on_running().once().return_const(());
+        behavior
+            .expect_on_aborted()
+            .once()
+            .returning(|| Result::Ok(()));
+        behavior
+            .expect_on_running()
+            .once()
+            .returning(|| Result::Ok(()));
 
         let mut action = Action::new(behavior, Arc::new(registry));
 
@@ -379,7 +409,10 @@ mod tests {
         let registry = MockRegisterTask::<MockTaskHandle>::new();
 
         let mut behavior = MockBehavior::new();
-        behavior.expect_on_aborted().once().return_const(());
+        behavior
+            .expect_on_aborted()
+            .once()
+            .returning(|| Result::Ok(()));
 
         let mut action = Action::new(behavior, Arc::new(registry));
 
