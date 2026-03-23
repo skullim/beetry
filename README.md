@@ -42,6 +42,8 @@ found.
 
 ## Comparison with other libraries
 
+The comparison includes [bonsai-bt](https://github.com/Sollimann/bonsai), currently the most popular behavior tree crate in Rust, and [BehaviorTree.CPP](https://github.com/BehaviorTree/BehaviorTree.CPP), one of the most mature open-source behavior tree implementations available.
+
 | Feature | `beetry` | [`bonsai-bt`](https://github.com/Sollimann/bonsai) | [`BehaviorTree.CPP`](https://github.com/BehaviorTree/BehaviorTree.CPP) |
 | --- | --- | --- | --- |
 | Ecosystem | Rust | Rust | C++ |
