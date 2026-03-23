@@ -95,3 +95,12 @@ well as generating trees to be executed at runtime.
 See the [example](beetry-example) crate for an end-to-end autonomous parking
 example built on Beetry's plugin system. It shows how domain-specific messages,
 channels, and nodes can be exposed to Beehive and executed by the runtime.
+
+## License
+
+Licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or
+  <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or
+  <http://opensource.org/licenses/MIT>) at your option.
