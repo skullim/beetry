@@ -1,7 +1,7 @@
 [package]
 name = "beetry-macros"
 description = "Internal beetry crate. For the public API, check the beetry crate."
-version = "0.1.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -21,8 +21,8 @@ syn = { version = "2.0.116", features = ["full"] }
 bon.workspace = true
 
 [dev-dependencies]
-beetry-core = { version = "0.1.0", path = "../beetry-core" }
-beetry-channel = { version = "0.1.0", path = "../beetry-channel" }
+beetry-core = { version = "0.2.0", path = "../beetry-core" }
+beetry-channel = { version = "0.2.0", path = "../beetry-channel" }
 
 [lints]
 workspace = true

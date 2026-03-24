@@ -1,7 +1,7 @@
 [package]
 name = "beetry-channel"
 description = "Beetry library with reusable channel implementations."
-version = "0.1.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -16,7 +16,7 @@ tokio = ["dep:tokio"]
 
 [dependencies]
 anyhow.workspace = true
-beetry-message = { version = "0.1.0", path = "../beetry-message" }
+beetry-message = { version = "0.2.0", path = "../beetry-message" }
 tokio = { workspace = true, features = [
     "sync",
     "time",

@@ -1,7 +1,7 @@
 [package]
 name = "beetry-editor-frontend"
 description = "Internal beetry crate. For the public API, check the beetry crate."
-version = "0.1.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -10,13 +10,15 @@ repository.workspace = true
 categories.workspace = true
 keywords.workspace = true
 
+exclude = ["docs/"]
+
 [dependencies]
 anyhow.workspace = true
-beetry-message = { version = "0.1.0", path = "../beetry-message" }
-beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
-beetry-plugin = { version = "0.1.0", path = "../beetry-plugin" }
-beetry-serialization = { version = "0.1.0", path = "../beetry-serialization" }
-beetry-editor-backend = { version = "0.1.0", path = "../beetry-editor-backend" }
+beetry-message = { version = "0.2.0", path = "../beetry-message" }
+beetry-editor-types = { version = "0.2.0", path = "../beetry-editor-types" }
+beetry-plugin = { version = "0.2.0", path = "../beetry-plugin" }
+beetry-serialization = { version = "0.2.0", path = "../beetry-serialization" }
+beetry-editor-backend = { version = "0.2.0", path = "../beetry-editor-backend" }
 bon.workspace = true
 chrono = "0.4.42"
 dioxus = { version = "0.7.3", features = ["desktop"] }

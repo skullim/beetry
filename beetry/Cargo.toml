@@ -1,7 +1,7 @@
 [package]
 name = "beetry"
 description = "Behavior tree framework with a runtime, plugin system, and Beehive editor."
-version = "0.1.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -22,14 +22,14 @@ editor = ["plugin", "dep:beetry-editor-frontend"]
 tokio = ["beetry-channel/tokio"]
 
 [dependencies]
-beetry-channel = { path = "../beetry-channel", optional = true }
-beetry-core = { path = "../beetry-core" }
-beetry-engine = { path = "../beetry-engine" }
-beetry-editor-frontend = { path = "../beetry-editor-frontend", optional = true }
-beetry-node = { path = "../beetry-node" }
-beetry-macros = { path = "../beetry-macros" }
-beetry-message = { path = "../beetry-message" }
-beetry-plugin = { path = "../beetry-plugin", optional = true }
+beetry-channel = { version = "0.2.0", path = "../beetry-channel", optional = true }
+beetry-core = { version = "0.2.0", path = "../beetry-core" }
+beetry-engine = { version = "0.2.0", path = "../beetry-engine" }
+beetry-editor-frontend = { version = "0.2.0", path = "../beetry-editor-frontend", optional = true }
+beetry-node = { version = "0.2.0", path = "../beetry-node" }
+beetry-macros = { version = "0.2.0", path = "../beetry-macros" }
+beetry-message = { version = "0.2.0", path = "../beetry-message" }
+beetry-plugin = { version = "0.2.0", path = "../beetry-plugin", optional = true }
 
 [lints]
 workspace = true

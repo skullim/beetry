@@ -1,7 +1,7 @@
 [package]
 name = "beetry-editor-types"
 description = "Internal beetry crate. For the public API, check the beetry crate."
-version = "0.1.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -12,7 +12,7 @@ keywords.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-beetry-message = { version = "0.1.0", path = "../beetry-message" }
+beetry-message = { version = "0.2.0", path = "../beetry-message" }
 bon.workspace = true
 derive_more.workspace = true
 getset.workspace = true

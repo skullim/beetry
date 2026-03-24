@@ -21,7 +21,7 @@ path = "src/bin/tree_editing.rs"
 
 [dependencies]
 anyhow.workspace = true
-beetry = { path = "../beetry" }
+beetry = { version = "0.2.0", path = "../beetry" }
 bon.workspace = true
 mitsein.workspace = true
 serde.workspace = true

@@ -1,7 +1,7 @@
 [package]
 name = "beetry-exec"
 description = "Internal beetry crate. For the public API, check the beetry crate."
-version = "0.1.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -12,7 +12,7 @@ keywords.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-beetry-core = { version = "0.1.0", path = "../beetry-core" }
+beetry-core = { version = "0.2.0", path = "../beetry-core" }
 bon.workspace = true
 futures.workspace = true
 tokio = { workspace = true, features = ["sync", "time", "macros"] }

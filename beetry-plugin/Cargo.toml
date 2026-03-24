@@ -1,7 +1,7 @@
 [package]
 name = "beetry-plugin"
 description = "Internal beetry crate. For the public API, check the beetry crate."
-version = "0.1.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -12,11 +12,11 @@ keywords.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-beetry-channel = { version = "0.1.0", path = "../beetry-channel" }
-beetry-core = { version = "0.1.0", path = "../beetry-core" }
-beetry-editor-types = { version = "0.1.0", path = "../beetry-editor-types" }
-beetry-macros = { version = "0.1.0", path = "../beetry-macros" }
-beetry-message = { version = "0.1.0", path = "../beetry-message" }
+beetry-channel = { version = "0.2.0", path = "../beetry-channel" }
+beetry-core = { version = "0.2.0", path = "../beetry-core" }
+beetry-editor-types = { version = "0.2.0", path = "../beetry-editor-types" }
+beetry-macros = { version = "0.2.0", path = "../beetry-macros" }
+beetry-message = { version = "0.2.0", path = "../beetry-message" }
 bon.workspace = true
 inventory = "0.3.21"
 mitsein.workspace = true
