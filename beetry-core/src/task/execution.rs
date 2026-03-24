@@ -2,7 +2,7 @@ use anyhow::Result;
 #[cfg(test)]
 use mockall::automock;
 
-use crate::{TaskStatus, task::NodeTask};
+use crate::{TaskStatus, task::ActionTask};
 
 pub trait ExecutorConcept {
     fn run(&mut self) -> impl Future<Output = Result<()>>;
@@ -13,7 +13,7 @@ pub trait RegisterTask<TH>
 where
     TH: TaskHandle,
 {
-    fn register(&self, task: NodeTask) -> Result<TH>;
+    fn register(&self, task: ActionTask) -> Result<TH>;
 }
 
 pub trait TaskHandle: QueryTask + AbortTask {}

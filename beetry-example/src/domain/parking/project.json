@@ -20,7 +20,7 @@
                         }
                     },
                     "4": {
-                        "name": "MemSequence",
+                        "name": "MemorySequence",
                         "kind": "Control"
                     },
                     "5": {

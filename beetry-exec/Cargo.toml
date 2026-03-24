@@ -13,6 +13,7 @@ keywords.workspace = true
 [dependencies]
 anyhow.workspace = true
 beetry-core = { version = "0.1.0", path = "../beetry-core" }
+bon.workspace = true
 futures.workspace = true
 tokio = { workspace = true, features = ["sync", "time", "macros"] }
 tracing.workspace = true

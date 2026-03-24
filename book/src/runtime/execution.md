@@ -52,7 +52,7 @@ immediately.
 To bridge this gap, Beetry introduces an executor and task registration
 interfaces. `Action` implements the `Node` interface, but internally it models
 execution via a state machine. On the first `tick`, it uses the
-user-provided `ActionBehavior` to create a task and register it with the
+user-provided `ActionBehavior` to create an `ActionTask` and register it with the
 executor, which returns a task handle. On later ticks, `Action` uses that
 handle to query the task status, or to abort the task if execution changes
 direction.[^action-abort]
@@ -81,7 +81,7 @@ task registration, the executor, and a task handle.
 sequenceDiagram
     actor User
     User ->>+ Action: tick()
-    Action ->>+ RegisterTask: Register(NodeTask)
+    Action ->>+ RegisterTask: Register(ActionTask)
     RegisterTask ->>+ ExecutorConcept: Send(Task)
     create participant TaskHandle
     ExecutorConcept ->>+ TaskHandle: create
@@ -122,4 +122,4 @@ status. See also [Caveats](../caveats.md#action-abort).
 > first tick, non-memory control nodes such as `Sequence` may restart earlier
 > children on later ticks instead of resuming from the currently running one.
 > In practice, `Action` nodes should usually be combined with memory-based
-> control nodes such as `MemSequence`.
+> control nodes such as `MemorySequence`.

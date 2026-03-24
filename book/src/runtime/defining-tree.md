@@ -26,8 +26,8 @@ In code, this can be written as:
 # use std::time::Duration;
 # use anyhow::{Result, anyhow};
 # use beetry::{
-#     leaf::{ActionBehavior, NodeTask, Task},
-#     node::{BoxNode, Root, MemSequence},
+#     leaf::{ActionBehavior, ActionTask, Task},
+#     node::{BoxNode, Root, MemorySequence},
 #     runtime::{PeriodicTick, PeriodicTicker, TickStatus, Tree, TreeEngine, TreeEngineConfig},
 # };
 # use tokio::sync::mpsc;
@@ -43,8 +43,8 @@ struct DetectFlower {
 }
 
 impl ActionBehavior for DetectFlower {
-    fn task(&mut self) -> Result<NodeTask> {
-        Ok(NodeTask::new(DetectFlowerTask {
+    fn task(&mut self) -> Result<ActionTask> {
+        Ok(ActionTask::new(DetectFlowerTask {
             send: self.send.clone(),
         }))
     }
@@ -77,8 +77,8 @@ struct FlyTo {
 }
 
 impl ActionBehavior for FlyTo {
-    fn task(&mut self) -> Result<NodeTask> {
-        Ok(NodeTask::new(FlyToTask {
+    fn task(&mut self) -> Result<ActionTask> {
+        Ok(ActionTask::new(FlyToTask {
             pose: self.recv.try_recv().ok(),
         }))
     }
@@ -102,8 +102,8 @@ impl Task for FlyToTask {
 struct CollectPollen;
 
 impl ActionBehavior for CollectPollen {
-    fn task(&mut self) -> Result<NodeTask> {
-        Ok(NodeTask::new(CollectPollenTask))
+    fn task(&mut self) -> Result<ActionTask> {
+        Ok(ActionTask::new(CollectPollenTask))
     }
 }
 
@@ -119,7 +119,7 @@ impl Task for CollectPollenTask {
 async fn main() -> Result<()> {
     let engine = TreeEngine::new(TreeEngineConfig::default());
     let (send, recv) = mpsc::channel(1);
-    let tree = Tree::new(Root::new(MemSequence::new([
+    let tree = Tree::new(Root::new(MemorySequence::new([
         Box::new(engine.register_action(DetectFlower { send })) as BoxNode,
         Box::new(engine.register_action(FlyTo { recv })) as BoxNode,
         Box::new(engine.register_action(CollectPollen)) as BoxNode,

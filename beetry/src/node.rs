@@ -2,6 +2,6 @@
 
 pub use beetry_core::{BoxNode, Node, NonEmptyNodes, Root};
 pub use beetry_node::{
-    Fail, Fallback, Invert, MemSequence, Parallel, ParallelParams, Sequence, Succeed, UntilFailure,
-    UntilSuccess,
+    Fail, Fallback, Invert, MemorySequence, Parallel, ParallelParams, Sequence, Succeed,
+    UntilFailure, UntilSuccess,
 };

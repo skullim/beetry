@@ -33,7 +33,7 @@ use thiserror::Error as ThisError;
 use tokio::sync::oneshot;
 use tracing::error;
 
-/// Typed-state engine for loading and running trees.
+/// Engine for loading and ticking a tree.
 pub struct TreeEngine<S> {
     state: S,
 }
@@ -58,7 +58,7 @@ pub struct TreeEngineConfig {
     pub executor: ExecutorConfig,
 }
 
-/// Errors that can occur while driving a tree with the engine.
+/// Errors that can occur while ticking a tree with the engine.
 #[derive(Debug, ThisError)]
 pub enum Error {
     #[error(transparent)]
@@ -74,11 +74,12 @@ pub enum Error {
 impl TreeEngine<Configured> {
     /// Creates a new engine in the [`Configured`] state.
     pub fn new(config: TreeEngineConfig) -> Self {
+        let abort_poll_interval = config.executor.abort_poll_interval;
         let (executor, registry) = Executor::new(config.executor).into_ready_with_registry();
         Self {
             state: Configured {
                 executor,
-                builder: leaf::Builder::new(registry),
+                builder: leaf::Builder::new(registry, abort_poll_interval),
             },
         }
     }

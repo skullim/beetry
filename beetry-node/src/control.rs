@@ -7,7 +7,7 @@ use std::collections::BTreeSet;
 use beetry_core::BoxNode;
 pub use fallback::Fallback;
 pub use parallel::{Parallel, ParallelParams};
-pub use sequence::{MemSequence, Sequence};
+pub use sequence::{MemorySequence, Sequence};
 
 struct RunningNodesAborter {
     running: BTreeSet<usize>,

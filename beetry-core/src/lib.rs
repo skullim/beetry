@@ -22,7 +22,7 @@
 //!
 //! ## `Ticker`
 //!
-//! [`Ticker`] drives a tree from an external tick source.
+//! [`Ticker`] ticks a tree from an external tick source.
 //!
 //! Because [`Ticker`] can be built from a custom stream, each application can
 //! define its own ticking mechanism without changing the tree implementation.
@@ -38,7 +38,7 @@
 //! ### `Action`
 //!
 //! [`ActionBehavior`] is the asynchronous leaf contract used by [`Action`].
-//! [`Action`] wraps the behavior and uses it to construct a [`NodeTask`] that
+//! [`Action`] wraps the behavior and uses it to construct an [`ActionTask`] that
 //! can be registered with an executor instead of directly returning a
 //! [`TickStatus`] from `tick`.
 //!
@@ -63,18 +63,23 @@ pub use tree::{PeriodicTick, Ticker, TickerError, Tree};
 pub type PeriodicTicker = Ticker<PeriodicTick>;
 
 pub use task::{
-    AbortTask, BoxTaskFuture, ExecutorConcept, NodeTask, QueryTask, RegisterTask, Task,
+    AbortTask, ActionTask, BoxTaskFuture, ExecutorConcept, QueryTask, RegisterTask, Task,
     TaskDescription, TaskHandle, TaskStatus,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+/// Result of a single node tick.
 pub enum TickStatus {
+    /// The node finished unsuccessfully.
     Failure,
+    /// The node finished successfully.
     Success,
+    /// The node is still in progress.
     Running,
 }
 
 impl TickStatus {
+    /// Returns `true` if the status is terminal.
     #[must_use]
     pub fn is_terminal(&self) -> bool {
         matches!(self, Self::Success | Self::Failure)

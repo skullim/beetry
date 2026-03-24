@@ -1,7 +1,7 @@
 use anyhow::Result;
 use beetry::{
     channel::{Receiver, Sender, receivers},
-    leaf::{ActionBehavior, NodeTask, Task},
+    leaf::{ActionBehavior, ActionTask, Task},
     plugin::action,
     runtime::TickStatus,
 };
@@ -55,7 +55,7 @@ where
     R4: Receiver<Pose>,
     R5: Receiver<Pose>,
 {
-    fn task(&mut self) -> Result<NodeTask> {
+    fn task(&mut self) -> Result<ActionTask> {
         let _: [Pose; 5] = [
             self.receivers.in1()?,
             self.receivers.in2()?,
@@ -64,7 +64,7 @@ where
             self.receivers.in5()?,
         ];
 
-        Ok(NodeTask::new(MultiPortSubscriberTask))
+        Ok(ActionTask::new(MultiPortSubscriberTask))
     }
 
     fn reset(&mut self) {
@@ -120,7 +120,7 @@ where
     S4: Sender<Pose>,
     S5: Sender<Pose>,
 {
-    fn task(&mut self) -> Result<NodeTask> {
+    fn task(&mut self) -> Result<ActionTask> {
         let send_pose = |sender: &mut dyn Sender<Pose>, port: &str, pose| -> Result<()> {
             sender
                 .try_send(pose)
@@ -133,7 +133,7 @@ where
         send_pose(&mut self.out4, "out4", Pose::new(4.0, 4.0))?;
         send_pose(&mut self.out5, "out5", Pose::new(5.0, 5.0))?;
 
-        Ok(NodeTask::new(MultiPortPublisherTask))
+        Ok(ActionTask::new(MultiPortPublisherTask))
     }
 }
 

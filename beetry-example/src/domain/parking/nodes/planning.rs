@@ -1,7 +1,7 @@
 use anyhow::{Result, anyhow, bail};
 use beetry::{
     channel::{Receiver, Sender},
-    leaf::{ActionBehavior, NodeTask, Task},
+    leaf::{ActionBehavior, ActionTask, Task},
     plugin::action,
     runtime::TickStatus,
 };
@@ -86,7 +86,7 @@ where
     TR: Receiver<TargetSlot>,
     S: Sender<Trajectory>,
 {
-    fn task(&mut self) -> Result<NodeTask> {
+    fn task(&mut self) -> Result<ActionTask> {
         while let Ok(v) = self.pose_recv.try_recv() {
             self.last_pose = v;
         }
@@ -95,7 +95,7 @@ where
         }
         let (send, recv) = mpsc_channel(8);
         self.task_trajectory_recv = Some(recv);
-        Ok(NodeTask::new(PlanParkingTrajectoryTask::new(
+        Ok(ActionTask::new(PlanParkingTrajectoryTask::new(
             self.last_pose,
             self.last_target,
             send,
@@ -246,7 +246,7 @@ where
     SR: Receiver<SafetyStatus>,
     S: Sender<ManeuverStatus>,
 {
-    fn task(&mut self) -> Result<NodeTask> {
+    fn task(&mut self) -> Result<ActionTask> {
         while let Ok(v) = self.trajectory_recv.try_recv() {
             self.last_trajectory = v;
         }
@@ -258,7 +258,7 @@ where
         }
         let (send, recv) = mpsc_channel(8);
         self.task_maneuver_recv = Some(recv);
-        Ok(NodeTask::new(FollowTrajectoryTask::new(
+        Ok(ActionTask::new(FollowTrajectoryTask::new(
             self.last_trajectory,
             self.last_pose,
             self.last_safety,

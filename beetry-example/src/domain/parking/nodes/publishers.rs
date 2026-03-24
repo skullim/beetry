@@ -3,8 +3,8 @@ use std::{sync::Arc, time::Duration};
 use anyhow::{Result, anyhow, bail};
 use beetry::{
     channel::Sender,
-    leaf::{ActionBehavior, NodeTask, Task},
-    plugin::{action, parameter, parameter::ProvideParamSpec},
+    leaf::{ActionBehavior, ActionTask, Task},
+    plugin::{action, parameter},
     runtime::TickStatus,
 };
 use mitsein::iter1::IntoIterator1;
@@ -40,10 +40,10 @@ impl<S> ActionBehavior for VehicleStatePublisher<S>
 where
     S: Sender<VehicleState>,
 {
-    fn task(&mut self) -> Result<NodeTask> {
+    fn task(&mut self) -> Result<ActionTask> {
         let (send, recv) = mpsc_channel(8);
         self.recv = Some(recv);
-        Ok(NodeTask::new(PublishVehicleStateTask::new(
+        Ok(ActionTask::new(PublishVehicleStateTask::new(
             send,
             self.interval,
         )))
@@ -111,9 +111,9 @@ impl Task for PublishVehicleStateTask {
 
 action! {
     VehicleStatePublisherPlugin: "VehicleStatePublisher";
-    params(parameters): PublishInterval::provide();
+    params(parameters): PublishInterval;
     senders: [send: VehicleState => "Vehicle state"];
-    create: VehicleStatePublisher::new(send, &parameter::Deserializer::deserialize(parameters)?);
+    create: VehicleStatePublisher::new(send, &parameters);
 }
 
 pub struct LocalizationPublisher<S> {
@@ -139,10 +139,10 @@ impl<S> ActionBehavior for LocalizationPublisher<S>
 where
     S: Sender<Pose>,
 {
-    fn task(&mut self) -> Result<NodeTask> {
+    fn task(&mut self) -> Result<ActionTask> {
         let (send, recv) = mpsc_channel(8);
         self.recv = Some(recv);
-        Ok(NodeTask::new(PublishLocalizationTask::new(
+        Ok(ActionTask::new(PublishLocalizationTask::new(
             send,
             self.interval,
         )))
@@ -209,9 +209,9 @@ impl Task for PublishLocalizationTask {
 
 action! {
     LocalizationPublisherPlugin: "LocalizationPublisher";
-    params(parameters): PublishInterval::provide();
+    params(parameters): PublishInterval;
     senders: [send: Pose => "Current pose"];
-    create: LocalizationPublisher::new(send, &parameter::Deserializer::deserialize(parameters)?);
+    create: LocalizationPublisher::new(send, &parameters);
 }
 
 pub struct ProximityPublisher<S> {
@@ -237,10 +237,10 @@ impl<S> ActionBehavior for ProximityPublisher<S>
 where
     S: Sender<ProximityState>,
 {
-    fn task(&mut self) -> Result<NodeTask> {
+    fn task(&mut self) -> Result<ActionTask> {
         let (send, recv) = mpsc_channel(8);
         self.recv = Some(recv);
-        Ok(NodeTask::new(PublishProximityTask::new(
+        Ok(ActionTask::new(PublishProximityTask::new(
             send,
             self.interval,
         )))
@@ -301,9 +301,9 @@ impl Task for PublishProximityTask {
 
 action! {
     ProximityPublisherPlugin: "ProximityPublisher";
-    params(parameters): PublishInterval::provide();
+    params(parameters): PublishInterval;
     senders: [send: ProximityState => "Proximity alert"];
-    create: ProximityPublisher::new(send, &parameter::Deserializer::deserialize(parameters)?);
+    create: ProximityPublisher::new(send, &parameters);
 }
 
 pub struct BrakePublisher<S> {
@@ -329,10 +329,10 @@ impl<S> ActionBehavior for BrakePublisher<S>
 where
     S: Sender<BrakeState>,
 {
-    fn task(&mut self) -> Result<NodeTask> {
+    fn task(&mut self) -> Result<ActionTask> {
         let (send, recv) = mpsc_channel(8);
         self.recv = Some(recv);
-        Ok(NodeTask::new(PublishBrakeTask::new(send, self.interval)))
+        Ok(ActionTask::new(PublishBrakeTask::new(send, self.interval)))
     }
 
     fn on_running(&mut self) -> Result<()> {
@@ -390,9 +390,9 @@ impl Task for PublishBrakeTask {
 
 action! {
     BrakePublisherPlugin: "BrakePublisher";
-    params(parameters): PublishInterval::provide();
+    params(parameters): PublishInterval;
     senders: [send: BrakeState => "Emergency brake state"];
-    create: BrakePublisher::new(send, &parameter::Deserializer::deserialize(parameters)?);
+    create: BrakePublisher::new(send, &parameters);
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

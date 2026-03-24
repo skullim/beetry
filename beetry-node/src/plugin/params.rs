@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
 use anyhow::{Error, anyhow};
-use beetry_editor_types::{
-    output::node::Parameters,
-    spec::node::{FieldDefinition, FieldMetadata, FieldName, FieldTypeSpec, ParamsSpec},
+use beetry_editor_types::spec::node::{
+    FieldDefinition, FieldMetadata, FieldName, FieldTypeSpec, ParamsSpec,
 };
-use beetry_plugin::{ProvideParamSpec, node::ParamsDeserializer};
+use beetry_plugin::ProvideParamSpec;
 use mitsein::iter1::IntoIterator1;
 
 use crate::ParallelParams;
@@ -52,11 +51,5 @@ impl ParallelParams {
             return Err(anyhow!("failure count must be greater than 0"));
         }
         Ok(())
-    }
-
-    pub(crate) fn reconstruct(parameters: Parameters) -> Result<Self, Error> {
-        let params: Self = ParamsDeserializer::deserialize(parameters)
-            .map_err(|err| anyhow!("failed to deserialize Parallel parameters: {err}"))?;
-        Ok(params)
     }
 }

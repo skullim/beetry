@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use anyhow::anyhow;
 use beetry::{
-    leaf::{ActionBehavior, NodeTask, Task},
-    plugin::{action, parameter, parameter::ProvideParamSpec},
+    leaf::{ActionBehavior, ActionTask, Task},
+    plugin::{action, parameter},
     runtime::TickStatus,
 };
 use mitsein::iter1::IntoIterator1;
@@ -42,8 +42,8 @@ impl MultiParams {
 }
 
 impl ActionBehavior for MultiParams {
-    fn task(&mut self) -> anyhow::Result<NodeTask> {
-        Ok(NodeTask::new(MultiParamsTask::new(self.params.clone())))
+    fn task(&mut self) -> anyhow::Result<ActionTask> {
+        Ok(ActionTask::new(MultiParamsTask::new(self.params.clone())))
     }
 }
 
@@ -146,6 +146,6 @@ impl parameter::ProvideParamSpec for MultiParamsParams {
 
 action! {
     MultiParamsPlugin: "Multi Params";
-    params(parameters): MultiParamsParams::provide();
-    create: MultiParams::new(parameter::Deserializer::deserialize(parameters)?);
+    params(parameters): MultiParamsParams;
+    create: MultiParams::new(parameters);
 }

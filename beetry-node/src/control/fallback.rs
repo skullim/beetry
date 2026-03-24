@@ -2,7 +2,16 @@ use beetry_core::{Node, NonEmptyNodes, TickStatus};
 
 use crate::{Indices, control::RunningNodesAborter};
 
-/// Ticks children from left to right until one succeeds or is still running.
+/// Control node that tries children in order until one succeeds.
+///
+/// `Fallback` ticks children in order on each tick:
+///
+/// - returns [`TickStatus::Success`] as soon as a child succeeds
+/// - returns [`TickStatus::Running`] as soon as a child is still running
+/// - returns [`TickStatus::Failure`] only if every child fails on the same tick
+///
+/// This variant does not remember which child was previously running, so the
+/// next tick starts again from the first child.
 pub struct Fallback {
     nodes: NonEmptyNodes,
     aborter: RunningNodesAborter,

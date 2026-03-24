@@ -73,12 +73,15 @@ impl TryFrom<TaskStatus> for TickStatus {
 
 pub type BoxTaskFuture = Box<dyn Future<Output = TickStatus> + Send + 'static>;
 
-pub struct NodeTask {
+/// User-provided task that defines work to be executed when ticking an
+/// action node.
+pub struct ActionTask {
     task: BoxTaskFuture,
     desc: TaskDescription,
 }
 
-impl NodeTask {
+impl ActionTask {
+    /// Creates an action task from a user-defined [`Task`] implementation.
     pub fn new(task: impl Task) -> Self {
         let desc = task.task_desc();
         let task = Box::new(task.run());

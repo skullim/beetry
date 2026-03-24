@@ -1,11 +1,11 @@
 use beetry_core::BoxNode;
 use beetry_editor_types::spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey};
 use beetry_plugin::{
-    Plugin, ProvideParamSpec, control,
+    Plugin, control,
     node::{ControlFactory, ControlPluginConstructor, ControlReconstructionData},
 };
 
-use crate::{Fallback, MemSequence, Parallel, ParallelParams, Sequence};
+use crate::{Fallback, MemorySequence, Parallel, ParallelParams, Sequence};
 
 control!(
     SequencePlugin: "Sequence";
@@ -14,9 +14,9 @@ control!(
 );
 
 control!(
-    MemSequencePlugin: "MemSequence";
+    MemorySequencePlugin: "MemorySequence";
     children(children),
-    create: MemSequence::new(children),
+    create: MemorySequence::new(children),
 );
 
 control!(
@@ -28,9 +28,6 @@ control!(
 control!(
     ParallelPlugin: "Parallel";
     children(children),
-    params(parameters): ParallelParams::provide(),
-    create: {
-        let params = ParallelParams::reconstruct(parameters)?;
-        Parallel::new(children, params)
-    },
+    params(parameters): ParallelParams,
+    create: Parallel::new(children, parameters),
 );

@@ -1,7 +1,7 @@
 use anyhow::{Result, anyhow, bail};
 use beetry::{
     channel::{Receiver, Sender},
-    leaf::{ActionBehavior, NodeTask, Task},
+    leaf::{ActionBehavior, ActionTask, Task},
     plugin::action,
     runtime::TickStatus,
 };
@@ -43,13 +43,13 @@ where
     R: Receiver<Pose>,
     S: Sender<SlotCandidates>,
 {
-    fn task(&mut self) -> Result<NodeTask> {
+    fn task(&mut self) -> Result<ActionTask> {
         while let Ok(v) = self.pose_recv.try_recv() {
             self.last_pose = v;
         }
         let (send, recv) = mpsc_channel(8);
         self.task_candidates_recv = Some(recv);
-        Ok(NodeTask::new(DetectParkingSlotsTask::new(
+        Ok(ActionTask::new(DetectParkingSlotsTask::new(
             self.last_pose,
             send,
         )))
@@ -155,7 +155,7 @@ where
     VR: Receiver<VehicleState>,
     S: Sender<TargetSlot>,
 {
-    fn task(&mut self) -> Result<NodeTask> {
+    fn task(&mut self) -> Result<ActionTask> {
         while let Ok(v) = self.candidates_recv.try_recv() {
             self.last_candidates = v;
         }
@@ -164,7 +164,7 @@ where
         }
         let (send, recv) = mpsc_channel(8);
         self.task_target_recv = Some(recv);
-        Ok(NodeTask::new(SelectBestSlotTask::new(
+        Ok(ActionTask::new(SelectBestSlotTask::new(
             self.last_candidates,
             self.last_vehicle,
             send,

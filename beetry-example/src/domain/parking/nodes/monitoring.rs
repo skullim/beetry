@@ -1,8 +1,8 @@
 use anyhow::{Result, anyhow, bail};
 use beetry::{
     channel::{Receiver, Sender},
-    leaf::{ActionBehavior, ConditionBehavior, NodeTask, Task},
-    plugin::{action, condition, parameter, parameter::ProvideParamSpec},
+    leaf::{ActionBehavior, ActionTask, ConditionBehavior, Task},
+    plugin::{action, condition},
     runtime::TickStatus,
 };
 use tokio::sync::mpsc::{
@@ -54,12 +54,12 @@ where
     BR: Receiver<BrakeState>,
     S: Sender<SafetyStatus>,
 {
-    fn task(&mut self) -> Result<NodeTask> {
+    fn task(&mut self) -> Result<ActionTask> {
         let (updates_send, updates_recv) = mpsc_channel(8);
         let (status_send, status_recv) = mpsc_channel(8);
         self.updates_send = Some(updates_send);
         self.status_recv = Some(status_recv);
-        Ok(NodeTask::new(PublishSafetyStatusTask::new(
+        Ok(ActionTask::new(PublishSafetyStatusTask::new(
             updates_recv,
             status_send,
             self.interval,
@@ -159,7 +159,7 @@ impl Task for PublishSafetyStatusTask {
 
 action! {
     SafetyMonitorPlugin: "SafetyMonitor";
-    params(parameters): PublishInterval::provide();
+    params(parameters): PublishInterval;
     receivers: [
         proximity_recv: ProximityState => "Proximity alert",
         brake_recv: BrakeState => "Emergency brake",
@@ -169,7 +169,7 @@ action! {
         proximity_recv,
         brake_recv,
         send,
-        &parameter::Deserializer::deserialize(parameters)?,
+        &parameters,
     );
 }
 

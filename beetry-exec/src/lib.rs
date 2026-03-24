@@ -7,7 +7,7 @@
 //!
 //! The crate provides the following types:
 //!
-//! - [`Executor`] runs registered [`NodeTask`] values to completion
+//! - [`Executor`] runs registered [`ActionTask`] values to completion
 //! - [`TaskRegistry`] schedules new tasks and returns a [`TaskHandle`] for
 //!   querying or aborting them
 //!
@@ -19,8 +19,8 @@
 //! 2. Split it into a runnable executor and a task registry with
 //!    [`Executor::into_ready_with_registry`]
 //! 3. Spawn or await [`ExecutorConcept::run`] on the ready executor
-//! 4. Use the registry to register [`NodeTask`] instances from elsewhere in the
-//!    application
+//! 4. Use the registry to register [`ActionTask`] instances from elsewhere in
+//!    the application
 //!
 //! This staged API makes it easy to hand the registry to tree code while the
 //! executor runs in a dedicated task.
@@ -29,8 +29,9 @@ use std::{future::poll_fn, sync::Arc, task::Poll};
 
 use anyhow::{Result, anyhow};
 use beetry_core::{
-    AbortTask, ExecutorConcept, NodeTask, QueryTask, RegisterTask, TaskDescription, TaskStatus,
+    AbortTask, ActionTask, ExecutorConcept, QueryTask, RegisterTask, TaskDescription, TaskStatus,
 };
+use bon::Builder;
 use futures::{StreamExt, stream::FuturesUnordered};
 use tokio::sync::{
     Notify,
@@ -39,24 +40,17 @@ use tokio::sync::{
 use tracing::{debug, instrument};
 
 /// Configuration for an [`Executor`].
+#[derive(Debug, Builder)]
 pub struct ExecutorConfig {
-    task_channel_capacity: usize,
+    #[builder(default = 8)]
+    pub task_channel_capacity: usize,
+    #[builder(default = std::time::Duration::from_millis(10))]
+    pub abort_poll_interval: std::time::Duration,
 }
 
 impl Default for ExecutorConfig {
     fn default() -> Self {
-        Self {
-            task_channel_capacity: 8,
-        }
-    }
-}
-
-impl ExecutorConfig {
-    /// Creates a configuration with the provided task queue capacity.
-    pub fn new(task_channel_capacity: usize) -> Self {
-        Self {
-            task_channel_capacity,
-        }
+        Self::builder().build()
     }
 }
 
@@ -66,13 +60,17 @@ pub struct WithRegistry {
 }
 
 pub struct ExecutionTask {
-    task: NodeTask,
+    task: ActionTask,
     status_sender: Sender<TaskStatus>,
     abort_notifier: Arc<Notify>,
 }
 
 impl ExecutionTask {
-    fn new(task: NodeTask, status_sender: Sender<TaskStatus>, abort_notifier: Arc<Notify>) -> Self {
+    fn new(
+        task: ActionTask,
+        status_sender: Sender<TaskStatus>,
+        abort_notifier: Arc<Notify>,
+    ) -> Self {
         Self {
             task,
             status_sender,
@@ -135,7 +133,7 @@ impl Executor<WithRegistry> {
     /// - the returned [`Executor<Ready>`] can be driven with
     ///   [`ExecutorConcept::run`]
     /// - the returned [`TaskRegistry`] can be shared with code that needs to
-    ///   schedule [`NodeTask`] values
+    ///   schedule [`ActionTask`] values
     pub fn into_ready_with_registry(self) -> (Executor<Ready>, TaskRegistry) {
         (
             Executor {
@@ -167,7 +165,8 @@ impl ExecutorConcept for Executor<Ready> {
                     debug!("received new task to execute: {}", exe_task.task.desc());
                     tasks.push(exe_task.execute());
                 },
-                _ = execute_next_task_fut => {
+                Some(result) = execute_next_task_fut => {
+                    result?;
                 }
 
             }
@@ -176,7 +175,7 @@ impl ExecutorConcept for Executor<Ready> {
 }
 
 #[derive(Debug, Clone)]
-/// Registers [`NodeTask`] values with a running [`Executor`].
+/// Registers [`ActionTask`] values with a running [`Executor`].
 ///
 /// Each successful registration returns a [`TaskHandle`] that can be used to:
 ///
@@ -194,7 +193,7 @@ impl TaskRegistry {
 
 impl RegisterTask<TaskHandle> for TaskRegistry {
     #[instrument(skip_all, fields(task = %task.desc()))]
-    fn register(&self, task: NodeTask) -> Result<TaskHandle> {
+    fn register(&self, task: ActionTask) -> Result<TaskHandle> {
         let (status_send, status_recv) = mpsc::channel(1);
         let notify = Arc::new(Notify::new());
         let exe_task = ExecutionTask::new(task, status_send, Arc::clone(&notify));
@@ -230,7 +229,12 @@ impl StatusQuerier {
             Err(e) => match e {
                 TryRecvError::Empty => TaskStatus::Running,
                 TryRecvError::Disconnected => {
-                    panic!("querying task after it has been disconnected",);
+                    // Invariant: the sender side must publish exactly one terminal status before
+                    // dropping. A disconnected channel means executor/task lifecycle corruption.
+                    panic!(
+                        "task status channel disconnected before a terminal status was observed -
+                         this indicates an executor/task lifecycle bug"
+                    );
                 }
             },
         }

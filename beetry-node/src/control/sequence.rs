@@ -2,7 +2,17 @@ use beetry_core::{Node, NonEmptyNodes, TickStatus};
 
 use crate::{Indices, control::RunningNodesAborter};
 
-/// Ticks children from left to right until one fails or is still running.
+/// Control node that requires all children to succeed in order.
+///
+/// `Sequence` ticks children from left to right on each tick:
+///
+/// - returns [`TickStatus::Failure`] as soon as a child fails
+/// - returns [`TickStatus::Running`] as soon as a child is still running
+/// - returns [`TickStatus::Success`] only if every child succeeds on the same
+///   tick
+///
+/// This variant does not remember which child was previously running, so the
+/// next tick starts again from the first child.
 pub struct Sequence {
     nodes: NonEmptyNodes,
     aborter: RunningNodesAborter,
@@ -57,13 +67,16 @@ impl Node for Sequence {
     }
 }
 
-/// Sequence variant that resumes from the last running child on the next tick.
-pub struct MemSequence {
+/// Memory-based [`Sequence`] variant.
+///
+/// Unlike [`Sequence`], `MemorySequence` remembers the last running child and
+/// resumes from it on the next tick instead of restarting from the beginning.
+pub struct MemorySequence {
     nodes: NonEmptyNodes,
     running_idx: Option<usize>,
 }
 
-impl MemSequence {
+impl MemorySequence {
     pub fn new(nodes: impl Into<NonEmptyNodes>) -> Self {
         Self {
             nodes: nodes.into(),
@@ -72,7 +85,7 @@ impl MemSequence {
     }
 }
 
-impl Node for MemSequence {
+impl Node for MemorySequence {
     fn tick(&mut self) -> TickStatus {
         let start_idx = self.running_idx.take().unwrap_or(0);
         for idx in start_idx..self.nodes.len().into() {
@@ -178,7 +191,7 @@ mod tests {
         let m3 = mock_returns([TickStatus::Success]);
 
         let nodes = NonEmptyNodes::from([boxed(m1), boxed(m2), boxed(m3)]);
-        let mut msq = MemSequence::new(nodes);
+        let mut msq = MemorySequence::new(nodes);
 
         assert_eq!(msq.tick(), TickStatus::Running);
         assert_eq!(msq.tick(), TickStatus::Running);
@@ -193,7 +206,7 @@ mod tests {
         m2.expect_reset().once().return_const(());
 
         let nodes = NonEmptyNodes::from([boxed(m1), boxed(m2)]);
-        let mut msq = MemSequence::new(nodes);
+        let mut msq = MemorySequence::new(nodes);
 
         assert_eq!(msq.tick(), TickStatus::Running);
         msq.reset();

@@ -9,16 +9,14 @@
 ///
 ///
 /// Minimal action without params or channels:
-///
 /// ```rust, no_run
 /// # use anyhow::Result;
-/// # use beetry_core::{ActionBehavior, NodeTask};
+/// # use beetry_core::{ActionBehavior, ActionTask};
 /// # use beetry_plugin::action;
-///
 /// struct WaitForSignal;
 ///
 /// impl ActionBehavior for WaitForSignal {
-///     fn task(&mut self) -> Result<NodeTask> {
+///     fn task(&mut self) -> Result<ActionTask> {
 ///         # todo!()
 ///     }
 /// }
@@ -31,13 +29,18 @@
 ///
 /// Action with parameters:
 ///
+/// Parameters are provided via `params(binding): ParamsType` syntax
+///
+/// Prerequisites: `ParamsType` is expected to implement
+/// [`crate::ProvideParamSpec`] and be deserializable
+///
 /// ```rust, no_run
 /// # use anyhow::Result;
-/// # use beetry_core::{ActionBehavior, NodeTask};
+/// # use beetry_core::{ActionBehavior, ActionTask};
 /// # use beetry_editor_types::spec::node::{
 /// #     FieldDefinition, FieldMetadata, FieldTypeSpec, ParamsSpec,
 /// # };
-/// # use beetry_plugin::{ParamsDeserializer, ProvideParamSpec, action};
+/// # use beetry_plugin::{ProvideParamSpec, action};
 /// # use mitsein::iter1::IntoIterator1;
 /// # use serde::Deserialize;
 /// #[derive(Deserialize)]
@@ -47,15 +50,15 @@
 ///
 /// impl ProvideParamSpec for RetryParams {
 ///     fn provide() -> ParamsSpec {
-///         [(
-///             "retries".into(),
-///             FieldDefinition {
-///                 type_spec: FieldTypeSpec::U64(FieldMetadata::default()),
-///                 description: Some("Maximum retry count".into()),
-///             },
-///         )]
-///         .into_iter1()
-///         .collect1()
+///         # [(
+///         #     "retries".into(),
+///         #     FieldDefinition {
+///         #         type_spec: FieldTypeSpec::U64(FieldMetadata::default()),
+///         #         description: Some("Maximum retry count".into()),
+///         #     },
+///         # )]
+///         # .into_iter1()
+///         # .collect1()
 ///     }
 /// }
 ///
@@ -65,12 +68,12 @@
 ///
 /// impl RetryAction {
 ///     fn new(params: RetryParams) -> Self {
-///         Self { params }
+///         # Self { params }
 ///     }
 /// }
 ///
 /// impl ActionBehavior for RetryAction {
-///     fn task(&mut self) -> Result<NodeTask> {
+///     fn task(&mut self) -> Result<ActionTask> {
 ///         # let _ = self.params.retries;
 ///         # todo!()
 ///     }
@@ -78,8 +81,8 @@
 ///
 /// action! {
 ///     RetryActionPlugin: "Retry Action";
-///     params(parameters): RetryParams::provide();
-///     create: RetryAction::new(ParamsDeserializer::deserialize(parameters)?);
+///     params(parameters): RetryParams;
+///     create: RetryAction::new(parameters);
 /// }
 /// ```
 ///
@@ -88,7 +91,7 @@
 /// ```rust, no_run
 /// # use anyhow::Result;
 /// # use beetry_channel::{Receiver, Sender};
-/// # use beetry_core::{ActionBehavior, NodeTask};
+/// # use beetry_core::{ActionBehavior, ActionTask};
 /// # use beetry_macros::Message;
 /// # use beetry_message::Message;
 /// # use beetry_message::type_hash::{self, TypeHash};
@@ -120,7 +123,7 @@
 ///     R: Receiver<Pose>,
 ///     S: Sender<Pose>,
 /// {
-///     fn task(&mut self) -> Result<NodeTask> {
+///     fn task(&mut self) -> Result<ActionTask> {
 ///         # let _ = (&mut self.input, &mut self.output);
 ///         # todo!()
 ///     }
@@ -190,7 +193,6 @@ macro_rules! condition {
 /// Creates a decorator plugin for nodes that wrap a single child.
 ///
 /// Minimal example with a bound child node:
-///
 /// ```rust, no_run
 /// # use beetry_core::{Node, TickStatus};
 /// # use beetry_core::BoxNode;
@@ -200,7 +202,6 @@ macro_rules! condition {
 /// #     decorator,
 /// #     node::{DecoratorFactory, DecoratorPluginConstructor, DecoratorReconstructionData},
 /// # };
-///
 /// struct Invert<N>
 /// {
 ///     child: N,
@@ -248,13 +249,27 @@ macro_rules! decorator {
             $create
         }
     };
+    (
+        $plugin_name:ident :
+        $name:expr; child($child_binding:ident),params($params_binding:ident):
+        $params_ty:path,create:
+        $create:expr,
+    ) => {
+        $crate::__decorator_plugin_impl! {
+            $plugin_name,
+            $name,
+            $child_binding,
+            (typed $params_ty),
+            $params_binding,
+            $create
+        }
+    };
 }
 
 /// Creates a control plugin for nodes that manage multiple children.
 ///
 ///
 /// Minimal example with bound child nodes:
-///
 /// ```rust, no_run
 /// # use beetry_core::{BoxNode, Node, NonEmptyNodes, TickStatus};
 /// # use beetry_editor_types::spec::node::{NodeKind, NodeName, NodeSpec, NodeSpecKey};
@@ -263,7 +278,6 @@ macro_rules! decorator {
 /// #     control,
 /// #     node::{ControlFactory, ControlPluginConstructor, ControlReconstructionData},
 /// # };
-///
 /// struct Sequence {
 ///     children: NonEmptyNodes,
 /// }
@@ -311,30 +325,15 @@ macro_rules! control {
     (
         $plugin_name:ident :
         $name:expr; children($children_binding:ident),params($params_binding:ident):
-        $params:expr,create:
+        $params_ty:path,create:
         $create:expr,
     ) => {
         $crate::__control_plugin_impl! {
             $plugin_name,
             $name,
             $children_binding,
-            $params,
+            (typed $params_ty),
             $params_binding,
-            $create
-        }
-    };
-    (
-        $plugin_name:ident :
-        $name:expr; children($children_binding:ident),params:
-        $params:expr,create:
-        $create:expr,
-    ) => {
-        $crate::__control_plugin_impl! {
-            $plugin_name,
-            $name,
-            $children_binding,
-            $params,
-            _parameters,
             $create
         }
     };
@@ -386,31 +385,14 @@ macro_rules! __leaf_plugin_parse {
         senders: [$($sender_name:ident : $sender_ty:ty => $sender_desc:literal),* $(,)?],
         params: $params:tt,
         params_binding: $params_binding:ident,
-        tokens: params($new_params_binding:ident): $new_params:expr; $($rest:tt)*
+        tokens: params($new_params_binding:ident): $new_params_ty:path; $($rest:tt)*
     ) => {
         $crate::__leaf_plugin_parse! {
             ctx: $ctx,
             receivers: [$($receiver_name : $receiver_ty => $receiver_desc),*],
             senders: [$($sender_name : $sender_ty => $sender_desc),*],
-            params: $new_params,
+            params: (typed $new_params_ty),
             params_binding: $new_params_binding,
-            tokens: $($rest)*
-        }
-    };
-    (
-        ctx: $ctx:tt,
-        receivers: [$($receiver_name:ident : $receiver_ty:ty => $receiver_desc:literal),* $(,)?],
-        senders: [$($sender_name:ident : $sender_ty:ty => $sender_desc:literal),* $(,)?],
-        params: $params:tt,
-        params_binding: $params_binding:ident,
-        tokens: params: $new_params:expr; $($rest:tt)*
-    ) => {
-        $crate::__leaf_plugin_parse! {
-            ctx: $ctx,
-            receivers: [$($receiver_name : $receiver_ty => $receiver_desc),*],
-            senders: [$($sender_name : $sender_ty => $sender_desc),*],
-            params: $new_params,
-            params_binding: _parameters,
             tokens: $($rest)*
         }
     };
@@ -441,111 +423,8 @@ macro_rules! __leaf_plugin_parse {
     ) => {
         compile_error!(
             "invalid plugin DSL. Expected fields separated by ';': \
-             receivers: [...]; senders: [...]; params: <expr>; params(<ident>): <expr>; create: <expr>;"
+             receivers: [...]; senders: [...]; params(<ident>): <type-path>; create: <expr>;"
         );
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! __leaf_plugin_impl {
-    (
-        ctx: {
-            plugin_name: $plugin_name:ident,
-            node_name: $name:expr,
-            factory_type: $factory_type:ty,
-            plugin_constructor: $plugin_constructor:ty,
-            reconstruction_data: $reconstruction_data:ty,
-            behavior_box_type: $behavior_box_type:ty,
-            node_kind: $node_kind:expr,
-        },
-        receivers: [$($receiver_name:ident : $receiver_ty:ty => $receiver_desc:literal),* $(,)?],
-        senders: [$($sender_name:ident : $sender_ty:ty => $sender_desc:literal),* $(,)?],
-        params: $params:tt,
-        params_binding: $params_binding:ident,
-        create: $create:expr
-    ) => {
-        $crate::__leaf_plugin_impl! {
-            plugin_name: $plugin_name,
-            node_name: $name,
-            factory_type: $factory_type,
-            plugin_constructor: $plugin_constructor,
-            reconstruction_data: $reconstruction_data,
-            behavior_box_type: $behavior_box_type,
-            node_kind: $node_kind,
-            receivers: [$($receiver_name : $receiver_ty => $receiver_desc),*],
-            senders: [$($sender_name : $sender_ty => $sender_desc),*],
-            params: $params,
-            params_binding: $params_binding,
-            create: $create
-        }
-    };
-    (
-        plugin_name: $plugin_name:ident,
-        node_name: $name:expr,
-        factory_type: $factory_type:ty,
-        plugin_constructor: $plugin_constructor:ty,
-        reconstruction_data: $reconstruction_data:ty,
-        behavior_box_type: $behavior_box_type:ty,
-        node_kind: $node_kind:expr,
-        receivers: [$($receiver_name:ident : $receiver_ty:ty => $receiver_desc:literal),* $(,)?],
-        senders: [$($sender_name:ident : $sender_ty:ty => $sender_desc:literal),* $(,)?],
-        params: $params:tt,
-        params_binding: $params_binding:ident,
-        create: $create:expr $(,)?
-    ) => {
-        pub struct $plugin_name {
-            spec: $crate::__macro_support::NodeSpec,
-            factory: $factory_type,
-        }
-
-        impl $crate::Plugin for $plugin_name {
-            type Spec = $crate::__macro_support::NodeSpec;
-            type Factory = $factory_type;
-
-            fn new() -> Self
-            where
-                Self: Sized,
-            {
-                let factory_fn = |mut data: $reconstruction_data| {
-                    $crate::__leaf_plugin_extract_receivers!([$($receiver_name : $receiver_ty => $receiver_desc),*], data);
-                    $crate::__leaf_plugin_extract_senders!([$($sender_name : $sender_ty => $sender_desc),*], data);
-                    let $params_binding = data.parameters;
-                    Ok(Box::new($create) as $behavior_box_type)
-                };
-
-                let spec = $crate::__macro_support::NodeSpec::builder()
-                    .key($crate::__macro_support::NodeSpecKey::new(
-                        $crate::__macro_support::NodeName::new($name),
-                        $node_kind,
-                    ))
-                    .maybe_ports($crate::__leaf_plugin_build_ports!(
-                        [$($receiver_name : $receiver_ty => $receiver_desc),*],
-                        [$($sender_name : $sender_ty => $sender_desc),*]
-                    ))
-                    .maybe_params($crate::__leaf_plugin_build_params!($params))
-                    .build();
-
-                Self {
-                    spec,
-                    factory: Self::Factory::new(Box::new(factory_fn)),
-                }
-            }
-
-            fn spec(&self) -> &Self::Spec {
-                &self.spec
-            }
-
-            fn factory(&self) -> &Self::Factory {
-                &self.factory
-            }
-
-            fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
-                (self.spec, self.factory)
-            }
-        }
-
-        $crate::submit!(<$plugin_constructor>::new::<$plugin_name>());
     };
 }
 
@@ -657,12 +536,95 @@ macro_rules! __leaf_plugin_build_ports {
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! __leaf_plugin_build_params {
+macro_rules! __optional_params_spec {
     (none) => {
         None
     };
-    ($params:expr) => {
-        Some($params)
+    ((typed $params_ty:path)) => {
+        Some(<$params_ty as $crate::ProvideParamSpec>::provide())
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __deserialize_params {
+    (none, $params_binding:ident, $parameters:expr) => {};
+    ((typed $params_ty:path), $params_binding:ident, $parameters:expr) => {
+        let $params_binding = $crate::ParamsDeserializer::deserialize::<$params_ty>($parameters)?;
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __leaf_plugin_impl {
+    (
+        ctx: {
+            plugin_name: $plugin_name:ident,
+            node_name: $name:expr,
+            factory_type: $factory_type:ty,
+            plugin_constructor: $plugin_constructor:ty,
+            reconstruction_data: $reconstruction_data:ty,
+            behavior_box_type: $behavior_box_type:ty,
+            node_kind: $node_kind:expr,
+        },
+        receivers: [$($receiver_name:ident : $receiver_ty:ty => $receiver_desc:literal),* $(,)?],
+        senders: [$($sender_name:ident : $sender_ty:ty => $sender_desc:literal),* $(,)?],
+        params: $params:tt,
+        params_binding: $params_binding:ident,
+        create: $create:expr $(,)?
+    ) => {
+        pub struct $plugin_name {
+            spec: $crate::__macro_support::NodeSpec,
+            factory: $factory_type,
+        }
+
+        impl $crate::Plugin for $plugin_name {
+            type Spec = $crate::__macro_support::NodeSpec;
+            type Factory = $factory_type;
+
+            fn new() -> Self
+            where
+                Self: Sized,
+            {
+                let factory_fn = |mut data: $reconstruction_data| {
+                    $crate::__leaf_plugin_extract_receivers!([$($receiver_name : $receiver_ty => $receiver_desc),*], data);
+                    $crate::__leaf_plugin_extract_senders!([$($sender_name : $sender_ty => $sender_desc),*], data);
+                    $crate::__deserialize_params!($params, $params_binding, data.parameters);
+                    Ok(Box::new($create) as $behavior_box_type)
+                };
+
+                let spec = $crate::__macro_support::NodeSpec::builder()
+                    .key($crate::__macro_support::NodeSpecKey::new(
+                        $crate::__macro_support::NodeName::new($name),
+                        $node_kind,
+                    ))
+                    .maybe_ports($crate::__leaf_plugin_build_ports!(
+                        [$($receiver_name : $receiver_ty => $receiver_desc),*],
+                        [$($sender_name : $sender_ty => $sender_desc),*]
+                    ))
+                    .maybe_params($crate::__optional_params_spec!($params))
+                    .build();
+
+                Self {
+                    spec,
+                    factory: Self::Factory::new(Box::new(factory_fn)),
+                }
+            }
+
+            fn spec(&self) -> &Self::Spec {
+                &self.spec
+            }
+
+            fn factory(&self) -> &Self::Factory {
+                &self.factory
+            }
+
+            fn into_parts(self: Box<Self>) -> (Self::Spec, Self::Factory) {
+                (self.spec, self.factory)
+            }
+        }
+
+        $crate::submit!(<$plugin_constructor>::new::<$plugin_name>());
     };
 }
 
@@ -693,11 +655,11 @@ macro_rules! __control_plugin_impl {
                 Self {
                     spec: NodeSpec::builder()
                         .key(NodeSpecKey::new(NodeName::new($name), NodeKind::Control))
-                        .maybe_params($crate::__leaf_plugin_build_params!($params))
+                        .maybe_params($crate::__optional_params_spec!($params))
                         .build(),
 
                     factory: ControlFactory::new(Box::new(|data: ControlReconstructionData| {
-                        let $params_binding = data.parameters;
+                        $crate::__deserialize_params!($params, $params_binding, data.parameters);
                         let $children_binding = data.context.children;
 
                         Ok(Box::new($create) as BoxNode)
@@ -749,12 +711,16 @@ macro_rules! __decorator_plugin_impl {
                 Self {
                     spec: NodeSpec::builder()
                         .key(NodeSpecKey::new(NodeName::new($name), NodeKind::Decorator))
-                        .maybe_params($crate::__leaf_plugin_build_params!($params))
+                        .maybe_params($crate::__optional_params_spec!($params))
                         .build(),
 
                     factory: DecoratorFactory::new(Box::new(
                         |data: DecoratorReconstructionData| {
-                            let $params_binding = data.parameters;
+                            $crate::__deserialize_params!(
+                                $params,
+                                $params_binding,
+                                data.parameters
+                            );
                             let $child_binding = data.context.child;
 
                             Ok(Box::new($create) as BoxNode)

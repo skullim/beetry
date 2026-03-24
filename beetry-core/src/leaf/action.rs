@@ -5,18 +5,22 @@ use anyhow::Result;
 use tracing::{debug, error};
 
 use crate::{
-    Node, NodeTask, TickStatus,
+    ActionTask, Node, TickStatus,
     task::{RegisterTask, TaskHandle, TaskStatus},
 };
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
+/// Behavior contract for user-defined action nodes.
+///
+/// Implementors define the [`ActionTask`] to execute when the action starts,
+/// and can react to task lifecycle updates through the provided hooks.
+///
+/// For more details, see the book chapter on Action Lifecycle.
 pub trait Behavior {
     /// Construct the task that should be scheduled for this action.
-    ///
-    /// This is called when the action transitions from idle into execution.
-    fn task(&mut self) -> Result<NodeTask>;
+    fn task(&mut self) -> Result<ActionTask>;
 
-    /// Reset any action-local state for a fresh run.
+    /// Reset action state.
     fn reset(&mut self) {}
 
     /// Hook called on [`TaskStatus::Running`].
@@ -41,7 +45,7 @@ pub trait Behavior {
 
 pub type BoxBehavior = Box<dyn Behavior>;
 impl Behavior for BoxBehavior {
-    fn task(&mut self) -> Result<NodeTask> {
+    fn task(&mut self) -> Result<ActionTask> {
         (**self).task()
     }
     fn reset(&mut self) {
@@ -61,17 +65,28 @@ impl Behavior for BoxBehavior {
     }
 }
 
-fn visit_status(behavior: &mut impl Behavior, status: TaskStatus) -> TaskStatus {
+#[must_use]
+fn dispatch_hooks(behavior: &mut impl Behavior, status: TaskStatus) -> TaskStatus {
     match status {
         TaskStatus::Success => behavior.on_success(),
         TaskStatus::Running => behavior.on_running(),
         TaskStatus::Failure => behavior.on_failure(),
         TaskStatus::Aborted => behavior.on_aborted(),
     }
+    .inspect_err(|e| error!("error during action hook invocation: {e}"))
     .map(|()| status)
     .unwrap_or(TaskStatus::Failure)
 }
 
+/// Action leaf node that bridges the synchronous `tick` interface and the
+/// executor.
+///
+/// `Action` uses the user-provided [`Behavior`] to create an [`ActionTask`],
+/// registers it through [`RegisterTask`], and reports progress through
+/// [`TickStatus`] on later ticks.
+///
+/// See the runtime execution chapter in the book for a more detailed
+/// explanation.
 pub struct Action<R, TH, B>
 where
     R: RegisterTask<TH>,
@@ -80,6 +95,7 @@ where
 {
     behavior: B,
     registry: Arc<R>,
+    abort_poll_interval: Duration,
     state: State<TH>,
 }
 
@@ -89,10 +105,11 @@ where
     TH: TaskHandle,
     B: Behavior,
 {
-    pub fn new(behavior: B, registry: Arc<R>) -> Self {
+    pub fn new(behavior: B, registry: Arc<R>, abort_poll_interval: Duration) -> Self {
         Self {
             behavior,
             registry,
+            abort_poll_interval,
             state: State::Idle,
         }
     }
@@ -123,12 +140,12 @@ where
                 }
             },
             State::Running(handle) => {
-                let status = handle.query();
-                visit_status(&mut self.behavior, status);
+                let task_status = handle.query();
+                // calling hooks can modify the status of the task
+                let task_status = dispatch_hooks(&mut self.behavior, task_status);
 
-                let status: TickStatus = status.try_into().unwrap();
+                let status: TickStatus = task_status.try_into().unwrap();
                 if status.is_terminal() {
-                    debug!("task completed, returning to idle");
                     self.state = State::Idle;
                 }
 
@@ -164,7 +181,7 @@ where
                         debug!("aborted task terminal status: {status:?}");
                         break;
                     }
-                    std::thread::sleep(Duration::from_millis(10));
+                    std::thread::sleep(self.abort_poll_interval);
                 }
                 on_aborted();
                 debug!("switching state to idle");
@@ -206,6 +223,8 @@ mod tests {
         Task, TaskDescription,
         task::{AbortTask, MockRegisterTask, QueryTask},
     };
+
+    const DEFAULT_ABORT_INTERVAL: Duration = Duration::from_millis(10);
 
     mock! {
         TaskHandle {}
@@ -270,13 +289,13 @@ mod tests {
         let mut behavior = MockBehavior::new();
         behavior
             .expect_task()
-            .returning(|| Ok(NodeTask::new(TaskStub::new())));
+            .returning(|| Ok(ActionTask::new(TaskStub::new())));
         behavior
             .expect_on_success()
             .once()
             .returning(|| Result::Ok(()));
 
-        let mut action = Action::new(behavior, Arc::new(registry));
+        let mut action = Action::new(behavior, Arc::new(registry), DEFAULT_ABORT_INTERVAL);
         assert_eq!(action.tick(), TickStatus::Running);
         assert_eq!(action.tick(), TickStatus::Success);
     }
@@ -297,13 +316,13 @@ mod tests {
         let mut behavior = MockBehavior::new();
         behavior
             .expect_task()
-            .returning(|| Ok(NodeTask::new(TaskStub::new())));
+            .returning(|| Ok(ActionTask::new(TaskStub::new())));
         behavior
             .expect_on_running()
             .once()
             .returning(|| Result::Ok(()));
 
-        let mut action = Action::new(behavior, Arc::new(registry));
+        let mut action = Action::new(behavior, Arc::new(registry), DEFAULT_ABORT_INTERVAL);
         assert_eq!(action.tick(), TickStatus::Running);
         assert_eq!(action.tick(), TickStatus::Running);
     }
@@ -324,13 +343,13 @@ mod tests {
         let mut behavior = MockBehavior::new();
         behavior
             .expect_task()
-            .returning(|| Ok(NodeTask::new(TaskStub::new())));
+            .returning(|| Ok(ActionTask::new(TaskStub::new())));
         behavior
             .expect_on_failure()
             .once()
             .returning(|| Result::Ok(()));
 
-        let mut action = Action::new(behavior, Arc::new(registry));
+        let mut action = Action::new(behavior, Arc::new(registry), DEFAULT_ABORT_INTERVAL);
 
         assert_eq!(action.tick(), TickStatus::Running);
         assert_eq!(action.tick(), TickStatus::Failure);
@@ -345,7 +364,7 @@ mod tests {
             .expect_task()
             .returning(|| Err(anyhow::anyhow!("task creation failed")));
 
-        let mut action = Action::new(behavior, Arc::new(registry));
+        let mut action = Action::new(behavior, Arc::new(registry), DEFAULT_ABORT_INTERVAL);
         assert_eq!(action.tick(), TickStatus::Failure);
     }
 
@@ -360,9 +379,9 @@ mod tests {
         let mut behavior = MockBehavior::new();
         behavior
             .expect_task()
-            .returning(|| Ok(NodeTask::new(TaskStub::new())));
+            .returning(|| Ok(ActionTask::new(TaskStub::new())));
 
-        let mut action = Action::new(behavior, Arc::new(registry));
+        let mut action = Action::new(behavior, Arc::new(registry), DEFAULT_ABORT_INTERVAL);
         assert_eq!(action.tick(), TickStatus::Failure);
     }
 
@@ -387,7 +406,7 @@ mod tests {
         let mut behavior = MockBehavior::new();
         behavior
             .expect_task()
-            .returning(|| Ok(NodeTask::new(TaskStub::new())));
+            .returning(|| Ok(ActionTask::new(TaskStub::new())));
         behavior
             .expect_on_aborted()
             .once()
@@ -397,7 +416,7 @@ mod tests {
             .once()
             .returning(|| Result::Ok(()));
 
-        let mut action = Action::new(behavior, Arc::new(registry));
+        let mut action = Action::new(behavior, Arc::new(registry), DEFAULT_ABORT_INTERVAL);
 
         assert_eq!(action.tick(), TickStatus::Running);
         assert_eq!(action.tick(), TickStatus::Running);
@@ -414,7 +433,7 @@ mod tests {
             .once()
             .returning(|| Result::Ok(()));
 
-        let mut action = Action::new(behavior, Arc::new(registry));
+        let mut action = Action::new(behavior, Arc::new(registry), DEFAULT_ABORT_INTERVAL);
 
         action.abort();
     }
@@ -426,7 +445,7 @@ mod tests {
         let mut behavior = MockBehavior::new();
         behavior.expect_reset().once().return_const(());
 
-        let mut action = Action::new(behavior, Arc::new(registry));
+        let mut action = Action::new(behavior, Arc::new(registry), DEFAULT_ABORT_INTERVAL);
         action.reset();
     }
 }
