@@ -5,7 +5,7 @@ This book assumes a basic knowledge of behavior trees.
 The Beetry framework consists of three main components: a runtime, a plugin
 system, and an editor called Beehive.
 
-![Beetry components](components.svg)
+![Components](/intro/components.svg)
 
 Each of these components provides its own functionality and extends the
 framework in a different way.
