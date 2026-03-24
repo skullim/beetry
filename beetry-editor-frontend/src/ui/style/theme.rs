@@ -34,7 +34,7 @@ const THEME_CSS: &str = "
         --bt-accent-button: #119c90;
         --bt-accent-button-hover: #0f8a7f;
         --bt-accent-soft: #d6f2ef;
-        --bt-danger: #c2363f;
+        --bt-error: #c2363f;
         --bt-focus-ring: rgba(143, 184, 224, 0.2);
         --bt-shadow: 0 14px 36px rgba(15, 23, 42, 0.12);
         --bt-radius-lg: 16px;
@@ -316,7 +316,7 @@ const THEME_CSS: &str = "
 
     .bt-form-error {
         margin: 4px 0 0 0;
-        color: var(--bt-danger);
+        color: var(--bt-error);
         font-size: var(--bt-font-md);
         font-weight: 600;
     }
