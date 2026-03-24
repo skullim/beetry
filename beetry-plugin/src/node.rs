@@ -86,7 +86,8 @@ impl DecoratorContext {
 ///
 /// /// Not strictly required to implement `ProvideParamSpec` but param type
 /// /// must be deserializable to be usable with any node registration macro.
-/// /// See book chapter on plugin for in-depth explanation.
+/// /// See the plugin chapter in the book for an in-depth explanation:
+/// /// <https://beetry.pages.dev/plugins/plugin.html>.
 /// #[derive(Deserialize)]
 /// struct RetryParams;
 ///

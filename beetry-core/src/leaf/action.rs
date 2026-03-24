@@ -15,7 +15,8 @@ use crate::{
 /// Implementors define the [`ActionTask`] to execute when the action starts,
 /// and can react to task lifecycle updates through the provided hooks.
 ///
-/// For more details, see the book chapter on Action Lifecycle.
+/// For more details, see the Action Lifecycle chapter in the book:
+/// <https://beetry.pages.dev/runtime/action-lifecycle.html>.
 pub trait Behavior {
     /// Construct the task that should be scheduled for this action.
     fn task(&mut self) -> Result<ActionTask>;
@@ -86,7 +87,8 @@ fn dispatch_hooks(behavior: &mut impl Behavior, status: TaskStatus) -> TaskStatu
 /// [`TickStatus`] on later ticks.
 ///
 /// See the runtime execution chapter in the book for a more detailed
-/// explanation.
+/// explanation:
+/// <https://beetry.pages.dev/runtime/execution.html>.
 pub struct Action<R, TH, B>
 where
     R: RegisterTask<TH>,

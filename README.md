@@ -82,6 +82,8 @@ uses a separate editor called [`Groot2`](https://www.behaviortree.dev/groot/).
 Beetry's public API is provided through the `beetry` crate (see
 [API docs](beetry/src/lib.rs)).
 
+Guides and concepts are available in the [Beetry book](https://beetry.pages.dev/).
+
 If you want to contribute reusable generic nodes or channel implementations,
 add them to `beetry-node` and `beetry-channel`, respectively.
 

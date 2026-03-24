@@ -3,7 +3,8 @@
 //! `beetry` is the main public API of the framework. APIs exposed by member
 //! crates are not considered public API and should not be used directly.
 //!
-//! For concepts and guides see the Beetry book.
+//! For concepts and guides see the Beetry book:
+//! <https://beetry.pages.dev/>.
 //!
 //! Beetry's runtime currently depends on Tokio.
 //!
