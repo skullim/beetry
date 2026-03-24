@@ -21,6 +21,7 @@ impl Behavior for BoxBehavior {
     }
 }
 
+/// Synchronous leaf node backed by a [`Behavior`] implementation.
 pub struct Condition<B>
 where
     B: Behavior,

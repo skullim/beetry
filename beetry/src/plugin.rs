@@ -10,7 +10,6 @@ pub use beetry_plugin::{action, channel, condition, control, decorator};
 /// This module groups the public API related to parameter.
 pub mod parameter {
     pub use beetry_plugin::{
-        FieldDefinition, FieldMetadata, FieldTypeSpec, ParamsDeserializer as Deserializer,
-        ParamsSpec as Spec, ProvideParamSpec,
+        FieldDefinition, FieldMetadata, FieldTypeSpec, ParamsSpec as Spec, ProvideParamSpec,
     };
 }

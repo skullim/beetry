@@ -27,6 +27,7 @@ pub trait Node {
     fn abort(&mut self) {}
 }
 
+/// Boxed type-erased [`Node`].
 pub type BoxNode = Box<dyn Node>;
 
 impl Node for BoxNode {
@@ -43,4 +44,5 @@ impl Node for BoxNode {
     }
 }
 
+/// Non-empty collection of nodes.
 pub type NonEmptyNodes = Vec1<BoxNode>;

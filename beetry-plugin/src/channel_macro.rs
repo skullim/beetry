@@ -13,7 +13,6 @@
 /// # use beetry_macros::Message;
 /// # use beetry_message::Message;
 /// # use beetry_message::type_hash::{self, TypeHash};
-///
 /// #[derive(Debug, Clone, Copy, Default, TypeHash, Message)]
 /// pub struct VehicleState {
 ///     pub ready: bool,

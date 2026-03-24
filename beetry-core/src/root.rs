@@ -1,5 +1,9 @@
 use crate::{Node, TickStatus};
 
+/// Root node.
+///
+/// `Root` owns the top-level child node and forwards the [`Node`] lifecycle to
+/// it.
 pub struct Root<N> {
     child: N,
 }

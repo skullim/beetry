@@ -10,7 +10,7 @@ use tokio::time::MissedTickBehavior;
 
 use crate::{Node, TickStatus};
 
-/// Drives a behavior tree using an external tick source.
+/// Ticks a behavior tree using an external tick source.
 ///
 /// `Ticker` is built from any `Stream<Item = TickSignal>`, so callers can
 /// define their own ticking mechanism. A tick source can be periodic with
@@ -22,8 +22,10 @@ pub struct Ticker<S> {
 
 pub type TickSignal = ();
 
+/// Errors that can occur while ticking a tree from a tick source.
 #[derive(Debug, ThisError)]
 pub enum Error {
+    /// The tick source ended before the tree reached a terminal status.
     #[error("tick source was exhausted")]
     SourceExhausted,
 }

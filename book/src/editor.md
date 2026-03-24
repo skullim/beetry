@@ -63,6 +63,8 @@ The following video shows basic workspace navigation.
 
 On the right side of Beehive, there is a toolbar that provides actions for
 importing and exporting artifacts.
+When exporting, sibling child order is derived from horizontal placement in the
+workspace, that means children are ordered from left to right.
 
 In the bottom-left corner, an error dialog reports invalid actions. When the
 user tries to export a tree, a validation check is performed. If the check
