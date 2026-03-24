@@ -48,12 +48,12 @@ The comparison includes [bonsai-bt](https://github.com/Sollimann/bonsai), curren
 | --- | --- | --- | --- |
 | Ecosystem | Rust | Rust | C++ |
 | Maturity | Early-stage | Established | Mature |
-| Extensibility | Plugin-based custom nodes and channels | Action logic dispatched through enum variants in a central `tick` callback | Custom nodes and runtime plugins |
+| Extensibility | Compile-time plugin registration for custom nodes and channels | Callback-based action dispatch over user-defined action enums | Custom nodes and runtime plugins |
 | Leaf node reusability | ✅ | Limited: leaf nodes are less reusable across trees | ✅ |
 | Communication | Explicit inter-node communication through channels | Blackboard-based shared state | Ports and blackboard-based data flow |
 | Pub/Sub integration | Any Pub/Sub framework can be used inside custom actions | Not documented | Native ROS2 integration available |
 | Ticking policy | User-defined tick source | User calls tree tick | User calls tree tick |
-| Action execution model | Action work is executed off the tick thread via registered tasks | Action logic runs in the tree-driven callback model | Tree execution engine is single-threaded; async actions are polled on the tick thread |
+| Action execution model | Action work is executed off the tick thread via registered tasks | Action logic is driven through the tree tick callback; background work is user-managed | Tree execution engine is single-threaded; async actions are polled on the tick thread |
 | Parallel execution | ✅ Action nodes can be scheduled in parallel by the Parallel control node | ✅ Parallel combinators such as `WhenAll` and `WhenAny` | ❌ |
 | Serialization format | JSON | Serde, RON, and Graphviz | XML |
 
@@ -66,6 +66,7 @@ uses a separate editor called [`Groot2`](https://www.behaviortree.dev/groot/).
 
 | Feature | Beehive | [`Groot2`](https://www.behaviortree.dev/groot/) |
 | --- | --- | --- |
+| Subtree support | ❌ | ✅ |
 | Node parameter validation | Early validation during tree design | No documented editor-time validation of arbitrary parameter values |
 | Data port validation | Connections are allowed only between matching message types | Connections are based on shared blackboard identifiers; type mismatches may still surface when the tree is loaded or run |
 | Tree validation at export | Full: checks tree structure, node connections, and data type compatibility before export | Partial: validates tree structure and node connections, but data type issues may still surface later |
@@ -98,6 +99,7 @@ well as generating trees to be executed at runtime.
 ## Roadmap
 
 - [ ] Support external ports
+- [ ] Extend nodes and channels library
 - [ ] Parameters 2.0: improve ergonomics and reusability
 - [ ] Subtree support in Beehive
 - [ ] User-defined executors
