@@ -10,6 +10,8 @@
 Beetry is a framework built around the concept of behavior trees, providing
 tools to model, execute, and interact with them.
 
+Beetry's runtime currently depends on Tokio.
+
 ### What is a behavior tree?
 
 Behavior trees are used to model decision-making and task execution in complex,

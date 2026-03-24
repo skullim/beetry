@@ -5,6 +5,8 @@
 //!
 //! For concepts and guides see the Beetry book.
 //!
+//! Beetry's runtime currently depends on Tokio.
+//!
 //! ## Feature flags
 //!
 //! - `plugin`: enables plugin-based registration for custom nodes and channels.
