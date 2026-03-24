@@ -16,6 +16,7 @@ use crate::{
     definitions::IndexedDragOffset,
     signals::RenderRequests,
     ui::{
+        error::ErrorQueueState,
         handler::define_handlers,
         node::port::{ConnectionOrigin, layout},
         style::{
@@ -50,14 +51,20 @@ pub fn Body(props: BodyProps) -> Element {
     let origin = props.origin;
 
     let backend = use_context::<Backend>();
-    let message_desc = use_hook(|| {
-        backend.with(|s| {
-            let query_api = api::node::spec::by_node_id(s);
-            let spec = query_api.ports(node_id).unwrap();
-            let msg_spec = spec.spec(port_id).unwrap().msg_spec.desc().clone();
-            Rc::new(msg_spec)
-        })
-    });
+    let mut errors = use_context::<ErrorQueueState>();
+    let Some(message_desc) = use_hook(|| {
+        backend
+            .with(|s| -> anyhow::Result<_> {
+                let query_api = api::node::spec::by_node_id(s);
+                let spec = query_api.ports(node_id)?;
+                let msg_spec = spec.spec(port_id)?.msg_spec.desc().clone();
+                Ok(Rc::new(msg_spec))
+            })
+            .map_err(|e| errors.push(e))
+            .ok()
+    }) else {
+        return rsx! {};
+    };
 
     let font_size = text::FONT_SIZE_SMALL;
     let port_width = text_width_from(&message_desc, font_size);
