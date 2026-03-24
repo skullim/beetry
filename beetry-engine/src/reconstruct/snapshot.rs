@@ -136,7 +136,7 @@ impl<'a> TreeSnapshotBuilder<'a> {
             .node_store
             .nodes
             .iter()
-            .find_map(|record| {
+            .filter_map(|record| {
                 (self
                     .node_store
                     .specs
@@ -145,7 +145,8 @@ impl<'a> TreeSnapshotBuilder<'a> {
                     == Some(NodeKind::Root))
                 .then_some(record.id)
             })
-            .with_context(|| anyhow!("failed to find root id"))?;
+            .exactly_one()
+            .map_err(|e| anyhow!("expected only one root node, got: {e}"))?;
 
         let root_node = self.node_store.nodes.get(root_id).with_context(|| {
             anyhow!("root node with id {root_id:?} does not exist in node store")
@@ -153,8 +154,8 @@ impl<'a> TreeSnapshotBuilder<'a> {
 
         let root_child = *root_node
             .children()
-            .next()
-            .with_context(|| anyhow!("root node {root_id:?} does not have a child node"))?;
+            .exactly_one()
+            .map_err(|e| anyhow!("expected single root node child, got: {e}"))?;
 
         Ok(Root::new(self.build_node(root_child)?))
     }
