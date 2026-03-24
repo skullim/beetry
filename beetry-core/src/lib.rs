@@ -38,8 +38,8 @@
 //! ### `Action`
 //!
 //! [`ActionBehavior`] is the asynchronous leaf contract used by [`Action`].
-//! [`Action`] wraps the behavior and uses it to construct an [`ActionTask`] that
-//! can be registered with an executor instead of directly returning a
+//! [`Action`] wraps the behavior and uses it to construct an [`ActionTask`]
+//! that can be registered with an executor instead of directly returning a
 //! [`TickStatus`] from `tick`.
 //!
 //! Note: Action abort is currently implemented as a blocking operation: it

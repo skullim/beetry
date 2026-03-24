@@ -416,7 +416,9 @@ mod condition_fixture {
 
 mod control_fixture {
     use beetry_editor_types::spec::node::{NodeName, NodeSpecKey};
-    use beetry_plugin::node::{ControlFactory, ControlPluginConstructor, ControlReconstructionData};
+    use beetry_plugin::node::{
+        ControlFactory, ControlPluginConstructor, ControlReconstructionData,
+    };
 
     use super::*;
 
@@ -449,7 +451,9 @@ mod control_fixture {
         };
     }
 
-    stub_control!(StubWithChildren { _children: NonEmptyNodes });
+    stub_control!(StubWithChildren {
+        _children: NonEmptyNodes
+    });
     stub_control!(StubWithChildrenAndParam {
         _children: NonEmptyNodes,
         _params: TypedParams
