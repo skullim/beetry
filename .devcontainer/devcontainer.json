@@ -1,0 +1,42 @@
+{
+    "name": "beetry-dev",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "runArgs": [
+        "--hostname",
+        "beetry",
+        "--security-opt=apparmor=unconfined",
+        "-v",
+        "/tmp/.X11-unix:/tmp/.X11-unix:rw",
+        "--gpus=all"
+    ],
+    "remoteUser": "dev",
+    "workspaceMount": "source=${localWorkspaceFolder},target=${localWorkspaceFolder},type=bind,consistency=cached",
+    "workspaceFolder": "${localWorkspaceFolder}",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "grimmer.vscode-back-forward-button",
+                "streetsidesoftware.code-spell-checker",
+                "pomdtr.excalidraw-editor",
+                "rust-lang.rust-analyzer",
+                "vadimcn.vscode-lldb",
+                "openai.chatgpt",
+                "donjayamanne.githistory",
+                "fill-labs.dependi",
+                "tamasfe.even-better-toml"
+            ]
+        }
+    },
+    "updateRemoteUserUID": true,
+    "containerEnv": {
+        "DISPLAY": "${localEnv:DISPLAY}",
+        "XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR}",
+        "DBUS_SESSION_BUS_ADDRESS": "unix:path=${localEnv:XDG_RUNTIME_DIR}/bus"
+    },
+    "mounts": [
+        "type=bind,source=${localEnv:XDG_RUNTIME_DIR}/bus,target=${localEnv:XDG_RUNTIME_DIR}/bus",
+        "type=bind,source=${localEnv:XDG_RUNTIME_DIR}/${localEnv:WAYLAND_DISPLAY},target=${localEnv:XDG_RUNTIME_DIR}/${localEnv:WAYLAND_DISPLAY}"
+    ]
+}
