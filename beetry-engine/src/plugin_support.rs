@@ -84,7 +84,12 @@ impl TreeEngine<Configured> {
 }
 
 fn load_valid_tree(path: &Path) -> Result<ValidTreeStore> {
-    let content = std::fs::read_to_string(path)?;
+    let content = std::fs::read_to_string(path).map_err(|e| {
+        anyhow!(
+            "failed to read content from {} context: {e}",
+            path.display()
+        )
+    })?;
     json::load_from(&content)
 }
 
