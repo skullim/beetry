@@ -20,9 +20,9 @@ beetry-plugin = { version = "0.2.0", path = "../beetry-plugin" }
 beetry-serialization = { version = "0.2.0", path = "../beetry-serialization" }
 beetry-editor-backend = { version = "0.2.0", path = "../beetry-editor-backend" }
 bon.workspace = true
-chrono = "0.4.42"
-dioxus = { version = "0.7.3", features = ["desktop"] }
-dioxus-logger = "0.7.3"
+chrono = "0.4.45"
+dioxus = { version = "0.7.10", features = ["desktop"] }
+dioxus-logger = "0.7.10"
 rfd = { version = "0.17.2", default-features = false, features = [
     "xdg-portal",
 ] }

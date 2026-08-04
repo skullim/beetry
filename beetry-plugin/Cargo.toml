@@ -18,7 +18,7 @@ beetry-editor-types = { version = "0.2.0", path = "../beetry-editor-types" }
 beetry-macros = { version = "0.2.0", path = "../beetry-macros" }
 beetry-message = { version = "0.2.0", path = "../beetry-message" }
 bon.workspace = true
-inventory = "0.3.21"
+inventory = "0.3.24"
 mitsein.workspace = true
 serde.workspace = true
 serde-value = "0.7.0"

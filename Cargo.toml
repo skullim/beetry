@@ -35,22 +35,22 @@ categories = [
 rust-version = "1.88.0"
 
 [workspace.dependencies]
-anyhow = "1.0.102"
-bon = "3.9.1"
+anyhow = "1.0.104"
+bon = "3.9.3"
 derive_more = { version = "2.1.1", features = ["full"] }
-futures = "0.3.32"
-getset = "0.1.6"
-indexmap = { version = "2.13.0", features = ["serde"] }
+futures = "0.3.33"
+getset = "0.1.7"
+indexmap = { version = "2.14.0", features = ["serde"] }
 mitsein = { version = "0.9.0", features = ["serde"] }
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
 strum_macros = "0.28.0"
-thiserror = "2.0.18"
+thiserror = "2.0.19"
 tracing = "0.1.44"
-itertools = "0.14.0"
+itertools = "0.15.0"
 num-traits = "0.2.19"
-schemars = { version = "1.2.1", features = ["indexmap2"] }
-tokio = "1.50.0"
+schemars = { version = "1.2.2", features = ["indexmap2"] }
+tokio = "1.53.1"
 
 [profile.release]
 panic = "abort"

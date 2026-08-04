@@ -19,13 +19,13 @@ anyhow.workspace = true
 bon.workspace = true
 futures.workspace = true
 mitsein.workspace = true
-mockall = { version = "0.14.0", optional = true }
+mockall = { version = "0.15.0", optional = true }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["sync", "time", "macros"] }
 tracing.workspace = true
 
 [dev-dependencies]
-mockall = { version = "0.14.0" }
+mockall = { version = "0.15.0" }
 tokio = { workspace = true, features = ["rt"] }
 
 [lints]
