@@ -70,15 +70,19 @@ feature-depth = 1
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
+
+    { id = "RUSTSEC-2026-0173", reason = "proc-macro-error2 to be replaced" },
     { id = "RUSTSEC-2024-0370", reason = "proc-macro-error is currently used transitively and has no safe upgrade." },
     { id = "RUSTSEC-2024-0411", reason = "gtk3 stack is pulled transitively by dioxus dependencies and is pending migration." },
     { id = "RUSTSEC-2024-0412", reason = "gtk3 stack is pulled transitively by dioxus dependencies and is pending migration." },
     { id = "RUSTSEC-2024-0413", reason = "gtk3 stack is pulled transitively by dioxus dependencies and is pending migration." },
+    { id = "RUSTSEC-2024-0414", reason = "Transitive dependency of Dioxus desktop" },
     { id = "RUSTSEC-2024-0415", reason = "gtk3 stack is pulled transitively by dioxus dependencies and is pending migration." },
     { id = "RUSTSEC-2024-0416", reason = "gtk3 stack is pulled transitively by dioxus dependencies and is pending migration." },
     { id = "RUSTSEC-2024-0418", reason = "gtk3 stack is pulled transitively by dioxus dependencies and is pending migration." },
     { id = "RUSTSEC-2024-0419", reason = "gtk3 stack is pulled transitively by dioxus dependencies and is pending migration." },
     { id = "RUSTSEC-2024-0420", reason = "gtk3 stack is pulled transitively by dioxus dependencies and is pending migration." },
+    { id = "RUSTSEC-2024-0436", reason = "Transitive dependency of image/rav1e" },
     { id = "RUSTSEC-2025-0057", reason = "fxhash is used transitively by dioxus and no safe upgrade is available in current dependency chain." },
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
@@ -96,6 +100,7 @@ ignore = [
 # [possible values: any SPDX 3.11 short identifier (+ optional exception)].
 allow = [
     "MIT",
+    "BSD-2-Clause",
     "BSD-3-Clause",
     "Zlib",
     "Apache-2.0",
@@ -103,6 +108,7 @@ allow = [
     "Unicode-3.0",
     "ISC",
     "MPL-2.0",
+    "NCSA",
 ]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
