@@ -1,4 +1,4 @@
-FROM rust:1.94-trixie
+FROM rust:1.97.1-trixie
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update && \
@@ -19,9 +19,14 @@ RUN apt-get update && \
     locale-gen
 
 RUN rustup component add clippy rustfmt && \
-    rustup install nightly-x86_64-unknown-linux-gnu --component rustfmt  &&\
-    cargo install cargo-binstall &&\
-    cargo binstall --disable-telemetry -y dioxus-cli
+    rustup install nightly-x86_64-unknown-linux-gnu --component rustfmt  && \
+    cargo install cargo-binstall && \
+    cargo binstall --disable-telemetry -y \
+    dioxus-cli \
+    cargo-msrv \
+    cargo-deny \
+    mdbook \
+    mdbook-mermaid
 
 ARG USERNAME=dev
 ARG USER_UID=1000
