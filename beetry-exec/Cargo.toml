@@ -14,8 +14,7 @@ keywords.workspace = true
 anyhow.workspace = true
 beetry-core = { version = "0.2.0", path = "../beetry-core" }
 bon.workspace = true
-futures.workspace = true
-tokio = { workspace = true, features = ["sync", "time", "macros"] }
+tokio = { workspace = true, features = ["sync", "time", "macros", "rt"] }
 tracing.workspace = true
 
 [lints]

@@ -25,17 +25,19 @@
 //! This staged API makes it easy to hand the registry to tree code while the
 //! executor runs in a dedicated task.
 
-use std::{future::poll_fn, sync::Arc, task::Poll};
+use std::sync::Arc;
 
 use anyhow::{Result, anyhow};
 use beetry_core::{
     AbortTask, ActionTask, ExecutorConcept, QueryTask, RegisterTask, TaskDescription, TaskStatus,
 };
 use bon::Builder;
-use futures::{StreamExt, stream::FuturesUnordered};
-use tokio::sync::{
-    Notify,
-    mpsc::{self, Receiver, Sender, error::TryRecvError},
+use tokio::{
+    sync::{
+        Notify,
+        mpsc::{self, Receiver, Sender, error::TryRecvError},
+    },
+    task::JoinSet,
 };
 use tracing::{debug, instrument};
 
@@ -149,24 +151,27 @@ impl ExecutorConcept for Executor<Ready> {
     #[instrument(skip(self), name = "Executor::run")]
     async fn run(&mut self) -> Result<()> {
         debug!("start running registered tasks");
-        let mut tasks = FuturesUnordered::new();
-
+        let mut tasks_set = JoinSet::new();
         loop {
-            let execute_next_task_fut = poll_fn(|cx| {
-                if tasks.is_empty() {
-                    Poll::Pending
-                } else {
-                    tasks.poll_next_unpin(cx)
-                }
-            });
-
             tokio::select! {
-                Some(exe_task) = self.recv.recv() => {
-                    debug!("received new task to execute: {}", exe_task.task.desc());
-                    tasks.push(exe_task.execute());
-                },
-                Some(result) = execute_next_task_fut => {
-                    result?;
+                o_exe_task = self.recv.recv() => {
+                    if let Some(exe_task) = o_exe_task {
+                        debug!("received new task to execute: {}", exe_task.task.desc());
+                        tasks_set.spawn(exe_task.execute());
+                    }
+                    // no more active senders, we just await the remaining tasks in set and return
+                    else {
+                        while let Some(result) = tasks_set.join_next().await {
+                            result??;
+                        }
+                        return Ok(());
+                    }
+                }
+                o_result = tasks_set.join_next(), if !tasks_set.is_empty() => {
+                    if let Some(result) = o_result {
+                        result??;
+                    }
+
                 }
 
             }
