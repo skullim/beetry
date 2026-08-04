@@ -334,11 +334,11 @@ fn removing_node_disconnects_connections(
 
     api::node::remove(&mut service, node_id)?;
 
-    assert!(
+    assert_eq!(
         api::node::ports::connections_query(&service)
             .all_connections()
-            .count()
-            == 0
+            .count(),
+        0
     );
 
     assert_eq!(

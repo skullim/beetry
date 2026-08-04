@@ -130,8 +130,7 @@ pub fn Dialog() -> Element {
 fn now_unix_secs() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs())
-        .unwrap_or(0)
+        .map_or(0, |duration| duration.as_secs())
 }
 
 fn format_timestamp(epoch_secs: u64) -> String {

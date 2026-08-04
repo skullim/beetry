@@ -75,8 +75,7 @@ fn dispatch_hooks(behavior: &mut impl Behavior, status: TaskStatus) -> TaskStatu
         TaskStatus::Aborted => behavior.on_aborted(),
     }
     .inspect_err(|e| error!("error during action hook invocation: {e}"))
-    .map(|()| status)
-    .unwrap_or(TaskStatus::Failure)
+    .map_or(TaskStatus::Failure, |()| status)
 }
 
 /// Action leaf node that bridges the synchronous `tick` interface and the

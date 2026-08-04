@@ -141,7 +141,7 @@ where
                             tracker_api
                                 .spec_id(id)
                                 .with_context(|| anyhow!("expected spec id for node {id}"))?,
-                            children.into_iter(),
+                            children,
                         ),
                     ))
                 })

@@ -74,8 +74,7 @@ pub fn Body(props: BodyProps) -> Element {
             let query = api::node::ports::state_query(s);
             query
                 .state(node_id, port_id)
-                .map(PortState::is_external)
-                .unwrap_or(false)
+                .is_ok_and(PortState::is_external)
         })
     });
     let mut is_connected = use_signal(|| {
