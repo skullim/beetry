@@ -300,3 +300,36 @@ impl AbortTask for TaskHandle {
         self.aborter.abort();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use beetry_core::{Task, TickStatus};
+
+    use super::*;
+
+    struct SuccessfulTask;
+
+    impl Task for SuccessfulTask {
+        async fn run(self) -> TickStatus {
+            TickStatus::Success
+        }
+    }
+
+    #[tokio::test]
+    async fn exits_after_sender_closes_and_pending_tasks_finish() {
+        let executor = Executor::new(ExecutorConfig::default());
+        let (mut executor, registry) = executor.into_ready_with_registry();
+        let mut task = registry.register(ActionTask::new(SuccessfulTask)).unwrap();
+
+        drop(registry);
+
+        tokio::time::timeout(Duration::from_secs(1), executor.run())
+            .await
+            .expect("executor did not stop after its sender closed")
+            .unwrap();
+
+        assert_eq!(task.query(), TaskStatus::Success);
+    }
+}
