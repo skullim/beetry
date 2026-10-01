@@ -1,4 +1,4 @@
-FROM rust:1.98.0-trixie
+FROM rust:1.98.1-trixie
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update && \
